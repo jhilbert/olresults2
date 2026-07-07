@@ -87,38 +87,66 @@ def name_key(name):
 
 
 class PersonRegistry:
+    """Identity resolution across sources.
+
+    ANNE userIds are authoritative but inconsistent: the same real person
+    can show up with yearOfBirth=None on older events and a real value on
+    newer ones, since ANNE only started capturing DOB at some point. Legacy
+    (scraped) results virtually never carry a birth year at all. So matching
+    can't rely on (name, yob) being stable per person — it has to track every
+    yob variant ever seen for a name and prefer an existing ANNE identity
+    over minting a new synthetic one.
+    """
+
     def __init__(self):
         self.by_id = {}
         self.by_key = {}     # (name_key, yob) -> pid
-        self.by_name = {}    # name_key -> [pid, ...]
+        self.by_name = {}    # name_key -> [pid, ...], insertion order, no dupes
         self.next_synthetic = -1
 
-    def _register(self, pid, name, yob, nationality=None, iof_id=None):
-        nk = name_key(name)
-        self.by_id[pid] = (name, nk, yob, nationality, iof_id)
-        self.by_key.setdefault((nk, yob), pid)
-        self.by_name.setdefault(nk, []).append(pid)
+    def _new(self, name, yob, nationality=None, iof_id=None, pid=None):
+        if pid is None:
+            pid = self.next_synthetic
+            self.next_synthetic -= 1
+        self.by_id[pid] = (name, name_key(name), yob, nationality, iof_id)
+        self._link(pid, name, yob)
         return pid
+
+    def _link(self, pid, name, yob):
+        nk = name_key(name)
+        self.by_key[(nk, yob)] = pid
+        lst = self.by_name.setdefault(nk, [])
+        if pid not in lst:
+            lst.append(pid)
 
     def from_anne(self, user_id, name, yob, nationality, iof_id):
         if user_id in self.by_id:
+            self._link(user_id, name, yob)
+            if yob is not None and self.by_id[user_id][2] is None:
+                cur = self.by_id[user_id]
+                self.by_id[user_id] = (cur[0], cur[1], yob, cur[3] or nationality, cur[4] or iof_id)
             return user_id
-        return self._register(user_id, name, yob, nationality, iof_id)
+        return self._new(name, yob, nationality, iof_id, pid=user_id)
 
     def from_legacy(self, name, yob):
         nk = name_key(name)
         if (nk, yob) in self.by_key:
             return self.by_key[(nk, yob)]
-        # legacy lists often omit the year of birth (or use two digits that
-        # were expanded differently): a unique name match is good enough
-        candidates = self.by_name.get(nk, [])
-        if len(candidates) == 1:
-            return candidates[0]
-        return self._register(self.next_synthetic_id(), name, yob)
 
-    def next_synthetic_id(self):
-        pid = self.next_synthetic
-        self.next_synthetic -= 1
+        candidates = self.by_name.get(nk, [])
+        anne_candidates = [c for c in candidates if c > 0]
+        if anne_candidates:
+            # trust the real ANNE identity over a mismatched/missing legacy yob
+            pid = anne_candidates[0]
+        elif yob is None and candidates:
+            pid = candidates[0]
+        elif candidates and all(self.by_id[c][2] in (None, yob) for c in candidates):
+            # no candidate has a conflicting *known* birth year -> same person
+            pid = candidates[0]
+        else:
+            return self._new(name, yob)
+
+        self._link(pid, name, yob)
         return pid
 
 
@@ -260,6 +288,64 @@ def main():
     anne_event_ids = {int(p.stem) for p in (RAW / "results").glob("*.json")}
     n_api = load_anne_results(cur, events, persons, stage_ids)
     n_legacy = load_legacy_results(cur, events, persons, stage_ids, anne_event_ids)
+
+    # Some API results have no userId (old events) or field-order quirks;
+    # they're matched via from_legacy and can mint a synthetic identity
+    # before the file carrying the real ANNE userId for the same person is
+    # even processed (files are read in filename-string order, not
+    # chronological). Some people also hold two separate ANNE accounts
+    # outright. Reconcile both after the fact, grouped by name:
+    #  - ANNE ids agreeing on every *known* birth year are one duplicated
+    #    account -> merged into the lowest id.
+    #  - ANNE ids with genuinely conflicting birth years are treated as
+    #    different people; a synthetic id only joins one of them if its own
+    #    birth year exactly and unambiguously matches.
+    by_name_group = {}
+    for pid, (name, nk, yob, nat, iof) in persons.by_id.items():
+        by_name_group.setdefault(nk, []).append(pid)
+
+    merge_map = {}
+    for nk, ids in by_name_group.items():
+        anne_ids = [i for i in ids if i > 0]
+        synth_ids = [i for i in ids if i < 0]
+        if not anne_ids:
+            continue  # no authoritative identity to arbitrate against
+        distinct_yobs = {persons.by_id[a][2] for a in anne_ids
+                          if persons.by_id[a][2] is not None}
+        if len(distinct_yobs) <= 1:
+            target = min(anne_ids)
+            for a in anne_ids:
+                if a != target:
+                    merge_map[a] = target
+            target_yob = next(iter(distinct_yobs), None)
+            if target_yob is not None and persons.by_id[target][2] is None:
+                cur_p = persons.by_id[target]
+                persons.by_id[target] = (cur_p[0], cur_p[1], target_yob, cur_p[3], cur_p[4])
+            for s in synth_ids:
+                s_yob = persons.by_id[s][2]
+                if s_yob is None or target_yob is None or s_yob == target_yob:
+                    merge_map[s] = target
+        else:
+            by_yob = {}
+            for a in anne_ids:
+                by_yob.setdefault(persons.by_id[a][2], []).append(a)
+            for s in synth_ids:
+                s_yob = persons.by_id[s][2]
+                match = by_yob.get(s_yob)
+                if s_yob is not None and match and len(match) == 1:
+                    merge_map[s] = match[0]
+
+    # merge_map can chain (a synthetic id may map to an id that itself got
+    # merged); resolve to final targets before applying
+    def resolve(pid):
+        while pid in merge_map:
+            pid = merge_map[pid]
+        return pid
+
+    for old in list(merge_map):
+        new = resolve(old)
+        cur.execute("UPDATE result SET person_id = ? WHERE person_id = ?", (new, old))
+        persons.by_id.pop(old, None)
 
     for pid, (name, key, yob, nat, iof) in persons.by_id.items():
         cur.execute("INSERT INTO person VALUES (?,?,?,?,?,?)",
