@@ -118,7 +118,7 @@ function viewRunner(id) {
           <td class="dim">${fmtDate(r.stage_date || r.date_from)}</td>
           <td><a href="#/event/${r.event_id}">${esc(r.event_title)}</a>${r.stage_title ? ` <span class="dim">· ${esc(r.stage_title)}</span>` : ""}</td>
           <td class="hide-sm dim">${esc(r.location || "")}</td>
-          <td>${esc(r.category)}</td>
+          <td>${esc(r.category_full || r.category)}</td>
           <td class="num">${rankCell(r)}</td>
           <td class="num">${fmtTime(r.time_s)}</td>
           <td class="num hide-sm dim">${r.time_behind_s ? "+" + fmtTime(r.time_behind_s) : ""}</td>
@@ -145,7 +145,8 @@ function viewEvent(id) {
   for (const st of stages) {
     if (stages.length > 1) html += `<h2>${esc(st.title || "Etappe " + st.number)}</h2>`;
     const cats = query(`
-      SELECT r.category, cs.starters, cs.classified, cs.winner_time_s,
+      SELECT r.category, MAX(r.category_full) AS category_full,
+             cs.starters, cs.classified, cs.winner_time_s,
              MAX(r.course_length_m) AS len, MAX(r.course_climb_m) AS climb,
              MAX(r.course_controls) AS ctrls
       FROM result r JOIN category_stats cs ON cs.stage_id = r.stage_id AND cs.category = r.category
@@ -165,7 +166,7 @@ function viewEvent(id) {
       html += `
         <div class="cat-block">
           <div class="cat-head">
-            <h3>${esc(c.category)}</h3>
+            <h3>${esc(c.category_full || c.category)}</h3>
             <span class="course">${course}${course ? " · " : ""}${c.starters} Starter</span>
           </div>
           <table>
