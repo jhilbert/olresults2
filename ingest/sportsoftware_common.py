@@ -46,9 +46,13 @@ def parse_status(text):
 
 
 def detect_list_type(file_name, doc_text):
-    """Relay lists need team/leg modelling (not yet supported); cumulative
-    multi-day standings should not count as a single race."""
+    """Relay lists parse poorly as tables; cumulative multi-day standings
+    shouldn't count as a single race. But a relay/team event often also has an
+    individual ('Einzel') result file — that's a normal race, even though the
+    event title (and thus the document head) mentions 'Staffel'."""
     head = doc_text[:4000]
+    if re.search(r"einzel", file_name, re.I):
+        return "race"
     if re.search(r"staffel|relay", file_name, re.I) or re.search(r"Staffel", head):
         return "relay"
     if re.search(r"gesamt", file_name, re.I) or "Gesamtwertung" in head:
