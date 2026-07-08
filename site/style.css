@@ -48,6 +48,14 @@ header {
 .nav a:hover { color: var(--ink); }
 .nav a.active { color: var(--accent-dark); border-bottom-color: var(--accent); }
 
+.refresh {
+  flex: none; width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink-soft);
+  font-size: 17px; line-height: 1; cursor: pointer; transition: color .15s, border-color .15s;
+}
+.refresh:hover { color: var(--accent-dark); border-color: var(--accent); }
+.refresh.spinning { animation: spin .8s linear infinite; pointer-events: none; color: var(--accent); }
+
 .search { position: relative; flex: 1; max-width: 440px; }
 .search input {
   width: 100%; padding: 8px 14px;

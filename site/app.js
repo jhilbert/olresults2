@@ -344,15 +344,37 @@ function route() {
   window.scrollTo(0, 0);
 }
 
-async function boot() {
-  const SQL = await initSqlJs({
-    locateFile: (f) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}`,
-  });
-  const resp = await fetch("data/results.db.gz");
+async function loadDb(SQL, { bustCache = false } = {}) {
+  // bustCache bypasses the browser's HTTP cache so a manual refresh actually
+  // re-downloads the database (a normal F5 often reuses the cached ~7 MB file)
+  const url = bustCache ? `data/results.db.gz?t=${Date.now()}` : "data/results.db.gz";
+  const resp = await fetch(url, bustCache ? { cache: "reload" } : {});
   const stream = resp.body.pipeThrough(new DecompressionStream("gzip"));
   const buf = await new Response(stream).arrayBuffer();
   db = new SQL.Database(new Uint8Array(buf));
+  runnersCache = null;  // rebuilt lazily from the new db
+}
+
+let sqlEngine = null;
+
+async function refreshData() {
+  const btn = document.getElementById("refresh");
+  if (btn) btn.classList.add("spinning");
+  try {
+    await loadDb(sqlEngine, { bustCache: true });
+    route();
+  } finally {
+    if (btn) btn.classList.remove("spinning");
+  }
+}
+
+async function boot() {
+  sqlEngine = await initSqlJs({
+    locateFile: (f) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}`,
+  });
+  await loadDb(sqlEngine);
   setupSearch();
+  document.getElementById("refresh").addEventListener("click", refreshData);
   route();
 }
 
