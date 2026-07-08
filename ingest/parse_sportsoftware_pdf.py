@@ -45,6 +45,16 @@ HEADERS = {"User-Agent": "olresults-sync/0.1 (+https://github.com/josefhilbert/o
 
 CONTINUATION_RE = re.compile(r"^\(Forts\.?\)$", re.I)
 RANK_LEAK_RE = re.compile(r"^(\d{1,3})\s+(\S.*)$")
+# split-times ("Zwischenzeiten") reports: a different, per-control layout that
+# puts the club on its own line and interleaves dozens of split times into each
+# row. They duplicate the plain results list, so we skip them rather than
+# mis-parse them. Detected by the header word or a run of "N(controlcode)" tokens.
+SPLITS_RE = re.compile(r"Zwischenzeiten|\d+\(\d+\)\s+\d+\(\d+\)")
+# SportSoftware repeats the event title + full date as a running page header on
+# every page; it leaks in as a bogus result row ("AC Mitteldistanz"). A real
+# result row never carries a full dd.mm.yyyy date, so skip any line that does.
+DATE_HEADER_RE = re.compile(r"\d{1,2}\.\d{1,2}\.\d{4}")
+TIME_TOKEN_RE = re.compile(r"\d{1,3}:\d{2}(?::\d{2})?")
 LINE_TOLERANCE = 3  # px, for clustering words into the same visual line
 
 
@@ -85,6 +95,8 @@ def parse_pdf(path):
         with pdfplumber.open(path) as pdf:
             if pdf.pages:
                 head_text = pdf.pages[0].extract_text() or ""
+            if SPLITS_RE.search(head_text):
+                return [], head_text
             for page in pdf.pages:
                 words = page.extract_words(use_text_flow=False, keep_blank_chars=False)
                 for line in group_lines(words):
@@ -104,6 +116,8 @@ def parse_pdf(path):
                         continue
                     if CONTINUATION_RE.match(text):
                         continue
+                    if DATE_HEADER_RE.search(text):
+                        continue  # repeated page-header/title line
 
                     m = CAT_LINE_RE.match(text)
                     if m:
@@ -144,6 +158,13 @@ def parse_pdf(path):
                     if rank_text.isdigit():
                         result["rank"] = int(rank_text)
                     seconds = parse_time(time_text)
+                    if seconds is None:
+                        # a long club name can overflow into the time column
+                        # ("Naturfreunde Villach - Oriente 21:06"); recover the
+                        # time token rather than dropping a real finisher
+                        tm = TIME_TOKEN_RE.search(time_text)
+                        if tm:
+                            seconds = parse_time(tm.group())
                     if seconds is not None:
                         result["timeS"] = seconds
                         result["status"] = "ok"

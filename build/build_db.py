@@ -12,6 +12,7 @@ import json
 import re
 import sqlite3
 import unicodedata
+from collections import Counter, defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -148,7 +149,16 @@ class PersonRegistry:
         self.by_id = {}
         self.by_key = {}     # (name_key, yob) -> pid
         self.by_name = {}    # name_key -> [pid, ...], insertion order, no dupes
+        self.name_seen = defaultdict(Counter)  # pid -> Counter(name -> occurrences)
         self.next_synthetic = -1
+
+    def record(self, pid, name):
+        """Track every spelling of a name seen for a person so the display
+        name can later be set to the most frequent one. ANNE sometimes ties
+        one userId to several names — typos ('Erich'/'Erik'), maiden/married
+        names, or outright data errors mixing two people; showing the
+        majority name keeps the common case correct."""
+        self.name_seen[pid][name] += 1
 
     def _new(self, name, yob, nationality=None, iof_id=None, pid=None):
         if pid is None:
@@ -272,6 +282,7 @@ def load_anne_results(cur, events, persons, stage_ids):
                                         r.get("nationality"), r.get("iofId"))
             else:
                 pid = persons.from_legacy(name, r.get("yearOfBirth"))
+            persons.record(pid, name)
             sid = r.get("eventStageId") or default_stage(cur, event, stage_ids)
             course = r.get("course") or {}
             cur.execute(
@@ -319,6 +330,7 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                     continue
                 seen.add(key)
                 pid = persons.from_legacy(name, r.get("yearOfBirth"))
+                persons.record(pid, name)
                 cur.execute(
                     "INSERT INTO result (stage_id, person_id, category, category_full,"
                     " club, rank, status, time_s, time_behind_s, out_of_competition,"
@@ -401,12 +413,22 @@ def main():
             pid = merge_map[pid]
         return pid
 
+    final_names = defaultdict(Counter)
+    for pid, counts in persons.name_seen.items():
+        final_names[resolve(pid)].update(counts)
+
     for old in list(merge_map):
         new = resolve(old)
         cur.execute("UPDATE result SET person_id = ? WHERE person_id = ?", (new, old))
         persons.by_id.pop(old, None)
 
     for pid, (name, key, yob, nat, iof) in persons.by_id.items():
+        # display the most frequently seen spelling (ANNE ties some userIds
+        # to several names; the majority keeps the common case right)
+        counts = final_names.get(pid)
+        if counts:
+            name = counts.most_common(1)[0][0]
+            key = name_key(name)
         cur.execute("INSERT INTO person VALUES (?,?,?,?,?,?)",
                     (pid, name, key, yob, nat, iof))
 
