@@ -37,6 +37,19 @@ def parse_time(text):
     return (int(h or 0)) * 3600 + int(mi) * 60 + int(s)
 
 
+TIME_TOKEN_RE = re.compile(r"\d{1,3}:\d{2}(?::\d{2})?")
+
+
+def parse_time_loose(text):
+    """Like parse_time but tolerates a trailing marker SportSoftware appends to
+    some times, e.g. '19:24 (*)' or '22:46 (+)' (note / twilight flags)."""
+    s = parse_time(text)
+    if s is not None:
+        return s
+    m = TIME_TOKEN_RE.search(text or "")
+    return parse_time(m.group()) if m else None
+
+
 def parse_status(text):
     t = text.strip().lower().rstrip(".")
     for key, val in STATUS_MAP.items():
@@ -133,7 +146,7 @@ def team_results_from_pairs(pairs, club, rank_text, time_text):
     if len(members) < 2:
         return None
     rank = int(rank_text) if rank_text.strip().isdigit() else None
-    secs = parse_time(time_text)
+    secs = parse_time_loose(time_text)
     out = []
     for nm in members:
         others = ", ".join(o for o in members if o != nm)

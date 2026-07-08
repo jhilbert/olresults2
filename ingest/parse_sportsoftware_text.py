@@ -33,7 +33,7 @@ from pathlib import Path
 
 from sportsoftware_common import (
     CAT_LINE_RE, detect_list_type, expand_pair_result, is_junk_name,
-    parse_course_info, parse_status, parse_time, team_results_from_pairs,
+    parse_course_info, parse_status, parse_time, parse_time_loose, team_results_from_pairs,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -149,7 +149,7 @@ def parse_text(text):
         }
         if rank_text.isdigit():
             result["rank"] = int(rank_text)
-        seconds = parse_time(time_text)
+        seconds = parse_time_loose(time_text)
         if seconds is not None:
             result["timeS"] = seconds
             result["status"] = "ok"
