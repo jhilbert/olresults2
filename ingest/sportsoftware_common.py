@@ -111,6 +111,29 @@ def find_trailing_club(tokens, clubs):
     return None, tokens
 
 
+def expand_pair_result(result):
+    """If a parsed result's name holds a '/'-joined pair of clean two-token
+    names (run-in-pairs events), return one result per runner sharing the
+    club/time/rank, each with a 'Partner: …' note. Otherwise return [result]
+    unchanged. For HTML/text sources where name and club are already column-
+    separated — the flowing-PDF path has its own club-anchored handling."""
+    name = result.get("name", "")
+    if "/" not in name:
+        return [result]
+    names = split_pair_names(name)
+    if len(names) < 2 or not all(
+            len(n.split()) == 2 and looks_like_person(n) for n in names):
+        return [result]
+    out = []
+    for nm in names:
+        r = dict(result)
+        r["name"] = nm
+        r["resultKind"] = "pair"
+        r["note"] = "Partner: " + ", ".join(o for o in names if o != nm)
+        out.append(r)
+    return out
+
+
 STATUS_TAIL_RE = re.compile(
     r"(?i)(n\.?\s*ang\.?|nicht angetreten|aufg\.?|fehlst\.?|disq\.?|"
     r"ohne wertung|dnf|dns|dsq|mp)\s*$")

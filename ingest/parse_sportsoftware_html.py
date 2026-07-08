@@ -23,8 +23,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 from sportsoftware_common import (
-    CAT_RE, COURSE_RE, detect_list_type, is_junk_name, parse_course_info,
-    parse_status, parse_time,
+    CAT_RE, COURSE_RE, detect_list_type, expand_pair_result, is_junk_name,
+    parse_course_info, parse_status, parse_time,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -142,7 +142,7 @@ def parse_document(html_text):
                 result["yearOfBirth"] = y + (2000 if y <= 26 else 1900) if y < 100 else y
             if rec.get("Pkt"):
                 result["scoreText"] = rec["Pkt"].strip()
-            current["results"].append(result)
+            current["results"].extend(expand_pair_result(result))
 
     return [c for c in categories if c["results"]]
 
