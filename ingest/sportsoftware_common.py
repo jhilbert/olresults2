@@ -43,6 +43,20 @@ MANUAL_LIVERESULTAT_COMPS = {
     4292: [30957, 30657],  # Vienna O Challenge & Sprint Relay 2024, Etappe 3 + relay (2024-09-01)
 }
 
+# Same idea as MANUAL_PDF_OVERRIDES, but the organizer's own results page is
+# itself an HTML export in the same liveresultat-style table layout (see
+# parse_bracket_html() in parse_sportsoftware_html.py) - no API needed, just
+# the page. Earlier VOC editions than 2024's didn't route through
+# liveresultat's API at all, so MANUAL_LIVERESULTAT_COMPS doesn't apply here.
+# Deliberately excludes the "-total" 3-day combined-standings page, which
+# would just duplicate each day's own results under one cumulative ranking.
+MANUAL_HTML_OVERRIDES = {
+    3340: [("https://viennaochallenge.com/voc22-1-results", "voc22-1-results.html")],
+    3816: [("https://viennaochallenge.com/voc22-2-results", "voc22-2-results.html")],
+    3474: [("https://viennaochallenge.com/voc22-3-results", "voc22-3-results.html"),
+           ("https://viennaochallenge.com/relay22-results", "relay22-results.html")],
+}
+
 CAT_RE = re.compile(r"^(?P<name>.+?)\s+\((?P<starters>\d+)\)\s*$")
 # same, but for formats (PDF, fixed-width text) where course info trails the
 # category on the same line: "H21-Wien (21) 7.8 km 280 Hm 27 P". Also tolerates

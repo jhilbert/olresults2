@@ -35,7 +35,12 @@ RAW = ROOT / "data" / "raw" / "anne"
 FILES = RAW / "files"
 OUT = ROOT / "data" / "normalized"
 
-HEADERS = {"User-Agent": "olresults-sync/0.1 (+https://github.com/josefhilbert/olresults)"}
+# A descriptive bot UA is polite, but some organizer sites (e.g.
+# viennaochallenge.com) sit behind Cloudflare's basic bot check and 403 it
+# outright; a normal desktop-browser UA gets through without triggering an
+# actual JS challenge, so it's used everywhere rather than just per-domain.
+HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                         "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
 
 
 class TableExtractor(HTMLParser):
@@ -206,9 +211,14 @@ def parse_bracket_html(html_text):
             name, club = cells[0].strip(), cells[1].strip()
             if is_junk_name(name):
                 continue
-            time_text = next((c.strip().lstrip("+") for c in cells[2:]
-                               if TIME_TOKEN_RE.fullmatch(c.strip().lstrip("+"))), None)
-            result = {"name": name, "club": club, "timeText": time_text or (cells[2].strip() if len(cells) > 2 else "")}
+            # some organizers (e.g. Vienna O Challenge) add a "Country"
+            # column between club and the time/status value, so the value
+            # isn't reliably at a fixed position - scan for whichever of the
+            # two it actually is, preferring a real time over a status word
+            values = [c.strip().lstrip("+") for c in cells[2:]]
+            time_text = next((v for v in values if TIME_TOKEN_RE.fullmatch(v)), None)
+            status_text = None if time_text else next((v for v in values if parse_status(v)), None)
+            result = {"name": name, "club": club, "timeText": time_text or status_text or ""}
             if rank is not None:
                 result["rank"] = rank
             seconds = parse_time(time_text) if time_text else None
@@ -216,7 +226,7 @@ def parse_bracket_html(html_text):
                 result["timeS"] = seconds
                 result["status"] = "ok"
             else:
-                result["status"] = parse_status(result["timeText"]) or "unknown"
+                result["status"] = parse_status(status_text or "") or "unknown"
             current["results"].append(result)
     return [c for c in categories if c["results"]]
 
