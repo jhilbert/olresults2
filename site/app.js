@@ -9,6 +9,14 @@ const app = document.getElementById("app");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g,
   (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+// A standalone "Bahn X" ("Bahn 3", "BAHN A") groups every category that ran
+// the same physical course into one list with no age/gender split at all -
+// there's no official ranking behind it, just a shared route. This is
+// distinct from a combined name like "H 19-, Bahn A" or "Damen Bahn A",
+// where the leading part *is* a real category and "Bahn" just records
+// which course that category happened to run - those stay normal results.
+const isBahn = (cat) => /^bahn/i.test((cat || "").trim());
+
 function fmtTime(s) {
   if (s == null) return "";
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
@@ -86,7 +94,9 @@ function viewRunner(id, year) {
   const allRows = query(`
     SELECT r.*, e.id AS event_id, e.title AS event_title, e.location, e.country,
            e.competition_type, s.date AS stage_date, s.title AS stage_title, e.date_from,
-           cs.starters, cs.classified, cs.winner_time_s
+           cs.starters, cs.classified, cs.winner_time_s,
+           (SELECT COUNT(*) FROM result r2
+            WHERE r2.stage_id = r.stage_id AND r2.category NOT LIKE 'bahn%') AS non_bahn_count
     FROM result r
     JOIN stage s ON s.id = r.stage_id
     JOIN event e ON e.id = s.event_id
@@ -126,7 +136,7 @@ function viewRunner(id, year) {
         <th class="hide-sm">Bemerkung</th>
       </tr></thead>
       <tbody>${rows.map((r) => `
-        <tr>
+        <tr class="${isBahn(r.category) && r.non_bahn_count > 0 ? "bahn-row" : ""}">
           <td class="dim">${fmtDate(r.stage_date || r.date_from)}</td>
           <td><a href="#/event/${r.event_id}">${esc(r.event_title)}</a>${r.stage_title ? ` <span class="dim">· ${esc(r.stage_title)}</span>` : ""}</td>
           <td class="hide-sm dim">${esc(r.location || "")}</td>
@@ -166,6 +176,7 @@ function viewEvent(id) {
       FROM result r LEFT JOIN category_stats cs
         ON cs.stage_id = r.stage_id AND cs.category = r.category
       WHERE r.stage_id = ? GROUP BY r.category ORDER BY r.category`, [st.id]);
+    const stageHasOfficial = cats.some((c) => !isBahn(c.category));
     for (const c of cats) {
       const results = query(`
         SELECT r.*, p.name AS person_name FROM result r
@@ -182,13 +193,13 @@ function viewEvent(id) {
         <div class="cat-block">
           <div class="cat-head">
             <h3>${esc(c.category_full || c.category)}</h3>
-            <span class="course">${course}${course ? " · " : ""}${(c.starters ?? c.entries)} Starter</span>
+            <span class="course">${course}${course ? " · " : ""}${(c.starters ?? c.entries)} Starter${isBahn(c.category) && stageHasOfficial ? " · inoffizielle Bahnwertung" : ""}</span>
           </div>
           <table>
             <thead><tr><th class="num">Pl</th><th>Name</th><th class="hide-sm">Verein</th>
               <th class="num">Zeit</th><th class="num">Diff</th></tr></thead>
             <tbody>${results.map((r) => `
-              <tr>
+              <tr class="${isBahn(c.category) && stageHasOfficial ? "bahn-row" : ""}">
                 <td class="num">${rankCell({ ...r, starters: null })}</td>
                 <td><a href="#/runner/${r.person_id}">${esc(r.person_name)}</a>${r.note ? `<div class="note">${esc(r.note)}</div>` : ""}</td>
                 <td class="hide-sm dim">${esc(r.club || "")}</td>
@@ -382,6 +393,9 @@ function viewClub(name, year) {
     JOIN event e ON e.id = s.event_id
     JOIN person p ON p.id = r.person_id
     WHERE r.official_club = ? AND r.status = 'ok' AND r.rank <= 3
+      AND NOT (r.category LIKE 'bahn%' AND EXISTS (
+        SELECT 1 FROM result r2
+        WHERE r2.stage_id = r.stage_id AND r2.category NOT LIKE 'bahn%'))
     ORDER BY date DESC`, [name]);
 
   const years = [...new Set(allPodiums.map((r) => r.date.slice(0, 4)))].sort((a, b) => b - a);

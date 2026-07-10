@@ -146,6 +146,8 @@ thead th {
 td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: baseline; }
 tbody tr:last-child td { border-bottom: none; }
 tbody tr:hover { background: #fffaf7; }
+tr.bahn-row { background: #f2f0ee; }
+tr.bahn-row:hover { background: #ebe9e6; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 td a { color: var(--ink); text-decoration: none; font-weight: 600; }
 td a:hover { color: var(--accent-dark); }
