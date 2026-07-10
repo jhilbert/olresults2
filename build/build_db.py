@@ -182,16 +182,70 @@ ANNOTATION_RE = re.compile(
 INVALID_NAME_CHARS = set("<>={}[]|;#&%\\/?*")
 
 
-def reorder_first_last(name, first_names):
-    """SportSoftware exports use 'Lastname Firstname'; flip a two-token name to
-    'Firstname Lastname' when the second token is a known first name and the
-    first token isn't (so 'Radon Livia' -> 'Livia Radon', 'Thomas Radon' kept)."""
+
+# Czech/Slovak (and Russian/Bulgarian) feminine surnames are formed by adding
+# "-ová"/"-ova" to the family name (e.g. Komárek -> Komárková): a grammatical
+# marker that never occurs in a given name, so it identifies the surname
+# reliably even for foreign guest runners with no ANNE firstName on record.
+SLAVIC_SURNAME_SUFFIX_RE = re.compile(r"ov[áa]$", re.IGNORECASE)
+
+
+def _order_signal(a, b, first_names):
+    """+1 if the pair (a, b) looks like 'Lastname Firstname' (i.e. flipping to
+    'b a' would fix it), -1 if it already looks like 'Firstname Lastname', 0
+    if neither token gives any evidence. `first_names` may be None to use only
+    the (source-independent, always-safe) Slavic-suffix signal - used for a
+    single blind name with no corroborating evidence to protect it, since a
+    handful of firstName/lastName swaps at the ANNE source (e.g. one row
+    giving firstName='Meier' for someone actually named Thomas Meier) would
+    otherwise poison an unrelated, already-correct '... Meier' name."""
+    al, bl = a.lower(), b.lower()
+    if first_names is not None:
+        if bl in first_names and al not in first_names:
+            return 1
+        if al in first_names and bl not in first_names:
+            return -1
+    if SLAVIC_SURNAME_SUFFIX_RE.search(a) and not SLAVIC_SURNAME_SUFFIX_RE.search(b):
+        return 1
+    if SLAVIC_SURNAME_SUFFIX_RE.search(b) and not SLAVIC_SURNAME_SUFFIX_RE.search(a):
+        return -1
+    return 0
+
+
+def reorder_first_last(name):
+    """Fallback for a two-token name that no document-level decision covered
+    (e.g. a source document too small to vote decisively). Only acts on the
+    Slavic feminine-surname suffix (so 'Komárková Ondřejka' -> 'Ondřejka
+    Komárková') - deliberately not the ANNE first-names set, which is safe to
+    use for the dominance-checked, many-names-at-once vote in
+    detect_lastname_firstname_doc but not for a single blind name with no
+    corroborating evidence."""
     toks = name.split()
-    if len(toks) == 2:
-        a, b = toks
-        if b.lower() in first_names and a.lower() not in first_names:
-            return f"{b} {a}"
+    if len(toks) == 2 and _order_signal(*toks, None) > 0:
+        return f"{toks[1]} {toks[0]}"
     return name
+
+
+def detect_lastname_firstname_doc(categories, first_names, min_votes=3, dominance=4):
+    """A single SportSoftware result list uses one name-column convention
+    throughout - almost always 'Lastname Firstname', but some exports (e.g.
+    newer OE12 configurations) already print 'Firstname Lastname'. Per-name
+    heuristics alone miss entries where neither token individually matches a
+    known first name (a foreign guest with no ANNE record, say) - but their
+    document-mates usually do, so vote across every 2-token name in the
+    document and decide the convention for the whole list at once."""
+    last_first = first_last = 0
+    for cat in categories:
+        for r in cat.get("results", []):
+            toks = clean_name(r.get("name") or "").split()
+            if len(toks) != 2:
+                continue
+            sig = _order_signal(*toks, first_names)
+            if sig > 0:
+                last_first += 1
+            elif sig < 0:
+                first_last += 1
+    return last_first >= min_votes and last_first > dominance * first_last
 
 
 def is_valid_name(name):
@@ -229,7 +283,31 @@ class PersonRegistry:
         self.name_seen = defaultdict(Counter)  # pid -> Counter(name -> occurrences)
         self.name_auth = defaultdict(Counter)  # pid -> Counter of API-form names
         self.first_names = set()               # lowercased firstNames from the API
+        self.last_names = set()                # lowercased lastNames from the API
         self.next_synthetic = -1
+
+    def add_first_name(self, name):
+        """Record a firstName seen in the ANNE API, for reorder_first_last's
+        heuristic. Skip anything carrying the Slavic feminine-surname suffix
+        outright - that's structurally never a given name, so it can only be
+        here because of a firstName/lastName swap at the ANNE source."""
+        name = name.strip().lower()
+        if name and not SLAVIC_SURNAME_SUFFIX_RE.search(name):
+            self.first_names.add(name)
+
+    def add_last_name(self, name):
+        self.last_names.add(name.strip().lower())
+
+    def finalize_first_names(self):
+        """A handful of ANNE rows have firstName/lastName swapped at the
+        source (not something we can detect or fix per-row) - e.g. one row
+        gives firstName='Meier' for someone actually named Thomas Meier. Left
+        alone, that single bad row would poison the set into mis-flipping
+        every unrelated correctly-ordered '... Meier' name back to front.
+        A name legitimately used as both given name and surname is rare, so
+        drop anything seen as both - cheap insurance against a handful of
+        known source typos generalizing into many wrong flips."""
+        self.first_names -= self.last_names
 
     def record(self, pid, name, authoritative=False):
         """Track every spelling of a name seen for a person so the display name
@@ -400,7 +478,9 @@ def load_anne_results(cur, events, persons, stage_ids):
             else:
                 pid = persons.from_legacy(name, r.get("yearOfBirth"))
             if r.get("firstName"):
-                persons.first_names.add(r["firstName"].strip().lower())
+                persons.add_first_name(r["firstName"])
+            if r.get("lastName"):
+                persons.add_last_name(r["lastName"])
             persons.record(pid, name, authoritative=bool(r.get("firstName") and r.get("lastName")))
             course = r.get("course") or {}
             club = clean_club(r.get("clubName"))
@@ -443,7 +523,9 @@ def insert_anne_relay(cur, persons, sid, cat, team):
             continue
         pid = persons.from_legacy(nm, None)
         if m.get("firstName"):
-            persons.first_names.add(m["firstName"].strip().lower())
+            persons.add_first_name(m["firstName"])
+        if m.get("lastName"):
+            persons.add_last_name(m["lastName"])
         persons.record(pid, nm, authoritative=bool(m.get("firstName") and m.get("lastName")))
         mates = list(dict.fromkeys(o for o in names if o and o != nm))
         note_bits = [f"Staffel: {team_name}".strip(),
@@ -505,6 +587,7 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                                event_dates.index(doc["docDate"]) + 1)
         else:
             sid = default_stage(cur, event, stage_ids)
+        flip_doc = detect_lastname_firstname_doc(doc["categories"], persons.first_names)
         for cat in doc["categories"]:
             for r in cat["results"]:
                 if r.get("status") == "dns":
@@ -515,6 +598,10 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                 name = clean_name(r["name"])
                 if not is_valid_name(name):
                     continue
+                if flip_doc:
+                    toks = name.split()
+                    if len(toks) == 2:
+                        name = f"{toks[1]} {toks[0]}"
                 key = (sid, cat["name"], name_key(name))
                 if key in seen:
                     continue
@@ -574,6 +661,7 @@ def main():
     anne_event_ids = {int(p.stem) for p in (RAW / "results").glob("*.json")
                       if has_usable_names(p)}
     n_api = load_anne_results(cur, events, persons, stage_ids)
+    persons.finalize_first_names()
     n_legacy = load_legacy_results(cur, events, persons, stage_ids, anne_event_ids)
 
     # Some API results have no userId (old events) or field-order quirks;
@@ -651,7 +739,7 @@ def main():
             name = auth.most_common(1)[0][0]
             key = name_key(name)
         elif counts:
-            name = reorder_first_last(counts.most_common(1)[0][0], persons.first_names)
+            name = reorder_first_last(counts.most_common(1)[0][0])
             key = name_key(name)
         cur.execute("INSERT INTO person VALUES (?,?,?,?,?,?)",
                     (pid, name, key, yob, nat, iof))
