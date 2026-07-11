@@ -1,0 +1,23 @@
+name: Test ANNE connectivity
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Unauthenticated request to /v1/event
+        run: |
+          curl -sS -m 15 -w "\nHTTP %{http_code}, %{time_total}s\n" \
+            "https://anne-api.oefol.at/v1/event?perPage=1" \
+            && echo "UNAUTH: OK" || echo "UNAUTH: FAILED"
+
+      - name: Authenticated request to /v1/event
+        env:
+          ANNE_API_KEY: ${{ secrets.ANNE_API_KEY }}
+        run: |
+          curl -sS -m 15 -H "X-API-Key: $ANNE_API_KEY" \
+            -w "\nHTTP %{http_code}, %{time_total}s\n" \
+            "https://anne-api.oefol.at/v1/event?perPage=1" \
+            && echo "AUTH: OK" || echo "AUTH: FAILED"
