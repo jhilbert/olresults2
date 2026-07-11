@@ -17,6 +17,13 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g,
 // which course that category happened to run - those stay normal results.
 const isBahn = (cat) => /^bahn/i.test((cat || "").trim());
 
+// Knock-out sprint qualification/consolation rounds ("H21-E - Viertelfinale
+// 5", "... Halbfinale B", "H55- - B-Finale") aren't a final ranking - only
+// the event's own "... - Finale" category is - so a heat placement must
+// never count as a medal/podium/win anywhere on the site. Mirrors the
+// viertelfinale|halbfinale|b-finale part of EXCLUDE_CAT_RE in build_db.py.
+const isKoHeat = (cat) => /viertelfinale|halbfinale|b-finale/i.test((cat || "").trim());
+
 function fmtTime(s) {
   if (s == null) return "";
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
@@ -109,7 +116,7 @@ function viewRunner(id, year) {
   const rows = year ? allRows.filter((r) => (r.stage_date || r.date_from || "").startsWith(year)) : allRows;
 
   const countable = rows.filter((r) => !(isBahn(r.category) && r.non_bahn_count > 0));
-  const finished = countable.filter((r) => r.status === "ok" && r.rank != null);
+  const finished = countable.filter((r) => r.status === "ok" && r.rank != null && !isKoHeat(r.category));
   const wins = finished.filter((r) => r.rank === 1).length;
   const podiums = finished.filter((r) => r.rank <= 3).length;
   const clubs = [...new Set(allRows.map((r) => r.club).filter(Boolean))].slice(0, 3);
@@ -391,7 +398,7 @@ function viewClub(name, year, medalType) {
   // wouldn't otherwise make the top-3 by raw rank alone.
   const allPodiums = query(`
     SELECT r.rank, r.national_rank, r.category, r.category_full, r.result_kind, r.championship,
-           e.id AS event_id, e.title AS event_title,
+           e.id AS event_id, e.title AS event_title, s.title AS stage_title,
            COALESCE(s.date, e.date_from) AS date, p.id AS person_id, p.name AS person_name
     FROM result r
     JOIN stage s ON s.id = r.stage_id
@@ -408,7 +415,7 @@ function viewClub(name, year, medalType) {
   const years = [...new Set(allPodiums.map((r) => r.date.slice(0, 4)))].sort((a, b) => b - a);
   const typeFiltered = isOm
     ? allPodiums.filter((r) => r.championship && r.national_rank <= 3)
-    : allPodiums.filter((r) => r.rank <= 3);
+    : allPodiums.filter((r) => r.rank <= 3 && !isKoHeat(r.category));
   const podiums = year ? typeFiltered.filter((r) => r.date.startsWith(year)) : typeFiltered;
   const medalRank = (r) => (isOm ? r.national_rank : r.rank);
   const gold = podiums.filter((r) => medalRank(r) === 1).length;
@@ -444,12 +451,17 @@ function viewClub(name, year, medalType) {
       }
       p.entries.push(r);
     }
+    // ties on the overall Gold/Silber/Bronze count break by ÖSTM medal count
+    // next (ÖSTM being the more prestigious title within the combined
+    // count), same gold-then-silver-then-bronze precedence, before finally
+    // falling back to name.
     const people = [...byPerson.values()].sort((a, b) =>
       b.gold - a.gold || b.silver - a.silver || b.bronze - a.bronze
+      || b.ostmGold - a.ostmGold || b.ostmSilver - a.ostmSilver || b.ostmBronze - a.ostmBronze
       || a.person_name.localeCompare(b.person_name, "de-AT"));
     let place = 0, prevKey = null;
     people.forEach((p, i) => {
-      const key = `${p.gold}-${p.silver}-${p.bronze}`;
+      const key = `${p.gold}-${p.silver}-${p.bronze}-${p.ostmGold}-${p.ostmSilver}-${p.ostmBronze}`;
       if (key !== prevKey) { place = i + 1; prevKey = key; }
       p.place = place;
       p.entries.sort((a, b) => a.national_rank - b.national_rank || b.date.localeCompare(a.date));
@@ -476,7 +488,7 @@ function viewClub(name, year, medalType) {
           <td colspan="7">
             <ul class="medal-events">${p.entries.map((e) => `
               <li><b>${medalLabel[e.national_rank]}</b>${e.championship ? ` <span class="badge">${e.championship}</span>` : ""} ·
-                <a href="#/event/${e.event_id}">${esc(e.event_title)}</a> ·
+                <a href="#/event/${e.event_id}">${esc(e.event_title)}</a>${e.stage_title && e.stage_title !== e.event_title ? ` · <b>${esc(e.stage_title)}</b>` : ""} ·
                 <span class="dim">${esc(e.category_full || e.category)} · ${fmtDate(e.date)}</span></li>`).join("")}
             </ul>
           </td>

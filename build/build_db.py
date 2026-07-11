@@ -259,6 +259,7 @@ TITLE_FALLBACK_EXCLUDE_EVENTS = {4783}
 KNOWN_INELIGIBLE_RESULTS = {
     (4837, "Milja Väätäjä"),  # Paimion Rasti, Finland - ÖSTM Mittel, Damen ab 21 Elite, rank 2
     (4884, "Ivan Serafini"),  # ASD Team Sky Friul, Italy - ÖM MTBO, Herren ab 40, rank 3
+    (4306, "Vojtech Teringl"),  # TJ OB Ceske Budejovice, Czechia - ÖM Sprint, H17, rank 1
 }
 
 # ANNE's own championshipEligibility flag (see ingest/anne_user_eligibility.py),
@@ -1085,6 +1086,54 @@ def main():
               AND stage_id IN (SELECT id FROM stage WHERE event_id = ?)
               AND person_id IN (SELECT id FROM person WHERE name = ?)
         """, (eid, pname))
+
+    # An individual "podium" needs at least 3 ELIGIBLE starters - fewer than
+    # that and no official ÖM/ÖSTM medal is awarded at all, gold included
+    # (confirmed real: event 4884, "Damen bis 17" had only 2 starters total,
+    # no medals). "Starters", not "finishers": a DNF/MP/DSQ still counts
+    # (they started), only DNS (never started at all) doesn't (confirmed real:
+    # event 4306, H17 - Anton Greiner/AUT DNF still counts as one of the 3
+    # eligible starters alongside Ochenbauer and Urbanek, even without a
+    # rank of his own). "Eligible", not "raw": the same exclusions applied
+    # above (KNOWN_INELIGIBLE_RESULTS, the ANNE eligibility cache) apply
+    # here too - Vojtech Teringl/CZE at that same event does NOT count
+    # toward the 3, so the category still clears the threshold on its 3
+    # remaining Austrians even though he was the field's 4th starter.
+    # Collected into a temp table rather than re-running both exclusion
+    # sources' logic inline, since this needs to check arbitrary rows
+    # (including DNF/MP ones that never got a championship tag to strip in
+    # the first place, so the WHERE-championship-stripped-already trick the
+    # two exclusion steps above use doesn't apply here).
+    cur.execute("CREATE TEMP TABLE ineligible_starter (event_id INTEGER, person_id INTEGER)")
+    for eid, pname in KNOWN_INELIGIBLE_RESULTS:
+        cur.execute("""
+            INSERT INTO ineligible_starter (event_id, person_id)
+            SELECT ?, id FROM person WHERE name = ?
+        """, (eid, pname))
+    if USER_ELIGIBILITY_PATH.exists():
+        for uid, by_event in json.loads(USER_ELIGIBILITY_PATH.read_text()).items():
+            for eid, eligibility in by_event.items():
+                if eligibility is True or eligibility == "error":
+                    continue
+                cur.execute("INSERT INTO ineligible_starter (event_id, person_id) VALUES (?, ?)",
+                            (int(eid), int(uid)))
+
+    # result_kind = 'individual' only: confirmed by hand that relay
+    # categories do NOT follow this rule - event 4829's "Herren ab 210"
+    # relay had only 2 teams (COUNT(DISTINCT rank) = 2) yet both the gold
+    # and silver are real, per-club-record-confirmed medals.
+    cur.execute("""
+        UPDATE result SET championship = NULL
+        WHERE championship IS NOT NULL AND result_kind = 'individual'
+          AND (stage_id, category) IN (
+            SELECT r.stage_id, r.category FROM result r JOIN stage s ON s.id = r.stage_id
+            WHERE r.status IN ('ok', 'dnf', 'mp', 'dsq') AND r.result_kind = 'individual'
+              AND NOT EXISTS (SELECT 1 FROM ineligible_starter i
+                              WHERE i.event_id = s.event_id AND i.person_id = r.person_id)
+            GROUP BY r.stage_id, r.category
+            HAVING COUNT(DISTINCT r.person_id) < 3)
+    """)
+    cur.execute("DROP TABLE ineligible_starter")
 
     # national_rank: placement among ONLY the finishers still championship-
     # tagged after the exclusions above, which is what the medal table (Gold/

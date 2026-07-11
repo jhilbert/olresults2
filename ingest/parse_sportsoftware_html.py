@@ -237,10 +237,23 @@ def parse_bracket_html(html_text):
                 continue
             if current is None or len(cells) < 2:
                 continue
-            rank = None
+            rank = championship = None
             if cells[0].rstrip(".").isdigit():
                 rank = int(cells[0].rstrip("."))
                 cells = cells[1:]
+            else:
+                # the winner's rank cell sometimes carries the champion
+                # announcement inline ("1. und Österreichische Meisterin
+                # 2024") instead of a bare "1." - confirmed real (event
+                # 4220, D45-): without this, the whole cell fails the bare-
+                # digit check above, "name" below becomes the announcement
+                # text instead of the real name, and is_junk_name() rejects
+                # the row outright - the actual winner silently vanishes
+                # rather than just losing their rank.
+                annot_rank, annot_championship = parse_champion_annotation(cells[0])
+                if annot_rank is not None:
+                    rank, championship = annot_rank, annot_championship
+                    cells = cells[1:]
             if len(cells) < 2:
                 continue
             name, club = cells[0].strip(), cells[1].strip()
@@ -256,6 +269,8 @@ def parse_bracket_html(html_text):
             result = {"name": name, "club": club, "timeText": time_text or status_text or ""}
             if rank is not None:
                 result["rank"] = rank
+            if championship:
+                result["championship"] = championship
             seconds = parse_time(time_text) if time_text else None
             if seconds is not None:
                 result["timeS"] = seconds
@@ -365,14 +380,20 @@ def parse_relay_document(html_text):
             if not first and len(row) > 1 and row[1].strip() == "Name":
                 continue  # inner (member) header row
 
-            # champion annotation, either split across cells ('1' | 'und ...
-            # Meister:in') or as one cell ('1. und österr. Staatsmeister 2016')
-            annot_m = re.match(r"^(\d+)\.?\s", first) if not first.isdigit() else None
-            joined = " ".join(row) if annot_m else " ".join(row[1:])
-            if (first.isdigit() or annot_m) and ANNOT_RANK_RE.search(joined) \
+            # champion annotation, split across cells - either the plain-digit
+            # form ('1' | 'und ... Meister:in'), the trailing-period form
+            # ('1.' | 'und Österreichische Staatsmeister', confirmed real:
+            # event 4480 - a colspan on the second cell keeps the "1." rank
+            # entirely on its own, so it never has trailing text for the
+            # annot_m regex below to anchor on), or as one cell together
+            # ('1. und österr. Staatsmeister 2016')
+            first_rank_digit = first.rstrip(".").isdigit()
+            annot_m = re.match(r"^(\d+)\.?\s", first) if not first_rank_digit else None
+            joined = " ".join(row[1:]) if first_rank_digit else " ".join(row)
+            if (first_rank_digit or annot_m) and ANNOT_RANK_RE.search(joined) \
                     and not TIME_TOKEN_RE.search(joined):
                 flush()
-                pending_rank = int(first) if first.isdigit() else int(annot_m.group(1))
+                pending_rank = int(first.rstrip(".")) if first_rank_digit else int(annot_m.group(1))
                 pending_championship = classify_championship_text(joined)
                 continue
 
