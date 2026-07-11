@@ -41,8 +41,9 @@ sources are only hit for new or changed events.
 ```
 python3 ingest/anne_sync.py            # sync events + structured results
 python3 ingest/parse_sportsoftware_html.py  # parse tier-2 HTML attachments
+python3 build/build_db.py              # build site/data/results.db (pass 1)
 python3 ingest/anne_user_eligibility.py     # sync ÖM/ÖSTM championship eligibility (needs ANNE_API_KEY)
-python3 build/build_db.py              # build site/data/results.db
+python3 build/build_db.py              # rebuild with any newly-decided eligibility (pass 2)
 cd site && python3 -m http.server 8643 # local preview
 ```
 
@@ -56,6 +57,22 @@ passport nationality (dual citizenship, long-tenured club membership,
 etc.), which is a more reliable signal than nationality alone (see
 `build/build_db.py`'s `apply_championship_eligibility_overrides`). Requires
 an `ANNE_API_KEY` env var - a personal API key from an ANNE account with at
-least clubManager role (Settings → API Keys in the ANNE web app). Without
-the key, the script no-ops and `build_db.py` just uses whatever
-`data/raw/anne/user_eligibility.json` snapshot is already committed.
+least clubManager role (Settings → API Keys in the ANNE web app).
+
+It needs to run **between two builds**: it finds candidates (runners with a
+championship tag and a non-Austrian nationality) by querying the database
+`build_db.py` just produced, since only that build has resolved which
+person a given legacy (non-API) result actually belongs to. The second
+build then applies whatever it just decided.
+
+Each `(person, event)` pair, once decided, is cached permanently in
+`data/raw/anne/user_eligibility.json` and never re-checked automatically -
+eligibility isn't a permanent attribute of a person, so blindly re-deriving
+it from today's status on every run would retroactively rewrite medals from
+events where it was true at the time but no longer is (or vice versa). A
+newly-discovered event for an already-known person gets its own,
+independently-locked check. This cache is deliberately **not committed to
+git** (it's per-person data obtained via elevated access - see
+`.gitignore`); in CI it persists across nightly runs via `actions/cache`
+instead. Locally, without the env var or an existing cache, the script and
+`apply_championship_eligibility_overrides` both just no-op.

@@ -31,8 +31,6 @@ jobs:
 
       - name: Sync ANNE data
         if: github.event_name != 'push'
-        env:
-          ANNE_API_KEY: ${{ secrets.ANNE_API_KEY }}
         run: |
           python3 ingest/anne_sync.py
           python3 ingest/build_club_dict.py
@@ -41,7 +39,49 @@ jobs:
           python3 ingest/parse_sportsoftware_text.py
           python3 ingest/parse_club_table.py
           python3 ingest/parse_liveresultat.py
-          python3 ingest/anne_user_eligibility.py
+
+      # anne_user_eligibility.py needs to query an already-built database to
+      # find (person, event) pairs needing a fresh championship-eligibility
+      # check (see that script's docstring for why) - build once here so it
+      # has one, then the real "Build database" step below rebuilds using
+      # whatever it just found.
+      - name: Pre-build database for eligibility check
+        if: github.event_name != 'push'
+        run: python3 build/build_db.py
+
+      # The eligibility cache (data/raw/anne/user_eligibility.json) is
+      # deliberately never committed to git - it's per-person data fetched
+      # via an authenticated, elevated-access ANNE endpoint (see .gitignore
+      # and the commit that introduced this feature). But once a (person,
+      # event) pair is decided it must stay decided forever (see
+      # anne_user_eligibility.py's docstring on why re-deriving it from
+      # today's status would retroactively rewrite past medals) - so it
+      # still needs to persist across runs, just not as a public repo file.
+      # actions/cache does exactly that: durable across runs, scoped to
+      # this repo's workflows, not part of the published site or git
+      # history. restore-keys falls back to the most recent prior cache
+      # under the same prefix; the unique primary key means a save always
+      # happens (there's nothing to "hit" and skip).
+      - name: Restore championship eligibility cache
+        if: github.event_name != 'push'
+        uses: actions/cache/restore@v4
+        with:
+          path: data/raw/anne/user_eligibility.json
+          key: anne-eligibility-${{ github.run_id }}
+          restore-keys: anne-eligibility-
+
+      - name: Check championship eligibility
+        if: github.event_name != 'push'
+        env:
+          ANNE_API_KEY: ${{ secrets.ANNE_API_KEY }}
+        run: python3 ingest/anne_user_eligibility.py
+
+      - name: Save championship eligibility cache
+        if: github.event_name != 'push'
+        uses: actions/cache/save@v4
+        with:
+          path: data/raw/anne/user_eligibility.json
+          key: anne-eligibility-${{ github.run_id }}
 
       - name: Commit new snapshots
         if: github.event_name != 'push'

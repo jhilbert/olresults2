@@ -3,7 +3,23 @@
 on record with a non-Austrian nationality, via the authenticated
 GET /v1/user/:id endpoint (requires ANNE_API_KEY - a personal API key from
 an ANNE account with clubManager+ role). Caches to
-data/raw/anne/user_eligibility.json, keyed by ANNE userId.
+data/raw/anne/user_eligibility.json, keyed by (ANNE userId, event id).
+
+Why per (person, event) rather than just per person: eligibility isn't a
+permanent attribute - someone can gain or lose it at any point in their
+career, so a single global flag per person would eventually go stale one
+way or the other. Instead, a person's eligibility is checked once, the
+first time a given event of theirs is seen, and that determination is
+locked to that specific event forever - a later status change only affects
+NEW events synced from then on, never rewrites an event already decided.
+This is also why the cache must never be recomputed wholesale: only
+genuinely new (userId, eventId) pairs are ever fetched.
+
+For the backlog of events already in the database before this feature
+existed, there's no way to know what was true back when each of them
+happened - those get a one-time "current status" check instead, same as
+any newly-discovered pair. Everything synced from here on gets its own
+independently-locked, close-to-real-time determination.
 
 Why this exists: person.nationality alone is not a reliable ÖM/ÖSTM
 eligibility signal - it reflects passport/birth nationality, not
@@ -12,9 +28,23 @@ on record with a foreign nationality yet hold an explicit
 championshipEligibility override (confirmed by hand: Vera Arbter/CHE,
 Marina Skern/RUS, Frederic Genevois/FRA, all real ÖM medalists per their
 club's own records). See build_db.py's use of this cache.
+
+Candidates are read from the already-BUILT site/data/results.db, not raw
+ANNE snapshots directly: person.nationality is only embedded in ANNE's own
+structured API results, but the same person's OTHER results (from a scraped
+SportSoftware PDF/HTML/text export, the majority of this dataset) carry no
+such field at all - only build_db.py's person-identity resolution links
+those legacy rows to the same ANNE userId. Querying raw JSON directly would
+therefore only ever check a foreign person's ANNE-API-tier events and
+silently miss every legacy-tier event of theirs. This is why this script
+must run in a build -> check eligibility -> build again cycle: the first
+build resolves identities and championship tags so this script has
+something to query, the second build applies whatever new decisions this
+script just locked in.
 """
 import json
 import os
+import sqlite3
 import subprocess
 import sys
 import time
@@ -23,30 +53,32 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw" / "anne"
 OUT_PATH = RAW / "user_eligibility.json"
+DB_PATH = ROOT / "site" / "data" / "results.db"
 BASE = "https://anne-api.oefol.at/v1"
 
 
-def scan_foreign_user_ids():
-    """Every distinct (userId -> nationality) seen in raw ANNE result
-    snapshots (individual rows and relay teamMembers) where nationality is
-    set and isn't Austrian - the only people championshipEligibility could
+def scan_foreign_candidates():
+    """Every distinct (personId, eventId) pair in the built database where
+    the runner has a championship tag and ANNE reports a non-Austrian
+    nationality for them - the only people championshipEligibility could
     possibly matter for. Everyone else is either Austrian already or has no
-    ANNE account to look up at all (a synthetic person id), in which case
-    this API has nothing to tell us."""
-    ids = {}
-    for path in (RAW / "results").glob("*.json"):
-        try:
-            rows = json.loads(path.read_text())
-        except Exception:
-            continue
-        if not isinstance(rows, list):
-            continue
-        for r in rows:
-            for entry in ([r] + (r.get("teamMembers") or [])):
-                uid, nat = entry.get("userId"), entry.get("nationality")
-                if uid and nat and nat != "AUT":
-                    ids[uid] = nat
-    return ids
+    ANNE account at all (a synthetic person id), in which case this API has
+    nothing to tell us."""
+    if not DB_PATH.exists():
+        return set()
+    con = sqlite3.connect(DB_PATH)
+    try:
+        rows = con.execute("""
+            SELECT DISTINCT p.id, s.event_id
+            FROM result r
+            JOIN stage s ON s.id = r.stage_id
+            JOIN person p ON p.id = r.person_id
+            WHERE r.championship IS NOT NULL AND p.id > 0
+              AND p.nationality IS NOT NULL AND p.nationality NOT IN ('', 'AUT')
+        """).fetchall()
+    finally:
+        con.close()
+    return {(pid, str(eid)) for pid, eid in rows}
 
 
 def fetch_eligibility(user_id, api_key):
@@ -70,21 +102,35 @@ def main():
         print("ANNE_API_KEY not set - skipping (existing cache, if any, is left as-is)")
         return
 
-    cache = json.loads(OUT_PATH.read_text()) if OUT_PATH.exists() else {}
-    candidates = scan_foreign_user_ids()
-    # "error" entries (a transient API/network failure) are always retried;
-    # a real True/null result is trusted and only re-checked with --force
-    todo = [uid for uid in candidates
-            if force or str(uid) not in cache or cache[str(uid)] == "error"]
-    print(f"foreign-nationality user ids on record: {len(candidates)}, to fetch: {len(todo)}")
+    if not DB_PATH.exists():
+        print(f"{DB_PATH} doesn't exist yet - run build/build_db.py first, then this "
+              "script, then build/build_db.py again to apply what it found")
+        return
 
-    for uid in todo:
-        cache[str(uid)] = fetch_eligibility(uid, api_key)
-        time.sleep(0.1)
+    cache = json.loads(OUT_PATH.read_text()) if OUT_PATH.exists() else {}
+    candidates = scan_foreign_candidates()
+    # "error" entries (a transient API/network failure) are always retried;
+    # a real True/null result is a locked-in decision, only ever revisited
+    # with --force (a deliberate, explicit re-check - not something the
+    # nightly sync does on its own)
+    todo = [(uid, eid) for uid, eid in candidates
+            if force or eid not in cache.get(str(uid), {})
+            or cache[str(uid)][eid] == "error"]
+    print(f"foreign-nationality (person, event) pairs on record: {len(candidates)}, "
+          f"to fetch: {len(todo)}")
+
+    fetched = {}
+    for uid, eid in todo:
+        if uid not in fetched:
+            fetched[uid] = fetch_eligibility(uid, api_key)
+            time.sleep(0.1)
+        cache.setdefault(str(uid), {})[eid] = fetched[uid]
 
     OUT_PATH.write_text(json.dumps(cache, indent=2, sort_keys=True))
-    n_true = sum(1 for v in cache.values() if v is True)
-    print(f"wrote {OUT_PATH} ({len(cache)} entries, {n_true} with an eligibility override)")
+    n_pairs = sum(len(v) for v in cache.values())
+    n_true = sum(1 for v in cache.values() for e in v.values() if e is True)
+    print(f"wrote {OUT_PATH} ({len(cache)} people, {n_pairs} (person, event) decisions, "
+          f"{n_true} with an eligibility override)")
 
 
 if __name__ == "__main__":

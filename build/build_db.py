@@ -262,35 +262,43 @@ KNOWN_INELIGIBLE_RESULTS = {
 }
 
 # ANNE's own championshipEligibility flag (see ingest/anne_user_eligibility.py),
-# cached per ANNE userId - the authoritative signal, since person.nationality
-# alone isn't one: several long-tenured Austrian club members are on record
-# with a foreign passport nationality (marriage, dual citizenship, historical
-# registration quirks - e.g. Vera Arbter/CHE, Marina Skern/RUS) yet hold an
-# explicit eligibility override confirmed real by their club's own medal
-# records. The cache only contains userIds ANNE itself reported a non-
-# Austrian nationality for, each mapped to True (explicit override granted -
-# eligible despite the nationality) or None (no override - not eligible).
+# cached per (ANNE userId, event id) - the authoritative signal, since
+# person.nationality alone isn't one: several long-tenured Austrian club
+# members are on record with a foreign passport nationality (marriage, dual
+# citizenship, historical registration quirks - e.g. Vera Arbter/CHE, Marina
+# Skern/RUS) yet hold an explicit eligibility override confirmed real by
+# their club's own medal records. Keyed per event, not just per person,
+# because eligibility isn't permanent - it's checked once, the first time a
+# given event is seen, and locked to that event forever; a later status
+# change only affects events synced after the change, never rewrites one
+# already decided. The cache only contains (userId, eventId) pairs ANNE
+# itself reported a non-Austrian nationality for, each mapped to True
+# (explicit override granted - eligible despite the nationality) or None
+# (no override - not eligible).
 USER_ELIGIBILITY_PATH = RAW / "user_eligibility.json"
 
 
 def apply_championship_eligibility_overrides(cur):
-    """Strip championship from every row of a runner ANNE itself reports as
-    foreign-nationality with no eligibility override. Only touches person
-    ids present in the cache - i.e. only people ANNE told us are non-
-    Austrian; everyone else (Austrian by default, or a synthetic person id
-    with no ANNE account to check via this API at all - about half of all
-    medal-tier people, mostly pre-ANNE legacy results) is left untouched,
-    since guessing either way there would be worse than doing nothing."""
+    """Strip championship from a runner's rows in one specific event that
+    ANNE itself reports as foreign-nationality with no eligibility override
+    for that event. Only touches (person, event) pairs present in the cache
+    - i.e. only ones ANNE told us are non-Austrian; everyone else (Austrian
+    by default, or a synthetic person id with no ANNE account to check via
+    this API at all - about half of all medal-tier people, mostly pre-ANNE
+    legacy results) is left untouched, since guessing either way there
+    would be worse than doing nothing."""
     if not USER_ELIGIBILITY_PATH.exists():
         return 0
     cache = json.loads(USER_ELIGIBILITY_PATH.read_text())
     n = 0
-    for uid, eligibility in cache.items():
-        if eligibility is True:
-            continue
-        if eligibility != "error":  # a transient fetch failure - not evidence either way
+    for uid, by_event in cache.items():
+        for eid, eligibility in by_event.items():
+            if eligibility is True or eligibility == "error":
+                continue  # eligible, or a transient fetch failure - not evidence either way
             cur.execute("""UPDATE result SET championship = NULL
-                            WHERE championship IS NOT NULL AND person_id = ?""", (int(uid),))
+                            WHERE championship IS NOT NULL AND person_id = ?
+                              AND stage_id IN (SELECT id FROM stage WHERE event_id = ?)""",
+                        (int(uid), int(eid)))
             n += cur.rowcount
     return n
 
