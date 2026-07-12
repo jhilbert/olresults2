@@ -167,6 +167,50 @@ td a:hover { color: var(--accent-dark); }
 .note { font-size: 12px; color: var(--ink-faint); margin-top: 2px; }
 .note-cell { font-size: 12.5px; max-width: 260px; }
 
+.champ-badge { background: #fff3d6; color: #8a6100; }
+
+/* The event-level ÖM/ÖSTM badge doubles as a toggle into a compact
+   "medals only" view (only championship categories, only top-3 national
+   ranks). Not-yet-active reads as a normal badge but with a pointer +
+   hover lift to hint it's clickable; active fills solid (same visual
+   language as .chip.active elsewhere) with a checkmark, and a soft focus
+   ring since it's a real link, not a decoration. */
+.champ-toggle {
+  cursor: pointer; text-decoration: none; transition: transform .1s, box-shadow .15s;
+}
+.champ-toggle:hover { box-shadow: 0 1px 4px rgba(138,97,0,.35); transform: translateY(-1px); }
+.champ-toggle.active {
+  background: #8a6100; color: #fff9ec; box-shadow: 0 1px 3px rgba(138,97,0,.4);
+}
+.champ-toggle.active:hover { background: #6e4d00; }
+
+/* National ÖM/ÖSTM medal: the Pl cell itself becomes a colored badge (the
+   raw finishing position stays visible inside it - a medal doesn't always
+   land on the literal 1/2/3 row, once ineligible finishers ahead are
+   excluded), plus a barely-there full-row tint so a medal row reads at a
+   glance without having to parse any text. */
+.rank-medal {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 24px; height: 24px; padding: 0 6px; border-radius: 999px;
+  font-weight: 800; font-size: 13px; line-height: 1;
+}
+.rank-medal-gold {
+  background: linear-gradient(155deg, #ffe29a, #f0b23e); color: #7a4e00;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 1px 2px rgba(122,78,0,.3);
+}
+.rank-medal-silver {
+  background: linear-gradient(155deg, #f2f4f6, #c7ced6); color: #454e58;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 1px 2px rgba(69,78,88,.25);
+}
+.rank-medal-bronze {
+  background: linear-gradient(155deg, #eeb27e, #cd8a54); color: #5c2f0a;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 1px 2px rgba(92,47,10,.3);
+}
+tr.medal-row-gold { background: rgba(240, 178, 62, .08); }
+tr.medal-row-silver { background: rgba(148, 163, 184, .12); }
+tr.medal-row-bronze { background: rgba(205, 138, 84, .1); }
+tr.medal-row-gold:hover, tr.medal-row-silver:hover, tr.medal-row-bronze:hover { filter: brightness(0.98); }
+
 tr.expandable { cursor: pointer; }
 .expand-icon {
   display: inline-block; color: var(--ink-faint); font-size: 11px;

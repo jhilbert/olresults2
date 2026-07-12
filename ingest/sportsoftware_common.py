@@ -267,6 +267,21 @@ def parse_status(text):
 # "österreich" as a substring: there is no word boundary between "Nieder"
 # and "österreichischer" since they're fused into one word.
 CHAMPION_ANNOT_LEAD_RE = re.compile(r"(?i)^(\d+)\.?\s*und\s+(.+)$")
+# A layout where the announcement occupies its own table row entirely -
+# real name/club/time sit on the FOLLOWING row instead, which has no rank
+# of its own - so there's no "und" connecting the rank to anything, just
+# "1 Österreichischer Staatsmeister" standing alone (word-processor line-
+# wrap even split it across two table cells, "Österreichischer" landing in
+# the Name column and "Staatsmeister" in Verein, joined back into one
+# string by the caller before this ever sees it). Anchored at both ends
+# ($ included) so it only matches when the title is truly the row's ONLY
+# content - never a prefix that could eat into a real name that happens to
+# start the same way. Confirmed real: event 4316 ("11. Austria Cup
+# (Mitteldistanz, WRE)"), "Herren ab 21 Elite" - Jannis Bonek's real ÖSTM
+# gold row lost its rank entirely to a phantom "Österreichischer"/
+# "Staatsmeister" competitor.
+CHAMPION_ANNOT_ALONE_RE = re.compile(
+    r"(?i)^(\d+)\.?\s+(öster(?:r|reich\w*)?\.?\s+(?:staats?)?meister(?:in(?:nen)?)?)\s*$")
 STAATSMEISTER_RE = re.compile(r"(?i)\bstaats?meister")
 # "Österr." (double r) and "Öster." (single r) both appear as abbreviations
 # for "österreichisch" in the wild, alongside the unabbreviated word.
@@ -294,16 +309,23 @@ def classify_championship_text(text):
 
 
 def parse_champion_annotation(text):
-    """Split a champion-annotation cell/line ('1. und Österr.Meister 2022')
-    into (rank, championship). Returns (None, None) if `text` isn't one -
-    the rank is recovered regardless of whether the title itself turns out
-    to be a recognized national one, since this text otherwise replaces the
+    """Split a champion-annotation cell/line ('1. und Österr.Meister 2022',
+    or the standalone-row form 'CHAMPION_ANNOT_ALONE_RE' matches) into
+    (rank, championship). Returns (None, None) if `text` isn't one - the
+    rank is recovered regardless of whether the title itself turns out to
+    be a recognized national one, since this text otherwise replaces the
     plain rank number entirely and the row would lose its placement. Also
-    (None, None) if a time token follows - see TIME_TOKEN_IN_ANNOT_RE."""
-    m = CHAMPION_ANNOT_LEAD_RE.match(text.strip())
-    if not m or TIME_TOKEN_IN_ANNOT_RE.search(m.group(2)):
-        return None, None
-    return int(m.group(1)), classify_championship_text(m.group(2))
+    (None, None) if a time token follows the 'und' form - see
+    TIME_TOKEN_IN_ANNOT_RE (the standalone form never has one to begin
+    with, by construction of its own regex)."""
+    t = text.strip()
+    m = CHAMPION_ANNOT_LEAD_RE.match(t)
+    if m and not TIME_TOKEN_IN_ANNOT_RE.search(m.group(2)):
+        return int(m.group(1)), classify_championship_text(m.group(2))
+    m = CHAMPION_ANNOT_ALONE_RE.match(t)
+    if m:
+        return int(m.group(1)), classify_championship_text(m.group(2))
+    return None, None
 
 
 # Yet another PDF layout (newer OE12 exports) gives the marker its own
@@ -463,16 +485,36 @@ def team_results_from_pairs(pairs, club, rank_text, time_text):
     return out
 
 
-def expand_pair_result(result):
-    """If a parsed result's name holds a '/'-joined pair of clean two-token
-    names (run-in-pairs events), return one result per runner sharing the
-    club/time/rank, each with a 'Partner: …' note. Otherwise return [result]
-    unchanged. For HTML/text sources where name and club are already column-
-    separated — the flowing-PDF path has its own club-anchored handling."""
+# D/H-12 and D/H-14 night-run categories run in pairs; some exports name
+# the pair "Firstname1-Firstname2 Lastname1-Lastname2" instead of the more
+# common '/'-joined form (confirmed real: event 4315, "Albert-Adam
+# Imriska-Imriska" - Albert Imriska + Adam Imriska - and "Matilda-Annina
+# Schreiber-Urbanek" - Matilda Schreiber + Annina Urbanek). Unlike '/',
+# which never appears in a real single person's name, a hyphen legitimately
+# does (Biel-Pretting, Kastner-Jirka, Eibel-Lenane, ... all real surnames
+# seen elsewhere in this dataset) - splitting on it unconditionally would
+# risk fragmenting a genuine hyphenated name into a fake pair. Gated to
+# only these specific pair-run categories keeps that risk at zero: a
+# hyphenated INDIVIDUAL name can appear in any category, but two people's
+# names glued together with a hyphen in each half only happens here.
+PAIR_CATEGORY_RE = re.compile(r"(?i)\bbis\s*1[24]\b")
+
+
+def expand_pair_result(result, category=None):
+    """If a parsed result's name holds a joined pair of clean two-token
+    names (run-in-pairs events - '/'-joined generally, or '-'-joined but
+    only within a confirmed pair-run category, see PAIR_CATEGORY_RE),
+    return one result per runner sharing the club/time/rank, each with a
+    'Partner: …' note. Otherwise return [result] unchanged. For HTML/text
+    sources where name and club are already column-separated — the
+    flowing-PDF path has its own club-anchored handling."""
     name = result.get("name", "")
-    if "/" not in name:
+    if "/" in name:
+        names = split_pair_names(name)
+    elif category and PAIR_CATEGORY_RE.search(category):
+        names = split_hyphenated_pair_names(name)
+    else:
         return [result]
-    names = split_pair_names(name)
     if len(names) < 2 or not all(
             len(n.split()) == 2 and looks_like_person(n) for n in names):
         return [result]
@@ -556,3 +598,18 @@ def split_pair_names(name_text):
     for p in parts[1:]:
         out.append(f"{surname} {p}" if (len(p.split()) == 1 and surname) else p)
     return out
+
+
+def split_hyphenated_pair_names(name_text):
+    """'Albert-Adam Imriska-Imriska' -> ['Albert Imriska', 'Adam Imriska'];
+    'Matilda-Annina Schreiber-Urbanek' -> ['Matilda Schreiber', 'Annina
+    Urbanek']. Firstname-Lastname-ordered 'Firstname1-Firstname2
+    Lastname1-Lastname2' convention, hyphen-joined instead of '/'-joined.
+    Only called for confirmed pair-run categories (see PAIR_CATEGORY_RE) —
+    a real hyphenated surname elsewhere must never reach here."""
+    groups = name_text.split()
+    if len(groups) == 2 and groups[0].count("-") == 1 and groups[1].count("-") == 1:
+        firsts = groups[0].split("-")
+        lasts = groups[1].split("-")
+        return [f"{f} {l}" for f, l in zip(firsts, lasts)]
+    return [name_text]

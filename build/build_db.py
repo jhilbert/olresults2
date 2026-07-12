@@ -133,8 +133,20 @@ OESTM_TITLE_RE = re.compile(r"(?i)ö\(?st\)?m")
 OM_TITLE_RE = re.compile(r"(?i)(?<![a-zäöüß])öm(?![a-zäöüß])")
 COMBINED_TITLE_RE = re.compile(r"(?i)ö\(st\)m")
 
+# ANNE's own event-URL slug generator strips diacritics down to their plain
+# ASCII base letter (ö -> o) rather than expanding them, confirmed
+# consistently across many real slugs ("ÖSTM/ÖM Lang" -> "...-ostmom-...",
+# "ÖSTM Sprint" -> "ostm-sprint", "SkiO ÖM/ÖStM..." -> "...-om-ostm-...") -
+# so a slug carries "ÖM"/"ÖSTM" as plain, hyphen-bounded "om"/"ostm" tokens
+# with no umlaut at all, never matching the title regexes above. A separate,
+# ASCII-only pair used only against slugs, never against the title itself -
+# that's authored text and always keeps its real umlauts, so applying this
+# looser match there would only add false-positive risk for no benefit.
+OESTM_SLUG_RE = re.compile(r"(?i)(?<![a-z0-9])ostm(?![a-z0-9])")
+OM_SLUG_RE = re.compile(r"(?i)(?<![a-z0-9])om(?![a-z0-9])")
 
-def classify_title_championships(title):
+
+def classify_title_championships(title, slug=None):
     if not title:
         return set()
     if COMBINED_TITLE_RE.search(title):
@@ -144,6 +156,11 @@ def classify_title_championships(title):
         types.add("ÖSTM")
     if OM_TITLE_RE.search(title):
         types.add("ÖM")
+    if slug:
+        if OESTM_SLUG_RE.search(slug):
+            types.add("ÖSTM")
+        if OM_SLUG_RE.search(slug):
+            types.add("ÖM")
     return types
 
 
@@ -154,9 +171,19 @@ def classify_title_championships(title):
 # age classes starting at the "12 and under" bracket (D-12/H-12/D12 etc.) -
 # never younger, and never non-competitive groupings (Bahn course listings,
 # Neulinge/Familie/Hobby fun categories, school Mannschaft rosters, ...).
+# The digit+E marker ("21E", "H21-E") needs a lookbehind that rejects only
+# a preceding DIGIT (not a preceding letter): a gender-prefixed category
+# often has no separator at all between the letter and the age ("M21E"),
+# so a stricter "(?<![a-zäöü0-9])" lookbehind (rejecting any preceding
+# letter too) silently never matches that shape - confirmed real: event
+# 4220 ("3. AC Sprint (ÖM Sen.)"), where the senior Elite category
+# "H21-E" was never recognized as Elite at all, so Jannis Bonek's ordinary
+# ÖM-eligibility check let a category that should be ÖSTM-only through as
+# plain ÖM. The optional hyphen ("21-E" vs "21E") covers both spellings
+# seen in the data.
 ELITE_CAT_RE = re.compile(
     r"(?i)\belite\b|allgemeine\s*klasse|staatsmeisterschaft|"
-    r"(?<![a-zäöü0-9])(1[6-9]|2[01])e(?![a-zäöü0-9])")
+    r"(?<!\d)(1[6-9]|2[01])-?e(?![a-zäöü0-9])")
 SPECIAL_OM_CAT_RE = re.compile(r"(?i)^allgemein$|mixed\s+(jugend|masters)")
 CAT_AGE_NUM_RE = re.compile(r"(?<!\d)(\d{1,3})(?!\d)")  # isolated 1-3 digit
 # numbers only, so a bare \d{1,3} scan doesn't fragment a 4-digit year
@@ -175,7 +202,69 @@ EXCLUDE_CAT_RE = re.compile(
     # apply_title_championship_fallback), and event 4254 ("ÖM KO-Sprint",
     # 2024-05-11) wrongly gave 2nd-in-the-B-Finale (the consolation bracket
     # for those already eliminated from medal contention) a silver medal.
-    r"viertelfinale|halbfinale|b-finale")
+    # "Viertelfinal" also appears without the trailing "e" when a letter
+    # designator follows directly ("H21-E–Viertelfinal A") - German drops
+    # the adjectival ending there; "viertelfinale" alone missed this shape
+    # (confirmed real: event 4254, Jannis Bonek's real quarterfinal-heat
+    # win at "H21-E–Viertelfinal A" wrongly counted as a gold).
+    r"viertelfinal|halbfinale|b-finale|"
+    # "D21-K"/"D21-L"/"H21-K"/"H21-L"/"D 18-K"/"H 18-K" etc: an abbreviated
+    # Kurz/Lang course-length split of the open (non-Elite) adult class -
+    # the exact same distinction as the already-excluded full-word "kurz"/
+    # "lang" category names, just abbreviated to one letter after the age
+    # number. Confirmed real: event 4245 ("ÖM Mittel"), where "D21-K"'s
+    # plain #1 finisher (no per-row championship annotation in the source
+    # HTML at all) wrongly picked up an ÖM gold via title fallback, since
+    # neither EXCLUDE_CAT_RE nor ELITE_CAT_RE recognized the single-letter
+    # suffix as meaning the same thing as spelled-out "Kurz"/"Lang".
+    r"\d-[kl]\b")
+# D/H-15-18, D/H-21-Kurz, D/H-21-Lang (every spelling/spacing variant
+# found: "21K", "21-K", "21 Kurz", "H-21Kurz", "15-18", "ab 15 bis 18",
+# ...) all overlap the real championship age ladder (-12,-14,-16E,-18E,
+# -20E,21E,35-,40-,...,80-) without being part of it - confirmed by direct
+# user instruction to always exclude them, backed by the event 4315
+# Ausschreibung (explicitly lists D/H15-18, D/H21K, D/H21L under "Austria
+# Cup" not "Meisterschaftskategorien") and dozens of already-tagged rows
+# using these shapes, going back to 2007, that disagree with the club's
+# own medal records. Kept as a standalone regex (not folded into
+# EXCLUDE_CAT_RE) since it also needs to strip any REAL per-row
+# annotation using these category shapes, not just gate the title
+# fallback - see strip_age_overlap_categories(). The lookbehind rejects a
+# preceding DIGIT but allows a preceding LETTER ('H21K' has no separator
+# between the gender letter and '21'), mirroring ELITE_CAT_RE's fix for
+# the same reason.
+AGE_OVERLAP_EXCLUDE_RE = re.compile(
+    r"(?i)(?<!\d)21\s*-?\s*(?:k(?:urz)?|l(?:ang)?)\b|"
+    r"(?<!\d)15\s*-\s*18\b|\bab\s*15\s*bis\s*18\b")
+# A "Jugend"-scoped title (confirmed real: event 4434, "5.AC" / slug
+# "5-ac-om-jugend-sprint-alpen-adria-cup") restricts a title-fallback
+# championship to youth categories only - it must not spill onto an
+# unrelated senior/masters bracket that happens to also clear the >=12 age
+# floor (Peter Bonek wrongly got a 2024 "Herren ab 60" ÖM gold from this
+# event; the club's own records have no such medal for him there). Many
+# other events instead say "Jugend UND Senioren" (both groups titled) -
+# checked for loosely via a bare "sen" substring rather than a word-
+# boundary match, since slug generation truncates "senioren"
+# unpredictably (event 145: "...om-jugendundsen-6-austriacup..." with no
+# separating hyphen at all) - so this only fires when "jugend" appears
+# with no "sen" anywhere in the combined title+slug text.
+#
+# The event's own Ausschreibung (announcement PDF) for 4434 spells out the
+# exact eligible set: "Österr. Meisterschaft: D/H-12, D/H-14, D/H-16E,
+# D/H-18E, D/H-20E" - the fixed youth "bis NN[E]" ladder only. Notably
+# NOT included: "D/H-10" (already excluded elsewhere by the >=12 age
+# floor) and, less obviously, "D/H15-18" - a bounded non-Elite grouping
+# ("ab 15 bis 18") that's Austria-Cup-only there despite covering youth
+# ages, alongside the equivalent adult non-Elite splits ("ab 21 Kurz/
+# Lang"). Every category on the confirmed ladder is named "bis NN[E]"
+# (no "ab"); every excluded one - senior brackets and this bounded
+# youth-non-Elite grouping alike - is named "ab NN[...]". So excluding
+# anything with an "ab NN" clause, bounded or not, exactly reproduces the
+# Ausschreibung's set without needing to special-case the bounded form.
+JUGEND_ONLY_RE = re.compile(r"(?i)jugend")
+AB_AGE_RE = re.compile(r"(?i)\bab\s*\d+\b")
+SENIOR_ONLY_RE = re.compile(r"(?i)\bsen(?:ioren)?\b")
+YOUTH_MARKER_RE = re.compile(r"(?i)jugend|nachwuchs|junioren")
 
 
 def category_min_age(category):
@@ -246,6 +335,37 @@ def is_ostm_eligible_category(category):
 # results at all, the ÖM Nacht half never happened / was never published.
 TITLE_FALLBACK_EXCLUDE_EVENTS = {4783}
 
+# Same idea, but for a two-day meet where only ONE day is the actual
+# championship and the other genuinely has its own separate, unrelated
+# results published - the event-level title/slug can't express that split,
+# since classify_title_championships/apply_title_championship_fallback
+# only look at the whole event, not per-stage. Confirmed real: event 4428
+# ("AC Wochendende Lang/Mittel Strallegg", slug "...-2-tage-ostm-om-lang-
+# und-ac-mittel" = "2-day: ÖSTM/ÖM for the Lang(distanz) day, AC for the
+# Mittel(distanz) day") - stage 20442802 (2024-09-22, the Mittel day) is
+# published under the title "9. AC & ASKÖ Bundesmeisterschaften" (a
+# different federation's own title, unrelated to ÖFOL's ÖM/ÖSTM) with no
+# championship marker of its own at all; only stage 20442801 (2024-09-21,
+# Lang) is the real ÖSTM/ÖM race the event-level slug refers to.
+TITLE_FALLBACK_EXCLUDE_STAGES = {20442802}
+
+# The general rule (is_om_eligible_category) treats the senior/open Elite
+# bracket as ÖSTM-only, never plain ÖM, learned from real per-row
+# detections that were mostly Langdistanz races (Austria's traditional
+# "Staatsmeisterschaft" distance). Event 4315 ("10. Austria Cup / ÖM
+# Nacht") is a confirmed exception: its own Ausschreibung
+# (ac10_ausschreibung_2.0.pdf) lists "D/H21E" directly alongside the other
+# ÖM-only age brackets ("D/H35-", "D/H40-", ...) under "Meisterschaftska-
+# tegorien ÖM Nacht-OL" - a real published document, not a guess - and the
+# event's own official top-3 extract (om-nacht-meisterschaftswertung-
+# 2.pdf) confirms medals were actually awarded there ("1 österreichischer
+# Meister" on the H21E/D21E winner's row) - Night-O's senior Elite is ÖM,
+# not ÖSTM, unlike Langdistanz's. Gated to this event only, not applied
+# generally, since it directly contradicts the otherwise-confirmed rule
+# for other events (e.g. 2025's event 4830, "7.AC ÖM Mitteldistanz",
+# where excluding senior Elite from ÖM is correct).
+EVENT_ELITE_OM_OVERRIDE = {4315}
+
 # Competitors confirmed by hand to be foreign/ineligible for the Austrian
 # title despite carrying a championship tag, for cases the automated
 # pipeline can't catch on its own: person.nationality is too sparse and
@@ -260,7 +380,70 @@ KNOWN_INELIGIBLE_RESULTS = {
     (4837, "Milja Väätäjä"),  # Paimion Rasti, Finland - ÖSTM Mittel, Damen ab 21 Elite, rank 2
     (4884, "Ivan Serafini"),  # ASD Team Sky Friul, Italy - ÖM MTBO, Herren ab 40, rank 3
     (4306, "Vojtech Teringl"),  # TJ OB Ceske Budejovice, Czechia - ÖM Sprint, H17, rank 1
+    # Naturfreunde Wien member, but Ukrainian and hasn't yet had 3
+    # uninterrupted years of primary residence in Austria - ÖFOL's own
+    # championship rule (Staatsmeisterschaften/Meisterschaften Kriterium
+    # 2) requires either Austrian citizenship or 3+ years' residence plus
+    # ÖFOL license, not just club membership. Confirmed by hand: event
+    # 4315 ("ÖM Nacht"), Damen bis 14 pair - her exclusion is why the
+    # event's own official Meisterschaftswertung extract gives the bronze
+    # to the next-placed eligible pair (Tandl/Asseg) instead.
+    (4315, "Yelyzaveta Yevtushenko"),
 }
+
+# Unambiguous non-Austrian club-name keywords (case-insensitive substring
+# match against the raw `club` field), derived by systematically reviewing
+# every club that appears in a current championship-tier row and fails to
+# canonicalize to an official Austrian club (~690 distinct strings at the
+# time this was built) - the majority of that list is genuine Austrian club
+# truncation/spelling variants (fixed-width legacy exports cut names off,
+# e.g. "Naturfreunde Villach - Oriente") or outright parsing garbage (a
+# surname leaked into the club column from a misaligned row), NEITHER of
+# which indicates foreign nationality at all - only entries with a clearly
+# recognizable non-Austrian country name, national-team designation, or
+# well-known Czech/Slovak/Slovenian/Croatian/Hungarian/Swiss/German/Italian
+# city or club-type token went in this list. Deliberately excludes anything
+# that could overlap an Austrian place name (Klagenfurt, Kufstein, Graz,
+# Waldviertel, Kärnten, Steiermark, ...) or a club we've already confirmed
+# has real Austrian-eligible members via the ANNE API despite a foreign-
+# sounding name (OLT Transdanubien/HU - see USER_ELIGIBILITY_PATH).
+FOREIGN_CLUB_KEYWORDS = [
+    "italy", "italia", "hungary", "hungarian", "ukraine", " usa", "bulgaria", "bulgarien",
+    "czech", "schweiz", "croatia", "slovenia", "poland", "latvia", "philippines", "australia",
+    " (lit)", " (hu)", " (d)", " (lat)",
+    "praha", "praga", "prg", "brno", "plzen", "plzeň", "jihlava", "hradec kralov", "hradec králov",
+    "strelka",
+    "pardubice", "jicín", "jičín", "liberec", "šumperk", "sumperk", "vsetín", "vsetin",
+    "bratislava", "zlín", "zlin", "nový bor", "novy bor", "blansko", "sokolov", "chrastava",
+    "dobríš", "dobris", "kamenice", "jilemnice", "smržovka", "smrzovka", "ceske budejovice",
+    "ceské budejovice", "marianske lazne", "mariánské lázne", "rychnov", "kob ", "tj spartak",
+    "tj tesla", "sk zabovresky", "sk zabrovesky", "sk zabrovresky", "skob", "vštj", "vstj",
+    "oob tj", "dynamo malá skála", "kotlárka", "spartak vrchlabí", "lokomotiva plzen",
+    "lokomotiva pardubice", "choceò", "nove mesto", "nové mest", "vrbne pod", "olomouc",
+    "jizerky", "kladno", "vejprty", "žamberk", "zamberk", "melník", "melnik", "studenec",
+    "bruntál", "bruntal", "jiskra",
+    "orientacijski", "slovenj gradec", "komenda", "japetic", "mariborski", "karnika",
+    "varaždin", "brežice", "kamniski", "pohorje",
+    "delnice", "maksimir", "hrvatska",
+    "zalaegerszeg", "szombathely", "szentendre", "alpokalja", "diósgyor", "diósgyori", "dvtk",
+    "gerecse", "paksi", "veszprémi", "szegedi", "haladas", "hangya", "megalódusz",
+    "tájfutó", "hun-o-team",
+    "olg st. gallen", "olg kölliken", "olv hindelbank", "olv baselland", "olk fricktal",
+    "olk argus", "ski-o swiss", "ski o swiss", "swiss o", "olg welsikon", "olg weisslingen",
+    "olg thun", "olg säuliamt", "olg skandia", "olg schaffhausen", "olg goldau", "olg davos",
+    "olg basel", "ol zimmerberg", "ol amriswil", "regio wil", "altdorf",
+    "tu ilmenau", "tu dresden", "osnabrück", "bad harzburg", "ol team filder", "olv landshut",
+    "oc münchen", "sachsen", "radebeul", "wannweil",
+    "bussola", "g.s. pav", "gs pavione", "sportclub meran", "orientamento vincenza",
+    "e.o.vizenca", "semiperdo", "ski-o fvg", "cordoba",
+    "team israel", "team slovenia", "team italia", "team croatia", "team bayern",
+    "national team", "military team", "mtbo italy", "mtbo hungary", "mtbo team",
+    "italian mtbo", "hungarian mtbo", "czech mtbo", "czech dream team",
+    "keravan", "puijon", "ifk lidingö", "sigulda", "polski zwiazek", "dnipro",
+    "gronlait", "northwest orienteering", "city of trees", "club south london",
+    "volkssport berlin", "rehab sc", "viking", "hammaren", "skogsfalken", "kangaroos",
+    "perkunas",
+]
 
 # ANNE's own championshipEligibility flag (see ingest/anne_user_eligibility.py),
 # cached per (ANNE userId, event id) - the authoritative signal, since
@@ -277,6 +460,35 @@ KNOWN_INELIGIBLE_RESULTS = {
 # (explicit override granted - eligible despite the nationality) or None
 # (no override - not eligible).
 USER_ELIGIBILITY_PATH = RAW / "user_eligibility.json"
+
+
+def strip_age_overlap_categories(cur):
+    """Unconditionally null championship for any INDIVIDUAL row whose
+    category matches AGE_OVERLAP_EXCLUDE_RE (D/H-15-18, D/H-21-Kurz,
+    D/H-21-Lang) - unlike the same check inside is_om/is_ostm_eligible_
+    category, which only gates the title *fallback*, this also catches a
+    real per-row annotation using one of these category shapes (an older
+    legacy export occasionally marks a Kurz/Lang stage winner the same
+    way as a genuine champion), since the category itself was never a
+    real ÖM/ÖSTM bracket regardless of how the source decided to write it
+    up. Scoped to result_kind='individual' only: a genuinely different,
+    legitimate bracket can share this exact age-range name in a RELAY
+    context - confirmed real: event 4588 ("Ö(ST)M Staffel..."), whose
+    "Herren ab 15 bis 18" relay category is a real championship division
+    (Lauri Urbanek/Mika Asenbauer/Fabian Kolar's gold there is genuine,
+    already confirmed by the club's own records) even though the
+    identically-named INDIVIDUAL "ab 15 bis 18" category elsewhere never
+    is."""
+    cur.execute("""SELECT DISTINCT category FROM result
+                   WHERE championship IS NOT NULL AND result_kind = 'individual'""")
+    bad = [(cat,) for (cat,) in cur.fetchall() if AGE_OVERLAP_EXCLUDE_RE.search(cat)]
+    if not bad:
+        return 0
+    cur.executemany(
+        """UPDATE result SET championship = NULL
+           WHERE category = ? AND championship IS NOT NULL AND result_kind = 'individual'""",
+        bad)
+    return len(bad)
 
 
 def apply_championship_eligibility_overrides(cur):
@@ -320,27 +532,70 @@ def apply_title_championship_fallback(cur):
     floor (a youth relay can carry full ÖSTM status - see
     is_ostm_eligible_category's docstring) - those already have real per-row
     detection wherever the data supports it, so this fallback never needs to
-    cover them."""
+    cover them.
+
+    Also covers 'pair' rows (D/H-12/-14 run-in-pairs night events, e.g.
+    event 4315 "ÖM Nacht") - a pair category with no real per-row
+    annotation of its own used to fall through this fallback entirely
+    despite a clearly ÖM-titled event, because the original SELECT/UPDATE
+    only looked at 'individual'/'relay' and forgot 'pair' existed."""
     cur.execute("""
-        SELECT DISTINCT s.id, r.category, e.title, e.id FROM result r
+        SELECT DISTINCT s.id, r.category, e.title, e.id, e.slug, r.result_kind FROM result r
         JOIN stage s ON s.id = r.stage_id
         JOIN event e ON e.id = s.event_id
-        WHERE r.status = 'ok' AND r.result_kind IN ('individual', 'relay')
+        WHERE r.status = 'ok' AND r.result_kind IN ('individual', 'relay', 'pair')
           AND NOT EXISTS (SELECT 1 FROM result r2
                             WHERE r2.stage_id = s.id AND r2.category = r.category
                               AND r2.championship IS NOT NULL)
     """)
     candidates = cur.fetchall()
     n = 0
-    for sid, category, title, eid in candidates:
-        if eid in TITLE_FALLBACK_EXCLUDE_EVENTS:
+    for sid, category, title, eid, slug, result_kind in candidates:
+        if eid in TITLE_FALLBACK_EXCLUDE_EVENTS or sid in TITLE_FALLBACK_EXCLUDE_STAGES:
             continue
-        types = classify_title_championships(title)
+        # ANNE sometimes only exposes a terse shortTitle ("5.AC") with the
+        # actual championship claim living solely in the event's own URL
+        # slug (confirmed real: event 4434, title "5.AC", slug "5-ac-om-
+        # jugend-sprint-alpen-adria-cup").
+        types = classify_title_championships(title, slug)
         if not types:
+            continue
+        combined = f"{title} {slug or ''}"
+        if (JUGEND_ONLY_RE.search(combined) and "sen" not in combined.lower()
+                and AB_AGE_RE.search(category)):
+            continue
+        # Mirror image of the Jugend-only case above: a "(ÖM Sen.)"-scoped
+        # title (confirmed real: event 4220, "3. AC Sprint (ÖM Sen.)",
+        # slug "...-om-sprint-sen-ko-sprint-qualifikation") restricts the
+        # title-fallback championship to masters categories (age >= 35)
+        # only - it must not spill onto a youth/near-elite category that
+        # also clears the ordinary >=12 floor (Corinna Biel D20-E, Matilda
+        # Buschek/Anna Skern D-14, and Jannis Bonek H21-E each wrongly
+        # picked up a spurious extra 2024 medal from this event). Distinct
+        # from the many OTHER events titled "... Nachwuchs UND Senioren"
+        # (both groups covered) - SENIOR_ONLY_RE fires on a bare "Sen."/
+        # "Senioren" marker, but only once YOUTH_MARKER_RE rules out a
+        # "Nachwuchs"/"Jugend"/"Junioren" co-marker being present too.
+        if SENIOR_ONLY_RE.search(combined) and not YOUTH_MARKER_RE.search(combined):
+            age = category_min_age(category)
+            if age is None or age < 35:
+                continue
+        # D/H-15-18, D/H-21-Kurz, D/H-21-Lang are always Austria-Cup-only
+        # for an INDIVIDUAL race (confirmed by direct user instruction and
+        # the event 4315 Ausschreibung). Scoped to result_kind=='individual'
+        # only: the identical age-range name can legitimately be a real
+        # RELAY division instead (event 4588, "Ö(ST)M Staffel..." - its
+        # "Herren ab 15 bis 18" relay category is a genuine championship
+        # bracket, confirmed by the club's own records), so this must not
+        # be folded into is_om/is_ostm_eligible_category, which have no
+        # notion of result_kind and are shared by both.
+        if result_kind == "individual" and AGE_OVERLAP_EXCLUDE_RE.search(category):
             continue
         if "ÖSTM" in types and is_ostm_eligible_category(category):
             champ = "ÖSTM"
-        elif "ÖM" in types and is_om_eligible_category(category):
+        elif "ÖM" in types and (is_om_eligible_category(category)
+                                 or (eid in EVENT_ELITE_OM_OVERRIDE
+                                     and is_ostm_eligible_category(category))):
             champ = "ÖM"
         else:
             continue
@@ -352,7 +607,7 @@ def apply_title_championship_fallback(cur):
         cur.execute("""UPDATE result SET championship = ?
                         WHERE stage_id = ? AND category = ? AND status = 'ok'
                           AND rank IS NOT NULL
-                          AND result_kind IN ('individual', 'relay')""", (champ, sid, category))
+                          AND result_kind IN ('individual', 'relay', 'pair')""", (champ, sid, category))
         n += cur.rowcount
     return n
 
@@ -360,6 +615,14 @@ def apply_title_championship_fallback(cur):
 OFFICIAL_CLUBS_PATH = ROOT / "data" / "official_clubs.json"
 CLUB_SUFFIX_NUM_RE = re.compile(r"^(.+)\s(\d)$")
 CLUB_PREFIX_CODE_RE = re.compile(r"^([A-Za-zÄÖÜäöüß]{2,6})\s+(.+)$")
+# "NF" is a widespread abbreviation for "Naturfreunde" across many of that
+# federation's clubs in legacy exports (NF Wien, NF Linz, NF Kitzbühel,
+# NF Pasching, NF Seekirchen, NF Steiermark, ...), confirmed real: event
+# 4317's relay export used "NF Wien 1", which the suffix-number strip
+# alone reduces to "NF Wien" - not an official name on its own - silently
+# dropping Marina Skern's and Wolfgang Waldhäusl's official_club match
+# (and with it, their medal from the club's own cross-check) entirely.
+NF_ABBREV_RE = re.compile(r"^NF\s+(.+)$")
 
 
 def load_official_clubs():
@@ -385,16 +648,24 @@ def canonicalize_official_club(name, official):
     if not name:
         return None
     cur = name.rstrip("*").strip()
+    # a team-number suffix ('NF Wien 1') can stack with the NF abbreviation
+    # - strip the suffix first (unconditionally; a lone trailing digit is
+    # never part of a real club name) so the NF-expansion below sees the
+    # bare club name underneath it, rather than requiring each transform to
+    # land on an official name in a single step on its own.
+    m = CLUB_SUFFIX_NUM_RE.match(cur)
+    if m:
+        cur = m.group(1).strip()
     while cur not in official:
         changed = False
-        m = CLUB_SUFFIX_NUM_RE.match(cur)
-        if m and m.group(1).strip() in official:
-            cur = m.group(1).strip()
+        m = CLUB_PREFIX_CODE_RE.match(cur)
+        if m and m.group(2).strip() in official:
+            cur = m.group(2).strip()
             changed = True
         if not changed:
-            m = CLUB_PREFIX_CODE_RE.match(cur)
-            if m and m.group(2).strip() in official:
-                cur = m.group(2).strip()
+            m = NF_ABBREV_RE.match(cur)
+            if m and f"Naturfreunde {m.group(1).strip()}" in official:
+                cur = f"Naturfreunde {m.group(1).strip()}"
                 changed = True
         if not changed:
             return None
@@ -637,6 +908,17 @@ def is_bewertung_clone(event):
     return "bewertung" in (event.get("shortTitle") or "").lower()
 
 
+# ANNE's own sportType metadata is occasionally wrong at the source -
+# confirmed real: event 4317's shortTitle is literally "ÖM und ÖSTM Sprint
+# Mixed Staffel in SkiO", but ANNE reports sportType 'footOrienteering'.
+# This matters beyond mislabeling: the December-belongs-to-next-season
+# rule (site/app.js seasonYear()) only shifts a December date forward for
+# sportType 'skiOrienteering', so a Ski-O event misfiled as footO here
+# would silently stay attributed to the wrong (calendar, not season) year
+# everywhere on the site.
+EVENT_SPORT_TYPE_OVERRIDES = {4317: "skiOrienteering"}
+
+
 def load_events(cur):
     events = {e["id"]: e for e in json.loads((RAW / "events.json").read_text())
               if not is_bewertung_clone(e)}
@@ -647,8 +929,9 @@ def load_events(cur):
              (e.get("dateFrom") or "")[:10] or None,
              (e.get("dateTo") or "")[:10] or None,
              e.get("location"), "AUT", e.get("coordinates"),
-             e.get("competitionType"), e.get("sportType"), e.get("eventType"),
-             e.get("url")))
+             e.get("competitionType"),
+             EVENT_SPORT_TYPE_OVERRIDES.get(e["id"], e.get("sportType")),
+             e.get("eventType"), e.get("url")))
     return events
 
 
@@ -813,8 +1096,31 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
     docs = [json.loads(p.read_text())
             for p in sorted(NORM.glob("*.json")) if canonical.match(p.name)]
     # plain result lists before split-time lists, so duplicates resolve
-    # in favour of the cleaner source
-    docs.sort(key=lambda d: (d["eventId"], "split" in d["fileName"].lower()))
+    # in favour of the cleaner source. Also prefer a dedicated relay
+    # ("Staffel") export over a same-event 'race'-listType file covering
+    # the identical categories: that combination is really a per-leg
+    # times report in disguise - no club, no rank, no team grouping - the
+    # relay-shaped equivalent of a split-times file, just not named
+    # "split" (confirmed real: event 4317, "ÖM/ÖSTM Sprint Mixed Staffel"
+    # - "ergebnisse.html" processed first and silently shadowed every
+    # runner's real team/rank/club from "erg101223-staffel.html" via the
+    # (stage, category, name) dedup key below, dropping Marina Skern's and
+    # Wolfgang Waldhäusl's silver from the medal count entirely).
+    #
+    # Also prefer a dedicated "-oem"/"-oestm" championship extract over
+    # the same event's general results file: the extract is pre-filtered
+    # by the organizers to eligible entrants only, so its own rank number
+    # already IS the correct national placement, while the general file's
+    # rank counts everyone including foreign guests. Confirmed real: event
+    # 4346 ("2. AC SkiO Mittel"), "Herren ab 45" - the general file placed
+    # Wolfgang Waldhäusl 5th (behind four foreign/guest runners folded
+    # into that count), but "...-results-oem.pdf" already excludes them
+    # and correctly has him 3rd; the general file happened to sort first
+    # and silently won the dedup, costing him a bronze.
+    oem_extract_re = re.compile(r"-oe?stm\.|-oem\.", re.I)
+    docs.sort(key=lambda d: (d["eventId"], "split" in d["fileName"].lower(),
+                              d.get("listType") != "relay",
+                              not oem_extract_re.search(d["fileName"])))
     # only split into per-date stages for events ANNE itself says span
     # multiple days (stageCount >= 2, or a distinct dateTo) - otherwise a
     # single-day event's own split-times file (same race, just guesses a
@@ -1073,38 +1379,21 @@ def main():
 
     n_title_fallback = apply_title_championship_fallback(cur)
 
+    strip_age_overlap_categories(cur)
+
     n_eligibility = apply_championship_eligibility_overrides(cur)
 
-    # KNOWN_INELIGIBLE_RESULTS remains for the cases the API can't cover:
-    # someone with no ANNE account at all (a genuinely one-off foreign
-    # guest, e.g. Milja Väätäjä/Ivan Serafini - confirmed by hand to not
-    # exist in ANNE's user database whatsoever).
-    for eid, pname in KNOWN_INELIGIBLE_RESULTS:
-        cur.execute("""
-            UPDATE result SET championship = NULL
-            WHERE championship IS NOT NULL
-              AND stage_id IN (SELECT id FROM stage WHERE event_id = ?)
-              AND person_id IN (SELECT id FROM person WHERE name = ?)
-        """, (eid, pname))
-
-    # An individual "podium" needs at least 3 ELIGIBLE starters - fewer than
-    # that and no official ÖM/ÖSTM medal is awarded at all, gold included
-    # (confirmed real: event 4884, "Damen bis 17" had only 2 starters total,
-    # no medals). "Starters", not "finishers": a DNF/MP/DSQ still counts
-    # (they started), only DNS (never started at all) doesn't (confirmed real:
-    # event 4306, H17 - Anton Greiner/AUT DNF still counts as one of the 3
-    # eligible starters alongside Ochenbauer and Urbanek, even without a
-    # rank of his own). "Eligible", not "raw": the same exclusions applied
-    # above (KNOWN_INELIGIBLE_RESULTS, the ANNE eligibility cache) apply
-    # here too - Vojtech Teringl/CZE at that same event does NOT count
-    # toward the 3, so the category still clears the threshold on its 3
-    # remaining Austrians even though he was the field's 4th starter.
-    # Collected into a temp table rather than re-running both exclusion
-    # sources' logic inline, since this needs to check arbitrary rows
-    # (including DNF/MP ones that never got a championship tag to strip in
-    # the first place, so the WHERE-championship-stripped-already trick the
-    # two exclusion steps above use doesn't apply here).
+    # Every non-nationality-API exclusion source, collected once into a temp
+    # table and reused for (1) stripping championship tags below and (2) the
+    # eligible-starter count further down - a DNF/MP/DSQ row never got a
+    # championship tag to strip in the first place, so it needs checking
+    # against this table directly, not just already-tagged rows.
     cur.execute("CREATE TEMP TABLE ineligible_starter (event_id INTEGER, person_id INTEGER)")
+
+    # KNOWN_INELIGIBLE_RESULTS: cases the API can't cover - someone with no
+    # ANNE account at all (a genuinely one-off foreign guest, e.g. Milja
+    # Väätäjä/Ivan Serafini - confirmed by hand to not exist in ANNE's user
+    # database whatsoever).
     for eid, pname in KNOWN_INELIGIBLE_RESULTS:
         cur.execute("""
             INSERT INTO ineligible_starter (event_id, person_id)
@@ -1118,20 +1407,113 @@ def main():
                 cur.execute("INSERT INTO ineligible_starter (event_id, person_id) VALUES (?, ?)",
                             (int(eid), int(uid)))
 
-    # result_kind = 'individual' only: confirmed by hand that relay
-    # categories do NOT follow this rule - event 4829's "Herren ab 210"
-    # relay had only 2 teams (COUNT(DISTINCT rank) = 2) yet both the gold
-    # and silver are real, per-club-record-confirmed medals.
+    # Foreign guest-team club codes with an unambiguous, non-Austrian naming
+    # convention - confirmed real: event 4434, an ÖM round hosted jointly
+    # with the international Alpe-Adria Cup, where most of the field is
+    # "AA <region>" regional team codes or Italian federation "NNNN -
+    # <club>" numeric-prefixed codes (0392 - A.S.D. SEMIPER...), none with
+    # an ANNE account to check via the API. This is deliberately a narrow,
+    # literal-prefix match rather than a blanket "no ANNE account" or
+    # "unmatched club" rule - both tried and rejected earlier for wrongly
+    # catching real Austrians (Vera Arbter by nationality; separately,
+    # "Cleo Machold" by a malformed club field on one legacy row, unlinked
+    # from her real ANNE account for a data-quality reason that has nothing
+    # to do with actually being foreign). "AA " itself isn't purely
+    # foreign, either - the Alpe-Adria Cup fields Austria's own bordering
+    # provinces alongside genuinely foreign regions (confirmed real: the
+    # full "AA <region>" list in this dataset has "AA Team Kärnten" and
+    # "AA Team Steiermark" - both Austrian - next to Bayern/DE,
+    # Trentino-Südtirol/Veneto/Friuli/Lombardia/IT, Hrvatska/HR,
+    # Slovenia/SI, Ticino/CH, Baranya/Somogy/Vas/Zala/HU), so those two are
+    # carved back out.
+    cur.execute("""
+        INSERT INTO ineligible_starter (event_id, person_id)
+        SELECT DISTINCT s.event_id, r.person_id FROM result r JOIN stage s ON s.id = r.stage_id
+        WHERE (r.club LIKE 'AA %' AND r.club NOT LIKE 'AA %Kärnten%'
+               AND r.club NOT LIKE 'AA %Steiermark%')
+           OR r.club GLOB '[0-9][0-9][0-9][0-9] - *'
+    """)
+
+    # Broader pass: FOREIGN_CLUB_KEYWORDS (see its own docstring for how it
+    # was derived and why it stays deliberately conservative). Matched in
+    # Python rather than one giant SQL OR chain, since a ~90-keyword list is
+    # far more maintainable as a plain list than as SQL string literals.
+    cur.execute("""
+        SELECT DISTINCT s.event_id, r.person_id, r.club FROM result r
+        JOIN stage s ON s.id = r.stage_id
+        WHERE r.club IS NOT NULL AND r.club != ''
+    """)
+    for eid, pid, club in cur.fetchall():
+        lc = club.lower()
+        if any(k in lc for k in FOREIGN_CLUB_KEYWORDS):
+            cur.execute("INSERT INTO ineligible_starter (event_id, person_id) VALUES (?, ?)",
+                        (eid, pid))
+
+    for eid, pid in cur.execute(
+            "SELECT DISTINCT event_id, person_id FROM ineligible_starter").fetchall():
+        cur.execute("""
+            UPDATE result SET championship = NULL
+            WHERE championship IS NOT NULL AND person_id = ?
+              AND stage_id IN (SELECT id FROM stage WHERE event_id = ?)
+        """, (pid, eid))
+
+    # A pair/relay/team result stands or falls together: one ineligible
+    # member (foreign guest, insufficient residency, ...) taints the whole
+    # unit's placement, not just their own row - the ELIGIBLE partner
+    # doesn't get to keep the medal alone. Confirmed real: event 4315
+    # ("ÖM Nacht"), Damen bis 14 pair Cleo Machold/Yelyzaveta Yevtushenko -
+    # Yevtushenko doesn't meet the 3-years-residency criterion, and the
+    # event's own official Meisterschaftswertung extract shows the whole
+    # pair skipped, with the next-placed eligible pair (Tandl/Asseg)
+    # promoted to bronze instead - not Machold alone keeping it.
     cur.execute("""
         UPDATE result SET championship = NULL
-        WHERE championship IS NOT NULL AND result_kind = 'individual'
+        WHERE championship IS NOT NULL
+          AND result_kind IN ('relay', 'pair', 'team')
+          AND EXISTS (
+            SELECT 1 FROM result r2 JOIN stage s2 ON s2.id = r2.stage_id
+            WHERE r2.stage_id = result.stage_id AND r2.category = result.category
+              AND r2.rank = result.rank
+              AND EXISTS (SELECT 1 FROM ineligible_starter i
+                          WHERE i.event_id = s2.event_id AND i.person_id = r2.person_id))
+    """)
+
+    # A podium needs at least 3 ELIGIBLE starters - fewer than that and no
+    # official ÖM/ÖSTM medal is awarded at all, gold included (confirmed
+    # real: event 4884, "Damen bis 17" had only 2 starters total, no
+    # medals). "Starters", not "finishers": a DNF/MP/DSQ still counts (they
+    # started), only DNS (never started at all) doesn't (confirmed real:
+    # event 4306, H17 - Anton Greiner/AUT DNF still counts as one of the 3
+    # eligible starters alongside Ochenbauer and Urbanek, even without a
+    # rank of his own). "Eligible", not "raw": every exclusion collected
+    # above applies here too - none of the ineligible_starter rows count
+    # toward the 3, so a category still clears the threshold on its
+    # remaining real Austrians even if the excluded ones were part of its
+    # nominal field.
+    # This rule applies to every result_kind, relay/team/pair included -
+    # confirmed real: event 4829's "Herren ab 210" relay only LOOKS like it
+    # has 2 starting teams if you count distinct ranks (a DNF team gets no
+    # rank at all), but it genuinely had 3 teams on the start line
+    # (Naturfreunde Wien 1, OLG Ströck Wien 1, and ASKÖ Henndorf
+    # Orienteering 1 - whose own member mispunched, DNF, no rank), clearing
+    # the threshold same as any individual category would. The unit being
+    # counted just isn't the same for every kind: one "starter" is one
+    # PERSON for an individual race, but one TEAM for relay/team/pair (its
+    # members all share one identical `club` value, so COUNT(DISTINCT
+    # person_id) would count a single team as 2-4 "starters" instead of 1 -
+    # counting DISTINCT club_ instead of DISTINCT person_id for those kinds
+    # fixes that).
+    cur.execute("""
+        UPDATE result SET championship = NULL
+        WHERE championship IS NOT NULL
           AND (stage_id, category) IN (
             SELECT r.stage_id, r.category FROM result r JOIN stage s ON s.id = r.stage_id
-            WHERE r.status IN ('ok', 'dnf', 'mp', 'dsq') AND r.result_kind = 'individual'
+            WHERE r.status IN ('ok', 'dnf', 'mp', 'dsq')
               AND NOT EXISTS (SELECT 1 FROM ineligible_starter i
                               WHERE i.event_id = s.event_id AND i.person_id = r.person_id)
             GROUP BY r.stage_id, r.category
-            HAVING COUNT(DISTINCT r.person_id) < 3)
+            HAVING COUNT(DISTINCT CASE WHEN r.result_kind = 'individual'
+                                       THEN 'p' || r.person_id ELSE 'c' || r.club END) < 3)
     """)
     cur.execute("DROP TABLE ineligible_starter")
 

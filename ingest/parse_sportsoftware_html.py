@@ -196,7 +196,7 @@ def parse_document(html_text):
                 result["yearOfBirth"] = y + (2000 if y <= 26 else 1900) if y < 100 else y
             if rec.get("Pkt"):
                 result["scoreText"] = rec["Pkt"].strip()
-            current["results"].extend(expand_pair_result(result))
+            current["results"].extend(expand_pair_result(result, current.get("name")))
 
     return [c for c in categories if c["results"]]
 

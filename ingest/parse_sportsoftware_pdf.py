@@ -107,6 +107,9 @@ SPLITS_RE = re.compile(r"Zwischenzeiten|\d+\(\d+\)\s+\d+\(\d+\)")
 DATE_HEADER_RE = re.compile(r"\d{1,2}\.\d{1,2}\.\d{4}")
 TIME_TOKEN_RE = re.compile(r"\d{1,3}:\d{2}(?::\d{2})?")
 LINE_TOLERANCE = 3  # px, for clustering words into the same visual line
+# see the "Text1" handling below assign_columns(): the word "Meister"/
+# "Meisterin" spilling from a narrow Text1 announcement column into Name.
+LEAKED_TITLE_WORD_RE = re.compile(r"(?i)^(?:staats)?meister(?:in)?\b\s*")
 
 # Some clubs export a "flowing" PDF with no Pl/Stnr/Verein column headers at
 # all: a numbered list "1. Name Club Zeit [Rückstand] [Zeit verloren]", with
@@ -234,6 +237,20 @@ def parse_pdf(path, allow_inline_splits=False):
 
                     rec = assign_columns(line, headers)
                     name = rec.get("Name", "").strip()
+                    text1 = (rec.get("Text1") or "").strip()
+                    leaked_title = None
+                    if text1:
+                        # Yet another champion-announcement layout: a narrow
+                        # "Text1" header column holds "und Österr." (or
+                        # "und Staats"), but it's too narrow for the whole
+                        # phrase - "Meister"/"Meisterin" spills past its
+                        # midpoint into the Name column, leaving a garbled
+                        # "Meister <realname>" (confirmed: event 4346,
+                        # "1 und Österr. Meister Marina Skern").
+                        lm = LEAKED_TITLE_WORD_RE.match(name)
+                        if lm:
+                            leaked_title = classify_championship_text(f"{text1} {lm.group(0)}")
+                            name = name[lm.end():].strip()
                     rank_text = (rec.get("Pl") or rec.get("Platz") or "").strip()
                     if not rank_text.isdigit():
                         # a narrow, right-aligned rank column can sit closer
@@ -284,6 +301,8 @@ def parse_pdf(path, allow_inline_splits=False):
                         championship = classify_championship_text(marker)
                         if championship:
                             result["championship"] = championship
+                    if leaked_title:
+                        result["championship"] = leaked_title
                     if rank_text.isdigit():
                         # this row has its own rank after all - it wasn't the
                         # one the pending announcement belonged to (a stray

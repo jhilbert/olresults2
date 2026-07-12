@@ -24,6 +24,36 @@ const isBahn = (cat) => /^bahn/i.test((cat || "").trim());
 // viertelfinale|halbfinale|b-finale part of EXCLUDE_CAT_RE in build_db.py.
 const isKoHeat = (cat) => /viertelfinale|halbfinale|b-finale/i.test((cat || "").trim());
 
+// Rough age-group read of a category name, for the event page's ÖM/ÖSTM
+// "Jugend"/"Senioren" badge only - a display hint, not authoritative
+// (the real eligibility computation lives in build_db.py and is already
+// baked into which categories actually carry a championship tag). Both a
+// spelled-out floor ("ab 45") and the compact "NN-" trailing-dash form
+// ("H45-") mean "and older" - a LEADING dash ("H-12") means the opposite,
+// an age ceiling, so the dash's side of the number is what disambiguates
+// them, not just its presence.
+const categoryAgeGroup = (cat) => {
+  const c = cat || "";
+  const m = c.match(/\d{1,3}/);
+  if (!m) return null;
+  const age = +m[0];
+  if (/\bab\s*\d+/i.test(c) || /\d\s*-\s*(?!\d)/.test(c)) return age >= 21 ? "senior" : null;
+  return age <= 20 ? "youth" : null;
+};
+
+// Ski-O's competition calendar runs Dec-of-the-prior-year through the
+// following year (a "winter season"), not the plain calendar year every
+// other discipline uses - confirmed by ANNE's own event titles, e.g. "ÖM/
+// ÖSM Staffel 2013" actually held on 2012-12-22. Every place on the site
+// that groups or filters results by year needs this, not just the medal
+// table, or the same December race would land in a different "year" on a
+// runner's own profile than on their club's medal count.
+const seasonYear = (dateStr, sportType) => {
+  if (!dateStr) return "";
+  const y = +dateStr.slice(0, 4), m = +dateStr.slice(5, 7);
+  return String(sportType === "skiOrienteering" && m === 12 ? y + 1 : y);
+};
+
 function fmtTime(s) {
   if (s == null) return "";
   const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
@@ -100,7 +130,7 @@ function viewRunner(id, year) {
 
   const allRows = query(`
     SELECT r.*, e.id AS event_id, e.title AS event_title, e.location, e.country,
-           e.competition_type, s.date AS stage_date, s.title AS stage_title, e.date_from,
+           e.competition_type, e.sport_type, s.date AS stage_date, s.title AS stage_title, e.date_from,
            cs.starters, cs.classified, cs.winner_time_s,
            (SELECT COUNT(*) FROM result r2
             WHERE r2.stage_id = r.stage_id AND r2.category NOT LIKE 'bahn%') AS non_bahn_count
@@ -111,9 +141,9 @@ function viewRunner(id, year) {
     WHERE r.person_id = ?
     ORDER BY COALESCE(s.date, e.date_from) DESC`, [id]);
 
-  const years = [...new Set(allRows.map((r) => (r.stage_date || r.date_from || "").slice(0, 4)).filter(Boolean))]
+  const years = [...new Set(allRows.map((r) => seasonYear(r.stage_date || r.date_from, r.sport_type)).filter(Boolean))]
     .sort((a, b) => b - a);
-  const rows = year ? allRows.filter((r) => (r.stage_date || r.date_from || "").startsWith(year)) : allRows;
+  const rows = year ? allRows.filter((r) => seasonYear(r.stage_date || r.date_from, r.sport_type) === year) : allRows;
 
   const countable = rows.filter((r) => !(isBahn(r.category) && r.non_bahn_count > 0));
   const finished = countable.filter((r) => r.status === "ok" && r.rank != null && !isKoHeat(r.category));
@@ -159,7 +189,7 @@ function viewRunner(id, year) {
     </table>`;
 }
 
-function viewEvent(id) {
+function viewEvent(id, medalsOnly) {
   const [e] = query("SELECT * FROM event WHERE id = ?", [id]);
   if (!e) { app.innerHTML = "<h1>Nicht gefunden</h1>"; return; }
 
@@ -168,10 +198,37 @@ function viewEvent(id) {
      AND EXISTS (SELECT 1 FROM result r WHERE r.stage_id = s.id)
      ORDER BY s.number`, [id]);
 
+  // Event-level ÖM/ÖSTM badge, with a "Jugend"/"Senioren" qualifier when
+  // every championship-tagged category at this event falls cleanly on
+  // one side of that split (see categoryAgeGroup) - left blank rather
+  // than guessing when the event mixes both (or neither type extracts a
+  // group at all), e.g. event 4315's combined youth+senior "ÖM Nacht".
+  // "Senioren" is an ÖM-only qualifier: ÖSTM is by definition the Elite
+  // title, not a masters-age one, so its "ab 21 Elite"-shaped categories
+  // must never be labeled "Senioren" even though categoryAgeGroup's
+  // generic age>=21 test alone can't tell "senior" and "Elite" apart.
+  const champCats = query(
+    `SELECT DISTINCT r.championship, r.category FROM result r
+     JOIN stage s ON s.id = r.stage_id WHERE s.event_id = ? AND r.championship IS NOT NULL`,
+    [id]);
+  const hasChamp = champCats.length > 0;
+  const toggleHref = `#/event/${id}${medalsOnly ? "" : "/om"}`;
+  const champBadges = [...new Set(champCats.map((c) => c.championship))].map((champ) => {
+    const groups = new Set(champCats.filter((c) => c.championship === champ)
+      .map((c) => categoryAgeGroup(c.category)));
+    const qualifier = groups.size === 1 && groups.has("youth") ? " Jugend"
+      : champ === "ÖM" && groups.size === 1 && groups.has("senior") ? " Senioren" : "";
+    return `<a href="${toggleHref}" class="badge champ-badge champ-toggle${medalsOnly ? " active" : ""}"
+      title="${medalsOnly ? "Alle Ergebnisse anzeigen" : "Nur ÖM/ÖSTM-Medaillen anzeigen"}">
+      ${medalsOnly ? "✓ " : ""}${esc(champ)}${qualifier}</a>`;
+  }).join(" ");
+
   let html = `
     <h1>${esc(e.title)}</h1>
     <p class="sub">${fmtDate(e.date_from)} · ${esc(e.location || "")}
-      ${e.url ? `· <a href="${esc(e.url)}" target="_blank" rel="noopener">ANNE ↗</a>` : ""}</p>`;
+      ${e.url ? `· <a href="${esc(e.url)}" target="_blank" rel="noopener">ANNE ↗</a>` : ""}</p>
+    ${champBadges ? `<p class="sub">${champBadges}</p>` : ""}
+    ${medalsOnly && hasChamp ? `<p class="sub dim">Kompaktübersicht: nur ÖM/ÖSTM-Altersklassen, nur Medaillenränge.</p>` : ""}`;
 
   for (const st of stages) {
     if (stages.length > 1) html += `<h2>${esc(st.title || "Etappe " + st.number)}</h2>`;
@@ -183,37 +240,48 @@ function viewEvent(id) {
              MAX(r.course_controls) AS ctrls
       FROM result r LEFT JOIN category_stats cs
         ON cs.stage_id = r.stage_id AND cs.category = r.category
-      WHERE r.stage_id = ? GROUP BY r.category ORDER BY r.category`, [st.id]);
+      WHERE r.stage_id = ?${medalsOnly ? " AND r.championship IS NOT NULL" : ""}
+      GROUP BY r.category ORDER BY r.category`, [st.id]);
     const stageHasOfficial = cats.some((c) => !isBahn(c.category));
     for (const c of cats) {
       const results = query(`
         SELECT r.*, p.name AS person_name FROM result r
         JOIN person p ON p.id = r.person_id
         WHERE r.stage_id = ? AND r.category = ?
+          ${medalsOnly ? "AND r.championship IS NOT NULL AND r.national_rank <= 3" : ""}
         ORDER BY CASE WHEN r.rank IS NULL THEN 1 ELSE 0 END, r.rank, r.time_s`,
         [st.id, c.category]);
+      if (medalsOnly && !results.length) continue;
       const course = [
         c.len ? (c.len / 1000).toFixed(1).replace(".", ",") + " km" : null,
         c.climb ? c.climb + " Hm" : null,
         c.ctrls ? c.ctrls + " Posten" : null,
       ].filter(Boolean).join(" · ");
+      const catChamp = [...new Set(results.map((r) => r.championship).filter(Boolean))];
+      const medalTier = { 1: "gold", 2: "silver", 3: "bronze" };
+      const medalName = { 1: "Gold", 2: "Silber", 3: "Bronze" };
       html += `
         <div class="cat-block">
           <div class="cat-head">
-            <h3>${esc(c.category_full || c.category)}</h3>
+            <h3>${esc(c.category_full || c.category)}${catChamp.map((ch) => ` <span class="badge champ-badge">${esc(ch)}</span>`).join("")}</h3>
             <span class="course">${course}${course ? " · " : ""}${(c.starters ?? c.entries)} Starter${isBahn(c.category) && stageHasOfficial ? " · inoffizielle Bahnwertung" : ""}</span>
           </div>
           <table>
             <thead><tr><th class="num">Pl</th><th>Name</th><th class="hide-sm">Verein</th>
               <th class="num">Zeit</th><th class="num">Diff</th></tr></thead>
-            <tbody>${results.map((r) => `
-              <tr class="${isBahn(c.category) && stageHasOfficial ? "bahn-row" : ""}">
-                <td class="num">${rankCell({ ...r, starters: null })}</td>
+            <tbody>${results.map((r) => {
+              const tier = medalTier[r.national_rank];
+              return `
+              <tr class="${isBahn(c.category) && stageHasOfficial ? "bahn-row" : ""} ${tier ? `medal-row-${tier}` : ""}">
+                <td class="num">${tier
+                  ? `<span class="rank-medal rank-medal-${tier}" title="${medalName[r.national_rank]} (ÖM/ÖSTM)">${r.rank ?? ""}</span>`
+                  : rankCell({ ...r, starters: null })}</td>
                 <td><a href="#/runner/${r.person_id}">${esc(r.person_name)}</a>${r.note ? `<div class="note">${esc(r.note)}</div>` : ""}</td>
                 <td class="hide-sm dim">${esc(r.club || "")}</td>
                 <td class="num">${fmtTime(r.time_s)}</td>
                 <td class="num dim">${r.status === "ok" && r.time_behind_s ? "+" + fmtTime(r.time_behind_s) : ""}</td>
-              </tr>`).join("")}
+              </tr>`;
+            }).join("")}
             </tbody>
           </table>
         </div>`;
@@ -398,7 +466,7 @@ function viewClub(name, year, medalType) {
   // wouldn't otherwise make the top-3 by raw rank alone.
   const allPodiums = query(`
     SELECT r.rank, r.national_rank, r.category, r.category_full, r.result_kind, r.championship,
-           e.id AS event_id, e.title AS event_title, s.title AS stage_title,
+           e.id AS event_id, e.title AS event_title, e.sport_type, s.title AS stage_title,
            COALESCE(s.date, e.date_from) AS date, p.id AS person_id, p.name AS person_name
     FROM result r
     JOIN stage s ON s.id = r.stage_id
@@ -412,11 +480,11 @@ function viewClub(name, year, medalType) {
     ORDER BY date DESC`, [name]);
 
   const isOm = medalType === "om";
-  const years = [...new Set(allPodiums.map((r) => r.date.slice(0, 4)))].sort((a, b) => b - a);
+  const years = [...new Set(allPodiums.map((r) => seasonYear(r.date, r.sport_type)))].sort((a, b) => b - a);
   const typeFiltered = isOm
     ? allPodiums.filter((r) => r.championship && r.national_rank <= 3)
     : allPodiums.filter((r) => r.rank <= 3 && !isKoHeat(r.category));
-  const podiums = year ? typeFiltered.filter((r) => r.date.startsWith(year)) : typeFiltered;
+  const podiums = year ? typeFiltered.filter((r) => seasonYear(r.date, r.sport_type) === year) : typeFiltered;
   const medalRank = (r) => (isOm ? r.national_rank : r.rank);
   const gold = podiums.filter((r) => medalRank(r) === 1).length;
   const silver = podiums.filter((r) => medalRank(r) === 2).length;
@@ -654,7 +722,7 @@ function route() {
   const hash = location.hash || "#/";
   let m;
   if ((m = hash.match(/^#\/runner\/(-?\d+)(?:\/(\d{4}))?/))) { viewRunner(Number(m[1]), m[2]); setActiveNav(); }
-  else if ((m = hash.match(/^#\/event\/(\d+)/))) { viewEvent(Number(m[1])); setActiveNav(); }
+  else if ((m = hash.match(/^#\/event\/(\d+)(?:\/(om))?/))) { viewEvent(Number(m[1]), m[2] === "om"); setActiveNav(); }
   else if ((m = hash.match(/^#\/events(?:\/(\d{4}))?/))) { viewEvents(m[1]); setActiveNav("events"); }
   else if ((m = hash.match(/^#\/runners(?:\/([A-Z#]))?/))) { viewRunners(m[1]); setActiveNav("runners"); }
   else if ((m = hash.match(/^#\/club\/([^/]+)\/dns(?:\/(\d{4}|alle))?(?:\/(event|runner))?/))) {
