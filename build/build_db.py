@@ -381,19 +381,24 @@ TITLE_FALLBACK_EXCLUDE_STAGES = {20442802}
 # The general rule (is_om_eligible_category) treats the senior/open Elite
 # bracket as ÖSTM-only, never plain ÖM, learned from real per-row
 # detections that were mostly Langdistanz races (Austria's traditional
-# "Staatsmeisterschaft" distance). Event 4315 ("10. Austria Cup / ÖM
-# Nacht") is a confirmed exception: its own Ausschreibung
+# "Staatsmeisterschaft" distance). "ÖM Nacht" (night-O) races are a
+# confirmed exception - twice over now: event 4315's own Ausschreibung
 # (ac10_ausschreibung_2.0.pdf) lists "D/H21E" directly alongside the other
 # ÖM-only age brackets ("D/H35-", "D/H40-", ...) under "Meisterschaftska-
-# tegorien ÖM Nacht-OL" - a real published document, not a guess - and the
-# event's own official top-3 extract (om-nacht-meisterschaftswertung-
-# 2.pdf) confirms medals were actually awarded there ("1 österreichischer
-# Meister" on the H21E/D21E winner's row) - Night-O's senior Elite is ÖM,
-# not ÖSTM, unlike Langdistanz's. Gated to this event only, not applied
-# generally, since it directly contradicts the otherwise-confirmed rule
-# for other events (e.g. 2025's event 4830, "7.AC ÖM Mitteldistanz",
-# where excluding senior Elite from ÖM is correct).
-EVENT_ELITE_OM_OVERRIDE = {4315}
+# tegorien ÖM Nacht-OL" - a real published document, not a guess - and its
+# official top-3 extract (om-nacht-meisterschaftswertung-2.pdf) confirms
+# medals were actually awarded there ("1 österreichischer Meister" on the
+# H21E/D21E winner's row); separately, event 4048's own "ÖM Nacht" stage
+# (2023-04-29) is confirmed the same way by Naturfreunde Wien's own Excel
+# medal sheet (Erik Bonek, bronze, Herren ab 21 Elite). Night-O's senior
+# Elite is ÖM, not ÖSTM, unlike Langdistanz's.
+#
+# Scoped per STAGE, not per event: an "ÖM Nacht" race is very often only
+# one day of a multi-day meet whose OTHER stages are Langdistanz/Sprint,
+# where excluding senior Elite from ÖM is correct (event 4048 itself is
+# exactly this - its Sunday "ÖM Sprint" and Monday "ÖM Lang" stages must
+# NOT get this override just because their sibling Saturday stage does).
+STAGE_ELITE_OM_OVERRIDE = {10004315, 30404801}
 
 # Competitors confirmed by hand to be foreign/ineligible for the Austrian
 # title despite carrying a championship tag, for cases the automated
@@ -715,7 +720,7 @@ def apply_title_championship_fallback(cur):
         if "ÖSTM" in types and is_ostm_eligible_category(category):
             champ = "ÖSTM"
         elif "ÖM" in types and (is_om_eligible_category(category)
-                                 or (eid in EVENT_ELITE_OM_OVERRIDE
+                                 or (sid in STAGE_ELITE_OM_OVERRIDE
                                      and is_ostm_eligible_category(category))):
             champ = "ÖM"
         elif (sport_type == "mountainbikeOrienteering" and types == {"ÖSTM"}
