@@ -56,6 +56,28 @@ header {
 .refresh:hover { color: var(--accent-dark); border-color: var(--accent); }
 .refresh.spinning { animation: spin .8s linear infinite; pointer-events: none; color: var(--accent); }
 
+.icon-btn {
+  flex: none; width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink-soft);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: color .15s, border-color .15s, background .15s;
+}
+.icon-btn:hover { color: var(--accent-dark); border-color: var(--accent); }
+.icon-btn.active { color: var(--accent-dark); border-color: var(--accent); background: #fff3ec; }
+
+.discipline-filter { position: relative; flex: none; }
+.discipline-overlay {
+  position: absolute; top: calc(100% + 6px); right: 0;
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,.08);
+  padding: 8px 14px; min-width: 130px; z-index: 20;
+}
+.discipline-check {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 0; font-size: 14px; color: var(--ink); cursor: pointer;
+}
+.discipline-check input { cursor: pointer; }
+
 .search { position: relative; flex: 1; max-width: 440px; }
 .search input {
   width: 100%; padding: 8px 14px;
@@ -239,8 +261,9 @@ footer a { color: var(--accent-dark); text-decoration: none; }
   }
   .brand { font-size: 17px; order: 1; }
   .search { order: 2; flex: 1 1 auto; min-width: 0; max-width: none; }
-  .refresh { order: 3; }
-  .nav { order: 4; flex: 1 0 100%; gap: 16px; }
+  .discipline-filter { order: 3; }
+  .refresh { order: 4; }
+  .nav { order: 5; flex: 1 0 100%; gap: 16px; }
   td, thead th { padding: 7px 8px; }
   .hide-sm { display: none; }
 }

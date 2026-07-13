@@ -41,17 +41,20 @@ const categoryAgeGroup = (cat) => {
   return age <= 20 ? "youth" : null;
 };
 
-// Ski-O's competition calendar runs Dec-of-the-prior-year through the
+// Ski-O's competition calendar runs Nov/Dec-of-the-prior-year through the
 // following year (a "winter season"), not the plain calendar year every
 // other discipline uses - confirmed by ANNE's own event titles, e.g. "ÖM/
-// ÖSM Staffel 2013" actually held on 2012-12-22. Every place on the site
-// that groups or filters results by year needs this, not just the medal
-// table, or the same December race would land in a different "year" on a
-// runner's own profile than on their club's medal count.
+// ÖSM Staffel 2013" actually held on 2012-12-22. The club calls this a
+// runner's/event's "Wertungsjahr" (scoring year) - a November or December
+// Ski-O race counts toward NEXT year's Wertungsjahr, not the calendar year
+// it was actually run in. Every place on the site that groups or filters
+// results by year needs this, not just the Medaillenspiegel, or the same
+// Nov/Dec race would land in a different "year" on a runner's own profile
+// than on their club's medal count.
 const seasonYear = (dateStr, sportType) => {
   if (!dateStr) return "";
   const y = +dateStr.slice(0, 4), m = +dateStr.slice(5, 7);
-  return String(sportType === "skiOrienteering" && m === 12 ? y + 1 : y);
+  return String(sportType === "skiOrienteering" && (m === 11 || m === 12) ? y + 1 : y);
 };
 
 function fmtTime(s) {
@@ -90,6 +93,86 @@ function rankCell(r) {
          (r.starters ? `<span class="of">/${r.classified}</span>` : "");
 }
 
+/* ---------- discipline filter (OL / SkiO / MTBO) ---------- */
+
+// event.sport_type, as ANNE reports it, is the only per-event discipline
+// signal in the schema - there's no separate per-stage field, so every
+// stage of a multi-day event shares its event's one sport_type. A legacy
+// event ANNE never classified (sport_type NULL) or the rare
+// trailOrienteering pass every filter state unfiltered rather than
+// disappearing just because they don't map onto one of the three buttons.
+const DISCIPLINES = [
+  ["footOrienteering", "OL"],
+  ["skiOrienteering", "SkiO"],
+  ["mountainbikeOrienteering", "MTBO"],
+];
+const DISCIPLINE_STORAGE_KEY = "olr-disciplines";
+
+let disciplineFilter = new Set(DISCIPLINES.map(([v]) => v));
+try {
+  const saved = JSON.parse(localStorage.getItem(DISCIPLINE_STORAGE_KEY) || "null");
+  if (Array.isArray(saved) && saved.length) disciplineFilter = new Set(saved);
+} catch { /* malformed storage - fall back to all enabled */ }
+
+// A SQL fragment excluding only the currently-disabled disciplines, built
+// so every list query can apply the filter itself (rather than fetching
+// everything and discarding rows in JS) - several of these queries already
+// have a LIMIT or feed a count shown to the user, both of which need the
+// filter applied before that point, not after.
+function disciplineWhere(col) {
+  const disabled = DISCIPLINES.map(([v]) => v).filter((v) => !disciplineFilter.has(v));
+  if (!disabled.length) return { sql: "", params: [] };
+  return { sql: ` AND (${col} IS NULL OR ${col} NOT IN (${disabled.map(() => "?").join(",")}))`,
+           params: disabled };
+}
+
+function saveDisciplineFilter() {
+  localStorage.setItem(DISCIPLINE_STORAGE_KEY, JSON.stringify([...disciplineFilter]));
+}
+
+function setupDisciplineFilter() {
+  const btn = document.getElementById("discipline-filter-btn");
+  const overlay = document.getElementById("discipline-overlay");
+
+  const renderChecks = () => {
+    overlay.innerHTML = DISCIPLINES.map(([value, label]) => `
+      <label class="discipline-check">
+        <input type="checkbox" value="${value}" ${disciplineFilter.has(value) ? "checked" : ""}>
+        ${label}
+      </label>`).join("");
+  };
+  const updateBtnState = () => btn.classList.toggle("active", disciplineFilter.size < DISCIPLINES.length);
+
+  renderChecks();
+  updateBtnState();
+
+  btn.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    overlay.hidden = !overlay.hidden;
+  });
+  overlay.addEventListener("change", (ev) => {
+    const cb = ev.target.closest("input[type=checkbox]");
+    if (!cb) return;
+    if (cb.checked) disciplineFilter.add(cb.value); else disciplineFilter.delete(cb.value);
+    // never allow an empty filter - that would just hide everything, which
+    // is strictly worse than not filtering at all
+    if (disciplineFilter.size === 0) {
+      disciplineFilter = new Set(DISCIPLINES.map(([v]) => v));
+      renderChecks();
+    }
+    saveDisciplineFilter();
+    updateBtnState();
+    runnersCache = null;  // discipline-dependent, same as a fresh db load
+    clubsCache = null;
+    route();
+  });
+  document.addEventListener("click", (ev) => {
+    if (!ev.target.closest("#discipline-overlay") && !ev.target.closest("#discipline-filter-btn")) {
+      overlay.hidden = true;
+    }
+  });
+}
+
 /* ---------- views ---------- */
 
 function viewHome() {
@@ -97,10 +180,12 @@ function viewHome() {
     (SELECT COUNT(*) FROM result) AS results,
     (SELECT COUNT(*) FROM person) AS persons,
     (SELECT COUNT(DISTINCT event_id) FROM stage s JOIN result r ON r.stage_id = s.id) AS events`);
+  const dw = disciplineWhere("e.sport_type");
   const recent = query(`
     SELECT e.id, e.title, e.date_from, e.location, COUNT(r.id) AS n
     FROM event e JOIN stage s ON s.event_id = e.id JOIN result r ON r.stage_id = s.id
-    GROUP BY e.id ORDER BY e.date_from DESC LIMIT 15`);
+    WHERE 1=1${dw.sql}
+    GROUP BY e.id ORDER BY e.date_from DESC LIMIT 15`, dw.params);
 
   app.innerHTML = `
     <h1>Orientierungslauf-Ergebnisse</h1>
@@ -128,6 +213,7 @@ function viewRunner(id, year) {
   const [p] = query("SELECT * FROM person WHERE id = ?", [id]);
   if (!p) { app.innerHTML = "<h1>Nicht gefunden</h1>"; return; }
 
+  const dw = disciplineWhere("e.sport_type");
   const allRows = query(`
     SELECT r.*, e.id AS event_id, e.title AS event_title, e.location, e.country,
            e.competition_type, e.sport_type, s.date AS stage_date, s.title AS stage_title,
@@ -139,8 +225,8 @@ function viewRunner(id, year) {
     JOIN stage s ON s.id = r.stage_id
     JOIN event e ON e.id = s.event_id
     LEFT JOIN category_stats cs ON cs.stage_id = r.stage_id AND cs.category = r.category
-    WHERE r.person_id = ?
-    ORDER BY COALESCE(s.date, e.date_from) DESC`, [id]);
+    WHERE r.person_id = ?${dw.sql}
+    ORDER BY COALESCE(s.date, e.date_from) DESC`, [id, ...dw.params]);
   // link straight to the specific race's own results page (same "event ·
   // stage" single click-target as the Wettkämpfe list) - only when this
   // runner's own results reveal the event actually has more than one stage.
@@ -201,6 +287,36 @@ function viewRunner(id, year) {
         </tr>`).join("")}
       </tbody>
     </table>`;
+}
+
+// Relay/team rows share one rank per unit (every member of a team gets the
+// team's own rank), so ordering by rank alone leaves each team's members in
+// a fairly arbitrary sub-order - and a relay leg's OWN time isn't reliably
+// bigger than the previous leg's either, so time_s doesn't sort them
+// correctly. Every relay note already carries "Leg N/M" (build_db.py and
+// both the PDF and HTML ingest parsers all write it the same way) - sort by
+// that within each same-(rank, club) cluster. A Mannschaft has no leg order
+// at all, just a roster, so those sort by name instead. Individual/pair
+// rows are left exactly as the SQL ordered them.
+function reorderTeamMembers(results) {
+  const legOf = (note) => {
+    const m = /Leg (\d+)\//.exec(note || "");
+    return m ? +m[1] : 999;
+  };
+  let i = 0;
+  while (i < results.length) {
+    let j = i + 1;
+    while (j < results.length && results[j].rank === results[i].rank
+           && results[j].club === results[i].club && results[j].result_kind === results[i].result_kind) j++;
+    if (j - i > 1) {
+      const group = results.slice(i, j);
+      if (group[0].result_kind === "relay") group.sort((a, b) => legOf(a.note) - legOf(b.note));
+      else if (group[0].result_kind === "team") group.sort((a, b) => a.person_name.localeCompare(b.person_name, "de-AT"));
+      for (let k = i; k < j; k++) results[k] = group[k - i];
+    }
+    i = j;
+  }
+  return results;
 }
 
 function viewEvent(id, medalsOnly, stageNum) {
@@ -283,13 +399,13 @@ function viewEvent(id, medalsOnly, stageNum) {
     }
     const stageHasOfficial = cats.some((c) => !isBahn(c.category));
     for (const c of cats) {
-      const results = query(`
+      const results = reorderTeamMembers(query(`
         SELECT r.*, p.name AS person_name FROM result r
         JOIN person p ON p.id = r.person_id
         WHERE r.stage_id = ? AND r.category = ?
           ${medalsOnly ? "AND r.championship IS NOT NULL AND r.national_rank <= 3" : ""}
-        ORDER BY CASE WHEN r.rank IS NULL THEN 1 ELSE 0 END, r.rank, r.time_s`,
-        [st.id, c.category]);
+        ORDER BY CASE WHEN r.rank IS NULL THEN 1 ELSE 0 END, r.rank, r.club, r.time_s`,
+        [st.id, c.category]));
       if (medalsOnly && !results.length) continue;
       const course = [
         c.len ? (c.len / 1000).toFixed(1).replace(".", ",") + " km" : null,
@@ -418,12 +534,14 @@ function viewEvents(year, omOnly, meister) {
   // collapsing them into a single event-level row hid that (and, until a
   // build_db.py fix, an event like that could even silently lose stages
   // 2 and 3 to a stage-splitting bug entirely - see correct_legacy_stage_dates).
+  const dw = disciplineWhere("e.sport_type");
   const stageRows = query(`
     SELECT e.id AS event_id, e.title, e.location, s.id AS stage_id, s.number, s.title AS stage_title,
            COALESCE(s.date, e.date_from) AS date, COUNT(r.id) AS n,
            MAX(r.championship IS NOT NULL) AS has_champ
     FROM event e JOIN stage s ON s.event_id = e.id JOIN result r ON r.stage_id = s.id
-    GROUP BY s.id ORDER BY date DESC, e.id, s.number`);
+    WHERE 1=1${dw.sql}
+    GROUP BY s.id ORDER BY date DESC, e.id, s.number`, dw.params);
   const stagesPerEvent = new Map();
   for (const r of stageRows) stagesPerEvent.set(r.event_id, (stagesPerEvent.get(r.event_id) || 0) + 1);
   const yearCounts = new Map();
@@ -507,11 +625,13 @@ function firstLetter(name) {
 
 function viewRunners(letter) {
   if (!runnersCache) {
+    const dw = disciplineWhere("e.sport_type");
     runnersCache = query(`
       SELECT p.id, p.name, p.year_of_birth, COUNT(r.id) AS n
       FROM person p JOIN result r ON r.person_id = p.id
-      WHERE r.result_kind != 'team'   -- team rosters aren't individual runners
-      GROUP BY p.id ORDER BY p.name COLLATE NOCASE`);
+      JOIN stage s ON s.id = r.stage_id JOIN event e ON e.id = s.event_id
+      WHERE r.result_kind != 'team'${dw.sql}   -- team rosters aren't individual runners
+      GROUP BY p.id ORDER BY p.name COLLATE NOCASE`, dw.params);
     for (const r of runnersCache) r.letter = firstLetter(r.name);
   }
   const letters = [...new Set(runnersCache.map((r) => r.letter))]
@@ -555,10 +675,12 @@ let clubsCache = null;
 
 function viewClubs() {
   if (!clubsCache) {
+    const dw = disciplineWhere("e.sport_type");
     clubsCache = query(`
-      SELECT official_club AS name, COUNT(*) AS n, COUNT(DISTINCT person_id) AS runners
-      FROM result WHERE official_club IS NOT NULL
-      GROUP BY official_club ORDER BY official_club COLLATE NOCASE`);
+      SELECT r.official_club AS name, COUNT(*) AS n, COUNT(DISTINCT r.person_id) AS runners
+      FROM result r JOIN stage s ON s.id = r.stage_id JOIN event e ON e.id = s.event_id
+      WHERE r.official_club IS NOT NULL${dw.sql}
+      GROUP BY r.official_club ORDER BY r.official_club COLLATE NOCASE`, dw.params);
   }
 
   const rowsHtml = (rows) => rows.map((c) => `
@@ -597,6 +719,7 @@ function viewClub(name, year, medalType) {
   // finishers - it can differ from the overall race `rank` when a foreign/
   // ineligible competitor placed ahead, so the ÖM/ÖSTM view needs rows that
   // wouldn't otherwise make the top-3 by raw rank alone.
+  const dw = disciplineWhere("e.sport_type");
   const allPodiums = query(`
     SELECT r.rank, r.national_rank, r.category, r.category_full, r.result_kind, r.championship,
            e.id AS event_id, e.title AS event_title, e.sport_type, s.title AS stage_title,
@@ -610,8 +733,8 @@ function viewClub(name, year, medalType) {
       AND (r.rank <= 3 OR (r.championship IS NOT NULL AND r.national_rank <= 3))
       AND NOT (r.category LIKE 'bahn%' AND EXISTS (
         SELECT 1 FROM result r2
-        WHERE r2.stage_id = r.stage_id AND r2.category NOT LIKE 'bahn%'))
-    ORDER BY date DESC`, [name]);
+        WHERE r2.stage_id = r.stage_id AND r2.category NOT LIKE 'bahn%'))${dw.sql}
+    ORDER BY date DESC`, [name, ...dw.params]);
 
   const isOm = medalType === "om";
   const years = [...new Set(allPodiums.map((r) => seasonYear(r.date, r.sport_type)))].sort((a, b) => b - a);
@@ -929,6 +1052,7 @@ async function boot() {
   });
   await loadDb(sqlEngine);
   setupSearch();
+  setupDisciplineFilter();
   document.getElementById("refresh").addEventListener("click", refreshData);
   route();
 }
