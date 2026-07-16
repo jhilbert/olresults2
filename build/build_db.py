@@ -551,6 +551,14 @@ MEMBER_CSV_PATH = PRIVATE / "naturfreunde_wien_members.csv"
 # member" set so genuine non-members aren't re-proposed every build. Also
 # private, and append-only in spirit (grown via the review workflow).
 MEMBER_MAPPING_PATH = PRIVATE / "member_mapping.json"
+# The public, COMMITTED derived member index: ÖFOL-ID + name + birth YEAR, and
+# only for roster members who actually appear in the (public) results - no full
+# birthdates, no gender, no members who never raced. All already public-grade
+# (those people are visible in published result lists), so it's safe to commit
+# and lets CI reproduce the member matching without the private roster. Written
+# on every local build (when the private CSV is present) and read as the
+# registry source when it isn't.
+MEMBER_INDEX_PATH = ROOT / "data" / "member_index" / "naturfreunde_wien.json"
 # Build byproducts (private, regenerated each run): the review worklist and
 # any BoR-vs-DB id conflicts worth a human look.
 PENDING_REVIEW_PATH = PRIVATE / "pending_review.json"
@@ -570,8 +578,17 @@ def load_member_registry():
     [] when the file isn't present (CI, or before it's been placed), so the
     caller degrades to today's behaviour. Each record carries the canonical
     'First Last' name, its name_key, birth year (year only - the full date
-    stays private and never leaves this function), and the club name."""
+    stays private and never leaves this function), and the club name.
+
+    When the private CSV isn't present (CI), falls back to the committed public
+    member index (MEMBER_INDEX_PATH) - the same records minus roster members who
+    never raced, so the member matching still reproduces on CI."""
     if not MEMBER_CSV_PATH.exists():
+        if MEMBER_INDEX_PATH.exists():
+            return [{"ofol_id": e["ofol_id"], "name": e["name"],
+                     "name_key": name_key(e["name"]), "yob": e.get("yob"),
+                     "club": MEMBER_CLUB_NAME}
+                    for e in json.loads(MEMBER_INDEX_PATH.read_text())]
         return []
     members = []
     with MEMBER_CSV_PATH.open(encoding="utf-8") as f:
@@ -2412,6 +2429,21 @@ def main():
         print(f"members: {len(members)} in roster, {len(member_canonical)} matched to results, "
               f"{len(pending_review)} club runners pending review, {len(conflicts)} id conflicts "
               f"-> {PENDING_REVIEW_PATH.name}, {MEMBER_CONFLICTS_PATH.name}")
+
+        # Regenerate the committed public member index from the private roster:
+        # ÖFOL-ID + name + birth YEAR, only for members who actually raced (their
+        # ÖFOL-ID = person.id ended up with >=1 result). No full birthdates, no
+        # gender, no members without results - all public-grade. Only when built
+        # from the CSV (locally); a CI build already reads this file, so it must
+        # not overwrite it with a subset of itself.
+        if MEMBER_CSV_PATH.exists():
+            idx = [{"ofol_id": m["ofol_id"], "name": m["name"], "yob": m["yob"]}
+                   for m in sorted(members, key=lambda m: m["ofol_id"])
+                   if cur.execute("SELECT 1 FROM result WHERE person_id = ?",
+                                  (m["ofol_id"],)).fetchone()]
+            MEMBER_INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
+            MEMBER_INDEX_PATH.write_text(json.dumps(idx, ensure_ascii=False, indent=1))
+            print(f"member index: {len(idx)} members with results -> {MEMBER_INDEX_PATH}")
 
     cur.execute("VACUUM")
     con.close()
