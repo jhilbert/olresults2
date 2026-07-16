@@ -7,6 +7,7 @@ birth) and otherwise get synthetic negative ids. Derived statistics (starters,
 classified count, winner time) are computed in the category_stats view, never
 stored.
 """
+import csv
 import gzip
 import hashlib
 import json
@@ -534,6 +535,83 @@ CLUBLESS_CLUB_RE = re.compile(
 # (explicit override granted - eligible despite the nationality) or None
 # (no override - not eligible).
 USER_ELIGIBILITY_PATH = RAW / "user_eligibility.json"
+
+# Club "book of record": the authoritative member roster (ÖFOL-ID = the same
+# id space as an ANNE userId / a positive person.id), used ONLY at build time
+# to resolve result-name variants onto their real member identity. It is
+# private (see .gitignore): its full birthdates/gender/roster never enter the
+# public DB - only the derived effect (better result grouping + canonical
+# display name + birth YEAR, all already public-grade) does. Absent (e.g. on
+# CI, which doesn't have the private file) the whole member pass is skipped,
+# same graceful-degrade contract as USER_ELIGIBILITY_PATH.
+PRIVATE = ROOT / "data" / "private"
+MEMBER_CSV_PATH = PRIVATE / "naturfreunde_wien_members.csv"
+# The iterative decision ledger: confirmed name→ÖFOL-ID aliases for variant/
+# typo spellings that name_key alone can't match, plus a "reviewed, NOT a
+# member" set so genuine non-members aren't re-proposed every build. Also
+# private, and append-only in spirit (grown via the review workflow).
+MEMBER_MAPPING_PATH = PRIVATE / "member_mapping.json"
+# Build byproducts (private, regenerated each run): the review worklist and
+# any BoR-vs-DB id conflicts worth a human look.
+PENDING_REVIEW_PATH = PRIVATE / "pending_review.json"
+MEMBER_CONFLICTS_PATH = PRIVATE / "member_conflicts.json"
+# The official ANNE-clean club name this roster belongs to (extend later:
+# one (csv, club-name) pair per club once other clubs are onboarded).
+MEMBER_CLUB_NAME = "Naturfreunde Wien"
+# Internal-only members (the club's own layer-1 membership, broader than and
+# predating the official ÖFOL DB) have no ÖFOL-ID, so they get a stable id in
+# this reserved high range - clear of both real ÖFOL-IDs (all well under 10^6)
+# and the negative synthetic ids the resolver mints on the fly.
+INTERNAL_ID_BASE = 90_000_000
+
+
+def load_member_registry():
+    """Parse the private book-of-record CSV into member records. Returns
+    [] when the file isn't present (CI, or before it's been placed), so the
+    caller degrades to today's behaviour. Each record carries the canonical
+    'First Last' name, its name_key, birth year (year only - the full date
+    stays private and never leaves this function), and the club name."""
+    if not MEMBER_CSV_PATH.exists():
+        return []
+    members = []
+    with MEMBER_CSV_PATH.open(encoding="utf-8") as f:
+        for row in csv.DictReader(f, delimiter=";"):
+            last = (row.get("Nachname") or "").strip()
+            first = (row.get("Vorname") or "").strip()
+            oid = (row.get("ID") or "").strip()
+            if not oid.isdigit() or not (first or last):
+                continue
+            name = f"{first} {last}".strip()
+            yob = (row.get("Geburtsdatum") or "").strip()[:4]
+            members.append({
+                "ofol_id": int(oid), "name": name, "name_key": name_key(name),
+                "yob": int(yob) if yob.isdigit() else None, "club": MEMBER_CLUB_NAME})
+    return members
+
+
+def load_member_mapping():
+    """Load the confirmed alias/non-member ledger. Shape:
+        {"aliases": {"<name_key>": <ofol_id>, ...},
+         "not_member": ["<name_key>", ...]}
+    Missing file -> empty ledger."""
+    if not MEMBER_MAPPING_PATH.exists():
+        return {"aliases": {}, "not_member": []}
+    try:
+        d = json.loads(MEMBER_MAPPING_PATH.read_text())
+    except (json.JSONDecodeError, OSError):
+        return {"aliases": {}, "not_member": []}
+    d.setdefault("aliases", {})
+    d.setdefault("not_member", [])
+    d.setdefault("internal_member", {})
+    # club_override: name_key -> the official club a person actually belongs to,
+    # for runners whose results were attributed to this club by mistake (e.g. a
+    # guest on one of its relay teams). null means clubless (vereinslos).
+    d.setdefault("club_override", {})
+    # split_override: name_key of a garbled row that crammed several runners into
+    # one name field (relay/family/night-run pairs) -> the list of real runners
+    # [{name, id}, ...] its results should be attributed to, one copy each.
+    d.setdefault("split_override", {})
+    return d
 
 
 def strip_age_overlap_categories(cur):
@@ -1794,6 +1872,152 @@ def main():
             pid = merge_map[pid]
         return pid
 
+    # --- Book-of-record member pass ---------------------------------------
+    # Resolve result-name variants onto their real club-member identity using
+    # the private roster + confirmed-alias ledger. A member's ÖFOL-ID is the
+    # same id space as an ANNE userId, so this reuses the exact merge machinery
+    # above: it just adds more edges to merge_map (variant/legacy id -> member
+    # ÖFOL-ID) and, where the member never had an ANNE-linked result of their
+    # own, mints the member identity so their scattered legacy rows have a real
+    # home to collect onto. Only members who actually appear in results are
+    # ever created - the roster of members with no races (and every full
+    # birthdate/gender) stays private, never entering the public DB.
+    members = load_member_registry()
+    member_canonical = {}   # surviving pid -> (canonical name, birth year)
+    pending_review, conflicts = [], []
+    split_override = {}
+    if members:
+        ledger = load_member_mapping()
+        split_override = ledger["split_override"]
+        not_member = set(ledger["not_member"])
+        member_by_nk = defaultdict(list)         # exact-roster index (ÖFOL only)
+        for m in members:
+            member_by_nk[m["name_key"]].append(m)
+
+        # Every target identity (member) keyed by its id, unifying the two
+        # membership layers: an official ÖFOL member (id = ÖFOL-ID, positive)
+        # and an internal-only member (real club member with no ÖFOL-ID, given
+        # a stable id in a reserved high range - see INTERNAL_ID_BASE). Both
+        # merge and canonicalise identically; the only difference is the id
+        # space they live in.
+        id_meta = {m["ofol_id"]: {"name": m["name"], "name_key": m["name_key"],
+                                  "yob": m["yob"]} for m in members}
+        # combined confirmed-alias map: a variant name_key -> its target id,
+        # whether that target is an ÖFOL member or an internal-only one
+        alias_target = dict(ledger["aliases"])
+        for iid_str, info in ledger.get("internal_member", {}).items():
+            iid = int(iid_str)
+            id_meta[iid] = {"name": info["name"], "name_key": name_key(info["name"]),
+                            "yob": info.get("yob")}
+            for nk in info.get("aliases", []):
+                alias_target[nk] = iid
+
+        # every name_key ever seen for each surviving identity, so a variant
+        # spelling recorded on any one of its merged rows can still match; also
+        # keep the pre-merge person_ids behind each identity, for club_override
+        resolved_nks = defaultdict(set)
+        sid_pids = defaultdict(list)
+        for p in list(persons.by_id):
+            sid = resolve(p)
+            sid_pids[sid].append(p)
+            resolved_nks[sid].add(persons.by_id[p][1])
+            for nm in persons.name_seen.get(p, {}):
+                resolved_nks[sid].add(name_key(nm))
+
+        # club_override: a runner wrongly attributed to this club (a guest on a
+        # relay team, a mis-canonicalised club string) actually belongs to
+        # another club - or none. Rewrite their club-attributed results BEFORE
+        # the association/pending step below, so they correctly drop out of the
+        # club entirely. null override -> clubless (vereinslos).
+        for sid, nks in resolved_nks.items():
+            ov_key = next((nk for nk in sorted(nks) if nk in ledger["club_override"]), None)
+            if ov_key is None:
+                continue
+            newclub = ledger["club_override"][ov_key] or None   # null/"" -> clubless
+            cur.executemany(
+                "UPDATE result SET official_club = ? WHERE person_id = ? AND official_club = ?",
+                [(newclub, p, MEMBER_CLUB_NAME) for p in sid_pids[sid]])
+
+        # which surviving identities actually have results, and whether any of
+        # those results ran under the club's official name
+        assoc = defaultdict(lambda: [0, 0])  # sid -> [nfw_rows, total_rows]
+        for person_id, nfw, n in cur.execute(
+                "SELECT person_id, SUM(official_club = ?), COUNT(*) FROM result GROUP BY person_id",
+                (MEMBER_CLUB_NAME,)).fetchall():
+            sid = resolve(person_id)
+            assoc[sid][0] += nfw or 0
+            assoc[sid][1] += n
+
+        def match_member(sid):
+            # sorted() for determinism: a person can carry several name spellings
+            # (ANNE occasionally stamps one userId onto rows that are really other
+            # people - confirmed real: userId 1665 "Peter Bonek" also has stray
+            # "Barbara Kastner"/"Ylvi Kastner" rows), and set-iteration order is
+            # per-process-random, so an unsorted first-match would merge such a
+            # person into a DIFFERENT member on some builds and not others.
+            nks = sorted(resolved_nks.get(sid, set()))
+            for nk in nks:                       # confirmed alias (ÖFOL or internal) wins
+                if nk in alias_target:
+                    return alias_target[nk]
+            sid_yob = persons.by_id[sid][2]
+            for nk in nks:                       # exact roster name_key (ÖFOL only)
+                cands = member_by_nk.get(nk)
+                if not cands:
+                    continue
+                if len(cands) == 1:
+                    return cands[0]["ofol_id"]
+                yobm = [m for m in cands if sid_yob is not None and m["yob"] == sid_yob]
+                if len(yobm) == 1:               # same name, disambiguated by year
+                    return yobm[0]["ofol_id"]
+            return None
+
+        for sid, (nfw_rows, _tot) in assoc.items():
+            # a person who already holds their own ÖFOL-ID IS that member - never
+            # remap them onto a different one just because a stray mis-tagged
+            # name spelling of theirs happens to match another member's name
+            # (the userId-1665 case above). Canonicalise in place instead.
+            oid = sid if (sid > 0 and sid in id_meta) else match_member(sid)
+            if oid is None:
+                # surface only genuine club runners we couldn't place and
+                # haven't already dismissed as non-members
+                if nfw_rows and not (resolved_nks.get(sid, set()) & not_member):
+                    pending_review.append({
+                        "person_id": sid, "name": persons.by_id[sid][0],
+                        "name_key": persons.by_id[sid][1],
+                        "year_of_birth": persons.by_id[sid][2],
+                        "nfw_results": nfw_rows})
+                continue
+            m = id_meta[oid]
+            # conflict: the target id is already a genuinely DIFFERENT person in
+            # our data - an ANNE result stamped that userId onto an unrelated
+            # name (confirmed real: id 10344, roster "Le Blanc" but ANNE
+            # "Kollndorfer"). Keyed on DISJOINT name tokens, so a mere nickname/
+            # spelling difference under the same surname (Willi/Wilhelm
+            # Tiefenböck, or a garbled "Luna+Lorenz Vesely" that's really
+            # Herbert) is NOT a conflict - those correctly merge and take the
+            # roster's canonical name.
+            existing = persons.by_id.get(oid)
+            if existing and oid != sid and assoc.get(oid, [0, 0])[1] > 0 \
+                    and not (set(name_key(existing[0]).split()) & set(m["name_key"].split())):
+                conflicts.append({"target_id": oid, "roster_name": m["name"],
+                                  "db_name": existing[0], "matched_from": persons.by_id[sid][0]})
+                continue
+            if oid not in persons.by_id:         # member with only legacy rows: mint them
+                persons.by_id[oid] = (m["name"], m["name_key"], m["yob"], None, None)
+            target = resolve(oid)
+            if sid != target:
+                merge_map[sid] = target
+            member_canonical[target] = (m["name"], m["yob"])
+
+        # a surviving id can be both processed as unmatched (added to pending)
+        # AND later become a member's merge target (another row matched it) -
+        # a member target is placed, so drop it from the review worklist; also
+        # drop garbled rows already scheduled to be split apart below
+        pending_review = [e for e in pending_review
+                          if resolve(e["person_id"]) not in member_canonical
+                          and e["name_key"] not in split_override]
+    # ----------------------------------------------------------------------
+
     final_names = defaultdict(Counter)
     final_auth = defaultdict(Counter)
     for pid, counts in persons.name_seen.items():
@@ -1818,8 +2042,39 @@ def main():
         elif counts:
             name = reorder_first_last(counts.most_common(1)[0][0])
             key = name_key(name)
+        # the book of record is authoritative for a confirmed member's display
+        # name and birth year (overriding whatever spelling the results used) -
+        # only the year, never the private full date
+        if pid in member_canonical:
+            m_name, m_yob = member_canonical[pid]
+            name, key = m_name, name_key(m_name)
+            if m_yob is not None:
+                yob = m_yob
         cur.execute("INSERT INTO person VALUES (?,?,?,?,?,?)",
                     (pid, name, key, yob, nat, iof))
+
+    # split_override: a garbled row that crammed several runners into one name
+    # field (relay/family/night-run pairs, e.g. "Anna+Selina Skern") - give each
+    # of its results to every real runner it named, then drop the garbled
+    # identity. Runs before stats/national_rank so those see the split rows.
+    # Confirmed non-championship rows only (night runs / family categories), so
+    # no medal impact. Copy each result once per extra runner (while the garbled
+    # person still owns them), then hand the originals to the first runner.
+    _copy_cols = ("stage_id, category, category_full, club, official_club, rank, "
+                  "status, time_s, time_behind_s, out_of_competition, course_length_m, "
+                  "course_climb_m, course_controls, result_kind, note, source, championship")
+    for gnk, targets in split_override.items():
+        tids = [t["id"] for t in targets]
+        if len(tids) < 2:
+            continue
+        for (gid,) in cur.execute("SELECT id FROM person WHERE name_key = ?", (gnk,)).fetchall():
+            if gid in tids:                 # a runner's own row, don't self-split
+                continue
+            for tid in tids[1:]:
+                cur.execute(f"INSERT INTO result (person_id, {_copy_cols}) "
+                            f"SELECT ?, {_copy_cols} FROM result WHERE person_id = ?", (tid, gid))
+            cur.execute("UPDATE result SET person_id = ? WHERE person_id = ?", (tids[0], gid))
+            cur.execute("DELETE FROM person WHERE id = ?", (gid,))
 
     # SportSoftware prints the national champion's rank ("1") on a separate
     # "… österreichischer Meister" annotation line, so the winning row parses
@@ -2138,6 +2393,26 @@ def main():
     print(f"api results: {n_api}, legacy results: {n_legacy}, "
           f"championship rows from title fallback: {n_title_fallback}, "
           f"championship rows stripped by eligibility check: {n_eligibility}")
+
+    # Member-mapping build byproducts (private files, regenerated each run).
+    if members:
+        # suggest likely roster candidates for each unplaced club runner by
+        # shared name tokens, so the review step is pick-from-a-shortlist
+        member_tokens = [(m, set(m["name_key"].split())) for m in members]
+        for e in pending_review:
+            toks = set(e["name_key"].split())
+            scored = sorted(
+                ((len(toks & mt), m) for m, mt in member_tokens if toks & mt),
+                key=lambda x: -x[0])[:4]
+            e["candidates"] = [{"ofol_id": m["ofol_id"], "name": m["name"],
+                                "year_of_birth": m["yob"]} for _, m in scored]
+        pending_review.sort(key=lambda e: -e["nfw_results"])
+        PENDING_REVIEW_PATH.write_text(json.dumps(pending_review, ensure_ascii=False, indent=1))
+        MEMBER_CONFLICTS_PATH.write_text(json.dumps(conflicts, ensure_ascii=False, indent=1))
+        print(f"members: {len(members)} in roster, {len(member_canonical)} matched to results, "
+              f"{len(pending_review)} club runners pending review, {len(conflicts)} id conflicts "
+              f"-> {PENDING_REVIEW_PATH.name}, {MEMBER_CONFLICTS_PATH.name}")
+
     cur.execute("VACUUM")
     con.close()
     gz_path = DB_PATH.with_suffix(".db.gz")
