@@ -1,0 +1,507 @@
+{
+ "aliases": {
+  "roland wolfler": 7060,
+  "misko robert": 9679,
+  "deubel jorgen": 6452,
+  "boris kastner": 6998,
+  "lucia ujvari": 9870,
+  "ujvari vicky": 10074,
+  "gunter kroupa": 2151,
+  "lotte schweifer": 10377,
+  "machold natalja": 9426,
+  "brettner messler": 3019,
+  "beck eva": 9797,
+  "machold nathalia": 9426,
+  "carolina hufnagl": 8452,
+  "anina urbanek": 8900,
+  "kastner nikolas": 6912,
+  "annika gassner": 1686,
+  "biel renate": 8111,
+  "holzmueller thomas": 9924,
+  "machold natalie": 9426,
+  "euler nikolaus role": 8649,
+  "farrellj patrick": 8568,
+  "katarina skarkova": 8256,
+  "felix hofstaetter": 1712,
+  "calvet christina": 3541,
+  "jutta pietsch": 1755,
+  "annaliese bonek": 1660,
+  "hufnagl magdalena": 7911,
+  "frederik genevois": 3851,
+  "frederic genevodis": 3851,
+  "arsenbauer luis": 9955,
+  "helios straczek viktoria": 10387,
+  "christine fritze": 10661,
+  "biel prettinig renate": 8111,
+  "ricki tiefenbock": 2709,
+  "florian giedl": 9863,
+  "hierzeggert ute": 276,
+  "guther kroupa": 2151,
+  "maghold natalia": 9426,
+  "buscheck elisabeth": 9031,
+  "adam irmiska": 8979,
+  "drizo nicolai": 9798,
+  "meiorenko oleksandr": 9801,
+  "tiefenbock willhelm": 2153,
+  "kastner ylvie": 7276,
+  "waldhausl wolgang": 1206,
+  "bonnek jannis": 1664,
+  "biel prettingl renate": 8111,
+  "clemens wolram": 6783,
+  "euler nikolau rolle": 8649,
+  "ferri gassner sen": 1687,
+  "euler niokolaus rolle": 8649,
+  "boris jirka kaster": 6998,
+  "grabner jutta pitsch": 1755,
+  "jandl johannes": 3552,
+  "josef zapetal": 3207,
+  "hufnagel magdalena rei": 7911,
+  "deubl dirk": 3018,
+  "babara kastner": 7364,
+  "martin riedl": 3334,
+  "bielo corinna": 8112,
+  "guenther kroupa": 2151,
+  "dominic jandl": 3258,
+  "anelise bonek": 1660,
+  "pietsch wrerner": 1753,
+  "waldhausel wolfgang": 1206,
+  "hufnaglmagdalena rita tiefenbock": 3165,
+  "deubel jona": 3759,
+  "brettner mossler robert": 3019,
+  "gunther krupa": 2151,
+  "deubel joeregn": 6452,
+  "domenik jandl": 3258,
+  "grabner pietsch": 1755,
+  "teischl wolfram": 7400,
+  "jirka kastner": 6998,
+  "bonek janis": 1664,
+  "deubl joergen": 6452,
+  "caroline hufnagel": 8452,
+  "arbter nfw vera": 1649,
+  "birgit gollmann nfw": 2148,
+  "nfw rolland wolfler": 7060,
+  "frederic genevois nfw": 3851,
+  "gunther kroupa nfw": 2151,
+  "hlosta nfw thomas": 1711,
+  "bretter messler robert": 3019,
+  "fritz reto": 10226,
+  "sabine wolfram": 7400,
+  "sabine treichl wolfram": 7400,
+  "biel prettimg renate": 8111,
+  "deubl jonas": 3759,
+  "denis hlosta": 1708,
+  "biel caorinna": 8112,
+  "kastner nico": 6912,
+  "herweg hierzegger": 275,
+  "hans kolar": 1720,
+  "laurence lefeburn": 10343,
+  "yelyzaveta yeutlishenko": 9940,
+  "sandra ulvari": 9869,
+  "asenbauer miha": 9209,
+  "nikolai prizo": 9798,
+  "elena maiorenko": 9802,
+  "joseph zapletal": 3207,
+  "ana doldon": 8512,
+  "hloster thomas": 1711,
+  "kastner maja": 7307,
+  "pietsch slivia": 1751,
+  "bosnia joachim": 1668,
+  "tiefenbock ulrike": 2709,
+  "ferry gassner": 1687,
+  "alex biel": 1655,
+  "annelise bonek": 1660,
+  "dirk teubel": 3018,
+  "ferry gassner sen": 1687,
+  "sanna steinbacher": 3202,
+  "leblanc lihuen": 10345,
+  "flo kurz": 6741,
+  "udvari vicky": 10074,
+  "usvari vicky": 10074,
+  "fritze leonie": 10386,
+  "lisa yevtushenko": 9940,
+  "karolina meiorenko": 9815,
+  "arbter verena": 1649,
+  "adam czech": 9170,
+  "brettner messler rob": 3019,
+  "celina skern": 90000001,
+  "lina radon": 6704,
+  "grabner max pietsch": 6511,
+  "biel carina": 8112,
+  "selina sommer": 90000001,
+  "gi kroupa nther": 2151,
+  "hannes kohler": 1720,
+  "frederic genevios": 3851,
+  "kuehnel ralph": 1729,
+  "tiefenboeck willi": 2153,
+  "kathi skarkova": 8256,
+  "katherina skarkova": 8256,
+  "a reisenbauer": 7997,
+  "kastner yl": 7276,
+  "ga kroupa nther": 2151,
+  "nfw tiefenbock willi": 2153,
+  "kastner nikolaus": 6912,
+  "hierzeger in ute": 276,
+  "ujvari victoria": 10074,
+  "ujvari vichy": 10074,
+  "alina skern": 90000001,
+  "babsi kastner": 7364
+ },
+ "not_member": [],
+ "internal_member": {
+  "90000001": {
+   "name": "Selina Skern",
+   "yob": null,
+   "aliases": [
+    "selina skern"
+   ]
+  },
+  "90000002": {
+   "name": "Patricia Bajer",
+   "yob": null,
+   "aliases": [
+    "bajer patricia"
+   ]
+  },
+  "90000003": {
+   "name": "Richard Schlögl",
+   "yob": null,
+   "aliases": [
+    "richard schlogl"
+   ]
+  },
+  "90000004": {
+   "name": "Andreas Bruchbacher",
+   "yob": null,
+   "aliases": [
+    "andreas bruchbacher"
+   ]
+  },
+  "90000005": {
+   "name": "Mia Marjanovic",
+   "yob": null,
+   "aliases": [
+    "marjanovic mia",
+    "marjonovic mia"
+   ]
+  },
+  "90000006": {
+   "name": "Katharina Weber",
+   "yob": null,
+   "aliases": [
+    "katharina weber"
+   ]
+  },
+  "90000007": {
+   "name": "Geertje Gartner-Strübli",
+   "yob": null,
+   "aliases": [
+    "gartner geertje strubli",
+    "gartner geertje"
+   ]
+  },
+  "90000008": {
+   "name": "Benjamin Vesely",
+   "yob": null,
+   "aliases": [
+    "benjamin vesely"
+   ]
+  },
+  "90000009": {
+   "name": "Simon Steiner",
+   "yob": null,
+   "aliases": [
+    "simon steiner"
+   ]
+  },
+  "90000010": {
+   "name": "Christian Fürpass",
+   "yob": null,
+   "aliases": [
+    "christian furpass"
+   ]
+  },
+  "90000011": {
+   "name": "Felix Gangelmaier",
+   "yob": null,
+   "aliases": [
+    "felix gangelmaier"
+   ]
+  },
+  "90000012": {
+   "name": "Ida Hat",
+   "yob": null,
+   "aliases": [
+    "hat ida"
+   ]
+  },
+  "90000013": {
+   "name": "Selina Sengstschmid",
+   "yob": null,
+   "aliases": [
+    "selina sengstschmid"
+   ]
+  }
+ },
+ "club_override": {
+  "janecek oldrich": "Naturfreunde Villach - Orienteering",
+  "curda gerhard": null,
+  "erich goschl": "OLC Wienerwald",
+  "bernd maierhofer": null,
+  "frederik gartner": null,
+  "kradischnig wolfgang": "Naturfreunde Linz",
+  "libor zridkawesely": null,
+  "kahler tristan": null,
+  "davitt james simon wolfl": null,
+  "bonin julius von": null,
+  "maximilian rottensteiner": "Go Harzberg",
+  "maria nemecekova": null,
+  "adomaitis gustavas": null,
+  "adomaitis donaldas": null,
+  "adomaitis kristijonas": null,
+  "stritzinger wolfgang": null,
+  "eder joe": null,
+  "hemma kahler": null,
+  "ingrid schwerdtner": null,
+  "clemens kahler": null,
+  "fabian samec": "WAT-OL",
+  "gabriele kapeller": "Orienteering Klosterneuburg",
+  "max rottensteiner": "Go Harzberg",
+  "grassinger helmut": "OLG Ströck Wien",
+  "manfred rottensteiner": "Go Harzberg",
+  "maximilian rass": "Laufklub Kompass Innsbruck",
+  "helmut renner": "Naturfreunde Steiermark",
+  "krischan rosemarie": "OC Fürstenfeld",
+  "elisabeth knapp": "Orienteering Klosterneuburg",
+  "czembirek heinz": "MTV Hernals",
+  "reinhard siegert": "WAT-OL",
+  "kemppainen markku": "OLC Wienerwald",
+  "friessnig joachim": "OC Fürstenfeld",
+  "herbert schiel": null,
+  "lisi sandrisser": "Naturfreunde Villach - Orienteering",
+  "hartwig rogl": "Naturfreunde Seekirchen",
+  "kadan ursula": "OC Fürstenfeld",
+  "matthias reiner": "Naturfreunde Villach - Orienteering"
+ },
+ "split_override": {
+  "adam albert imriska imriska": [
+   {
+    "name": "Adam Imriska",
+    "id": 8979
+   },
+   {
+    "name": "Albert Imriska",
+    "id": 8980
+   }
+  ],
+  "annina matilda schreiber urbanek": [
+   {
+    "name": "Schreiber Matilda",
+    "id": 9534
+   },
+   {
+    "name": "Urbanek Annina",
+    "id": 8900
+   }
+  ],
+  "elise papa radon": [
+   {
+    "name": "Radon Elise",
+    "id": 6706
+   },
+   {
+    "name": "Radon Thomas",
+    "id": 1760
+   }
+  ],
+  "biel corinna livia radon": [
+   {
+    "name": "Corinna Biel",
+    "id": 8112
+   },
+   {
+    "name": "Livia Radon",
+    "id": 6704
+   }
+  ],
+  "anna selina skern": [
+   {
+    "name": "Anna Skern",
+    "id": 8506
+   },
+   {
+    "name": "Selina Skern",
+    "id": 90000001
+   }
+  ],
+  "deubel jakob joergen wolfram": [
+   {
+    "name": "Deubel Joergen",
+    "id": 6452
+   },
+   {
+    "name": "Wolfram Jakob",
+    "id": 6784
+   }
+  ],
+  "deubel jonas max pietsch": [
+   {
+    "name": "Pietsch Max",
+    "id": 6511
+   },
+   {
+    "name": "Deubel Jonas",
+    "id": 3759
+   }
+  ],
+  "bonek erik florian jandl": [
+   {
+    "name": "Jandl Florian",
+    "id": 3259
+   },
+   {
+    "name": "Bonek Erik",
+    "id": 1662
+   }
+  ],
+  "beck elise maria radon": [
+   {
+    "name": "Beck Maria",
+    "id": 8110
+   },
+   {
+    "name": "Radon Elise",
+    "id": 6706
+   }
+  ],
+  "anna annina skern urbanek": [
+   {
+    "name": "Skern Anna",
+    "id": 8506
+   },
+   {
+    "name": "Urbanek Annina",
+    "id": 8900
+   }
+  ],
+  "fabian kolar radon zoe": [
+   {
+    "name": "Radon Zoe",
+    "id": 6705
+   },
+   {
+    "name": "Kolar Fabian",
+    "id": 9018
+   }
+  ],
+  "cleo lauri machold urbanek": [
+   {
+    "name": "Urbanek Lauri",
+    "id": 8901
+   },
+   {
+    "name": "Machold Cleo",
+    "id": 9220
+   }
+  ],
+  "albert imriska jana und": [
+   {
+    "name": "Jana Imriska",
+    "id": 7405
+   },
+   {
+    "name": "Albert Imriska",
+    "id": 8980
+   }
+  ],
+  "albert imriska jana": [
+   {
+    "name": "Jana Imriska",
+    "id": 7405
+   },
+   {
+    "name": "Albert Imriska",
+    "id": 8980
+   }
+  ],
+  "adam albert imriska": [
+   {
+    "name": "Adam Imriska",
+    "id": 8979
+   },
+   {
+    "name": "Albert Imriska",
+    "id": 8980
+   }
+  ],
+  "calvet kastner m sofia": [
+   {
+    "name": "Sofia Calvet",
+    "id": 6700
+   },
+   {
+    "name": "Maya Kastner",
+    "id": 7307
+   }
+  ],
+  "livia radon radon zoe": [
+   {
+    "name": "Zoe Radon",
+    "id": 6705
+   },
+   {
+    "name": "Livia Radon",
+    "id": 6704
+   }
+  ],
+  "deubel jonas m pietsch": [
+   {
+    "name": "Jonas Deubel",
+    "id": 3759
+   },
+   {
+    "name": "Maximilian Pietsch",
+    "id": 6511
+   }
+  ],
+  "calvet ol pietsch theo": [
+   {
+    "name": "Theo Pietsch",
+    "id": 6510
+   },
+   {
+    "name": "Oliver Calvet",
+    "id": 6701
+   }
+  ],
+  "deubel joergen jonas": [
+   {
+    "name": "Jonas Deubel",
+    "id": 3759
+   },
+   {
+    "name": "Joergen Deubel",
+    "id": 6452
+   }
+  ],
+  "clemens jakob wolfram wolfram": [
+   {
+    "name": "Jakob Wolfram",
+    "id": 6784
+   },
+   {
+    "name": "Clemens Wolfram",
+    "id": 6783
+   }
+  ],
+  "anna sammer selina": [
+   {
+    "name": "Selina Skern",
+    "id": 90000001
+   },
+   {
+    "name": "Anna Skern",
+    "id": 8506
+   }
+  ]
+ }
+}
