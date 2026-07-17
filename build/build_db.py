@@ -711,6 +711,167 @@ def load_member_mapping():
     return d
 
 
+def prepare_verified_member_identities(cur, persons, members):
+    """Apply the club's verified identity evidence before name reconciliation.
+
+    ANNE occasionally attaches one member's userId to a row carrying another
+    member's full name.  A global userId merge cannot safely repair that: it
+    would merge both people and rewrite all of their otherwise-correct rows.
+    Canonicalise known member ids first, then repair only source rows where the
+    observed name uniquely and exactly identifies a *different* verified
+    member or an independently established ANNE identity.  The conflicting
+    observed_user_id deliberately remains on the result as provenance.
+
+    Returns audit records for the private conflict report.
+    """
+    member_by_id = {m["ofol_id"]: m for m in members}
+    members_by_name = defaultdict(list)
+    for m in members:
+        members_by_name[m["name_key"]].append(m)
+    # Snapshot the first ANNE identity name before roster canonicalisation.
+    # It is useful as independent evidence for repairing one crossed source
+    # row (including when the correctly named target is not in our club).
+    anne_ids_by_name = defaultdict(list)
+    for pid, (_name, nk, _yob, _nat, _iof) in persons.by_id.items():
+        if pid > 0:
+            anne_ids_by_name[nk].append(pid)
+
+    # The book of record fixes the canonical identity before duplicate-account
+    # reconciliation groups people by name.  Otherwise the first bad ANNE row
+    # can give a verified id another member's name and cause both ids to merge.
+    for oid, member in member_by_id.items():
+        existing = persons.by_id.get(oid)
+        if not existing:
+            continue
+        if set(existing[1].split()) & set(member["name_key"].split()):
+            persons.reconciliation_name_keys[oid].add(existing[1])
+        persons.by_id[oid] = (
+            member["name"], member["name_key"],
+            member["yob"] if member["yob"] is not None else existing[2],
+            existing[3], existing[4],
+        )
+        persons._link(oid, member["name"], member["yob"])
+
+    corrections = []
+    rows = cur.execute(
+        """SELECT id, person_id, observed_name, observed_user_id
+           FROM result
+           WHERE source = 'anne-api' AND observed_user_id IS NOT NULL
+           ORDER BY id""").fetchall()
+    for result_id, person_id, observed_name, observed_user_id in rows:
+        try:
+            source_id = int(observed_user_id)
+        except (TypeError, ValueError):
+            continue
+        source_member = member_by_id.get(source_id)
+        if source_member is None:
+            continue
+        observed_key = name_key(clean_name(observed_name or ""))
+        source_tokens = set(source_member["name_key"].split())
+        if source_tokens & set(observed_key.split()):
+            continue
+
+        verified_targets = [m for m in members_by_name.get(observed_key, [])
+                            if m["ofol_id"] != source_id]
+        if len(verified_targets) == 1:
+            target_member = verified_targets[0]
+            target_id = target_member["ofol_id"]
+            target_name = target_member["name"]
+        else:
+            anne_targets = [pid for pid in anne_ids_by_name.get(observed_key, [])
+                            if pid != source_id]
+            if len(verified_targets) > 1 or len(anne_targets) != 1:
+                continue
+            target_member = None
+            target_id = anne_targets[0]
+            target_name = persons.by_id[target_id][0]
+
+        existing = persons.by_id.get(target_id)
+        if existing is None:
+            persons.by_id[target_id] = (
+                target_member["name"], target_member["name_key"],
+                target_member["yob"], None, None,
+            )
+            persons._link(target_id, target_member["name"], target_member["yob"])
+
+        cur.execute(
+            """UPDATE result
+               SET person_id = ?, identity_basis = 'club-book-of-record',
+                   identity_confidence = 1.0
+               WHERE id = ?""",
+            (target_id, result_id),
+        )
+
+        cleaned = clean_name(observed_name or "")
+        for counters in (persons.name_seen, persons.name_auth):
+            source_counts = counters.get(person_id)
+            if source_counts and source_counts.get(cleaned, 0):
+                source_counts[cleaned] -= 1
+                if source_counts[cleaned] <= 0:
+                    del source_counts[cleaned]
+            counters[target_id][cleaned] += 1
+
+        corrections.append({
+            "result_id": result_id,
+            "observed_user_id": source_id,
+            "observed_name": observed_name,
+            "source_identity": source_member["name"],
+            "assigned_person_id": target_id,
+            "assigned_identity": target_name,
+        })
+    return corrections
+
+
+def duplicate_identity_merge_edges(persons, verified_member_ids=()):
+    """Return safe duplicate/synthetic-id merges grouped by canonical name.
+
+    A verified member id is preferred over an unverified duplicate ANNE
+    account and is never merged into another id.  If several verified ids
+    share the same name and cannot be separated by birth year, no positive-id
+    merge is made; uncertainty is safer than destroying two identities.
+    """
+    by_name_group = defaultdict(list)
+    for pid, (_name, nk, _yob, _nat, _iof) in persons.by_id.items():
+        keys = {nk, *persons.reconciliation_name_keys.get(pid, set())}
+        for grouping_key in keys:
+            by_name_group[grouping_key].append(pid)
+
+    verified_member_ids = set(verified_member_ids)
+    merge_map = {}
+    for ids in by_name_group.values():
+        anne_ids = [i for i in ids if i > 0]
+        synth_ids = [i for i in ids if i < 0]
+        if not anne_ids:
+            continue
+        distinct_yobs = {persons.by_id[a][2] for a in anne_ids
+                         if persons.by_id[a][2] is not None}
+        protected = [a for a in anne_ids if a in verified_member_ids]
+        if len(distinct_yobs) <= 1 and len(protected) <= 1:
+            target = protected[0] if protected else min(anne_ids)
+            for anne_id in anne_ids:
+                if anne_id != target:
+                    merge_map[anne_id] = target
+            target_yob = next(iter(distinct_yobs), None)
+            if target_yob is not None and persons.by_id[target][2] is None:
+                current = persons.by_id[target]
+                persons.by_id[target] = (
+                    current[0], current[1], target_yob, current[3], current[4])
+            for synth_id in synth_ids:
+                synth_yob = persons.by_id[synth_id][2]
+                if synth_yob is None or target_yob is None or synth_yob == target_yob:
+                    merge_map[synth_id] = target
+        else:
+            by_yob = defaultdict(list)
+            for anne_id in anne_ids:
+                by_yob[persons.by_id[anne_id][2]].append(anne_id)
+            for synth_id in synth_ids:
+                synth_yob = persons.by_id[synth_id][2]
+                matches = by_yob.get(synth_yob)
+                if synth_yob is not None and matches and len(matches) == 1:
+                    merge_map[synth_id] = matches[0]
+    return merge_map
+
+
 def strip_age_overlap_categories(cur):
     """Unconditionally null championship for any INDIVIDUAL row whose
     category matches AGE_OVERLAP_EXCLUDE_RE (D/H-15-18, D/H-21-Kurz,
@@ -1143,6 +1304,7 @@ class PersonRegistry:
         self.by_name = {}    # name_key -> [pid, ...], insertion order, no dupes
         self.name_seen = defaultdict(Counter)  # pid -> Counter(name -> occurrences)
         self.name_auth = defaultdict(Counter)  # pid -> Counter of API-form names
+        self.reconciliation_name_keys = defaultdict(set)
         self.first_names = set()               # lowercased firstNames from the API
         self.last_names = set()                # lowercased lastNames from the API
         self.anne_ids = set()                   # source-supplied ANNE identifiers
@@ -1330,8 +1492,6 @@ def register_anne_document(cur, event_id, path):
 def register_legacy_document(cur, doc):
     normalized_path = ROOT / doc["_normalizedPath"]
     stem = normalized_path.stem
-    raw_candidates = sorted((RAW / "files").glob(f"{stem}.*"))
-    raw_path = raw_candidates[0] if raw_candidates else None
     source = doc["source"]
     document_id = f"legacy:{stem}"
     cur.execute(
@@ -1340,7 +1500,7 @@ def register_legacy_document(cur, doc):
             snapshot_sha256, normalized_path, normalized_sha256, parser_version)
            VALUES (?,?,?,?,?,?,?,?,?,?)""",
         (document_id, doc["eventId"], source, doc.get("sourceUrl"),
-         doc.get("fileName"), repo_path(raw_path), file_sha256(raw_path),
+         doc.get("fileName"), None, None,
          repo_path(normalized_path), file_sha256(normalized_path),
          parser_version(source)))
     return document_id
@@ -2025,6 +2185,13 @@ def main():
     persons.finalize_first_names()
     n_legacy = load_legacy_results(cur, events, persons, stage_ids, anne_event_ids)
 
+    # Load verified club identities before the general duplicate-account pass.
+    # This ordering is a correctness boundary: a bad source row must not get
+    # the chance to rename and merge two independently verified people first.
+    members = load_member_registry()
+    source_identity_corrections = prepare_verified_member_identities(
+        cur, persons, members) if members else []
+
     # Some API results have no userId (old events) or field-order quirks;
     # they're matched via from_legacy and can mint a synthetic identity
     # before the file carrying the real ANNE userId for the same person is
@@ -2036,40 +2203,8 @@ def main():
     #  - ANNE ids with genuinely conflicting birth years are treated as
     #    different people; a synthetic id only joins one of them if its own
     #    birth year exactly and unambiguously matches.
-    by_name_group = {}
-    for pid, (name, nk, yob, nat, iof) in persons.by_id.items():
-        by_name_group.setdefault(nk, []).append(pid)
-
-    merge_map = {}
-    for nk, ids in by_name_group.items():
-        anne_ids = [i for i in ids if i > 0]
-        synth_ids = [i for i in ids if i < 0]
-        if not anne_ids:
-            continue  # no authoritative identity to arbitrate against
-        distinct_yobs = {persons.by_id[a][2] for a in anne_ids
-                          if persons.by_id[a][2] is not None}
-        if len(distinct_yobs) <= 1:
-            target = min(anne_ids)
-            for a in anne_ids:
-                if a != target:
-                    merge_map[a] = target
-            target_yob = next(iter(distinct_yobs), None)
-            if target_yob is not None and persons.by_id[target][2] is None:
-                cur_p = persons.by_id[target]
-                persons.by_id[target] = (cur_p[0], cur_p[1], target_yob, cur_p[3], cur_p[4])
-            for s in synth_ids:
-                s_yob = persons.by_id[s][2]
-                if s_yob is None or target_yob is None or s_yob == target_yob:
-                    merge_map[s] = target
-        else:
-            by_yob = {}
-            for a in anne_ids:
-                by_yob.setdefault(persons.by_id[a][2], []).append(a)
-            for s in synth_ids:
-                s_yob = persons.by_id[s][2]
-                match = by_yob.get(s_yob)
-                if s_yob is not None and match and len(match) == 1:
-                    merge_map[s] = match[0]
+    merge_map = duplicate_identity_merge_edges(
+        persons, (m["ofol_id"] for m in members))
 
     # merge_map can chain (a synthetic id may map to an id that itself got
     # merged); resolve to final targets before applying
@@ -2088,9 +2223,8 @@ def main():
     # home to collect onto. Only members who actually appear in results are
     # ever created - the roster of members with no races (and every full
     # birthdate/gender) stays private, never entering the public DB.
-    members = load_member_registry()
     member_canonical = {}   # surviving pid -> (canonical name, birth year)
-    pending_review, conflicts = [], []
+    pending_review, conflicts = [], list(source_identity_corrections)
     split_override = {}
     if members:
         ledger = load_member_mapping()

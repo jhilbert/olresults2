@@ -58,6 +58,26 @@ def people_only_in_events(db_path, event_ids):
         con.close()
 
 
+def merge_redirect_history(existing, fresh, current_ids):
+    """Keep published redirect ids valid across more than one migration."""
+    combined = {str(old_id): int(target) for old_id, target in existing.items()}
+    combined.update({str(old_id): int(target) for old_id, target in fresh.items()})
+
+    def resolve(target):
+        seen = set()
+        while target not in current_ids and str(target) in combined:
+            if target in seen:
+                raise RuntimeError(f"person redirect cycle at {target}")
+            seen.add(target)
+            target = combined[str(target)]
+        if target not in current_ids:
+            raise RuntimeError(f"person redirect target does not exist: {target}")
+        return target
+
+    return {old_id: resolve(target) for old_id, target in combined.items()
+            if int(old_id) != resolve(target)}
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("previous_db", type=Path)
@@ -140,6 +160,9 @@ def main():
 
     missing = len(unmatched)
 
+    existing = json.loads(args.output.read_text()) if args.output.exists() else {}
+    current_ids = {person_id for ids in new_all.values() for person_id in ids}
+    redirects = merge_redirect_history(existing, redirects, current_ids)
     value = dict(sorted(redirects.items(), key=lambda item: int(item[0]), reverse=True))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     temp = args.output.with_suffix(args.output.suffix + ".tmp")

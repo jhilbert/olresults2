@@ -2,24 +2,24 @@
   "counts": {
     "championship_result": 27575,
     "event": 3929,
-    "person": 28296,
-    "person_alias": 33844,
+    "person": 28297,
+    "person_alias": 33845,
     "person_identifier": 2734,
-    "person_redirect": 25866,
+    "person_redirect": 25867,
     "result": 229534,
     "source_document": 1742,
     "stage": 1553
-  },
-  "quality": {
-    "identifier_conflicts": 1,
-    "results_without_identity_basis": 0,
-    "results_without_provenance": 0
   },
   "eligibility": {
     "decisions": 1204,
     "people": 112
   },
-  "logical_sha256": "af969fb281dbf19b77b7c3bd72390248fdde05e61d199198c57f77e268c3bcf3",
+  "logical_sha256": "b5f74e914aa725360b9fe89e46b86b93e5674af46e12b1115dd88aa620ad8a72",
+  "quality": {
+    "identifier_conflicts": 1,
+    "results_without_identity_basis": 0,
+    "results_without_provenance": 0
+  },
   "result_by_kind": {
     "individual": 217770,
     "pair": 1393,

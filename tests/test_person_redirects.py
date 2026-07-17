@@ -33,6 +33,13 @@ def make_db(path, people, result_rows):
 
 
 class PersonRedirectTests(unittest.TestCase):
+    def test_redirect_history_is_cumulative_and_chains_to_current_target(self):
+        self.assertEqual(
+            redirects.merge_redirect_history(
+                {"-1": -2, "-8": 8}, {"-2": 22}, {8, 22}),
+            {"-1": 22, "-8": 8, "-2": 22},
+        )
+
     def test_excludes_bad_event_only_people_and_recovers_yob_upgrade(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
