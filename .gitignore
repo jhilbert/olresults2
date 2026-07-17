@@ -17,3 +17,4 @@ data/raw/anne/user_eligibility.json
 # display names + birth YEAR, all already public-grade) reaches the public
 # DB. See build/build_db.py's member-registry integration.
 data/private/
+site/data/*.db-journal
