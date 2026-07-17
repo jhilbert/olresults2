@@ -928,7 +928,8 @@ def main():
             failed += 1
             print(f"  FAIL {eid}-{n} {f['fileName']}: {e}", file=sys.stderr)
     print(f"parsed: {ok}, empty: {empty}, failed: {failed}")
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

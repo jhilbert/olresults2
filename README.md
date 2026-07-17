@@ -90,6 +90,31 @@ python3 ingest/eligibility_state.py push
 
 Both workflows intentionally fail if the remote ledger cannot be restored;
 silently building without it would change historical ÖM/ÖSTM medal decisions.
+Normal state uploads are monotonic: the gateway rejects a lower person or
+decision count, stores the previous object under `eligibility/history/`, and
+records SHA-256/count metadata. Recovery commands are:
+
+```bash
+python3 ingest/eligibility_state.py history
+python3 ingest/eligibility_state.py restore eligibility/history/<version>.json
+python3 ingest/eligibility_state.py pull --required
+```
+
+The scheduled workflow also treats parser failures as fatal and validates
+SQLite integrity, foreign keys, provenance coverage and count regressions
+against `data/build_health.json` before it commits or deploys anything.
+Permanently unavailable historical links are listed explicitly in
+`data/source_failure_allowlist.json`; they remain visible as `EXPECTED
+UNAVAILABLE`, while every unrecognized failure still aborts the run.
+
+## Identity and provenance
+
+ANNE/ÖFOL identifiers, book-of-record verification, legacy aliases and raw
+source observations are separate concepts in the generated database. Every
+result points to a hashed source document; legacy-only people use stable,
+deterministic ids and old runner links are retained through redirects. See
+[`docs/identity-provenance.md`](docs/identity-provenance.md) for the table and
+trust semantics.
 
 ### Championship (ÖM/ÖSTM) eligibility
 

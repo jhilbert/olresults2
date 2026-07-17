@@ -27,7 +27,8 @@ from pathlib import Path
 
 from parse_sportsoftware_html import TableExtractor
 from sportsoftware_common import (
-    CLUB_LINK_ALLOWLIST, is_junk_name, parse_status, parse_time_loose,
+    CLUB_LINK_ALLOWLIST, is_expected_source_failure, is_junk_name, parse_status,
+    parse_time_loose,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -130,7 +131,7 @@ def main():
         jobs = jobs[: args.limit]
     print(f"club-table candidate links: {len(jobs)}")
 
-    ok = empty = failed = 0
+    ok = empty = failed = expected_failed = 0
     for eid, n, f in jobs:
         out_path = OUT / f"{eid}-club{n}.json"
         try:
@@ -153,10 +154,15 @@ def main():
             }, ensure_ascii=False))
             ok += 1
         except Exception as e:
-            failed += 1
-            print(f"  FAIL {eid}-{n} {f['url']}: {e}", file=sys.stderr)
-    print(f"parsed: {ok}, empty: {empty}, failed: {failed}")
+            if is_expected_source_failure("club-table", eid, n):
+                expected_failed += 1
+                print(f"  EXPECTED UNAVAILABLE {eid}-{n} {f['url']}: {e}", file=sys.stderr)
+            else:
+                failed += 1
+                print(f"  FAIL {eid}-{n} {f['url']}: {e}", file=sys.stderr)
+    print(f"parsed: {ok}, empty: {empty}, expected unavailable: {expected_failed}, failed: {failed}")
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

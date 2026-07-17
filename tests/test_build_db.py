@@ -11,6 +11,14 @@ SPEC.loader.exec_module(build_db)
 
 
 class AnneIdentityTests(unittest.TestCase):
+    def test_synthetic_ids_are_deterministic_and_identity_scoped(self):
+        first = build_db.PersonRegistry().from_legacy("Anna Beispiel", 1988)
+        second = build_db.PersonRegistry().from_legacy("Anna Beispiel", 1988)
+        different_yob = build_db.PersonRegistry().from_legacy("Anna Beispiel", 1989)
+        self.assertLess(first, 0)
+        self.assertEqual(first, second)
+        self.assertNotEqual(first, different_yob)
+
     def test_user_id_normalizes_numeric_strings(self):
         self.assertEqual(build_db.anne_user_id("9910"), 9910)
         self.assertEqual(build_db.anne_user_id(9910), 9910)
@@ -46,6 +54,12 @@ class AnneIdentityTests(unittest.TestCase):
             [(9787, 500), (9910, 600)],
         )
         self.assertEqual(persons.by_id[9910][2:], (2014, "AUT", None))
+        self.assertEqual(
+            con.execute(
+                "SELECT observed_user_id, identity_basis, identity_confidence "
+                "FROM result ORDER BY person_id").fetchall(),
+            [("9787", "anne-user-id", 1.0), ("9910", "anne-user-id", 1.0)],
+        )
 
 
 if __name__ == "__main__":

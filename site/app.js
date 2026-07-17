@@ -210,7 +210,14 @@ function viewHome() {
 }
 
 function viewRunner(id, year) {
-  const [p] = query("SELECT * FROM person WHERE id = ?", [id]);
+  let [p] = query("SELECT * FROM person WHERE id = ?", [id]);
+  if (!p) {
+    const [redirect] = query("SELECT new_id FROM person_redirect WHERE old_id = ?", [id]);
+    if (redirect) {
+      id = redirect.new_id;
+      [p] = query("SELECT * FROM person WHERE id = ?", [id]);
+    }
+  }
   if (!p) { app.innerHTML = "<h1>Nicht gefunden</h1>"; return; }
 
   const dw = disciplineWhere("e.sport_type");

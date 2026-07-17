@@ -35,13 +35,17 @@ jobs:
 
       - name: Sync source data through the ANNE gateway
         run: |
-          python3 ingest/anne_sync.py
-          python3 ingest/build_club_dict.py
-          python3 ingest/parse_sportsoftware_html.py
-          python3 ingest/parse_sportsoftware_pdf.py
-          python3 ingest/parse_sportsoftware_text.py
-          python3 ingest/parse_club_table.py
-          python3 ingest/parse_liveresultat.py
+          set -o pipefail
+          python3 ingest/run_sync.py 2>&1 | tee "$RUNNER_TEMP/source-sync.log"
+
+      - name: Upload source sync log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-sync-${{ github.run_id }}
+          path: ${{ runner.temp }}/source-sync.log
+          if-no-files-found: ignore
+          retention-days: 30
 
       - name: Pre-build database for eligibility check
         run: python3 build/build_db.py
@@ -49,8 +53,25 @@ jobs:
       - name: Check championship eligibility
         run: python3 ingest/anne_user_eligibility.py
 
+      - name: Build final database with eligibility decisions
+        run: python3 build/build_db.py
+
+      - name: Validate final database and update health baseline
+        run: |
+          python3 build/validate_db.py \
+            --write-baseline \
+            --report "$RUNNER_TEMP/sync-health.json"
+
       - name: Save durable eligibility state
         run: python3 ingest/eligibility_state.py push
+
+      - name: Upload sync health report
+        uses: actions/upload-artifact@v4
+        with:
+          name: sync-health-${{ github.run_id }}
+          path: ${{ runner.temp }}/sync-health.json
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Commit new snapshots
         run: |

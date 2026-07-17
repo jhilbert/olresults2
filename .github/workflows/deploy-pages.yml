@@ -39,6 +39,9 @@ jobs:
       - name: Build database
         run: python3 build/build_db.py
 
+      - name: Validate database before publishing
+        run: python3 build/validate_db.py
+
       - name: Cache-bust app shell
         run: |
           V="${GITHUB_SHA:0:8}-${GITHUB_RUN_NUMBER}"

@@ -7,6 +7,25 @@ import re
 from functools import lru_cache
 from pathlib import Path
 
+# Historical attachments that were already unavailable when the repository's
+# cache was established. They stay visible in parser summaries, but unlike a
+# new/unrecognized failure they do not make every nightly sync permanently
+# impossible. The ledger is committed and reviewed, never inferred at runtime.
+SOURCE_FAILURE_ALLOWLIST_PATH = (
+    Path(__file__).resolve().parent.parent / "data" / "source_failure_allowlist.json")
+
+
+@lru_cache(maxsize=1)
+def load_source_failure_allowlist():
+    if not SOURCE_FAILURE_ALLOWLIST_PATH.exists():
+        return {}
+    return {source: set(entries) for source, entries in
+            json.loads(SOURCE_FAILURE_ALLOWLIST_PATH.read_text()).items()}
+
+
+def is_expected_source_failure(source, event_id, attachment_index):
+    return f"{event_id}-{attachment_index}" in load_source_failure_allowlist().get(source, set())
+
 # Club domains verified to embed usable result pages (SportSoftware <pre>
 # exports, or a dedicated custom parser). ANNE sometimes mislabels the actual
 # results link on these domains (e.g. type "splittimes"), so anne_sync fetches

@@ -27,7 +27,7 @@ def config():
     token = os.environ.get("ANNE_GATEWAY_TOKEN", "")
     if not base or not token:
         raise RuntimeError("OLRESULTS_GATEWAY_URL and ANNE_GATEWAY_TOKEN must be set")
-    return f"{base}/state/eligibility", token
+    return base, token
 
 
 def validate(value):
@@ -42,8 +42,9 @@ def validate(value):
     return value
 
 
-def request(method, body=None):
-    url, token = config()
+def request(method, path="", body=None):
+    base, token = config()
+    url = f"{base}/state/eligibility{path}"
     headers = {
         "Accept": "application/json",
         "Authorization": f"Bearer {token}",
@@ -83,10 +84,33 @@ def push():
         raise FileNotFoundError(f"local eligibility state missing: {STATE_PATH}")
     state = validate(json.loads(STATE_PATH.read_text()))
     body = json.dumps(state, separators=(",", ":"), sort_keys=True).encode()
-    response = json.loads(request("PUT", body))
+    response = json.loads(request("PUT", body=body))
     if not response.get("ok"):
         raise RuntimeError(f"gateway rejected state: {response}")
     print(f"saved {STATE_PATH} ({summarize(state)})")
+
+
+def history():
+    response = json.loads(request("GET", "/history"))
+    versions = response.get("versions", [])
+    if not versions:
+        print("no eligibility history versions")
+        return
+    for version in versions:
+        print(
+            f"{version['key']}  {version.get('people', '?')} people, "
+            f"{version.get('decisions', '?')} decisions, sha256={version.get('sha256', '?')}")
+
+
+def restore(key):
+    body = json.dumps({"key": key}, separators=(",", ":")).encode()
+    response = json.loads(request("POST", "/restore", body))
+    if not response.get("ok"):
+        raise RuntimeError(f"gateway rejected restore: {response}")
+    print(
+        f"restored remote eligibility state from {response['restoredFrom']} "
+        f"({response['people']} people, {response['decisions']} person/event decisions); "
+        f"previous current state backed up as {response.get('backupKey')}")
 
 
 def main():
@@ -95,12 +119,19 @@ def main():
     pull_parser = sub.add_parser("pull")
     pull_parser.add_argument("--required", action="store_true")
     sub.add_parser("push")
+    sub.add_parser("history")
+    restore_parser = sub.add_parser("restore")
+    restore_parser.add_argument("key")
     args = parser.parse_args()
     try:
         if args.command == "pull":
             pull(args.required)
-        else:
+        elif args.command == "push":
             push()
+        elif args.command == "history":
+            history()
+        else:
+            restore(args.key)
     except Exception as exc:
         print(f"eligibility state {args.command} failed: {exc}", file=sys.stderr)
         return 1

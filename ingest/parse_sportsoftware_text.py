@@ -33,7 +33,8 @@ from pathlib import Path
 
 from sportsoftware_common import (
     CAT_LINE_RE, CLUB_LINK_ALLOWLIST, COLUMN_ALIASES, detect_list_type,
-    expand_pair_result, is_junk_name, parse_champion_annotation, parse_course_info,
+    expand_pair_result, is_expected_source_failure, is_junk_name,
+    parse_champion_annotation, parse_course_info,
     parse_status, parse_time, parse_time_loose, team_results_from_pairs,
 )
 
@@ -236,7 +237,7 @@ def main():
         jobs = jobs[: args.limit]
     print(f"text/link+text/plain files to parse: {len(jobs)}")
 
-    ok = empty = failed = 0
+    ok = empty = failed = expected_failed = 0
     for eid, n, f, kind in jobs:
         out_path = OUT / f"{eid}-{n}.json"
         try:
@@ -257,10 +258,15 @@ def main():
             }, ensure_ascii=False))
             ok += 1
         except Exception as e:
-            failed += 1
-            print(f"  FAIL {eid}-{n} {f['url']}: {e}", file=sys.stderr)
-    print(f"parsed: {ok}, empty: {empty}, failed: {failed}")
+            if is_expected_source_failure("sportsoftware-text", eid, n):
+                expected_failed += 1
+                print(f"  EXPECTED UNAVAILABLE {eid}-{n} {f['url']}: {e}", file=sys.stderr)
+            else:
+                failed += 1
+                print(f"  FAIL {eid}-{n} {f['url']}: {e}", file=sys.stderr)
+    print(f"parsed: {ok}, empty: {empty}, expected unavailable: {expected_failed}, failed: {failed}")
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

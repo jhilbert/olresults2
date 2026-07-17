@@ -104,6 +104,7 @@ def main():
         }, ensure_ascii=False))
         ok += 1
     print(f"parsed: {ok}, empty: {empty}, failed: {failed}")
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

@@ -11,6 +11,7 @@ import csv
 import gzip
 import hashlib
 import json
+import os
 import re
 import sqlite3
 import unicodedata
@@ -44,6 +45,39 @@ CREATE TABLE person (
     name_key TEXT NOT NULL,
     year_of_birth INTEGER, nationality TEXT, iof_id TEXT
 );
+CREATE TABLE person_identifier (
+    scheme TEXT NOT NULL,             -- anne_user_id|oefol_id|iof_id|club_internal
+    identifier TEXT NOT NULL,
+    person_id INTEGER NOT NULL REFERENCES person(id),
+    verified INTEGER NOT NULL DEFAULT 0,
+    verification_source TEXT NOT NULL,
+    PRIMARY KEY (scheme, identifier, person_id)
+);
+CREATE TABLE person_alias (
+    person_id INTEGER NOT NULL REFERENCES person(id),
+    name TEXT NOT NULL,
+    name_key TEXT NOT NULL,
+    source TEXT NOT NULL,
+    verified INTEGER NOT NULL DEFAULT 0,
+    occurrences INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (person_id, name, source)
+);
+CREATE TABLE person_redirect (
+    old_id INTEGER PRIMARY KEY,
+    new_id INTEGER NOT NULL REFERENCES person(id)
+);
+CREATE TABLE source_document (
+    id TEXT PRIMARY KEY,
+    event_id INTEGER NOT NULL REFERENCES event(id),
+    source_type TEXT NOT NULL,
+    source_url TEXT,
+    file_name TEXT,
+    snapshot_path TEXT,
+    snapshot_sha256 TEXT,
+    normalized_path TEXT,
+    normalized_sha256 TEXT,
+    parser_version TEXT
+);
 CREATE TABLE result (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     stage_id INTEGER NOT NULL REFERENCES stage(id),
@@ -62,6 +96,12 @@ CREATE TABLE result (
     result_kind TEXT NOT NULL DEFAULT 'individual',  -- individual|pair|relay
     note TEXT,                       -- e.g. "Partner: X" / "Staffel Y, Leg N"
     source TEXT NOT NULL,            -- anne-api|sportsoftware-html|...
+    source_document_id TEXT REFERENCES source_document(id),
+    observed_name TEXT,              -- source spelling before canonical identity resolution
+    observed_club TEXT,              -- source spelling before club canonicalization
+    observed_user_id TEXT,           -- source-supplied identity, never inferred
+    identity_basis TEXT NOT NULL DEFAULT 'unknown',
+    identity_confidence REAL NOT NULL DEFAULT 0.0,
     championship TEXT,               -- ÖM|ÖSTM, when this (stage, category)
                                       -- is a genuine Austrian championship
     national_rank INTEGER            -- placement among ONLY championship-
@@ -75,6 +115,9 @@ CREATE INDEX idx_result_person ON result(person_id);
 CREATE INDEX idx_result_stage_cat ON result(stage_id, category);
 CREATE INDEX idx_result_official_club ON result(official_club);
 CREATE INDEX idx_person_name ON person(name_key);
+CREATE INDEX idx_result_source_document ON result(source_document_id);
+CREATE INDEX idx_person_alias_key ON person_alias(name_key);
+CREATE INDEX idx_person_identifier_value ON person_identifier(scheme, identifier);
 CREATE VIEW category_stats AS
 SELECT stage_id, category,
        COUNT(*)                                       AS starters,
@@ -135,6 +178,17 @@ def anne_user_id(value):
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def stable_synthetic_id(name, yob, salt=0):
+    """Deterministic negative id for a legacy-only identity.
+
+    It is based on the normalized source identity rather than encounter order,
+    so adding an unrelated result no longer renumbers public runner URLs.
+    """
+    payload = f"olresults-person-v1\0{name_key(name)}\0{yob or ''}\0{salt}".encode()
+    value = int.from_bytes(hashlib.sha256(payload).digest()[:8], "big") & ((1 << 62) - 1)
+    return -(value + 1)
 
 
 # Fallback for legacy events where no result row anywhere carries a champion
@@ -581,6 +635,8 @@ MEMBER_INDEX_PATH = ROOT / "data" / "member_index" / "naturfreunde_wien.json"
 # non-racers. Written on every local build so it tracks the private ledger,
 # and read as the mapping source on CI where the private one isn't present.
 MEMBER_MAPPING_PUBLIC_PATH = ROOT / "data" / "member_index" / "naturfreunde_wien_mapping.json"
+PERSON_REDIRECT_PATH = Path(os.environ.get(
+    "OLRESULTS_PERSON_REDIRECT_PATH", ROOT / "data" / "person_id_redirects.json"))
 # Build byproducts (private, regenerated each run): the review worklist and
 # any BoR-vs-DB id conflicts worth a human look.
 PENDING_REVIEW_PATH = PRIVATE / "pending_review.json"
@@ -1089,7 +1145,7 @@ class PersonRegistry:
         self.name_auth = defaultdict(Counter)  # pid -> Counter of API-form names
         self.first_names = set()               # lowercased firstNames from the API
         self.last_names = set()                # lowercased lastNames from the API
-        self.next_synthetic = -1
+        self.anne_ids = set()                   # source-supplied ANNE identifiers
 
     def add_first_name(self, name):
         """Record a firstName seen in the ANNE API, for reorder_first_last's
@@ -1128,8 +1184,11 @@ class PersonRegistry:
 
     def _new(self, name, yob, nationality=None, iof_id=None, pid=None):
         if pid is None:
-            pid = self.next_synthetic
-            self.next_synthetic -= 1
+            salt = 0
+            pid = stable_synthetic_id(name, yob, salt)
+            while pid in self.by_id and self.by_id[pid][1:3] != (name_key(name), yob):
+                salt += 1
+                pid = stable_synthetic_id(name, yob, salt)
         self.by_id[pid] = (name, name_key(name), yob, nationality, iof_id)
         self._link(pid, name, yob)
         return pid
@@ -1142,6 +1201,7 @@ class PersonRegistry:
             lst.append(pid)
 
     def from_anne(self, user_id, name, yob, nationality, iof_id):
+        self.anne_ids.add(user_id)
         if user_id in self.by_id:
             self._link(user_id, name, yob)
             if yob is not None and self.by_id[user_id][2] is None:
@@ -1224,15 +1284,81 @@ def load_events(cur):
     return events
 
 
+PARSER_FILES = {
+    "sportsoftware-html": ROOT / "ingest" / "parse_sportsoftware_html.py",
+    "sportsoftware-pdf": ROOT / "ingest" / "parse_sportsoftware_pdf.py",
+    "sportsoftware-text": ROOT / "ingest" / "parse_sportsoftware_text.py",
+    "club-table": ROOT / "ingest" / "parse_club_table.py",
+    "liveresultat": ROOT / "ingest" / "parse_liveresultat.py",
+    "anne-api": Path(__file__),
+}
+
+
+def file_sha256(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest() if path and path.exists() else None
+
+
+def parser_version(source):
+    paths = [PARSER_FILES.get(source)]
+    if source != "anne-api":
+        paths.append(ROOT / "ingest" / "sportsoftware_common.py")
+    digest = hashlib.sha256()
+    for path in paths:
+        if path and path.exists():
+            digest.update(path.read_bytes())
+    return digest.hexdigest() if any(path and path.exists() for path in paths) else None
+
+
+def repo_path(path):
+    return path.relative_to(ROOT).as_posix() if path else None
+
+
+def register_anne_document(cur, event_id, path):
+    document_id = f"anne-results:{event_id}"
+    cur.execute(
+        """INSERT OR IGNORE INTO source_document
+           (id, event_id, source_type, source_url, file_name, snapshot_path,
+            snapshot_sha256, normalized_path, normalized_sha256, parser_version)
+           VALUES (?,?,?,?,?,?,?,?,?,?)""",
+        (document_id, event_id, "anne-api",
+         f"https://anne-api.oefol.at/v1/event/{event_id}/results", path.name,
+         repo_path(path), file_sha256(path), None, None,
+         parser_version("anne-api")))
+    return document_id
+
+
+def register_legacy_document(cur, doc):
+    normalized_path = ROOT / doc["_normalizedPath"]
+    stem = normalized_path.stem
+    raw_candidates = sorted((RAW / "files").glob(f"{stem}.*"))
+    raw_path = raw_candidates[0] if raw_candidates else None
+    source = doc["source"]
+    document_id = f"legacy:{stem}"
+    cur.execute(
+        """INSERT OR IGNORE INTO source_document
+           (id, event_id, source_type, source_url, file_name, snapshot_path,
+            snapshot_sha256, normalized_path, normalized_sha256, parser_version)
+           VALUES (?,?,?,?,?,?,?,?,?,?)""",
+        (document_id, doc["eventId"], source, doc.get("sourceUrl"),
+         doc.get("fileName"), repo_path(raw_path), file_sha256(raw_path),
+         repo_path(normalized_path), file_sha256(normalized_path),
+         parser_version(source)))
+    return document_id
+
+
 RESULT_COLS = ("stage_id", "person_id", "category", "category_full", "club", "official_club",
                "rank", "status", "time_s", "time_behind_s", "out_of_competition",
                "course_length_m", "course_climb_m", "course_controls",
-               "result_kind", "note", "source", "championship")
+               "result_kind", "note", "source", "source_document_id",
+               "observed_name", "observed_club", "observed_user_id",
+               "identity_basis", "identity_confidence", "championship")
 
 
 def insert_result(cur, **kw):
     kw.setdefault("out_of_competition", 0)
     kw.setdefault("result_kind", "individual")
+    kw.setdefault("identity_basis", "unknown")
+    kw.setdefault("identity_confidence", 0.0)
     vals = [kw.get(c) for c in RESULT_COLS]
     cur.execute(f"INSERT INTO result ({','.join(RESULT_COLS)}) "
                 f"VALUES ({','.join('?' * len(RESULT_COLS))})", vals)
@@ -1291,6 +1417,7 @@ def load_anne_results(cur, events, persons, stage_ids):
         event = events.get(eid)
         if not event:
             continue
+        source_document_id = register_anne_document(cur, eid, path)
         stages_path = RAW / "stages" / f"{eid}.json"
         if stages_path.exists():
             for s in json.loads(stages_path.read_text()):
@@ -1315,9 +1442,10 @@ def load_anne_results(cur, events, persons, stage_ids):
             sid = r.get("eventStageId") or default_stage(cur, event, stage_ids)
             cat = r.get("categoryShortTitle") or r.get("categoryTitle")
             if r.get("teamMembers"):
-                n += insert_anne_relay(cur, persons, sid, cat, r)
+                n += insert_anne_relay(cur, persons, sid, cat, r, source_document_id)
                 continue
-            name = clean_name(f"{r.get('firstName') or ''} {r.get('lastName') or ''}".strip())
+            observed_name = f"{r.get('firstName') or ''} {r.get('lastName') or ''}".strip()
+            name = clean_name(observed_name)
             # some old imports carry bib/SI numbers or 'empty' placeholders
             if not is_valid_name(name) or "empty" in name.lower():
                 continue
@@ -1344,12 +1472,20 @@ def load_anne_results(cur, events, persons, stage_ids):
                           course_length_m=course.get("length"),
                           course_climb_m=course.get("climb"),
                           course_controls=course.get("controlCount"),
-                          source="anne-api", championship=anne_championship(r))
+                          source="anne-api", source_document_id=source_document_id,
+                          observed_name=observed_name, observed_club=r.get("clubName"),
+                          observed_user_id=str(uid) if uid is not None else None,
+                          identity_basis="anne-user-id" if uid is not None
+                                         else ("legacy-name-yob" if r.get("yearOfBirth")
+                                               else "legacy-name"),
+                          identity_confidence=1.0 if uid is not None
+                                              else (0.75 if r.get("yearOfBirth") else 0.55),
+                          championship=anne_championship(r))
             n += 1
     return n
 
 
-def insert_anne_relay(cur, persons, sid, cat, team):
+def insert_anne_relay(cur, persons, sid, cat, team, source_document_id=None):
     """Explode a structured relay team into one result per leg runner, sharing
     the team's rank/club, with the runner's own leg time and a note naming the
     team and teammates. Leg time is the cumulative team time at that leg minus
@@ -1389,6 +1525,7 @@ def insert_anne_relay(cur, persons, sid, cat, team):
         if mates:
             note_bits.append("Team: " + ", ".join(mates))
         relay_club = clean_club(team.get("clubName"))
+        observed_name = f"{m.get('firstName') or ''} {m.get('lastName') or ''}".strip()
         insert_result(cur, stage_id=sid, person_id=pid, category=cat,
                       category_full=team.get("categoryTitle"), club=relay_club,
                       official_club=canonicalize_official_club(relay_club, OFFICIAL_CLUBS),
@@ -1397,6 +1534,14 @@ def insert_anne_relay(cur, persons, sid, cat, team):
                                              or team.get("classification"), "unknown"),
                       time_s=leg_time, result_kind="relay",
                       note=" · ".join(note_bits), source="anne-api",
+                      source_document_id=source_document_id,
+                      observed_name=observed_name, observed_club=team.get("clubName"),
+                      observed_user_id=str(uid) if uid is not None else None,
+                      identity_basis="anne-user-id" if uid is not None
+                                     else ("legacy-name-yob" if m.get("yearOfBirth")
+                                           else "legacy-name"),
+                      identity_confidence=1.0 if uid is not None
+                                          else (0.75 if m.get("yearOfBirth") else 0.55),
                       championship=championship)
         n += 1
     return n
@@ -1683,10 +1828,18 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
     # turned into the stage's own title (derive_stage_title), which is then the
     # authoritative per-stage championship signal in
     # apply_title_championship_fallback - see its per_stage_events logic.
-    stage_doc_titles = defaultdict(set)
+    # Preserve the already-established document priority below. A set made the
+    # chosen title process-random whenever several attachments named the same
+    # stage differently, which changed 14 stage titles across identical builds.
+    stage_doc_titles = defaultdict(list)
     canonical = re.compile(r"^\d+-(?:club)?\d+\.json$")
-    docs = [json.loads(p.read_text())
-            for p in sorted(NORM.glob("*.json")) if canonical.match(p.name)]
+    docs = []
+    for path in sorted(NORM.glob("*.json")):
+        if not canonical.match(path.name):
+            continue
+        doc = json.loads(path.read_text())
+        doc["_normalizedPath"] = repo_path(path)
+        docs.append(doc)
     docs = [d for d in docs if not JUNK_DOC_FILENAME_RE.search(d.get("fileName") or "")]
     docs, _n_dropped = drop_cross_event_duplicate_docs(docs)
     correct_legacy_stage_dates(docs, events)
@@ -1741,6 +1894,7 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
             continue  # redundant cumulative standing - see map_docs_to_anne_stages
         if eid in anne_event_ids:
             continue  # structured API data wins over legacy files
+        source_document_id = register_legacy_document(cur, doc)
         # team (Mannschaft) result lists give only member surnames + a club +
         # a single team time — no first names, so members can't be resolved to
         # individual runners (a surname+club match linked only ~17%). Keep them
@@ -1767,8 +1921,8 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                                event_dates.index(doc["docDate"]) + 1)
         else:
             sid = default_stage(cur, event, stage_ids)
-        if doc.get("docTitle"):
-            stage_doc_titles[sid].add(doc["docTitle"])
+        if doc.get("docTitle") and doc["docTitle"] not in stage_doc_titles[sid]:
+            stage_doc_titles[sid].append(doc["docTitle"])
         flip_doc = detect_lastname_firstname_doc(doc["categories"], persons.first_names)
         for cat in doc["categories"]:
             for r in cat["results"]:
@@ -1777,7 +1931,8 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                 # a parsed row may carry several runners (a pair): the parser
                 # emits one entry per runner already, each with its own name
                 # and a note; treat them uniformly here
-                name = clean_name(r["name"])
+                observed_name = r["name"]
+                name = clean_name(observed_name)
                 name = KNOWN_NAME_TYPOS.get((eid, name), name)
                 if not is_valid_name(name):
                     continue
@@ -1812,6 +1967,11 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                               course_climb_m=cat.get("courseClimbM"),
                               course_controls=cat.get("courseControls"),
                               result_kind=kind, note=note, source=doc["source"],
+                              source_document_id=source_document_id,
+                              observed_name=observed_name, observed_club=r.get("club"),
+                              identity_basis="legacy-name-yob" if r.get("yearOfBirth")
+                                             else "legacy-name",
+                              identity_confidence=0.75 if r.get("yearOfBirth") else 0.55,
                               championship=r.get("championship"))
                 n += 1
 
@@ -2073,6 +2233,11 @@ def main():
 
     for old in list(merge_map):
         new = resolve(old)
+        if new in member_canonical:
+            cur.execute(
+                """UPDATE result
+                   SET identity_basis = 'club-book-of-record', identity_confidence = 1.0
+                   WHERE person_id = ?""", (old,))
         cur.execute("UPDATE result SET person_id = ? WHERE person_id = ?", (new, old))
         persons.by_id.pop(old, None)
 
@@ -2108,7 +2273,9 @@ def main():
     # person still owns them), then hand the originals to the first runner.
     _copy_cols = ("stage_id, category, category_full, club, official_club, rank, "
                   "status, time_s, time_behind_s, out_of_competition, course_length_m, "
-                  "course_climb_m, course_controls, result_kind, note, source, championship")
+                  "course_climb_m, course_controls, result_kind, note, source, "
+                  "source_document_id, observed_name, observed_club, observed_user_id, "
+                  "identity_basis, identity_confidence, championship")
     for gnk, targets in split_override.items():
         tids = [t["id"] for t in targets]
         if len(tids) < 2:
@@ -2121,6 +2288,60 @@ def main():
                             f"SELECT ?, {_copy_cols} FROM result WHERE person_id = ?", (tid, gid))
             cur.execute("UPDATE result SET person_id = ? WHERE person_id = ?", (tids[0], gid))
             cur.execute("DELETE FROM person WHERE id = ?", (gid,))
+
+    # Publish identity evidence separately from the canonical person row.  An
+    # ANNE id is a strong source-supplied identifier; only this club's private
+    # book of record marks an ÖFOL id as independently verified membership.
+    surviving_people = {pid for (pid,) in cur.execute("SELECT id FROM person")}
+    for anne_id in sorted(persons.anne_ids):
+        target = resolve(anne_id)
+        if target in surviving_people:
+            cur.execute(
+                "INSERT OR REPLACE INTO person_identifier VALUES (?,?,?,?,?)",
+                ("anne_user_id", str(anne_id), target, 0, "anne-api"))
+    for member in members:
+        target = resolve(member["ofol_id"])
+        if target in surviving_people:
+            cur.execute(
+                "INSERT OR REPLACE INTO person_identifier VALUES (?,?,?,?,?)",
+                ("oefol_id", str(member["ofol_id"]), target, 1,
+                 "naturfreunde-wien-book-of-record"))
+    person_rows = cur.execute(
+        "SELECT id, name, name_key, year_of_birth, nationality, iof_id FROM person").fetchall()
+    for pid, _name, _key, _yob, _nat, iof_id in person_rows:
+        if iof_id:
+            cur.execute(
+                "INSERT OR IGNORE INTO person_identifier VALUES (?,?,?,?,?)",
+                ("iof_id", str(iof_id), pid, 0, "anne-api"))
+        if pid >= INTERNAL_ID_BASE:
+            cur.execute(
+                "INSERT OR IGNORE INTO person_identifier VALUES (?,?,?,?,?)",
+                ("club_internal", str(pid), pid, 1, "naturfreunde-wien-book-of-record"))
+
+    for pid, counts in final_names.items():
+        if pid not in surviving_people:
+            continue
+        auth_names = final_auth.get(pid, {})
+        for alias, occurrences in counts.items():
+            source = "anne-api" if alias in auth_names else "result-observation"
+            cur.execute(
+                "INSERT OR REPLACE INTO person_alias VALUES (?,?,?,?,?,?)",
+                (pid, alias, name_key(alias), source, 0, occurrences))
+    for pid, (canonical_name, _yob) in member_canonical.items():
+        if pid in surviving_people:
+            cur.execute(
+                "INSERT OR REPLACE INTO person_alias VALUES (?,?,?,?,?,?)",
+                (pid, canonical_name, name_key(canonical_name),
+                 "naturfreunde-wien-book-of-record", 1, 1))
+
+    if PERSON_REDIRECT_PATH.exists():
+        redirects = json.loads(PERSON_REDIRECT_PATH.read_text())
+        for old_id, new_id in redirects.items():
+            old_id, new_id = int(old_id), int(new_id)
+            if new_id not in surviving_people:
+                raise RuntimeError(f"person redirect target does not exist: {old_id} -> {new_id}")
+            if old_id != new_id:
+                cur.execute("INSERT INTO person_redirect VALUES (?, ?)", (old_id, new_id))
 
     # SportSoftware prints the national champion's rank ("1") on a separate
     # "… österreichischer Meister" annotation line, so the winning row parses
@@ -2433,8 +2654,10 @@ def main():
         WHERE time_behind_s IS NULL AND time_s IS NOT NULL AND status = 'ok'
     """)
 
+    cur.execute("PRAGMA user_version = 2")
     con.commit()
-    for table in ("event", "stage", "person", "result"):
+    for table in ("event", "stage", "person", "person_identifier", "person_alias",
+                  "person_redirect", "source_document", "result"):
         print(table, cur.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
     print(f"api results: {n_api}, legacy results: {n_legacy}, "
           f"championship rows from title fallback: {n_title_fallback}, "
