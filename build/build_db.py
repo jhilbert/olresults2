@@ -2433,6 +2433,13 @@ def main():
             e["candidates"] = [{"ofol_id": m["ofol_id"], "name": m["name"],
                                 "year_of_birth": m["yob"]} for _, m in scored]
         pending_review.sort(key=lambda e: -e["nfw_results"])
+        # data/private/ is gitignored, so a fresh checkout (CI) never has it -
+        # only local dev, where the private CSV/ledger were placed by hand,
+        # happens to have created it already. Confirmed real: this crashed
+        # every CI build once the committed member index gave it members to
+        # process, since load_member_registry() no longer short-circuits to
+        # [] there.
+        PENDING_REVIEW_PATH.parent.mkdir(parents=True, exist_ok=True)
         PENDING_REVIEW_PATH.write_text(json.dumps(pending_review, ensure_ascii=False, indent=1))
         MEMBER_CONFLICTS_PATH.write_text(json.dumps(conflicts, ensure_ascii=False, indent=1))
         print(f"members: {len(members)} in roster, {len(member_canonical)} matched to results, "
