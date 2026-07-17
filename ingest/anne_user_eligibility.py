@@ -45,16 +45,20 @@ script just locked in.
 import json
 import os
 import sqlite3
-import subprocess
+import ssl
 import sys
 import time
+import urllib.request
 from pathlib import Path
+
+import certifi
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw" / "anne"
 OUT_PATH = RAW / "user_eligibility.json"
 DB_PATH = ROOT / "site" / "data" / "results.db"
-BASE = "https://anne-api.oefol.at/v1"
+BASE = os.environ.get("ANNE_BASE_URL", "https://anne-api.oefol.at/v1").rstrip("/")
+SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
 
 def scan_foreign_candidates():
@@ -81,13 +85,20 @@ def scan_foreign_candidates():
     return {(pid, str(eid)) for pid, eid in rows}
 
 
-def fetch_eligibility(user_id, api_key):
-    result = subprocess.run(
-        ["curl", "-s", "-H", f"X-API-Key: {api_key}", "-H", "Accept: application/json",
-         f"{BASE}/user/{user_id}"],
-        capture_output=True, text=True, timeout=20)
+def fetch_eligibility(user_id, api_key=None, gateway_token=None):
+    if gateway_token:
+        gateway_root = BASE[:-3] if BASE.endswith("/v1") else BASE
+        url = f"{gateway_root}/eligibility/{user_id}"
+        headers = {"Authorization": f"Bearer {gateway_token}", "Accept": "application/json",
+                   "User-Agent": "olresults-sync/1.0 (+https://github.com/jhilbert/olresults2)"}
+    else:
+        url = f"{BASE}/user/{user_id}"
+        headers = {"X-API-Key": api_key, "Accept": "application/json",
+                   "User-Agent": "olresults-sync/1.0 (+https://github.com/jhilbert/olresults2)"}
     try:
-        d = json.loads(result.stdout)
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=20, context=SSL_CONTEXT) as response:
+            d = json.load(response)
     except Exception:
         return "error"
     if "championshipEligibility" not in d:
@@ -98,8 +109,10 @@ def fetch_eligibility(user_id, api_key):
 def main():
     force = "--force" in sys.argv
     api_key = os.environ.get("ANNE_API_KEY")
-    if not api_key:
-        print("ANNE_API_KEY not set - skipping (existing cache, if any, is left as-is)")
+    gateway_token = os.environ.get("ANNE_GATEWAY_TOKEN")
+    if not api_key and not gateway_token:
+        print("ANNE_API_KEY/ANNE_GATEWAY_TOKEN not set - skipping "
+              "(existing cache, if any, is left as-is)")
         return
 
     if not DB_PATH.exists():
@@ -122,7 +135,7 @@ def main():
     fetched = {}
     for uid, eid in todo:
         if uid not in fetched:
-            fetched[uid] = fetch_eligibility(uid, api_key)
+            fetched[uid] = fetch_eligibility(uid, api_key, gateway_token)
             time.sleep(0.1)
         cache.setdefault(str(uid), {})[eid] = fetched[uid]
 

@@ -1,0 +1,61 @@
+name: Build and deploy Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      OLRESULTS_GATEWAY_URL: ${{ vars.ANNE_GATEWAY_URL }}
+      ANNE_GATEWAY_TOKEN: ${{ secrets.ANNE_GATEWAY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install state dependency
+        run: pip install certifi
+
+      - name: Run regression tests
+        run: python3 -m unittest discover -s tests -v
+
+      - name: Restore durable eligibility state
+        run: python3 ingest/eligibility_state.py pull --required
+
+      - name: Build database
+        run: python3 build/build_db.py
+
+      - name: Cache-bust app shell
+        run: |
+          V="${GITHUB_SHA:0:8}-${GITHUB_RUN_NUMBER}"
+          sed -i "s/style.css\"/style.css?v=$V\"/; s/app.js\"/app.js?v=$V\"/" site/index.html
+          sed -i "s#<script src=\"app.js?v=$V\"></script>#<script>window.OLR_BUILD=\"$V\";</script>\n<script src=\"app.js?v=$V\"></script>#" site/index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

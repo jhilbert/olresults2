@@ -1,0 +1,69 @@
+name: Sync source data
+
+on:
+  schedule:
+    - cron: "20 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: data-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      ANNE_BASE_URL: ${{ vars.ANNE_GATEWAY_URL }}/v1
+      OLRESULTS_GATEWAY_URL: ${{ vars.ANNE_GATEWAY_URL }}
+      ANNE_GATEWAY_TOKEN: ${{ secrets.ANNE_GATEWAY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore durable eligibility state
+        run: python3 ingest/eligibility_state.py pull --required
+
+      - name: Sync source data through the ANNE gateway
+        run: |
+          python3 ingest/anne_sync.py
+          python3 ingest/build_club_dict.py
+          python3 ingest/parse_sportsoftware_html.py
+          python3 ingest/parse_sportsoftware_pdf.py
+          python3 ingest/parse_sportsoftware_text.py
+          python3 ingest/parse_club_table.py
+          python3 ingest/parse_liveresultat.py
+
+      - name: Pre-build database for eligibility check
+        run: python3 build/build_db.py
+
+      - name: Check championship eligibility
+        run: python3 ingest/anne_user_eligibility.py
+
+      - name: Save durable eligibility state
+        run: python3 ingest/eligibility_state.py push
+
+      - name: Commit new snapshots
+        run: |
+          git config user.name "olresults-bot"
+          git config user.email "actions@github.com"
+          git add data/
+          git diff --cached --quiet || git commit -m "data: nightly ANNE sync"
+          git push
+
+      # Pushes made with GITHUB_TOKEN intentionally do not trigger ordinary
+      # push workflows. Dispatch the independent Pages workflow explicitly so
+      # it checks out the just-pushed main HEAD and builds from that snapshot.
+      - name: Trigger Pages deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy-pages.yml --ref main

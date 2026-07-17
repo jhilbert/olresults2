@@ -1,0 +1,8 @@
+name = "olresults-anne-gateway"
+main = "src/index.js"
+compatibility_date = "2026-07-17"
+workers_dev = true
+
+[[r2_buckets]]
+binding = "PRIVATE_STATE"
+bucket_name = "olresults-private"

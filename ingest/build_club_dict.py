@@ -15,10 +15,14 @@ the site's "club" shown on an individual result is left exactly as the
 source spelled it (some events genuinely used non-official names), but the
 Vereine section needs one unambiguous name per real club."""
 import json
+import os
 import re
+import ssl
 import time
 import urllib.request
 from pathlib import Path
+
+import certifi
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw" / "anne"
@@ -26,11 +30,15 @@ OUT = ROOT / "data" / "clubs.json"
 OFFICIAL_OUT = ROOT / "data" / "official_clubs.json"
 HEADERS = {"Accept": "application/json",
            "User-Agent": "olresults-sync/0.1 (+https://github.com/josefhilbert/olresults)"}
+BASE = os.environ.get("ANNE_BASE_URL", "https://anne-api.oefol.at/v1").rstrip("/")
+if os.environ.get("ANNE_GATEWAY_TOKEN"):
+    HEADERS["Authorization"] = f"Bearer {os.environ['ANNE_GATEWAY_TOKEN']}"
+SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
 
 def get(url):
     return json.load(urllib.request.urlopen(
-        urllib.request.Request(url, headers=HEADERS), timeout=30))
+        urllib.request.Request(url, headers=HEADERS), timeout=30, context=SSL_CONTEXT))
 
 
 def clean(name):
@@ -47,7 +55,7 @@ def main():
     try:
         page = 1
         while True:
-            d = get(f"https://anne-api.oefol.at/v1/club?perPage=200&page={page}")
+            d = get(f"{BASE}/club?perPage=200&page={page}")
             data = d if isinstance(d, list) else d.get("data", [])
             for c in data:
                 clubs.add(clean(c.get("name")))

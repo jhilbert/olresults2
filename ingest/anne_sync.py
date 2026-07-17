@@ -7,7 +7,9 @@ can still be corrected after publication).
 """
 import argparse
 import json
+import os
 import re
+import ssl
 import sys
 import time
 import urllib.parse
@@ -16,28 +18,33 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, timedelta
 from pathlib import Path
 
+import certifi
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from sportsoftware_common import (  # noqa: E402
     CLUB_LINK_ALLOWLIST, MANUAL_ATTACHMENT_OVERRIDES, MANUAL_HTML_OVERRIDES,
     MANUAL_PDF_OVERRIDES,
 )
 
-BASE = "https://anne-api.oefol.at/v1"
+BASE = os.environ.get("ANNE_BASE_URL", "https://anne-api.oefol.at/v1").rstrip("/")
 HEADERS = {
     "Accept": "application/json",
     "User-Agent": "olresults-sync/0.1 (+https://github.com/josefhilbert/olresults)",
 }
+if os.environ.get("ANNE_GATEWAY_TOKEN"):
+    HEADERS["Authorization"] = f"Bearer {os.environ['ANNE_GATEWAY_TOKEN']}"
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw" / "anne"
 REFRESH_DAYS = 30
 WORKERS = 6
+SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
 
 def get(url, retries=3):
     for attempt in range(retries):
         try:
             req = urllib.request.Request(url, headers=HEADERS)
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=30, context=SSL_CONTEXT) as resp:
                 return json.load(resp)
         except Exception:
             if attempt == retries - 1:
@@ -200,7 +207,7 @@ def main():
 
     att_path = RAW / "attachments.json"
     known = json.loads(att_path.read_text()) if att_path.exists() else {}
-    sync_attachments(events, known, force=False)
+    sync_attachments(events, known, force=args.force)
     print("done")
 
 

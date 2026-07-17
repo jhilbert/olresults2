@@ -122,6 +122,21 @@ def anne_championship(row):
     return None
 
 
+def anne_user_id(value):
+    """Normalize ANNE user IDs to SQLite INTEGERs.
+
+    Individual result rows currently use JSON numbers while teamMembers mostly
+    use numeric strings.  Treating those as different key types fragments the
+    same authoritative identity inside PersonRegistry.
+    """
+    if value is None or value == "":
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 # Fallback for legacy events where no result row anywhere carries a champion
 # annotation to detect at all (confirmed by hand: several real ÖM/ÖSTM-titled
 # exports simply never print one) - the event's own title is the only signal
@@ -1306,7 +1321,7 @@ def load_anne_results(cur, events, persons, stage_ids):
             # some old imports carry bib/SI numbers or 'empty' placeholders
             if not is_valid_name(name) or "empty" in name.lower():
                 continue
-            uid = r.get("userId")
+            uid = anne_user_id(r.get("userId"))
             if uid:
                 pid = persons.from_anne(uid, name, r.get("yearOfBirth"),
                                         r.get("nationality"), r.get("iofId"))
@@ -1357,7 +1372,12 @@ def insert_anne_relay(cur, persons, sid, cat, team):
             prev_cum = cum
         if not nm:
             continue
-        pid = persons.from_legacy(nm, None)
+        uid = anne_user_id(m.get("userId"))
+        if uid is not None:
+            pid = persons.from_anne(uid, nm, m.get("yearOfBirth"),
+                                    m.get("nationality"), m.get("iofId"))
+        else:
+            pid = persons.from_legacy(nm, m.get("yearOfBirth"))
         if m.get("firstName"):
             persons.add_first_name(m["firstName"])
         if m.get("lastName"):
