@@ -2696,6 +2696,42 @@ def add_audit_issue(cur, list_id, code, severity, message, result_id=None,
          code, severity, message, int(auto_resolvable)))
 
 
+def normalize_tied_individual_ranks(cur):
+    """Fill the rank suppressed on subsequent rows of an exact-time tie.
+
+    Several source families (SportSoftware, liveresultat and hand-made PDFs)
+    print the shared placement only on the first tied row. The blank value is
+    not missing source data. Keep ``observed_rank`` untouched for provenance,
+    but expose the derived shared rank to ranking and quality consumers.
+    """
+    rows = cur.execute(
+        """SELECT id, result_list_id, rank, status, time_s,
+                  out_of_competition, result_kind
+             FROM result ORDER BY result_list_id, id"""
+    ).fetchall()
+    updates = []
+    active_list = None
+    previous_time = previous_rank = None
+    for rid, list_id, rank, status, time_s, ooc, kind in rows:
+        if list_id != active_list:
+            active_list = list_id
+            previous_time = previous_rank = None
+        classified = (kind == "individual" and status == "ok"
+                      and time_s is not None and not ooc)
+        if not classified:
+            previous_time = previous_rank = None
+            continue
+        if rank is not None:
+            previous_time, previous_rank = time_s, rank
+        elif previous_rank is not None and time_s == previous_time:
+            updates.append((previous_rank, rid))
+            # Keep the same active tie for a third or later blank-rank row.
+        else:
+            previous_time, previous_rank = time_s, None
+    cur.executemany("UPDATE result SET rank = ? WHERE id = ?", updates)
+    return len(updates)
+
+
 def normalize_team_results(cur):
     """Backfill explicit team/leg fields and enforce one status per team.
 
@@ -2864,7 +2900,9 @@ def populate_quality_model(cur):
                WHERE result_list_id = ? AND out_of_competition = 0
                  AND result_kind = 'individual'""", (list_id,)).fetchone()
         ranked_count, timed_count = ranked_count or 0, timed_count or 0
-        if timed_count >= 3 and ranked_count > 0 and ranked_count < timed_count:
+        course_only_list = bool(re.match(r"(?i)^(?:bahn|course)\s+\d+\b", category.strip()))
+        if (timed_count >= 3 and ranked_count > 0 and ranked_count < timed_count
+                and not course_only_list):
             add_audit_issue(
                 cur, list_id, "partial_ranking_coverage", "warning",
                 f"Nur {ranked_count} von {timed_count} klassifizierten Einträgen haben einen Rang; Ranking in der Quelle prüfen.")
@@ -3052,6 +3090,7 @@ def main():
     persons.finalize_first_names()
     n_legacy = load_legacy_results(cur, events, persons, stage_ids, anne_event_ids)
     normalize_team_results(cur)
+    normalize_tied_individual_ranks(cur)
 
     # Load verified club identities before the general duplicate-account pass.
     # This ordering is a correctness boundary: a bad source row must not get

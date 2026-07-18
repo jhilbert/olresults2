@@ -33,8 +33,8 @@ import urllib.request
 from pathlib import Path
 
 from sportsoftware_common import (
-    CAT_LINE_RE, CLUB_LINK_ALLOWLIST, COLUMN_ALIASES, detect_list_type,
-    expand_pair_result, is_expected_source_failure, is_junk_name,
+    CAT_LINE_RE, CLUB_LINK_ALLOWLIST, COLUMN_ALIASES, classify_championship_text, detect_list_type,
+    expand_pair_result, is_expected_source_failure, is_junk_name, is_ooc_status,
     parse_champion_annotation, parse_course_info,
     parse_status, parse_time, parse_time_loose, number_team_results,
     team_results_from_pairs,
@@ -50,6 +50,9 @@ LINK_DOMAIN_ALLOWLIST = CLUB_LINK_ALLOWLIST
 
 HEADER_RE = re.compile(r"^\s*Pl\b")
 TIME_COL_PAD = 6  # chars to widen the trailing time column leftward
+CHAMPION_MARKER_RE = re.compile(r"(?i)\b(?:staats?)?meister(?:in(?:nen)?)?\b")
+CHAMPION_TRAILING_RANK_RE = re.compile(
+    r"(?i)\b(?:staats?)?meister(?:in(?:nen)?)?\s+(\d+)\s*$")
 
 
 def extract_pre_blocks(text):
@@ -133,15 +136,56 @@ def parse_text(text):
         if current is None or labels is None:
             continue
 
-        annot_rank, annot_championship = parse_champion_annotation(line.strip())
+        stripped = line.strip()
+        annot_rank, annot_championship = parse_champion_annotation(stripped)
         if annot_rank is not None:
             pending_rank, pending_championship = annot_rank, annot_championship
             continue
 
+        # Some fixed-width exports separate the Austrian-champion marker
+        # from the actual result row even more aggressively than the common
+        # annotation forms: either only ``und österreichischer Meister`` is
+        # printed (the numeric rank remains on the following row), or the
+        # rank is appended to the marker (``... Meisterin 2``) while the
+        # following row starts with the bib number. Keep both pieces as
+        # pending state and repair that following row below.
+        if (CHAMPION_MARKER_RE.search(stripped)
+                and not re.search(r"\d{1,3}:\d{2}", stripped)):
+            championship = classify_championship_text(stripped)
+            if championship:
+                trailing = CHAMPION_TRAILING_RANK_RE.search(stripped)
+                pending_rank = int(trailing.group(1)) if trailing else None
+                pending_championship = championship
+                continue
+
+        parse_line = line
+        repaired_rank = repaired_bib = None
+        if pending_championship and "Name" in labels:
+            # OE2010 occasionally tab-indents the row following a champion
+            # marker, shifting every fixed-width column. Recover its leading
+            # rank/bib tokens and anchor the actual name at the Name column.
+            # Two numbers mean rank+bib; one number with a pending rank means
+            # bib only. This is deliberately limited to the immediately
+            # following champion row, so ordinary unranked/status rows retain
+            # their original fixed-column interpretation.
+            two = re.match(r"^\s*(\d+)\s+(\d+)\s+(.+)$", line)
+            one = re.match(r"^\s*(\d+)\s+(.+)$", line)
+            name_start = starts[labels.index("Name")]
+            if two:
+                repaired_rank, repaired_bib, remainder = two.groups()
+                parse_line = " " * name_start + remainder
+            elif pending_rank is not None and one:
+                repaired_bib, remainder = one.groups()
+                parse_line = " " * name_start + remainder
+
         pairs = [(labels[i],
-                  line[starts[i]:(starts[i + 1] if i + 1 < len(starts) else len(line))].strip())
+                  parse_line[starts[i]:(starts[i + 1] if i + 1 < len(starts) else len(parse_line))].strip())
                  for i in range(len(labels))]
-        rec = slice_row(line, labels, starts)
+        rec = slice_row(parse_line, labels, starts)
+        if repaired_rank is not None:
+            rec["Pl"] = repaired_rank
+        if repaired_bib is not None:
+            rec["Stnr"] = repaired_bib
         time_text = (rec.get("Zeit") or rec.get("Gesamt") or "").strip()
         rank_text = (rec.get("Pl") or "").strip().rstrip(".")
 
@@ -166,22 +210,32 @@ def parse_text(text):
             "club": (rec.get("Verein") or rec.get("Verein/Schule") or "").strip(),
             "timeText": time_text,
         }
+        # AK replaces the numeric placement in old fixed-width exports.  It
+        # is orthogonal to the finish classification: both ``AK 48:12`` and
+        # ``AK Fehlst`` are valid source combinations.
+        if is_ooc_status(rank_text):
+            result["outOfCompetition"] = True
         if rank_text.isdigit():
             # this row has its own rank after all - it wasn't the one the
             # pending announcement belonged to, so drop the pending state
             # rather than misattaching the title to an unrelated rank
             result["rank"] = int(rank_text)
+            if pending_championship:
+                result["championship"] = pending_championship
         elif pending_rank is not None:
             result["rank"] = pending_rank
             if pending_championship:
                 result["championship"] = pending_championship
         pending_rank = pending_championship = None
         seconds = parse_time_loose(time_text)
+        explicit_status = parse_status(line)
+        if explicit_status == "ok":
+            explicit_status = None
         if seconds is not None:
             result["timeS"] = seconds
-            result["status"] = "ok"
+            result["status"] = explicit_status or "ok"
         else:
-            status = parse_status(time_text)
+            status = explicit_status or parse_status(time_text)
             if status is None:
                 # no valid time and no recognized status keyword: not a
                 # genuine result row

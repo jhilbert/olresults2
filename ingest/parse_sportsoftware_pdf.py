@@ -478,6 +478,8 @@ def parse_pdf(path, allow_inline_splits=False):
                         "club": (rec.get("Verein") or rec.get("Verein/Schule") or "").strip(),
                         "timeText": time_text,
                     }
+                    if is_ooc_status(rank_text):
+                        result["outOfCompetition"] = True
                     # a "Kat" column means this table holds every age bracket
                     # for one gender at once (one row per bracket-member)
                     # rather than the usual one-section-per-bracket layout -
@@ -536,9 +538,44 @@ def parse_pdf(path, allow_inline_splits=False):
                         result["yearOfBirth"] = y + (2000 if y <= 26 else 1900) if y < 100 else y
                     if rec.get("Pkt"):
                         result["scoreText"] = rec["Pkt"].strip()
+                    if not result.get("scoreText"):
+                        score_text = (rec.get("Punkte") or rec.get("Posten") or "").strip()
+                        if score_text:
+                            score_match = re.search(r"\b(\d+(?:[.,]\d+)?\s*(?:Posten|Punkte?))\b",
+                                                    score_text, re.I)
+                            if score_match:
+                                overflow = score_text[:score_match.start()].strip()
+                                if overflow:
+                                    result["club"] = f"{result['club']} {overflow}".strip()
+                                score_text = score_match.group(1)
+                            result["scoreText"] = score_text
+                    # Score events print the shared rank only on the first
+                    # row of an equal-score group. The following blank-rank
+                    # rows keep that rank even when their elapsed times differ.
+                    if (result.get("rank") is None and result.get("scoreText")
+                            and current["results"]):
+                        previous = current["results"][-1]
+                        if (previous.get("rank") is not None
+                                and previous.get("scoreText") == result["scoreText"]
+                                and previous.get("status") == "ok"
+                                and result.get("status") == "ok"):
+                            result["rank"] = previous["rank"]
                     current["results"].append(result)
 
     categories = [c for c in categories if c["results"]]
+    for category in categories:
+        prior_scores = []
+        for result in category["results"]:
+            score_match = re.search(r"\d+(?:[.,]\d+)?", result.get("scoreText") or "")
+            if not score_match:
+                continue
+            score = float(score_match.group().replace(",", "."))
+            if result.get("rank") is None and prior_scores:
+                # Competition ranking by score: 1 + number of preceding
+                # strictly better scores. This also recovers a whole tied
+                # group whose first rank cell was blank in the source PDF.
+                result["rank"] = 1 + sum(previous > score for previous in prior_scores)
+            prior_scores.append(score)
     categories = split_by_kat(categories)
     for c in categories:
         if c["declaredStarters"] is None:
@@ -573,10 +610,8 @@ def parse_flow_result_row(text, clubs):
     toks = text.split()
     if not toks:
         return None
-    forced_status = None
     forced_ooc = False
     if toks[0] == "AK":  # "außer Konkurrenz" - non-competitive entry
-        forced_status = "ok"
         forced_ooc = True
         toks = toks[1:]
     if not toks:
@@ -603,7 +638,11 @@ def parse_flow_result_row(text, clubs):
         return None
     club, name_toks = find_trailing_club(body, clubs)
     if club is None:
-        club, name_toks = (body[-1], body[:-1]) if len(body) > 1 else ("", body)
+        # Compact hand-made lists can omit the club column altogether
+        # (``2. Martina Zeiner 1:48:23``). With exactly two person-like
+        # tokens, treating the surname as a club corrupts both fields.
+        club, name_toks = (("", body) if len(body) == 2 else
+                           ((body[-1], body[:-1]) if len(body) > 1 else ("", body)))
     name = " ".join(name_toks).strip()
     if is_junk_name(name) or not looks_like_person(name):
         return None
@@ -614,7 +653,7 @@ def parse_flow_result_row(text, clubs):
     seconds = parse_time(time_text) if time_text else None
     if seconds is not None:
         result["timeS"] = seconds
-    result["status"] = forced_status or ("ok" if seconds is not None else (parse_status(status_text or "") or "unknown"))
+    result["status"] = "ok" if seconds is not None else (parse_status(status_text or "") or "unknown")
     if forced_ooc or is_ooc_status(status_text):
         result["outOfCompetition"] = True
     return result
@@ -628,6 +667,7 @@ def parse_flowing_pdf(path):
     import pdfplumber
 
     categories, current = [], None
+    pending_rank = pending_championship = None
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         with pdfplumber.open(path) as pdf:
@@ -636,6 +676,10 @@ def parse_flowing_pdf(path):
                     line = line.strip()
                     if not line or DATE_HEADER_RE.search(line):
                         continue
+                    annot_rank, annot_championship = parse_champion_annotation(line)
+                    if annot_rank is not None:
+                        pending_rank, pending_championship = annot_rank, annot_championship
+                        continue
                     cat = parse_flow_category_line(line)
                     if cat:
                         name, starters = cat
@@ -643,11 +687,17 @@ def parse_flowing_pdf(path):
                             continue  # repeated header across pages
                         current = {"name": name, "declaredStarters": starters, "results": []}
                         categories.append(current)
+                        pending_rank = pending_championship = None
                         continue
                     if current is None:
                         continue
                     row = parse_flow_result_row(line, CLUBS)
                     if row:
+                        if pending_rank is not None and row.get("rank") is None:
+                            row["rank"] = pending_rank
+                            if pending_championship:
+                                row["championship"] = pending_championship
+                        pending_rank = pending_championship = None
                         current["results"].append(row)
 
     categories = [c for c in categories if c["results"]]

@@ -238,13 +238,16 @@ JUNK_NAME_RE = re.compile(r"^[\d\s:.,()/-]*$")
 JUNK_NAMES = {
     "empty", "vacant", "leer", "frei",
     "orientierungslauf-club", "orientierungslauf club", "austria cup",
+    # Repeated PDF page headers that happened to align with Name/Club/Time
+    # columns and therefore looked superficially like timed competitors.
+    "mittel ms", "nolv schulcup ternitz wed",
 }
 
 # German status strings SportSoftware prints in the time column
 STATUS_MAP = {
     "aufg": "dnf", "aufgegeben": "dnf",
     "fehlst": "mp", "fehlstempel": "mp",
-    "disq": "dsq", "disqualifiziert": "dsq",
+    "disq": "dsq", "disqu": "dsq", "disqualifiziert": "dsq",
     "n. angetr.": "dns", "n.angetr.": "dns", "nicht angetreten": "dns",
     "n ang": "dns", "nicht ang": "dns",
     # OE2010's old HTML export uses OMT ("omitted") for a listed runner
@@ -330,7 +333,7 @@ def aggregate_team_status(declared_status, member_statuses):
 
 def is_ooc_status(text):
     return bool(re.search(
-        r"(?:^|\b)(?:AK|au(?:ß|ss)er konkurrenz|ohne wertung|wertungsfrei)(?:\b|$)",
+        r"(?:^|\b)(?:A\s*K|NC|au(?:ß|ss)er konkurrenz|ohne wertung|wertungsfrei)(?:\b|$)",
         text or "", re.I))
 
 
@@ -352,7 +355,7 @@ def is_ooc_status(text):
 # but not the national one) doesn't false-positive just because it contains
 # "österreich" as a substring: there is no word boundary between "Nieder"
 # and "österreichischer" since they're fused into one word.
-CHAMPION_ANNOT_LEAD_RE = re.compile(r"(?i)^(\d+)\.?\s*und\s+(.+)$")
+CHAMPION_ANNOT_LEAD_RE = re.compile(r"(?i)^(\d+)\.?\s*(?:und|&)\s+(.+)$")
 # A layout where the announcement occupies its own table row entirely -
 # real name/club/time sit on the FOLLOWING row instead, which has no rank
 # of its own - so there's no "und" connecting the rank to anything, just
@@ -464,7 +467,7 @@ def detect_list_type(file_name, doc_text, is_sole_attachment=False):
     # check below, since a split-times file can ALSO have "staffel" in its
     # name (event 3824's "...-relind-result-splits.pdf") and must still be
     # recognized as redundant, not misrouted to the relay parser instead.
-    if re.search(r"zwischenzeit|split", file_name, re.I) or re.match(r"\s*\S*\s*Zwischenzeiten", head):
+    if re.search(r"(?:zwischen|zw)zeit|split", file_name, re.I) or re.match(r"\s*\S*\s*Zwischenzeiten", head):
         return "overall"                       # split-times report, redundant
     if re.search(r"einzel", file_name, re.I):
         return "race"                          # individual results within a Staffel event
@@ -732,6 +735,12 @@ def parse_flow_row(text, clubs):
     lead = []
     while toks and toks[0].isdigit() and len(lead) < 2:
         lead.append(toks.pop(0))
+    # Some international/WRE exports put an alphanumeric database/start ID
+    # (``AUT59``, ``SUI427``) between the numeric placement and the person.
+    # It is neither part of the name nor a second placement value.
+    if (toks and re.fullmatch(r"(?=[A-Za-z0-9-]*[A-Za-z])(?=[A-Za-z0-9-]*\d)[A-Za-z0-9-]+",
+                              toks[0])):
+        toks.pop(0)
     body = toks
     if not body:
         return None

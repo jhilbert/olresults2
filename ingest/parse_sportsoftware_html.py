@@ -215,11 +215,16 @@ def parse_document(html_text):
                         result["championship"] = pending_championship
                 pending_rank = pending_championship = None
             seconds = parse_time_loose(time_text)
+            explicit_status = next(
+                (parse_status(cell) for cell in reversed(row)
+                 if parse_status(cell) in {"dnf", "dns", "dsq", "mp"}),
+                None,
+            )
             if seconds is not None:
                 result["timeS"] = seconds
-                result["status"] = "ok"
+                result["status"] = explicit_status or "ok"
             else:
-                result["status"] = parse_status(time_text) or "unknown"
+                result["status"] = explicit_status or parse_status(time_text) or "unknown"
             yob = (rec.get("Jg") or "").strip()
             if yob.isdigit():
                 y = int(yob)
@@ -268,8 +273,16 @@ def parse_bracket_html(html_text):
             if current is None or len(cells) < 2:
                 continue
             rank = championship = None
+            out_of_competition = False
             if cells[0].rstrip(".").isdigit():
                 rank = int(cells[0].rstrip("."))
+                cells = cells[1:]
+            elif is_ooc_status(cells[0]):
+                # Saved liveresultat/SportSoftware snapshots also use AK in
+                # the placement cell. It is a placement classification, not
+                # the runner's name, so consume the cell and retain OOC as an
+                # independent flag alongside the actual time/status.
+                out_of_competition = True
                 cells = cells[1:]
             else:
                 # the winner's rank cell sometimes carries the champion
@@ -311,7 +324,7 @@ def parse_bracket_html(html_text):
                 result["status"] = "ok"
             else:
                 result["status"] = parse_status(status_text or "") or "unknown"
-            if is_ooc_status(status_text) or is_ooc_time(time_text):
+            if out_of_competition or is_ooc_status(status_text) or is_ooc_time(time_text):
                 result["outOfCompetition"] = True
             current["results"].append(result)
     return [c for c in categories if c["results"]]
