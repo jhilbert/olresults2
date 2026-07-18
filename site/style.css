@@ -323,6 +323,11 @@ footer a { color: var(--accent-dark); text-decoration: none; }
 .review-parsed table { border: 0; border-radius: 0; font-size: 12px; }
 .review-parsed td, .review-parsed th { padding: 6px 8px; }
 .review-parsed td small { display: block; color: var(--ink-faint); }
+.review-parsed td .review-mapping { font-size: 10px; line-height: 1.35; }
+.review-parsed td .review-mapping.verified,
+.review-parsed td .review-mapping.club { color: #15753a; }
+.review-parsed td .review-mapping.id { color: #37646f; }
+.review-parsed td .review-mapping.unmapped { color: #805300; }
 .review-row-issue { background: #fff5f2; }
 .review-team-row { background: #eef8f8; font-weight: 600; }
 .review-team-member td:nth-child(2) { padding-left: 18px; }
