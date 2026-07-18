@@ -1478,9 +1478,9 @@ class AnneProfileIndex:
     """Private, complete ANNE /user snapshot used only while building.
 
     The index is intentionally not copied into the public SQLite database.
-    It can resolve a result's direct ÖFOL-ID and safely promote an exact
-    name+birth-year legacy match; a current club match is merely a candidate
-    signal because memberships can have changed since an old result.
+    It can resolve a result's direct ÖFOL-ID and safely promote a unique exact
+    name+birth-year or name+club legacy match. Club matching is deliberately
+    limited to one unambiguous ANNE profile; duplicate matches remain open.
     """
 
     def __init__(self, profiles=(), fetched_at=None):
@@ -1659,7 +1659,7 @@ class PersonRegistry:
             self._link(pid, name, yob)
             if profile_basis == "name-yob":
                 return pid, "anne-registry-name-yob", 0.99, "resolved"
-            return pid, "anne-registry-name-club", 0.85, "candidate"
+            return pid, "anne-registry-name-club", 0.95, "resolved"
         if (nk, yob) in self.by_key:
             return self.by_key[(nk, yob)], ("legacy-name-yob" if yob else "legacy-name"), \
                 (0.75 if yob else 0.55), "candidate"

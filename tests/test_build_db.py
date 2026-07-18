@@ -80,6 +80,36 @@ class AnneIdentityTests(unittest.TestCase):
         self.assertIsNone(build_db.anne_user_id(None))
         self.assertIsNone(build_db.anne_user_id("not-an-id"))
 
+    def test_unique_anne_name_and_club_match_is_automatically_resolved(self):
+        profiles = build_db.AnneProfileIndex([{
+            "oefol_id": 9589,
+            "first_name": "Mariana",
+            "last_name": "König-Brasil",
+            "year_of_birth": 2015,
+            "active_memberships": [{"club": {"name": "OLC Graz"}}],
+        }])
+        persons = build_db.PersonRegistry(profiles)
+        pid, basis, confidence, state = persons.from_legacy(
+            "Mariana König-Brasil", None, "OLC Graz")
+        self.assertEqual(pid, 9589)
+        self.assertEqual(basis, "anne-registry-name-club")
+        self.assertEqual(confidence, 0.95)
+        self.assertEqual(state, "resolved")
+
+    def test_ambiguous_anne_name_and_club_match_stays_candidate(self):
+        profiles = build_db.AnneProfileIndex([
+            {"oefol_id": 1001, "first_name": "Max", "last_name": "Muster",
+             "active_memberships": [{"club": {"name": "Testverein"}}]},
+            {"oefol_id": 1002, "first_name": "Max", "last_name": "Muster",
+             "active_memberships": [{"club": {"name": "Testverein"}}]},
+        ])
+        persons = build_db.PersonRegistry(profiles)
+        pid, basis, _confidence, state = persons.from_legacy(
+            "Max Muster", None, "Testverein")
+        self.assertLess(pid, 0)
+        self.assertEqual(basis, "legacy-name")
+        self.assertEqual(state, "candidate")
+
     def test_relay_members_keep_authoritative_anne_ids(self):
         con = sqlite3.connect(":memory:")
         con.executescript(build_db.SCHEMA)
