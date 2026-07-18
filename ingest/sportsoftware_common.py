@@ -215,7 +215,11 @@ CAT_RE = re.compile(r"^(?P<name>.+?)\s+\((?P<starters>\d+)\)\s*$")
 # category on the same line: "H21-Wien (21) 7.8 km 280 Hm 27 P". Also tolerates
 # a "(finished/entered" count and a missing close paren, as in "Ultimate (35/
 # Preliminary results 21:45".
-CAT_LINE_RE = re.compile(r"^(?P<name>.+?)\s+\((?P<starters>\d+)(?:/\d*)?\)?\s*(?P<rest>.*)$")
+# The starter count is the *last* parenthesised number in a category header.
+# Masters relays can carry a birth-year qualifier before it, e.g.
+# ``H 150- (1974 u. aelt (17)``.  A lazy name capture mistakes 1974 for the
+# count; the greedy capture deliberately backtracks to the final ``(17)``.
+CAT_LINE_RE = re.compile(r"^(?!\d+\.\s+\d)(?P<name>.+)\s+\((?P<starters>\d+)(?:/\d*)?\)?\s*(?P<rest>.*)$")
 
 # English-locale SportSoftware exports use different column headers
 COLUMN_ALIASES = {"Time": "Zeit", "Club": "Verein", "YB": "Jg",
@@ -445,6 +449,15 @@ def detect_list_type(file_name, doc_text, is_sole_attachment=False):
     if re.search(r"einzel", file_name, re.I):
         return "race"                          # individual results within a Staffel event
     if re.search(r"staffel|relay", file_name, re.I):
+        return "relay"
+    # A number of historic SportSoftware exports use anonymous filenames
+    # such as ``erg020619.html`` even though their actual table is plainly a
+    # relay: the outer header is ``Pl | Stnr | Staffel | Zeit`` and each team
+    # is followed by its member rows.  The structural header is more reliable
+    # than the filename and must win here; otherwise the generic individual
+    # parser creates one pseudo-result per leg, loses team ranks, and compares
+    # 18 teams with 54 people in the quality check.
+    if re.search(r"<th\b[^>]*>\s*Staffel\s*</th>", doc_text, re.I):
         return "relay"
     if (re.search(r"gesamt", file_name, re.I) or "Gesamtwertung" in head) and not is_sole_attachment:
         return "overall"

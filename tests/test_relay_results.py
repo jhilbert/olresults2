@@ -53,6 +53,16 @@ class RelayStructureTests(unittest.TestCase):
         self.assertEqual(len(self.category["results"]), 42)
         self.assertEqual(len({r["teamNumber"] for r in self.category["results"]}), 14)
 
+    def test_structural_staffel_header_overrides_anonymous_filename(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "2713-1.html"
+        self.require_source_fixture(source)
+        text = html_parser.decode(source.read_bytes())
+        self.assertEqual(html_parser.detect_list_type("erg020619.html", text), "relay")
+        categories = html_parser.parse_relay_document(text)
+        masters = next(c for c in categories if c["name"].startswith("H 150-"))
+        self.assertEqual(masters["declaredStarters"], 17)
+        self.assertEqual(len({r["teamNumber"] for r in masters["results"]}), 17)
+
     def test_team_status_propagates_and_individual_cause_is_preserved(self):
         self.require_source_fixture(self.relay_source)
         by_number = {}

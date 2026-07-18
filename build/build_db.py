@@ -2770,9 +2770,11 @@ OBSERVED_TIME_RE = re.compile(r"^\d{1,3}:\d{2}(?::\d{2})?$")
 def populate_quality_model(cur):
     """Compute review units, deterministic findings and current assertions."""
     lists = cur.execute(
-        "SELECT id, category, declared_starters, input_fingerprint FROM result_list"
+        """SELECT rl.id, rl.category, rl.declared_starters, rl.input_fingerprint,
+                  sd.source_type
+             FROM result_list rl JOIN source_document sd ON sd.id = rl.source_document_id"""
     ).fetchall()
-    for list_id, category, declared, fingerprint in lists:
+    for list_id, category, declared, fingerprint, source_type in lists:
         rows = cur.execute(
             """SELECT id, result_kind, rank, status, time_s, club, note,
                       team_number, team_name
@@ -2790,6 +2792,20 @@ def populate_quality_model(cur):
             add_audit_issue(
                 cur, list_id, "entry_count_mismatch", "blocker",
                 f"Quelle nennt {declared} Starts, geparst wurden {entries} Einträge.")
+
+        timed_rows, ranked_rows = cur.execute(
+            """SELECT SUM(time_s IS NOT NULL), SUM(rank IS NOT NULL)
+               FROM result WHERE result_list_id = ?""", (list_id,)).fetchone()
+        # A full timed result list with no placement at all is a parser/data
+        # quality problem, not a reviewer decision.  It used to be invisible
+        # because the ranking audit only looked for a *partial* rank set.
+        # Keep family/team semantics out of this signal: their ranking is
+        # represented by their competitor unit and is handled elsewhere.
+        if (source_type != "anne-api" and (timed_rows or 0) >= 3
+                and (ranked_rows or 0) == 0 and family_state == "ordinary"):
+            add_audit_issue(
+                cur, list_id, "missing_ranking", "blocker",
+                "Quelle enthält Zeiten, aber keine einzige Platzierung wurde gelesen.")
 
         unknown = cur.execute(
             """SELECT id, observed_status, observed_time FROM result
@@ -2860,7 +2876,10 @@ def populate_quality_model(cur):
         return
     payload = json.loads(REVIEW_DECISIONS_PATH.read_text())
     assertions = payload.get("assertions", []) if isinstance(payload, dict) else payload
-    fingerprints = {list_id: fingerprint for list_id, _cat, _declared, fingerprint in lists}
+    fingerprints = {
+        list_id: fingerprint
+        for list_id, _cat, _declared, fingerprint, _source_type in lists
+    }
     for assertion in assertions:
         if not isinstance(assertion, dict):
             continue

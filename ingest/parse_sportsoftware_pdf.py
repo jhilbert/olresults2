@@ -98,7 +98,11 @@ OUT = ROOT / "data" / "normalized"
 HEADERS = {"User-Agent": "olresults-sync/0.1 (+https://github.com/josefhilbert/olresults)"}
 
 CONTINUATION_RE = re.compile(r"^\(Forts\.?\)$", re.I)
-RANK_LEAK_RE = re.compile(r"^(\d{1,3})\s+(\S.*)$")
+# Historic fixed-column exports use all of ``1``, ``1.`` and, when the first
+# column is exceptionally narrow, ``1Holper Leo``.  Keep the rank separate
+# before the name validator sees the glued form.
+RANK_LEAK_RE = re.compile(r"^(\d{1,3})\.?\s*(\S.*)$")
+RANK_TEXT_RE = re.compile(r"^(\d{1,3})\.?$")
 # split-times ("Zwischenzeiten") reports: a different, per-control layout that
 # puts the club on its own line and interleaves dozens of split times into each
 # row. They duplicate the plain results list, so we skip them rather than
@@ -440,7 +444,10 @@ def parse_pdf(path, allow_inline_splits=False):
                             leaked_title = classify_championship_text(f"{text1} {lm.group(0)}")
                             name = name[lm.end():].strip()
                     rank_text = (rec.get("Pl") or rec.get("Platz") or "").strip()
-                    if not rank_text.isdigit():
+                    rank_match = RANK_TEXT_RE.fullmatch(rank_text)
+                    if rank_match:
+                        rank_text = rank_match.group(1)
+                    else:
                         # a narrow, right-aligned rank column can sit closer
                         # to the next header's x0 than its own, leaking the
                         # digit into the name field instead
