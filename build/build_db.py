@@ -1216,6 +1216,7 @@ def apply_title_championship_fallback(cur):
 
 
 OFFICIAL_CLUBS_PATH = ROOT / "data" / "official_clubs.json"
+HISTORICAL_OFFICIAL_CLUBS_PATH = ROOT / "data" / "historical_official_clubs.json"
 CLUB_SUFFIX_NUM_RE = re.compile(r"^(.+)\s(\d+)$")
 CLUB_PREFIX_CODE_RE = re.compile(r"^([A-Za-zÄÖÜäöüß]{2,6})\s+(.+)$")
 # "NF" is a widespread abbreviation for "Naturfreunde" across many of that
@@ -1245,14 +1246,19 @@ CLUB_SOURCE_ALIASES = {
 
 
 def load_official_clubs():
-    """ANNE's own /v1/club registry (type=='club' only - regional sub-
-    federations excluded), fetched by build_club_dict.py. Used only to give
-    the Vereine section one unambiguous name per real club - the `club`
-    column shown on an individual result stays exactly as the source wrote
-    it, since some events genuinely used a non-official name."""
-    if not OFFICIAL_CLUBS_PATH.exists():
-        return set()
-    return {c["name"] for c in json.loads(OFFICIAL_CLUBS_PATH.read_text())}
+    """Current ANNE clubs plus deliberately curated historical ÖFOL clubs.
+
+    A retired club remains a real, separate club in historical result lists:
+    it must not be silently remapped to a successor or a club that received
+    some of its former members. The source spelling on an individual result
+    remains untouched; this set only powers the canonical club index.
+    """
+    clubs = set()
+    if OFFICIAL_CLUBS_PATH.exists():
+        clubs.update(c["name"] for c in json.loads(OFFICIAL_CLUBS_PATH.read_text()))
+    if HISTORICAL_OFFICIAL_CLUBS_PATH.exists():
+        clubs.update(c["name"] for c in json.loads(HISTORICAL_OFFICIAL_CLUBS_PATH.read_text()))
+    return clubs
 
 
 def canonicalize_official_club(name, official):

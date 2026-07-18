@@ -7,13 +7,13 @@ Sources: the canonical ANNE club list (/v1/club) plus every distinct clubName
 seen in structured API results (broad coverage of legacy spellings and foreign
 clubs). Names are lightly cleaned; very short or punctuation-only ones dropped.
 
-Also writes data/official_clubs.json - just the /v1/club registry itself
+Also writes data/official_clubs.json - just the current /v1/club registry
 (type == "club" only, not the regional sub-federations also on that
-endpoint), with no legacy-spelling noise mixed in. build_db.py uses this
-one, not clubs.json, to canonicalize the Vereine feature's club identity -
-the site's "club" shown on an individual result is left exactly as the
-source spelled it (some events genuinely used non-official names), but the
-Vereine section needs one unambiguous name per real club."""
+endpoint), with no legacy-spelling noise mixed in. A separate curated file
+holds former official clubs that must remain distinct in historical results.
+build_db.py uses those registries, not clubs.json, to canonicalize the
+Vereine feature's club identity - the site's "club" shown on an individual
+result is left exactly as the source spelled it."""
 import json
 import os
 import re
@@ -28,6 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw" / "anne"
 OUT = ROOT / "data" / "clubs.json"
 OFFICIAL_OUT = ROOT / "data" / "official_clubs.json"
+HISTORICAL_OFFICIAL = ROOT / "data" / "historical_official_clubs.json"
 HEADERS = {"Accept": "application/json",
            "User-Agent": "olresults-sync/0.1 (+https://github.com/josefhilbert/olresults)"}
 BASE = os.environ.get("ANNE_BASE_URL", "https://anne-api.oefol.at/v1").rstrip("/")
@@ -50,6 +51,11 @@ def clean(name):
 def main():
     clubs = set()
     official = []
+
+    # The PDF parser needs historical official clubs as name/club boundaries
+    # too. They intentionally do not get copied into the current ANNE export.
+    if HISTORICAL_OFFICIAL.exists():
+        clubs.update(clean(c.get("name")) for c in json.loads(HISTORICAL_OFFICIAL.read_text()))
 
     # canonical registered clubs
     try:
