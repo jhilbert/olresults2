@@ -13,6 +13,7 @@ category:
     <table><tbody><tr><td>1<td><nobr>Name</nobr><td>...
 """
 import argparse
+from collections import defaultdict
 import json
 import re
 import sys
@@ -27,7 +28,7 @@ from sportsoftware_common import (
     TIME_TOKEN_RE, classify_championship_text, detect_list_type, expand_pair_result, extract_html_title,
     aggregate_team_status, guess_doc_date, is_junk_name, is_ooc_status,
     parse_champion_annotation, parse_course_info, parse_status, parse_time,
-    parse_time_loose, team_results_from_pairs,
+    parse_time_loose, number_team_results, team_results_from_pairs,
 )
 
 ANNOT_RANK_RE = re.compile(r"(?i)meister|sieger")
@@ -101,6 +102,7 @@ def parse_document(html_text):
     current = None
     columns = None
     pending_rank = pending_championship = None
+    team_counts = defaultdict(int)
     for table in ex.tables:
         for row in table:
             if not row or all(c in ("", "&nbsp") for c in row):
@@ -118,6 +120,7 @@ def parse_document(html_text):
                 categories.append(current)
                 columns = None
                 pending_rank = pending_championship = None
+                team_counts = defaultdict(int)
                 continue
             if first == "Pl" or (current and "Name" in row):
                 columns = row
@@ -162,7 +165,9 @@ def parse_document(html_text):
                 team = team_results_from_pairs(list(zip(columns, row)),
                                                club, rec.get("Pl", ""), time_text)
                 if team is not None:
-                    current["results"].extend(team)
+                    team_counts[club] += 1
+                    current["results"].extend(
+                        number_team_results(team, club, team_counts[club]))
                     continue
 
             name = rec.get("Name", "").strip()
@@ -368,6 +373,8 @@ def parse_relay_document(html_text):
                       "teamTimeText": pending_team.get("timeText") or ""}
             if pending_team.get("timeS") is not None:
                 result["teamTimeS"] = pending_team["timeS"]
+            if pending_team.get("outOfCompetition"):
+                result["outOfCompetition"] = True
             if pending_team["rank"] is not None:
                 result["rank"] = pending_team["rank"]
             if pending_team.get("championship"):
@@ -464,6 +471,7 @@ def parse_relay_document(html_text):
                                  "number": team_number or None,
                                  "timeText": team_time_text, "timeS": team_time_s,
                                  "status": team_status,
+                                 "outOfCompetition": is_ooc_status(first),
                                  "championship": championship_val, "members": []}
                 continue
 

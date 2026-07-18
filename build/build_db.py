@@ -1216,7 +1216,7 @@ def apply_title_championship_fallback(cur):
 
 
 OFFICIAL_CLUBS_PATH = ROOT / "data" / "official_clubs.json"
-CLUB_SUFFIX_NUM_RE = re.compile(r"^(.+)\s(\d)$")
+CLUB_SUFFIX_NUM_RE = re.compile(r"^(.+)\s(\d+)$")
 CLUB_PREFIX_CODE_RE = re.compile(r"^([A-Za-zÄÖÜäöüß]{2,6})\s+(.+)$")
 # "NF" is a widespread abbreviation for "Naturfreunde" across many of that
 # federation's clubs in legacy exports (NF Wien, NF Linz, NF Kitzbühel,
@@ -1237,6 +1237,11 @@ CLUB_PREFIX_CODE_RE = re.compile(r"^([A-Za-zÄÖÜäöüß]{2,6})\s+(.+)$")
 # to a wrong club - worst case it just still resolves to nothing, same as
 # before.
 NF_ABBREV_RE = re.compile(r"^NF\s*(.+)$")
+CLUB_SOURCE_ALIASES = {
+    # Historic/source spellings versus ANNE's current official registry.
+    "FUN-OL NÖ": "FUN.O NOe",
+    "FUN-OL NOE": "FUN.O NOe",
+}
 
 
 def load_official_clubs():
@@ -1270,6 +1275,7 @@ def canonicalize_official_club(name, official):
     m = CLUB_SUFFIX_NUM_RE.match(cur)
     if m:
         cur = m.group(1).strip()
+    cur = CLUB_SOURCE_ALIASES.get(cur, cur)
     while cur not in official:
         changed = False
         m = CLUB_PREFIX_CODE_RE.match(cur)
@@ -1282,8 +1288,34 @@ def canonicalize_official_club(name, official):
                 cur = f"Naturfreunde {m.group(1).strip()}"
                 changed = True
         if not changed:
+            # Fixed-width PDF columns truncate long club names. Accept only a
+            # sufficiently long prefix that identifies exactly one official
+            # club; this repairs "ASKÖ Henndorf Orientee" and "HSV OL Wiener
+            # Neustad" without guessing among ambiguous short fragments.
+            prefix_matches = [candidate for candidate in official
+                              if len(cur) >= 10 and candidate.casefold().startswith(cur.casefold())]
+            if len(prefix_matches) == 1:
+                cur = prefix_matches[0]
+                changed = True
+        if not changed:
             return None
     return cur
+
+
+def source_club_for_team(raw_club, team_name, kind):
+    """Separate a source team label from its underlying club association."""
+    club = (raw_club or "").strip()
+    if kind not in ("relay", "team"):
+        return club or None
+    # Relay exports commonly put the squad number straight onto the club
+    # ("Naturfreunde Wien 2"). Mannschaft parsers now already keep club and
+    # generated team name separate, so only strip when both source values are
+    # the same label.
+    if club and team_name and club == team_name:
+        match = CLUB_SUFFIX_NUM_RE.match(club)
+        if match:
+            club = match.group(1).strip()
+    return club or None
 
 
 OFFICIAL_CLUBS = load_official_clubs()
@@ -1325,6 +1357,8 @@ ANNOTATION_RE = re.compile(
 # parser failure modes: HTML markup (<>=;{}), relay separators (/), score/
 # placeholder junk (#&%|?*).
 INVALID_NAME_CHARS = set("<>={}[]|;#&%\\/?*")
+SOURCE_CHROME_NAME_RE = re.compile(
+    r"(?i)^(?:seite\s+\d+|©?\s*stephan\s+kr[äa]mer|sportsoftware(?:\s+\d+)?)$")
 
 
 
@@ -1401,6 +1435,8 @@ def is_valid_name(name):
     if re.match(r"^[\d+\-.,]", name):        # real names don't start digit/punct
         return False
     if any(c in INVALID_NAME_CHARS for c in name):
+        return False
+    if SOURCE_CHROME_NAME_RE.fullmatch(name.strip()):
         return False
     if re.search(r"\d,\d{3}|\bkm\b", name):  # "4,950", "2,250 km" course artifacts
         return False
@@ -2429,10 +2465,6 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                     toks = name.split()
                     if len(toks) == 2:
                         name = f"{toks[1]} {toks[0]}"
-                key = (sid, cat["name"], name_key(name))
-                if key in seen:
-                    continue
-                seen.add(key)
                 # newer team tables are already split per member by the parser
                 # (resultKind=team, full names, note set). For the older surname-
                 # only roster format, a roster row is a run of >=3 surnames;
@@ -2445,23 +2477,41 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                     kind, note = "team", "Mannschaft"
                 else:
                     kind, note = "individual", r.get("note")
+                metadata = relay_metadata(r, kind)
+                # The same runner can legitimately appear in two distinct
+                # Mannschaft rows of one category (for example once ranked
+                # and once in a DNS reserve team). Team identity therefore
+                # belongs in the dedup key; name alone silently dropped those
+                # real source rows.
+                unit_identity = (metadata.get("team_number") or metadata.get("team_name")
+                                 if metadata else None)
+                key = (sid, cat["name"], name_key(name), kind, unit_identity)
+                if key in seen:
+                    continue
+                seen.add(key)
                 pid = persons.from_legacy(name, r.get("yearOfBirth"))
                 persons.record(pid, name)
                 raw_status = r.get("status", "unknown")
                 status, ooc = normalize_status(
                     raw_status, r.get("timeText") or raw_status,
                     r.get("outOfCompetition"))
-                metadata = relay_metadata(r, kind)
                 if metadata:
-                    individual_raw = metadata.get("individual_status")
-                    metadata["individual_status"] = normalize_status(
-                        individual_raw or raw_status,
-                        r.get("timeText") or individual_raw or raw_status)[0]
+                    if kind == "team":
+                        # A Mannschaft runs together with one SI card: there
+                        # is no individual leg classification to invent.
+                        metadata["individual_status"] = None
+                    else:
+                        individual_raw = metadata.get("individual_status")
+                        metadata["individual_status"] = normalize_status(
+                            individual_raw or raw_status,
+                            r.get("timeText") or individual_raw or raw_status)[0]
                     metadata["team_status"] = status
+                club_value = source_club_for_team(
+                    r.get("club"), metadata.get("team_name") if metadata else None, kind)
                 insert_result(cur, stage_id=sid, person_id=pid, result_list_id=list_id,
                               category=cat["name"],
-                              category_full=cat["name"], club=r.get("club"),
-                              official_club=canonicalize_official_club(r.get("club"), OFFICIAL_CLUBS),
+                              category_full=cat["name"], club=club_value,
+                              official_club=canonicalize_official_club(club_value, OFFICIAL_CLUBS),
                               rank=r.get("rank"), status=status,
                               time_s=r.get("timeS"),
                               out_of_competition=ooc,
@@ -2526,14 +2576,14 @@ def normalize_team_results(cur):
          leg_number, leg_count, club, note) = row
         note = note or ""
         if not team_name:
-            match = re.search(r"Staffel:\s*([^·]+)", note)
+            match = re.search(r"(?:Staffel|Mannschaft):\s*([^·]+)", note)
             team_name = match.group(1).strip() if match else club
         if leg_number is None:
             match = re.search(r"Leg\s+(\d+)(?:/(\d+))?", note)
             if match:
                 leg_number = int(match.group(1))
                 leg_count = leg_count or (int(match.group(2)) if match.group(2) else None)
-        individual_status = individual_status or status
+        individual_status = (individual_status or status) if kind == "relay" else None
         scope = list_id or f"{stage_id}:{category}"
         identity = (f"n:{team_number}" if team_number else
                     f"t:{(team_name or '').strip().casefold()}" if team_name else
@@ -2548,7 +2598,7 @@ def normalize_team_results(cur):
         prepared.append(item)
 
     for members in groups.values():
-        statuses = [m["individual_status"] for m in members]
+        statuses = [m["individual_status"] for m in members if m["individual_status"]]
         declared = aggregate_team_status(
             None, [m["team_status"] or m["status"] for m in members])
         overall = aggregate_team_status(declared, statuses)

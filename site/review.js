@@ -148,7 +148,7 @@ function renderDetail() {
     if (!unit.team) {
       const r = unit.rows[0];
       return `<tr class="${r.issue_codes ? "review-row-issue" : ""}">
-        <td>${r.out_of_competition ? "OOC" : r.rank ?? ""}</td><td></td>
+        <td>${r.out_of_competition ? "AK" : r.rank ?? ""}</td><td></td>
         <td><b>${esc(r.observed_name)}</b>${r.mapped_name !== r.observed_name ? `<small>→ ${esc(r.mapped_name)}</small>` : ""}${r.result_kind === "family" ? `<small>nicht personenbezogen</small>` : ""}</td>
         <td>${esc(r.status)}${r.issue_codes ? `<small>${esc(r.issue_codes)}</small>` : ""}</td>
         <td>${esc(r.observed_time || fmtTime(r.time_s))}</td><td>${esc(r.club || "")}</td></tr>`;
@@ -157,14 +157,14 @@ function renderDetail() {
     const label = `${team.team_number ? `#${team.team_number} ` : ""}${team.team_name || team.club || "Team"}`;
     const total = team.observed_team_time || fmtTime(team.team_time_s) ||
       (team.team_status !== "ok" ? team.team_status : "");
-    return `<tr class="review-team-row"><td>${team.out_of_competition ? "OOC" : team.rank ?? ""}</td>
+    return `<tr class="review-team-row"><td>${team.out_of_competition ? "AK" : team.rank ?? ""}</td>
       <td colspan="2">${esc(label)}</td><td>${esc(team.team_status || team.status)}</td>
       <td>${esc(total)}</td><td>${esc(team.club || "")}</td></tr>` +
       unit.rows.map((r) => `<tr class="review-team-member ${r.issue_codes ? "review-row-issue" : ""}">
-        <td></td><td>Leg ${r.leg_number || "?"}/${r.leg_count || unit.rows.length}</td>
+        <td></td><td>${r.result_kind === "relay" ? `Leg ${r.leg_number || "?"}/${r.leg_count || unit.rows.length}` : ""}</td>
         <td><b>${esc(r.observed_name)}</b>${r.mapped_name !== r.observed_name ? `<small>→ ${esc(r.mapped_name)}</small>` : ""}</td>
         <td>${r.issue_codes ? `<small>${esc(r.issue_codes)}</small>` : ""}</td>
-        <td>${r.individual_status && r.individual_status !== "ok" ? `<b>${esc(r.individual_status)}</b>` : esc(r.observed_time || fmtTime(r.time_s))}</td>
+        <td>${r.result_kind === "relay" ? (r.individual_status && r.individual_status !== "ok" ? `<b>${esc(r.individual_status)}</b>` : esc(r.observed_time || fmtTime(r.time_s))) : ""}</td>
         <td></td></tr>`).join("");
   }).join("");
   $("review-detail").innerHTML = `

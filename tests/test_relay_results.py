@@ -12,6 +12,11 @@ HTML_SPEC = importlib.util.spec_from_file_location(
 html_parser = importlib.util.module_from_spec(HTML_SPEC)
 HTML_SPEC.loader.exec_module(html_parser)
 
+PDF_SPEC = importlib.util.spec_from_file_location(
+    "parse_sportsoftware_pdf", ROOT / "ingest" / "parse_sportsoftware_pdf.py")
+pdf_parser = importlib.util.module_from_spec(PDF_SPEC)
+PDF_SPEC.loader.exec_module(pdf_parser)
+
 BUILD_SPEC = importlib.util.spec_from_file_location(
     "build_db_relay", ROOT / "build" / "build_db.py")
 build_db = importlib.util.module_from_spec(BUILD_SPEC)
@@ -65,6 +70,73 @@ class RelayStructureTests(unittest.TestCase):
         men_50 = next(c for c in categories if c["name"] == "Men 50+")
         milan = next(r for r in men_50["results"] if r["name"] == "Milan Beles")
         self.assertEqual((milan["timeText"], milan["status"]), ("DNS", "dns"))
+
+    def test_relay_ak_is_preserved_for_every_member(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "4480-0.html"
+        categories = html_parser.parse_relay_document(
+            html_parser.decode(source.read_bytes()))
+        category = next(c for c in categories if c["name"] == "Mixed Staffel bis 16")
+        by_number = {}
+        for result in category["results"]:
+            by_number.setdefault(result["teamNumber"], []).append(result)
+
+        for team_number in ("106", "119"):
+            self.assertEqual(len(by_number[team_number]), 3)
+            self.assertEqual(
+                {r["outOfCompetition"] for r in by_number[team_number]}, {True})
+            self.assertEqual({r["status"] for r in by_number[team_number]}, {"ok"})
+
+    def test_relay_team_label_keeps_source_club_and_safe_official_mapping(self):
+        source_club = build_db.source_club_for_team(
+            "FUN-OL NÖ 2", "FUN-OL NÖ 2", "relay")
+        self.assertEqual(source_club, "FUN-OL NÖ")
+        self.assertEqual(
+            build_db.canonicalize_official_club(source_club, build_db.OFFICIAL_CLUBS),
+            "FUN.O NOe",
+        )
+        # This is a genuine combined-team label, not a safe mapping to either
+        # one of its two constituent official clubs. It remains visible via
+        # the source-club fallback without inventing a canonical association.
+        combined = "Orienteering Innsbruck Imst"
+        self.assertIsNone(
+            build_db.canonicalize_official_club(combined, build_db.OFFICIAL_CLUBS))
+
+    def test_mannschaft_pdf_has_one_unit_per_team_without_page_chrome(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "3507-1.pdf"
+        categories, _ = pdf_parser.parse_pdf(source)
+        category = next(c for c in categories if c["name"] == "Herren ab 19")
+        results = category["results"]
+
+        self.assertEqual(category["declaredStarters"], 13)
+        self.assertEqual(len(results), 39)
+        self.assertEqual(len({r["teamName"] for r in results}), 13)
+        self.assertFalse(any(
+            token in r["name"] for r in results
+            for token in ("Seite", "SportSoftware", "Krämer")
+        ))
+
+        by_team = {}
+        for result in results:
+            by_team.setdefault(result["teamName"], []).append(result)
+        self.assertEqual(set(by_team), {
+            "SU Klagenfurt 1", "OLC Graz 1", "Naturfreunde Wien 1",
+            "WAT-OL 1", "OC Fürstenfeld 1", "WAT-OL 2",
+            "ASKÖ Henndorf Orientee 1", "SU Schöckl Orienteering 1",
+            "OLT Transdanubien 1", "HSV Pinkafeld 1",
+            "ASKÖ Henndorf Orientee 2", "HSV OL Wiener Neustad 1",
+            "Naturfreunde Wien 2",
+        })
+        self.assertEqual(
+            {r["name"] for r in by_team["SU Klagenfurt 1"]},
+            {"Binder Martin", "Schgaguler Klaus", "Meizer Felix"},
+        )
+        self.assertEqual(
+            {r["status"] for r in by_team["Naturfreunde Wien 1"]}, {"ok"})
+        self.assertEqual(
+            {r["status"] for r in by_team["Naturfreunde Wien 2"]}, {"dns"})
+        self.assertEqual(
+            {r["teamTimeS"] for r in by_team["WAT-OL 2"]}, {5952})
+        self.assertTrue(all("leg" not in r for r in results))
 
 
 if __name__ == "__main__":

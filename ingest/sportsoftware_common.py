@@ -564,19 +564,38 @@ def team_results_from_pairs(pairs, club, rank_text, time_text):
         return None
     rank = int(rank_text) if rank_text.strip().isdigit() else None
     secs = parse_time_loose(time_text)
+    status = "ok" if secs is not None else (parse_status(time_text) or "unknown")
+    ooc = is_ooc_status(rank_text)
     out = []
     for nm in members:
         others = ", ".join(o for o in members if o != nm)
         res = {"name": nm, "club": club, "timeText": time_text, "resultKind": "team",
-               "note": "Mannschaft: " + club + (" · mit " + others if others else "")}
+               "note": "Mannschaft: " + club + (" · mit " + others if others else ""),
+               "teamName": club, "teamStatus": status,
+               "teamTimeText": time_text, "status": status}
         if rank is not None:
             res["rank"] = rank
         if secs is not None:
-            res["timeS"], res["status"] = secs, "ok"
-        else:
-            res["status"] = parse_status(time_text) or "unknown"
+            # The runner shares the Mannschaft's one finish time. Keep timeS
+            # for the runner history, but the grouped UI renders it only once
+            # via teamTimeS rather than pretending it is an individual leg.
+            res["timeS"] = secs
+            res["teamTimeS"] = secs
+        if ooc:
+            res["outOfCompetition"] = True
         out.append(res)
     return out
+
+
+def number_team_results(results, club, sequence):
+    """Give a nameless Mannschaft a deterministic per-club display identity."""
+    team_name = f"{club} {sequence}" if club else f"Mannschaft {sequence}"
+    for result in results:
+        mates = result.get("note", "").split(" · mit ", 1)
+        result["teamName"] = team_name
+        result["note"] = "Mannschaft: " + team_name + (
+            " · mit " + mates[1] if len(mates) == 2 else "")
+    return results
 
 
 # D/H-12 and D/H-14 night-run categories run in pairs; some exports name

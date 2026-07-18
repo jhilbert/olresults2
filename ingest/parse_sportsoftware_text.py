@@ -22,6 +22,7 @@ embed this format - we do not blindly crawl all ~500 external result links
 (many are dead, live-timing systems, or unrelated formats).
 """
 import argparse
+from collections import defaultdict
 import html as html_mod
 import json
 import re
@@ -35,7 +36,8 @@ from sportsoftware_common import (
     CAT_LINE_RE, CLUB_LINK_ALLOWLIST, COLUMN_ALIASES, detect_list_type,
     expand_pair_result, is_expected_source_failure, is_junk_name,
     parse_champion_annotation, parse_course_info,
-    parse_status, parse_time, parse_time_loose, team_results_from_pairs,
+    parse_status, parse_time, parse_time_loose, number_team_results,
+    team_results_from_pairs,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -93,6 +95,7 @@ def parse_text(text):
     current = None
     labels = starts = None
     pending_rank = pending_championship = None  # from a champion-announcement
+    team_counts = defaultdict(int)
                      # line ("1. und Österr.Meister 2022"), which - unlike the
                      # HTML/PDF layouts - sits on its own line rather than
                      # merged into the winner's row; fixed-width column
@@ -124,6 +127,7 @@ def parse_text(text):
             current.update(parse_course_info(cm.group("rest")))
             categories.append(current)
             pending_rank = pending_championship = None
+            team_counts = defaultdict(int)
             continue
 
         if current is None or labels is None:
@@ -146,7 +150,9 @@ def parse_text(text):
             club = (rec.get("Verein") or "").strip()
             team = team_results_from_pairs(pairs, club, rec.get("Pl", ""), time_text)
             if team is not None:
-                current["results"].extend(team)
+                team_counts[club] += 1
+                current["results"].extend(
+                    number_team_results(team, club, team_counts[club]))
                 continue
 
         name = (rec.get("Name") or "").strip()

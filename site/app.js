@@ -87,7 +87,7 @@ function query(sql, params = []) {
 }
 
 function rankCell(r) {
-  if (r.out_of_competition) return `<span class="status ooc">OOC</span>`;
+  if (r.out_of_competition) return `<span class="status ooc" title="außer Konkurrenz">AK</span>`;
   if (r.status !== "ok") return `<span class="status">${esc(r.status)}</span>`;
   if (r.rank == null) return "";
   return `<span class="rank ${r.rank === 1 ? "rank-1" : ""}">${r.rank}</span>` +
@@ -441,6 +441,11 @@ function viewEvent(id, medalsOnly, stageNum) {
           units[unitIndex.get(key)].rows.push(result);
         }
       }
+      // category_stats is person-based.  For Staffel/Mannschaft that would
+      // advertise the number of classified members (27 in a 13-team
+      // Mannschaft) instead of the competitor units actually shown below.
+      const hasTeamUnits = units.some((unit) => unit.team);
+      const displayedEntries = hasTeamUnits ? units.length : (c.starters ?? c.entries);
       const placementCell = (r, tier) => tier
         ? `<span class="rank-medal rank-medal-${tier}" title="${medalName[r.national_rank]} (ÖM/ÖSTM)">${r.rank ?? ""}</span>`
         : rankCell({ ...r, starters: null });
@@ -451,7 +456,7 @@ function viewEvent(id, medalsOnly, stageNum) {
         <div class="cat-block">
           <div class="cat-head">
             <h3>${esc(c.category_full || c.category)}${catChamp.map((ch) => ` <span class="badge champ-badge">${esc(ch)}</span>`).join("")}</h3>
-            <span class="course">${course}${course ? " · " : ""}${(c.starters ?? c.entries)} Starter${isBahn(c.category) && stageHasOfficial ? " · inoffizielle Bahnwertung" : ""}</span>
+            <span class="course">${course}${course ? " · " : ""}${displayedEntries} ${hasTeamUnits ? "Teams" : "Starter"}${isBahn(c.category) && stageHasOfficial ? " · inoffizielle Bahnwertung" : ""}</span>
           </div>
           <table>
             <thead><tr><th class="num">Pl</th><th>Name</th><th class="hide-sm">Verein</th>
@@ -476,14 +481,14 @@ function viewEvent(id, medalsOnly, stageNum) {
                 : team.team_status && team.team_status !== "ok" ? `<span class="status">${esc(team.team_status)}</span>` : "";
               return `<tr class="team-summary ${tier ? `medal-row-${tier}` : ""}">
                   <td class="num">${placementCell(team, tier)}</td>
-                  <td><strong>${esc(teamLabel)}</strong> <span class="badge">${team.result_kind === "relay" ? "Staffel" : "Team"}</span></td>
-                  <td class="hide-sm dim">${esc(team.official_club || "")}</td>
+                  <td><strong>${esc(teamLabel)}</strong> <span class="badge">${team.result_kind === "relay" ? "Staffel" : "Mannschaft"}</span></td>
+                  <td class="hide-sm dim">${esc(team.official_club || team.club || "")}</td>
                   <td class="num">${teamTime}</td>
                   <td class="num dim">${team.status === "ok" && team.time_behind_s ? "+" + fmtTime(team.time_behind_s) : ""}</td>
                 </tr>${unit.rows.map((r) => `<tr class="team-member">
-                  <td class="num dim">${r.leg_number ? `${r.leg_number}/${r.leg_count || unit.rows.length}` : ""}</td>
-                  <td><a href="#/runner/${r.person_id}">${esc(r.person_name)}</a><span class="leg-label">Leg ${r.leg_number || "?"}/${r.leg_count || unit.rows.length}</span></td>
-                  <td class="hide-sm dim"></td><td class="num">${individualTime(r)}</td><td></td>
+                  <td class="num dim"></td>
+                  <td><a href="#/runner/${r.person_id}">${esc(r.person_name)}</a>${r.result_kind === "relay" ? `<span class="leg-label">Leg ${r.leg_number || "?"}/${r.leg_count || unit.rows.length}</span>` : ""}</td>
+                  <td class="hide-sm dim"></td><td class="num">${r.result_kind === "relay" ? individualTime(r) : ""}</td><td></td>
                 </tr>`).join("")}`;
             }).join("")}
             </tbody>

@@ -22,6 +22,7 @@ data (e.g. a right-aligned time) sitting left of its header's own x0.
 """
 import argparse
 import bisect
+from collections import defaultdict
 import json
 import re
 import sys
@@ -107,6 +108,8 @@ SPLITS_RE = re.compile(r"Zwischenzeiten|\d+\(\d+\)\s+\d+\(\d+\)")
 # every page; it leaks in as a bogus result row ("AC Mitteldistanz"). A real
 # result row never carries a full dd.mm.yyyy date, so skip any line that does.
 DATE_HEADER_RE = re.compile(r"\d{1,2}\.\d{1,2}\.\d{4}")
+PDF_PAGE_CHROME_RE = re.compile(
+    r"(?:\bSeite\s+\d+\b|SportSoftware|Stephan\s+Kr[äa]mer)", re.I)
 TIME_TOKEN_RE = re.compile(r"\d{1,3}:\d{2}(?::\d{2})?")
 LINE_TOLERANCE = 3  # px, for clustering words into the same visual line
 # see the "Text1" handling below assign_columns(): the word "Meister"/
@@ -209,6 +212,39 @@ def assign_columns(line_words, headers):
     return rec
 
 
+def parse_mannschaft_prefix(line_words, first_member_x):
+    """Read Pl/AK, club and the one shared team time before Text1.
+
+    Long club names legitimately overflow the narrow Verein column into the
+    visual Zeit column. Locating the actual time/status token first preserves
+    the complete printed club fragment instead of turning "Orientee" or
+    "Neustad" into part of the time value.
+    """
+    tokens = [word["text"] for word in line_words if word["x0"] < first_member_x - 1]
+    rank_text = ""
+    if tokens and (tokens[0].rstrip(".").isdigit() or is_ooc_status(tokens[0])):
+        rank_text = tokens.pop(0).rstrip(".")
+    value_at = value_text = None
+    for index, token in enumerate(tokens):
+        if FLOW_TIME_RE.fullmatch(token.lstrip("+")):
+            value_at, value_text = index, token
+            break
+    if value_at is None:
+        # A status is the suffix after the club.  parse_status() deliberately
+        # recognizes phrases embedded in longer text, so testing arbitrary
+        # slices would misread "ASKÖ Henndorf Orientee N Ang" as one giant
+        # status and truncate the club.  Prefer the shortest recognized suffix
+        # ("N Ang", "Fehlst", "Disqu", ...).
+        for width in (1, 2, 3):
+            candidate = " ".join(tokens[-width:])
+            if candidate and parse_status(candidate):
+                value_at, value_text = len(tokens) - width, candidate
+                break
+    if value_at is None:
+        return rank_text, " ".join(tokens).strip(), ""
+    return rank_text, " ".join(tokens[:value_at]).strip(), value_text
+
+
 def parse_pdf(path, allow_inline_splits=False):
     import pdfplumber
 
@@ -219,6 +255,7 @@ def parse_pdf(path, allow_inline_splits=False):
     team_member_labels = []
     head_text = ""
     pending_rank = pending_championship = None  # from a champion-announcement
+    team_counts = defaultdict(int)
                      # line ("1. und Staatmeister 2020"), which forms its own
                      # word-cluster/line entirely separate from the winner's
                      # actual row and would garble column assignment if fed
@@ -239,6 +276,13 @@ def parse_pdf(path, allow_inline_splits=False):
                     if not line:
                         continue
                     text = " ".join(w["text"] for w in line)
+
+                    # Repeated PDF furniture sits inside the same x-columns
+                    # as real rows on later pages. It must be rejected before
+                    # column assignment can turn "Seite 3" or the generator
+                    # copyright into synthetic Mannschaft members.
+                    if PDF_PAGE_CHROME_RE.search(text):
+                        continue
 
                     if line[0]["text"] in ("Pl", "Platz") and len(line) >= 3:
                         headers = [(w["text"], w["x0"]) for w in line]
@@ -291,6 +335,7 @@ def parse_pdf(path, allow_inline_splits=False):
                         current.update(parse_course_info(m.group("rest")))
                         categories.append(current)
                         pending_rank = pending_championship = None
+                        team_counts = defaultdict(int)
                         continue
 
                     if current is None or headers is None:
@@ -302,11 +347,23 @@ def parse_pdf(path, allow_inline_splits=False):
                         continue
 
                     if team_row_mode:
-                        rec = assign_columns(line, headers)
-                        club = (rec.get("Verein") or "").strip()
-                        rank_text = (rec.get("Pl") or "").strip()
-                        time_text = (rec.get("Zeit") or "").strip()
-                        members = [rec.get(lbl, "").strip() for lbl in team_member_labels]
+                        # Text1/Text2/Text3 are left-aligned roster columns.
+                        # Midpoint assignment is correct for right-aligned
+                        # rank/time values but can split a long member name
+                        # across two roster columns ("Schgaguler" | "Klaus").
+                        # Slice members at the actual next header start.
+                        header_x = {label: x0 for label, x0 in headers}
+                        rank_text, club, time_text = parse_mannschaft_prefix(
+                            line, header_x[team_member_labels[0]])
+                        members = []
+                        for i, label in enumerate(team_member_labels):
+                            start_x = header_x[label]
+                            end_x = (header_x[team_member_labels[i + 1]]
+                                     if i + 1 < len(team_member_labels) else float("inf"))
+                            member = " ".join(
+                                word["text"] for word in line
+                                if start_x - 1 <= word["x0"] < end_x - 1).strip()
+                            members.append(member)
                         members = [m for m in members if m and not is_junk_name(m)]
                         if not club and not members:
                             continue
@@ -317,17 +374,25 @@ def parse_pdf(path, allow_inline_splits=False):
                             rank = pending_rank
                         seconds = parse_time_loose(time_text)
                         status = "ok" if seconds is not None else (parse_status(time_text) or "unknown")
+                        ooc = is_ooc_status(rank_text)
+                        team_counts[club] += 1
+                        team_name = f"{club} {team_counts[club]}" if club else f"Mannschaft {team_counts[club]}"
                         for i, nm in enumerate(members):
                             mates = [m for j, m in enumerate(members) if j != i]
-                            note = "Mannschaft: " + club + (" · mit " + ", ".join(mates) if mates else "")
+                            note = "Mannschaft: " + team_name + (" · mit " + ", ".join(mates) if mates else "")
                             res = {"name": nm, "club": club, "timeText": time_text,
-                                   "resultKind": "team", "note": note, "status": status}
+                                   "resultKind": "team", "note": note, "status": status,
+                                   "teamName": team_name, "teamStatus": status,
+                                   "teamTimeText": time_text}
                             if rank is not None:
                                 res["rank"] = rank
                             if pending_championship:
                                 res["championship"] = pending_championship
                             if seconds is not None:
                                 res["timeS"] = seconds
+                                res["teamTimeS"] = seconds
+                            if ooc:
+                                res["outOfCompetition"] = True
                             current["results"].append(res)
                         pending_rank = pending_championship = None
                         continue
@@ -618,6 +683,8 @@ def parse_relay_pdf(path):
                       "teamTimeText": pending_team.get("timeText") or ""}
             if pending_team.get("timeS") is not None:
                 result["teamTimeS"] = pending_team["timeS"]
+            if pending_team.get("outOfCompetition"):
+                result["outOfCompetition"] = True
             if pending_team["rank"] is not None:
                 result["rank"] = pending_team["rank"]
             if pending_team.get("championship"):
@@ -739,6 +806,7 @@ def parse_relay_pdf(path):
                                                  "timeS": team_time_s,
                                                  "status": "ok" if team_time_s is not None else
                                                            (parse_status(team_time_text) or "unknown"),
+                                                 "outOfCompetition": True,
                                                  "championship": None, "members": []}
                                 continue
                         # A DNF/non-finishing team is printed with NO leading
