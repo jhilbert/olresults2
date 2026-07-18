@@ -33,7 +33,7 @@ from pathlib import Path
 
 from sportsoftware_common import (
     CAT_LINE_RE, KAT_TOKEN_RE, MANUAL_ATTACHMENT_SKIP, MANUAL_DOC_DATE_OVERRIDES, STATUS_TAIL_RE,
-    classify_championship_text, detect_list_type, find_trailing_club, guess_doc_date,
+    aggregate_team_status, classify_championship_text, detect_list_type, find_trailing_club, guess_doc_date,
     is_junk_name, is_ooc_status, load_clubs, looks_like_person, split_by_kat,
     parse_champion_annotation, parse_course_info, parse_flow_row, parse_status, parse_time,
     parse_time_loose, strip_champion_name_prefix,
@@ -593,16 +593,31 @@ def parse_relay_pdf(path):
             pending_team = None
             return
         names = [m["name"] for m in pending_team["members"]]
+        member_statuses = []
+        for m in pending_team["members"]:
+            seconds = parse_time_loose(m["timeText"]) if m["timeText"] else None
+            member_statuses.append(
+                "ok" if seconds is not None else
+                (parse_status(m["timeText"] or "") or "unknown"))
+        team_status = aggregate_team_status(pending_team.get("status"), member_statuses)
         for i, m in enumerate(pending_team["members"]):
             seconds = parse_time_loose(m["timeText"]) if m["timeText"] else None
-            status = "ok" if seconds is not None else (parse_status(m["timeText"] or "") or "unknown")
+            individual_status = member_statuses[i]
             mates = list(dict.fromkeys(n for n in names if n != m["name"]))
             note_bits = [f"Staffel: {pending_team['name']}", f"Leg {i + 1}/{len(names)}"]
             if mates:
                 note_bits.append("Team: " + ", ".join(mates))
             result = {"name": m["name"], "club": pending_team["name"],
                       "timeText": m["timeText"] or "", "resultKind": "relay",
-                      "note": " · ".join(note_bits), "status": status}
+                      "note": " · ".join(note_bits), "status": team_status,
+                      "individualStatus": individual_status,
+                      "teamStatus": team_status,
+                      "teamNumber": pending_team.get("number"),
+                      "teamName": pending_team["name"],
+                      "leg": i + 1, "legCount": len(names),
+                      "teamTimeText": pending_team.get("timeText") or ""}
+            if pending_team.get("timeS") is not None:
+                result["teamTimeS"] = pending_team["timeS"]
             if pending_team["rank"] is not None:
                 result["rank"] = pending_team["rank"]
             if pending_team.get("championship"):
@@ -717,7 +732,13 @@ def parse_relay_pdf(path):
                             ak_flow = parse_flow_row(rest, {})
                             if ak_flow and ak_flow["names"]:
                                 flush()
+                                team_time_text = ak_flow["timeText"] or ak_flow["statusText"] or ""
+                                team_time_s = parse_time_loose(team_time_text)
                                 pending_team = {"name": ak_flow["names"][0], "rank": None,
+                                                 "number": None, "timeText": team_time_text,
+                                                 "timeS": team_time_s,
+                                                 "status": "ok" if team_time_s is not None else
+                                                           (parse_status(team_time_text) or "unknown"),
                                                  "championship": None, "members": []}
                                 continue
                         # A DNF/non-finishing team is printed with NO leading
@@ -739,7 +760,11 @@ def parse_relay_pdf(path):
                         sm = STATUS_TAIL_RE.search(line)
                         if sm and not looks_like_person(line[: sm.start()].strip()):
                             flush()
+                            team_time_text = sm.group(0).strip()
                             pending_team = {"name": line[: sm.start()].strip(), "rank": None,
+                                             "number": None, "timeText": team_time_text,
+                                             "timeS": None,
+                                             "status": parse_status(team_time_text) or "unknown",
                                              "championship": None, "members": []}
                             continue
                         tm = MEMBER_TWO_TIME_RE.match(line)
@@ -752,7 +777,23 @@ def parse_relay_pdf(path):
                     time_text = flow["timeText"] or flow["statusText"] or ""
                     if line[0].isdigit() and not is_leg_member:
                         flush()
+                        leading = []
+                        for token in line.split():
+                            if token.isdigit() and len(leading) < 2:
+                                leading.append(token)
+                            else:
+                                break
+                        # Finishers carry Pl + Stnr; an unranked team carrying
+                        # a status has only Stnr. A one-number finisher has no
+                        # start number in that particular export layout.
+                        team_number = (leading[1] if len(leading) >= 2 else
+                                       leading[0] if flow["rank"] is None and leading else None)
+                        team_time_s = parse_time_loose(time_text)
                         pending_team = {"name": flow["names"][0], "rank": flow["rank"],
+                                         "number": team_number, "timeText": time_text,
+                                         "timeS": team_time_s,
+                                         "status": "ok" if team_time_s is not None else
+                                                   (parse_status(time_text) or "unknown"),
                                          "championship": championship, "members": []}
                     elif pending_team is not None:
                         pending_team["members"].append({"name": flow["names"][0], "timeText": time_text})
@@ -845,6 +886,7 @@ def fetch(url, dest):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0, help="only process N files (0 = all)")
+    ap.add_argument("--event-id", type=int, help="only process one ANNE event")
     args = ap.parse_args()
 
     FILES.mkdir(parents=True, exist_ok=True)
@@ -853,6 +895,8 @@ def main():
 
     jobs = []
     for eid, files in attachments.items():
+        if args.event_id is not None and int(eid) != args.event_id:
+            continue
         # a Zwischenzeiten-titled PDF that's the event's *only* attachment
         # can't be a duplicate of some other results file - safe to parse
         # its inline per-control splits rather than skip it outright

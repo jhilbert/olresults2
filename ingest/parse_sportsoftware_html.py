@@ -25,7 +25,8 @@ from pathlib import Path
 from sportsoftware_common import (
     CAT_LINE_RE, COURSE_RE, MANUAL_ATTACHMENT_SKIP, MANUAL_CATEGORY_SKIP, MANUAL_DOC_DATE_OVERRIDES,
     TIME_TOKEN_RE, classify_championship_text, detect_list_type, expand_pair_result, extract_html_title,
-    guess_doc_date, is_junk_name, is_ooc_status, parse_champion_annotation, parse_course_info, parse_status, parse_time,
+    aggregate_team_status, guess_doc_date, is_junk_name, is_ooc_status,
+    parse_champion_annotation, parse_course_info, parse_status, parse_time,
     parse_time_loose, team_results_from_pairs,
 )
 
@@ -144,6 +145,14 @@ def parse_document(html_text):
             # data row: align cells to columns
             rec = dict(zip([c or f"col{i}" for i, c in enumerate(columns)], row))
             time_text = (rec.get("Zeit") or rec.get("Gesamt") or "").strip()
+            if time_text and parse_time_loose(time_text) is None and not parse_status(time_text):
+                # Colspan-heavy international exports can shift Country into
+                # the nominal Zeit cell on unranked rows. Recover the actual
+                # trailing DNS/MP/DSQ value from the row instead of accepting
+                # a country (notably "Slovakia") as a time/status.
+                time_text = next((cell.strip() for cell in reversed(row)
+                                  if parse_time_loose(cell.strip()) is not None
+                                  or parse_status(cell.strip())), "")
             rank_ok = rec.get("Pl", "").strip().isdigit()
             club = (rec.get("Verein") or rec.get("Verein/Schule") or "").strip()
 
@@ -333,9 +342,15 @@ def parse_relay_document(html_text):
             pending_team = None
             return
         names = [m["name"] for m in pending_team["members"]]
+        member_statuses = []
+        for m in pending_team["members"]:
+            seconds = parse_time_loose(m["timeText"])
+            member_statuses.append(
+                "ok" if seconds is not None else (parse_status(m["timeText"]) or "unknown"))
+        team_status = aggregate_team_status(pending_team.get("status"), member_statuses)
         for i, m in enumerate(pending_team["members"]):
             seconds = parse_time_loose(m["timeText"])
-            status = "ok" if seconds is not None else (parse_status(m["timeText"]) or "unknown")
+            individual_status = member_statuses[i]
             # dedupe: a small team running multiple legs each (e.g. a 2-person
             # relay run twice) repeats the same teammate's name once per leg
             mates = list(dict.fromkeys(n for n in names if n != m["name"]))
@@ -344,7 +359,15 @@ def parse_relay_document(html_text):
                 note_bits.append("Team: " + ", ".join(mates))
             result = {"name": m["name"], "club": pending_team["name"],
                       "timeText": m["timeText"], "resultKind": "relay",
-                      "note": " · ".join(note_bits), "status": status}
+                      "note": " · ".join(note_bits), "status": team_status,
+                      "individualStatus": individual_status,
+                      "teamStatus": team_status,
+                      "teamNumber": pending_team.get("number"),
+                      "teamName": pending_team["name"],
+                      "leg": i + 1, "legCount": len(names),
+                      "teamTimeText": pending_team.get("timeText") or ""}
+            if pending_team.get("timeS") is not None:
+                result["teamTimeS"] = pending_team["timeS"]
             if pending_team["rank"] is not None:
                 result["rank"] = pending_team["rank"]
             if pending_team.get("championship"):
@@ -427,7 +450,20 @@ def parse_relay_document(html_text):
                     team_row_len = team_row_len or len(row)
                 idx = staffel_idx if len(row) > staffel_idx else (len(row) - 1)
                 team_name = row[idx].strip() if idx >= 0 and row[idx] else ""
+                team_number = row[1].strip() if has_stnr and len(row) > 1 else ""
+                team_time_text = ""
+                for cell in row[idx + 1:]:
+                    cell = cell.strip()
+                    if cell and (TIME_TOKEN_RE.search(cell) or parse_status(cell)):
+                        team_time_text = cell
+                        break
+                team_time_s = parse_time_loose(team_time_text)
+                team_status = ("ok" if team_time_s is not None else
+                               (parse_status(team_time_text) or "unknown"))
                 pending_team = {"rank": rank_val, "name": team_name,
+                                 "number": team_number or None,
+                                 "timeText": team_time_text, "timeS": team_time_s,
+                                 "status": team_status,
                                  "championship": championship_val, "members": []}
                 continue
 
@@ -477,6 +513,7 @@ def decode(data):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0, help="only process N files (0 = all)")
+    ap.add_argument("--event-id", type=int, help="only process one ANNE event")
     args = ap.parse_args()
 
     FILES.mkdir(parents=True, exist_ok=True)
@@ -485,6 +522,8 @@ def main():
 
     jobs = []
     for eid, files in attachments.items():
+        if args.event_id is not None and int(eid) != args.event_id:
+            continue
         sole_attachment = len(files or []) == 1
         for n, f in enumerate(files or []):
             if f["mimeType"] == "text/html":

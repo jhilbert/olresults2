@@ -264,9 +264,40 @@ def parse_time_loose(text):
 def parse_status(text):
     t = text.strip().lower().rstrip(".")
     for key, val in STATUS_MAP.items():
-        if key in t:
+        # Short codes must be real tokens: ``ak`` (außer Konkurrenz) is not
+        # the middle of a country name such as "Slovakia". Longer German
+        # phrases may still carry report decorations around them.
+        if ((len(key) <= 3 and re.search(rf"(?<!\w){re.escape(key)}(?!\w)", t))
+                or (len(key) > 3 and key in t)):
             return val
     return None
+
+
+TEAM_STATUS_PRIORITY = {
+    "unknown": 0,
+    "ok": 1,
+    "dns": 2,
+    "dnf": 3,
+    "mp": 4,
+    "dsq": 5,
+}
+
+
+def aggregate_team_status(declared_status, member_statuses):
+    """Return the status of a relay/team as a whole.
+
+    SportSoftware prints both a team result and one result per leg. A DSQ or
+    MP on a single leg invalidates the whole team, while blank later legs in
+    an already invalid team must not turn that known team status into
+    ``unknown``. The source's explicit team status participates in the same
+    precedence as the individual leg statuses; DSQ wins over MP when both are
+    present (a shape that occurs in real relay exports).
+    """
+    candidates = [declared_status, *(member_statuses or [])]
+    known = [s for s in candidates if s in TEAM_STATUS_PRIORITY and s != "unknown"]
+    if known:
+        return max(known, key=TEAM_STATUS_PRIORITY.get)
+    return "unknown"
 
 
 def is_ooc_status(text):

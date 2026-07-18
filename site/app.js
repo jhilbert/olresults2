@@ -297,15 +297,15 @@ function viewRunner(id, year) {
     </table>`;
 }
 
-// Relay/team rows share one rank per unit (every member of a team gets the
-// team's own rank), so ordering by rank alone leaves each team's members in
-// a fairly arbitrary sub-order - and a relay leg's OWN time isn't reliably
-// bigger than the previous leg's either, so time_s doesn't sort them
-// correctly. Every relay note already carries "Leg N/M" (build_db.py and
-// both the PDF and HTML ingest parsers all write it the same way) - sort by
-// that within each same-(rank, club) cluster. A Mannschaft has no leg order
-// at all, just a roster, so those sort by name instead. Individual/pair
-// rows are left exactly as the SQL ordered them.
+function teamUnitKey(result) {
+  if (!['relay', 'team'].includes(result.result_kind)) return null;
+  if (result.team_number) return `${result.result_kind}:number:${result.team_number}`;
+  return `${result.result_kind}:name:${result.team_name || result.club || result.note || result.id}`;
+}
+
+// Explicit team identity and leg number are persisted in schema v4. Notes
+// remain a compatibility fallback for old databases, but no longer decide
+// whether differently-classified members belong to the same team.
 function reorderTeamMembers(results) {
   const legOf = (note) => {
     const m = /Leg (\d+)\//.exec(note || "");
@@ -314,11 +314,12 @@ function reorderTeamMembers(results) {
   let i = 0;
   while (i < results.length) {
     let j = i + 1;
-    while (j < results.length && results[j].rank === results[i].rank
-           && results[j].club === results[i].club && results[j].result_kind === results[i].result_kind) j++;
+    const key = teamUnitKey(results[i]);
+    while (key && j < results.length && teamUnitKey(results[j]) === key) j++;
     if (j - i > 1) {
       const group = results.slice(i, j);
-      if (group[0].result_kind === "relay") group.sort((a, b) => legOf(a.note) - legOf(b.note));
+      if (group[0].result_kind === "relay") group.sort((a, b) =>
+        (a.leg_number ?? legOf(a.note)) - (b.leg_number ?? legOf(b.note)));
       else if (group[0].result_kind === "team") group.sort((a, b) => a.person_name.localeCompare(b.person_name, "de-AT"));
       for (let k = i; k < j; k++) results[k] = group[k - i];
     }
@@ -388,7 +389,10 @@ function viewEvent(id, medalsOnly, stageNum) {
     const cats = query(`
       SELECT r.category, MAX(r.category_full) AS category_full,
              cs.starters, cs.classified, cs.winner_time_s,
-             COUNT(*) AS entries,
+             COUNT(DISTINCT CASE WHEN r.result_kind IN ('relay', 'team')
+                   THEN COALESCE('n:' || r.team_number, 't:' || r.team_name,
+                                 'c:' || r.club, 'r:' || r.id)
+                   ELSE 'r:' || r.id END) AS entries,
              MAX(r.course_length_m) AS len, MAX(r.course_climb_m) AS climb,
              MAX(r.course_controls) AS ctrls
       FROM result r LEFT JOIN category_stats cs
@@ -412,7 +416,8 @@ function viewEvent(id, medalsOnly, stageNum) {
         LEFT JOIN person p ON p.id = r.person_id
         WHERE r.stage_id = ? AND r.category = ?
           ${medalsOnly ? "AND r.championship IS NOT NULL AND r.national_rank <= 3" : ""}
-        ORDER BY CASE WHEN r.rank IS NULL THEN 1 ELSE 0 END, r.rank, r.club, r.time_s`,
+        ORDER BY CASE WHEN r.rank IS NULL THEN 1 ELSE 0 END, r.rank,
+                 COALESCE(r.team_number, r.team_name, r.club), r.leg_number, r.time_s`,
         [st.id, c.category]));
       if (medalsOnly && !results.length) continue;
       const course = [
@@ -423,6 +428,25 @@ function viewEvent(id, medalsOnly, stageNum) {
       const catChamp = [...new Set(results.map((r) => r.championship).filter(Boolean))];
       const medalTier = { 1: "gold", 2: "silver", 3: "bronze" };
       const medalName = { 1: "Gold", 2: "Silber", 3: "Bronze" };
+      const units = [];
+      const unitIndex = new Map();
+      for (const result of results) {
+        const key = teamUnitKey(result);
+        if (!key) {
+          units.push({ team: false, rows: [result] });
+        } else if (!unitIndex.has(key)) {
+          unitIndex.set(key, units.length);
+          units.push({ team: true, rows: [result] });
+        } else {
+          units[unitIndex.get(key)].rows.push(result);
+        }
+      }
+      const placementCell = (r, tier) => tier
+        ? `<span class="rank-medal rank-medal-${tier}" title="${medalName[r.national_rank]} (ÖM/ÖSTM)">${r.rank ?? ""}</span>`
+        : rankCell({ ...r, starters: null });
+      const individualTime = (r) => r.individual_status && r.individual_status !== "ok"
+        ? `<span class="status member-status">${esc(r.individual_status)}</span>`
+        : fmtTime(r.time_s);
       html += `
         <div class="cat-block">
           <div class="cat-head">
@@ -432,21 +456,35 @@ function viewEvent(id, medalsOnly, stageNum) {
           <table>
             <thead><tr><th class="num">Pl</th><th>Name</th><th class="hide-sm">Verein</th>
               <th class="num">Zeit</th><th class="num">Diff</th></tr></thead>
-            <tbody>${results.map((r) => {
-              const tier = medalTier[r.national_rank];
-              return `
-              <tr class="${isBahn(c.category) && stageHasOfficial ? "bahn-row" : ""} ${tier ? `medal-row-${tier}` : ""}">
-                <td class="num">${tier
-                  ? `<span class="rank-medal rank-medal-${tier}" title="${medalName[r.national_rank]} (ÖM/ÖSTM)">${r.rank ?? ""}</span>`
-                  : rankCell({ ...r, starters: null })}</td>
-                <td>${r.person_id == null
-                  ? `<span class="family-name">${esc(r.person_name || "Family")}</span>`
-                  : `<a href="#/runner/${r.person_id}">${esc(r.person_name)}</a>`
-                }${r.result_kind === "family" ? ` <span class="badge">Family</span>` : ""}${r.note ? `<div class="note">${esc(r.note)}</div>` : ""}</td>
-                <td class="hide-sm dim">${esc(r.club || "")}</td>
-                <td class="num">${fmtTime(r.time_s)}</td>
-                <td class="num dim">${r.status === "ok" && r.time_behind_s ? "+" + fmtTime(r.time_behind_s) : ""}</td>
-              </tr>`;
+            <tbody>${units.map((unit) => {
+              if (!unit.team) {
+                const r = unit.rows[0], tier = medalTier[r.national_rank];
+                return `<tr class="${isBahn(c.category) && stageHasOfficial ? "bahn-row" : ""} ${tier ? `medal-row-${tier}` : ""}">
+                  <td class="num">${placementCell(r, tier)}</td>
+                  <td>${r.person_id == null
+                    ? `<span class="family-name">${esc(r.person_name || "Family")}</span>`
+                    : `<a href="#/runner/${r.person_id}">${esc(r.person_name)}</a>`
+                  }${r.result_kind === "family" ? ` <span class="badge">Family</span>` : ""}${r.note ? `<div class="note">${esc(r.note)}</div>` : ""}</td>
+                  <td class="hide-sm dim">${esc(r.club || "")}</td>
+                  <td class="num">${fmtTime(r.time_s)}</td>
+                  <td class="num dim">${r.status === "ok" && r.time_behind_s ? "+" + fmtTime(r.time_behind_s) : ""}</td>
+                </tr>`;
+              }
+              const team = unit.rows[0], tier = medalTier[team.national_rank];
+              const teamLabel = `${team.team_number ? `#${team.team_number} ` : ""}${team.team_name || team.club || "Team"}`;
+              const teamTime = team.team_time_s != null ? fmtTime(team.team_time_s)
+                : team.team_status && team.team_status !== "ok" ? `<span class="status">${esc(team.team_status)}</span>` : "";
+              return `<tr class="team-summary ${tier ? `medal-row-${tier}` : ""}">
+                  <td class="num">${placementCell(team, tier)}</td>
+                  <td><strong>${esc(teamLabel)}</strong> <span class="badge">${team.result_kind === "relay" ? "Staffel" : "Team"}</span></td>
+                  <td class="hide-sm dim">${esc(team.official_club || "")}</td>
+                  <td class="num">${teamTime}</td>
+                  <td class="num dim">${team.status === "ok" && team.time_behind_s ? "+" + fmtTime(team.time_behind_s) : ""}</td>
+                </tr>${unit.rows.map((r) => `<tr class="team-member">
+                  <td class="num dim">${r.leg_number ? `${r.leg_number}/${r.leg_count || unit.rows.length}` : ""}</td>
+                  <td><a href="#/runner/${r.person_id}">${esc(r.person_name)}</a><span class="leg-label">Leg ${r.leg_number || "?"}/${r.leg_count || unit.rows.length}</span></td>
+                  <td class="hide-sm dim"></td><td class="num">${individualTime(r)}</td><td></td>
+                </tr>`).join("")}`;
             }).join("")}
             </tbody>
           </table>

@@ -111,12 +111,15 @@ function renderDetail() {
   const rows = query(`
     SELECT r.id, r.rank, r.status, r.out_of_competition, r.time_s, r.observed_time,
            r.observed_name, r.club, r.result_kind, r.identity_state,
+           r.team_number, r.team_name, r.leg_number, r.leg_count,
+           r.individual_status, r.team_status, r.team_time_s, r.observed_team_time,
            COALESCE(p.name, r.observed_name) AS mapped_name, r.national_rank,
            GROUP_CONCAT(ai.code, ', ') AS issue_codes
     FROM result r LEFT JOIN person p ON p.id = r.person_id
     LEFT JOIN audit_issue ai ON ai.result_id = r.id
     WHERE r.result_list_id = ? GROUP BY r.id
-    ORDER BY r.rank IS NULL, r.rank, r.time_s`, [list.id]);
+    ORDER BY r.rank IS NULL, r.rank, COALESCE(r.team_number, r.team_name, r.club),
+             r.leg_number, r.time_s`, [list.id]);
   const issues = query(`SELECT severity, code, message FROM audit_issue
     WHERE result_list_id = ? ORDER BY CASE severity WHEN 'blocker' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END, code`, [list.id]);
   const byDim = decisionMap(list.id);
@@ -128,6 +131,42 @@ function renderDetail() {
     `<div class="review-issue ${esc(i.severity)}"><b>${i.severity === "blocker" ? "Blocker" : "Hinweis"}</b> ${esc(i.message)}</div>`).join("")}</div>` :
     `<div class="review-clean">Automatische Prüfungen ohne Befund.</div>`;
   const sourceUrl = list.snapshot_path ? `/review-source?id=${encodeURIComponent(list.id)}` : list.source_url;
+  const parsedUnits = [];
+  const parsedUnitIndex = new Map();
+  for (const row of rows) {
+    const isTeam = ["relay", "team"].includes(row.result_kind);
+    const key = !isTeam ? null : row.team_number
+      ? `${row.result_kind}:number:${row.team_number}`
+      : `${row.result_kind}:name:${row.team_name || row.club || row.id}`;
+    if (!key) parsedUnits.push({ team: false, rows: [row] });
+    else if (!parsedUnitIndex.has(key)) {
+      parsedUnitIndex.set(key, parsedUnits.length);
+      parsedUnits.push({ team: true, rows: [row] });
+    } else parsedUnits[parsedUnitIndex.get(key)].rows.push(row);
+  }
+  const parsedRowsHtml = parsedUnits.map((unit) => {
+    if (!unit.team) {
+      const r = unit.rows[0];
+      return `<tr class="${r.issue_codes ? "review-row-issue" : ""}">
+        <td>${r.out_of_competition ? "OOC" : r.rank ?? ""}</td><td></td>
+        <td><b>${esc(r.observed_name)}</b>${r.mapped_name !== r.observed_name ? `<small>→ ${esc(r.mapped_name)}</small>` : ""}${r.result_kind === "family" ? `<small>nicht personenbezogen</small>` : ""}</td>
+        <td>${esc(r.status)}${r.issue_codes ? `<small>${esc(r.issue_codes)}</small>` : ""}</td>
+        <td>${esc(r.observed_time || fmtTime(r.time_s))}</td><td>${esc(r.club || "")}</td></tr>`;
+    }
+    const team = unit.rows[0];
+    const label = `${team.team_number ? `#${team.team_number} ` : ""}${team.team_name || team.club || "Team"}`;
+    const total = team.observed_team_time || fmtTime(team.team_time_s) ||
+      (team.team_status !== "ok" ? team.team_status : "");
+    return `<tr class="review-team-row"><td>${team.out_of_competition ? "OOC" : team.rank ?? ""}</td>
+      <td colspan="2">${esc(label)}</td><td>${esc(team.team_status || team.status)}</td>
+      <td>${esc(total)}</td><td>${esc(team.club || "")}</td></tr>` +
+      unit.rows.map((r) => `<tr class="review-team-member ${r.issue_codes ? "review-row-issue" : ""}">
+        <td></td><td>Leg ${r.leg_number || "?"}/${r.leg_count || unit.rows.length}</td>
+        <td><b>${esc(r.observed_name)}</b>${r.mapped_name !== r.observed_name ? `<small>→ ${esc(r.mapped_name)}</small>` : ""}</td>
+        <td>${r.issue_codes ? `<small>${esc(r.issue_codes)}</small>` : ""}</td>
+        <td>${r.individual_status && r.individual_status !== "ok" ? `<b>${esc(r.individual_status)}</b>` : esc(r.observed_time || fmtTime(r.time_s))}</td>
+        <td></td></tr>`).join("");
+  }).join("");
   $("review-detail").innerHTML = `
     <div class="review-titlebar">
       <div><p class="review-kicker">${esc(list.date || "")} · ${esc(list.source_type)}</p>
@@ -161,12 +200,8 @@ function renderDetail() {
         ${sourceUrl ? `<iframe src="${esc(sourceUrl)}" title="Originalquelle"></iframe>` : `<div class="review-placeholder">Kein lokaler Snapshot; Quellenlink fehlt.</div>`}
       </div>
       <div class="review-parsed"><div class="pane-head">Geparstes Ergebnis</div>
-        <div class="review-table-wrap"><table><thead><tr><th>Pl</th><th>Name / Mapping</th><th>Status</th><th>Zeit</th><th>Verein</th></tr></thead>
-        <tbody>${rows.map((r) => `<tr class="${r.issue_codes ? "review-row-issue" : ""}">
-          <td>${r.out_of_competition ? "OOC" : r.rank ?? ""}</td>
-          <td><b>${esc(r.observed_name)}</b>${r.mapped_name !== r.observed_name ? `<small>→ ${esc(r.mapped_name)}</small>` : ""}${r.result_kind === "family" ? `<small>nicht personenbezogen</small>` : ""}</td>
-          <td>${esc(r.status)}${r.issue_codes ? `<small>${esc(r.issue_codes)}</small>` : ""}</td>
-          <td>${esc(r.observed_time || fmtTime(r.time_s))}</td><td>${esc(r.club || "")}</td></tr>`).join("")}</tbody></table></div>
+        <div class="review-table-wrap"><table><thead><tr><th>Pl</th><th>Team / Leg</th><th>Name / Mapping</th><th>Status Team</th><th>Zeit / Leg-Status</th><th>Verein</th></tr></thead>
+        <tbody>${parsedRowsHtml}</tbody></table></div>
       </div>
     </div>`;
   $("confirm-list").addEventListener("click", () => saveCurrent("confirmed"));

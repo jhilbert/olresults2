@@ -117,6 +117,14 @@ CREATE TABLE result (
     course_length_m INTEGER, course_climb_m INTEGER, course_controls INTEGER,
     result_kind TEXT NOT NULL DEFAULT 'individual',  -- individual|pair|relay|team|family
     note TEXT,                       -- e.g. "Partner: X" / "Staffel Y, Leg N"
+    team_number TEXT,                -- source start/bib number, stable within a list
+    team_name TEXT,                  -- source team label, not canonicalized club
+    leg_number INTEGER,
+    leg_count INTEGER,
+    individual_status TEXT,          -- this leg/member only
+    team_status TEXT,                -- overall relay/team classification
+    team_time_s INTEGER,
+    observed_team_time TEXT,
     source TEXT NOT NULL,            -- anne-api|sportsoftware-html|...
     source_document_id TEXT REFERENCES source_document(id),
     observed_name TEXT,              -- source spelling before canonical identity resolution
@@ -1652,7 +1660,9 @@ def register_result_list(cur, stage_id, source_document_id, category, category_f
 RESULT_COLS = ("stage_id", "person_id", "result_list_id", "category", "category_full", "club", "official_club",
                "rank", "status", "time_s", "time_behind_s", "out_of_competition",
                "course_length_m", "course_climb_m", "course_controls",
-               "result_kind", "note", "source", "source_document_id",
+               "result_kind", "note", "team_number", "team_name", "leg_number", "leg_count",
+               "individual_status", "team_status", "team_time_s", "observed_team_time",
+               "source", "source_document_id",
                "observed_name", "observed_club", "observed_user_id", "observed_category",
                "observed_rank", "observed_status", "observed_time",
                "identity_basis", "identity_confidence", "identity_state", "championship")
@@ -1668,6 +1678,46 @@ def insert_result(cur, **kw):
     vals = [kw.get(c) for c in RESULT_COLS]
     cur.execute(f"INSERT INTO result ({','.join(RESULT_COLS)}) "
                 f"VALUES ({','.join('?' * len(RESULT_COLS))})", vals)
+
+
+TEAM_STATUS_PRIORITY = {
+    "unknown": 0, "ok": 1, "dns": 2, "dnf": 3, "mp": 4, "dsq": 5,
+}
+
+
+def aggregate_team_status(declared_status, member_statuses):
+    """Compute one classification for a whole relay/team unit."""
+    known = [s for s in [declared_status, *(member_statuses or [])]
+             if s in TEAM_STATUS_PRIORITY and s != "unknown"]
+    return max(known, key=TEAM_STATUS_PRIORITY.get) if known else "unknown"
+
+
+def relay_metadata(row, kind):
+    """Read explicit relay fields, with notes as a compatibility fallback."""
+    if kind not in ("relay", "team"):
+        return {}
+    note = row.get("note") or ""
+    team_name = row.get("teamName")
+    if not team_name:
+        match = re.search(r"Staffel:\s*([^·]+)", note)
+        team_name = match.group(1).strip() if match else row.get("club")
+    leg_number = row.get("leg")
+    leg_count = row.get("legCount")
+    if leg_number is None:
+        match = re.search(r"Leg\s+(\d+)(?:/(\d+))?", note)
+        if match:
+            leg_number = int(match.group(1))
+            leg_count = leg_count or (int(match.group(2)) if match.group(2) else None)
+    return {
+        "team_number": str(row.get("teamNumber")) if row.get("teamNumber") not in (None, "") else None,
+        "team_name": team_name,
+        "leg_number": int(leg_number) if leg_number not in (None, "") else None,
+        "leg_count": int(leg_count) if leg_count not in (None, "") else None,
+        "individual_status": row.get("individualStatus"),
+        "team_status": row.get("teamStatus") or row.get("status"),
+        "team_time_s": row.get("teamTimeS"),
+        "observed_team_time": row.get("teamTimeText"),
+    }
 
 
 def default_stage(cur, event, stage_ids):
@@ -1860,9 +1910,22 @@ def insert_anne_relay(cur, persons, sid, cat, team, source_document_id=None,
 
     team_name = clean_club(team.get("teamName") or team.get("clubName") or "")
     championship = anne_championship(team)
+    raw_team_status = team.get("classification")
+    declared_team_status, team_ooc = normalize_status(
+        ANNE_STATUS.get(raw_team_status, "unknown"), raw_team_status,
+        team.get("outOfCompetition"))
+    member_statuses = []
+    for member in members:
+        raw_member_status = (member.get("classification") or
+                             (member.get("overall") or {}).get("classification"))
+        member_statuses.append(normalize_status(
+            ANNE_STATUS.get(raw_member_status, "unknown"), raw_member_status)[0])
+    team_status = aggregate_team_status(declared_team_status, member_statuses)
+    team_number = team.get("bibNumber") or team.get("startNumber")
+    team_time = team.get("time")
     n = 0
     prev_cum = 0
-    for m, nm in zip(members, names):
+    for member_index, (m, nm) in enumerate(zip(members, names), start=1):
         ov = m.get("overall") or {}
         cum = ov.get("time")
         leg_time = (cum - prev_cum) if (cum is not None) else None
@@ -1883,23 +1946,28 @@ def insert_anne_relay(cur, persons, sid, cat, team, source_document_id=None,
         persons.record(pid, nm, authoritative=bool(m.get("firstName") and m.get("lastName")))
         mates = list(dict.fromkeys(o for o in names if o and o != nm))
         note_bits = [f"Staffel: {team_name}".strip(),
-                     f"Leg {m.get('leg')}/{len(members)}"]
+                     f"Leg {m.get('leg') or member_index}/{len(members)}"]
         if mates:
             note_bits.append("Team: " + ", ".join(mates))
         relay_club = clean_club(team.get("clubName"))
         observed_name = f"{m.get('firstName') or ''} {m.get('lastName') or ''}".strip()
-        raw_status = m.get("classification") or team.get("classification")
-        status, ooc = normalize_status(
-            ANNE_STATUS.get(raw_status, "unknown"), raw_status,
-            team.get("outOfCompetition"))
+        raw_status = (m.get("classification") or
+                      (m.get("overall") or {}).get("classification"))
+        individual_status = member_statuses[member_index - 1]
         insert_result(cur, stage_id=sid, person_id=pid,
                       result_list_id=result_list_id_value, category=cat,
                       category_full=team.get("categoryTitle"), club=relay_club,
                       official_club=canonicalize_official_club(relay_club, OFFICIAL_CLUBS),
                       rank=team.get("rank"),
-                      status=status, out_of_competition=ooc,
+                      status=team_status, out_of_competition=team_ooc,
                       time_s=leg_time, result_kind="relay",
-                      note=" · ".join(note_bits), source="anne-api",
+                      note=" · ".join(note_bits),
+                      team_number=str(team_number) if team_number not in (None, "") else None,
+                      team_name=team_name, leg_number=m.get("leg") or member_index,
+                      leg_count=len(members), individual_status=individual_status,
+                      team_status=team_status, team_time_s=team_time,
+                      observed_team_time=str(team_time) if team_time is not None else None,
+                      source="anne-api",
                       source_document_id=source_document_id,
                       observed_name=observed_name, observed_club=team.get("clubName"),
                       observed_user_id=str(uid) if uid is not None else None,
@@ -2383,6 +2451,13 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                 status, ooc = normalize_status(
                     raw_status, r.get("timeText") or raw_status,
                     r.get("outOfCompetition"))
+                metadata = relay_metadata(r, kind)
+                if metadata:
+                    individual_raw = metadata.get("individual_status")
+                    metadata["individual_status"] = normalize_status(
+                        individual_raw or raw_status,
+                        r.get("timeText") or individual_raw or raw_status)[0]
+                    metadata["team_status"] = status
                 insert_result(cur, stage_id=sid, person_id=pid, result_list_id=list_id,
                               category=cat["name"],
                               category_full=cat["name"], club=r.get("club"),
@@ -2403,7 +2478,7 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                               identity_basis="legacy-name-yob" if r.get("yearOfBirth")
                                              else "legacy-name",
                               identity_confidence=0.75 if r.get("yearOfBirth") else 0.55,
-                              championship=r.get("championship"))
+                              championship=r.get("championship"), **metadata)
                 n += 1
 
     for sid, titles in stage_doc_titles.items():
@@ -2429,16 +2504,81 @@ def add_audit_issue(cur, list_id, code, severity, message, result_id=None,
          code, severity, message, int(auto_resolvable)))
 
 
+def normalize_team_results(cur):
+    """Backfill explicit team/leg fields and enforce one status per team.
+
+    This is deliberately a build-time invariant in addition to parser logic:
+    old normalized snapshots and ANNE's structured relay rows then obey the
+    same semantics, and no UI/audit consumer has to infer teams from rank or
+    member status again.
+    """
+    rows = cur.execute(
+        """SELECT id, stage_id, result_list_id, category, result_kind, rank,
+                  status, individual_status, team_status, team_number,
+                  team_name, leg_number, leg_count, club, note
+           FROM result WHERE result_kind IN ('relay', 'team') ORDER BY id"""
+    ).fetchall()
+    groups = defaultdict(list)
+    prepared = []
+    for row in rows:
+        (rid, stage_id, list_id, category, kind, rank, status,
+         individual_status, team_status, team_number, team_name,
+         leg_number, leg_count, club, note) = row
+        note = note or ""
+        if not team_name:
+            match = re.search(r"Staffel:\s*([^·]+)", note)
+            team_name = match.group(1).strip() if match else club
+        if leg_number is None:
+            match = re.search(r"Leg\s+(\d+)(?:/(\d+))?", note)
+            if match:
+                leg_number = int(match.group(1))
+                leg_count = leg_count or (int(match.group(2)) if match.group(2) else None)
+        individual_status = individual_status or status
+        scope = list_id or f"{stage_id}:{category}"
+        identity = (f"n:{team_number}" if team_number else
+                    f"t:{(team_name or '').strip().casefold()}" if team_name else
+                    f"legacy:{rank}:{(club or '').strip().casefold()}")
+        key = (scope, kind, identity)
+        item = {
+            "id": rid, "status": status, "team_status": team_status,
+            "individual_status": individual_status, "team_name": team_name,
+            "leg_number": leg_number, "leg_count": leg_count,
+        }
+        groups[key].append(item)
+        prepared.append(item)
+
+    for members in groups.values():
+        statuses = [m["individual_status"] for m in members]
+        declared = aggregate_team_status(
+            None, [m["team_status"] or m["status"] for m in members])
+        overall = aggregate_team_status(declared, statuses)
+        inferred_leg_count = max(
+            [m["leg_count"] or 0 for m in members] +
+            [m["leg_number"] or 0 for m in members]) or None
+        for m in members:
+            cur.execute(
+                """UPDATE result SET status = ?, team_status = ?,
+                          individual_status = ?, team_name = ?, leg_number = ?,
+                          leg_count = ? WHERE id = ?""",
+                (overall, overall, m["individual_status"], m["team_name"],
+                 m["leg_number"], m["leg_count"] or inferred_leg_count, m["id"]))
+
+
 def competitor_unit_key(row):
     """Stable unit key for entry counts after pair/relay member expansion."""
-    rid, kind, rank, status, time_s, club, note = row
+    rid, kind, rank, status, time_s, club, note, team_number, team_name = row
     if kind in ("individual", "family"):
         return f"row:{rid}"
     if kind == "pair":
         return f"pair:{rank}:{status}:{time_s}:{club or ''}"
+    if team_number:
+        return f"{kind}:number:{team_number}"
+    if team_name:
+        return f"{kind}:name:{team_name.strip().casefold()}"
     team = note or ""
     m = re.search(r"Staffel:\s*([^·]+)", team)
-    return f"{kind}:{rank}:{status}:{club or ''}:{m.group(1).strip() if m else team}"
+    legacy_name = m.group(1).strip() if m else club or team
+    return f"{kind}:legacy:{legacy_name.strip().casefold()}"
 
 
 def populate_quality_model(cur):
@@ -2448,7 +2588,8 @@ def populate_quality_model(cur):
     ).fetchall()
     for list_id, category, declared, fingerprint in lists:
         rows = cur.execute(
-            """SELECT id, result_kind, rank, status, time_s, club, note
+            """SELECT id, result_kind, rank, status, time_s, club, note,
+                      team_number, team_name
                FROM result WHERE result_list_id = ? ORDER BY id""", (list_id,)).fetchall()
         entries = len({competitor_unit_key(row) for row in rows})
         cur.execute(
@@ -2652,6 +2793,7 @@ def main():
     n_api = load_anne_results(cur, events, persons, stage_ids)
     persons.finalize_first_names()
     n_legacy = load_legacy_results(cur, events, persons, stage_ids, anne_event_ids)
+    normalize_team_results(cur)
 
     # Load verified club identities before the general duplicate-account pass.
     # This ordering is a correctness boundary: a bad source row must not get
@@ -2877,7 +3019,9 @@ def main():
     # person still owns them), then hand the originals to the first runner.
     _copy_cols = ("stage_id, result_list_id, category, category_full, club, official_club, rank, "
                   "status, time_s, time_behind_s, out_of_competition, course_length_m, "
-                  "course_climb_m, course_controls, result_kind, note, source, "
+                  "course_climb_m, course_controls, result_kind, note, team_number, team_name, "
+                  "leg_number, leg_count, individual_status, team_status, team_time_s, "
+                  "observed_team_time, source, "
                   "source_document_id, observed_name, observed_club, observed_user_id, "
                   "observed_category, observed_rank, observed_status, observed_time, "
                   "identity_basis, identity_confidence, identity_state, championship")
@@ -3120,7 +3264,13 @@ def main():
           AND EXISTS (
             SELECT 1 FROM result r2 JOIN stage s2 ON s2.id = r2.stage_id
             WHERE r2.stage_id = result.stage_id AND r2.category = result.category
-              AND r2.rank = result.rank
+              AND ((result.result_kind = 'pair' AND r2.rank = result.rank)
+                   OR (result.result_kind IN ('relay', 'team')
+                       AND r2.result_kind = result.result_kind
+                       AND COALESCE('n:' || r2.team_number,
+                                    't:' || r2.team_name, 'c:' || r2.club, '') =
+                           COALESCE('n:' || result.team_number,
+                                    't:' || result.team_name, 'c:' || result.club, '')))
               AND EXISTS (SELECT 1 FROM ineligible_starter i
                           WHERE i.event_id = s2.event_id AND i.person_id = r2.person_id))
     """)
@@ -3159,8 +3309,12 @@ def main():
               AND NOT EXISTS (SELECT 1 FROM ineligible_starter i
                               WHERE i.event_id = s.event_id AND i.person_id = r.person_id)
             GROUP BY r.stage_id, r.category
-            HAVING COUNT(DISTINCT CASE WHEN r.result_kind = 'individual'
-                                       THEN 'p' || r.person_id ELSE 'c' || r.club END) < 3)
+            HAVING COUNT(DISTINCT CASE
+                       WHEN r.result_kind = 'individual' THEN 'p:' || r.person_id
+                       WHEN r.result_kind IN ('relay', 'team') THEN
+                            COALESCE('n:' || r.team_number,
+                                     't:' || r.team_name, 'c:' || r.club)
+                       ELSE 'c:' || r.club END) < 3)
     """)
     cur.execute("DROP TABLE ineligible_starter")
 
@@ -3249,7 +3403,9 @@ def main():
             SELECT COUNT(CASE WHEN r2.result_kind = 'individual' THEN 1 END)
                  + COUNT(DISTINCT CASE WHEN r2.result_kind = 'pair' THEN pu2.unit_key END)
                  + COUNT(DISTINCT CASE WHEN r2.result_kind IN ('relay', 'team')
-                                        THEN r2.club END)
+                                        THEN COALESCE('n:' || r2.team_number,
+                                                      't:' || r2.team_name,
+                                                      'c:' || r2.club) END)
                  + 1
             FROM result r2
             LEFT JOIN pair_unit pu2 ON pu2.result_id = r2.id
@@ -3271,7 +3427,7 @@ def main():
     populate_championship_model(cur)
     populate_quality_model(cur)
 
-    cur.execute("PRAGMA user_version = 3")
+    cur.execute("PRAGMA user_version = 4")
     con.commit()
     for table in ("event", "stage", "person", "person_identifier", "person_alias",
                   "person_redirect", "person_tombstone", "source_document", "result_list", "result",
