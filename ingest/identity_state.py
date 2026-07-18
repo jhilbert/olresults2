@@ -52,8 +52,15 @@ def request(method, path="", body=None):
         headers["Content-Type"] = "application/json"
     req = urllib.request.Request(f"{base}/state/identity{path}", data=body,
                                  method=method, headers=headers)
-    with urllib.request.urlopen(req, timeout=90, context=SSL_CONTEXT) as response:
-        return response.read()
+    try:
+        with urllib.request.urlopen(req, timeout=90, context=SSL_CONTEXT) as response:
+            return response.read()
+    except urllib.error.HTTPError as exc:
+        # The response body is deliberately limited to a short diagnostic.
+        # It helps distinguish gateway authentication, R2 and schema errors
+        # in CI without printing the bearer token or the private snapshot.
+        diagnostic = exc.read(1024).decode("utf-8", "replace").strip()
+        raise RuntimeError(f"gateway returned HTTP {exc.code}: {diagnostic or exc.reason}") from exc
 
 
 def pull(required):
