@@ -328,6 +328,10 @@ footer a { color: var(--accent-dark); text-decoration: none; }
 .review-parsed td .review-mapping.club { color: #15753a; }
 .review-parsed td .review-mapping.id { color: #37646f; }
 .review-parsed td .review-mapping.unmapped { color: #805300; }
+.review-parsed td .review-mapping.identity-state.resolved { color: #15753a; font-weight: 700; }
+.review-parsed td .review-mapping.identity-state.candidate { color: #805300; font-weight: 700; }
+.review-parsed td .review-mapping.identity-state.unresolved,
+.review-parsed td .review-mapping.identity-state.conflict { color: #a52b1f; font-weight: 700; }
 .review-row-issue { background: #fff5f2; }
 .review-team-row { background: #eef8f8; font-weight: 600; }
 .review-team-member td:nth-child(2) { padding-left: 18px; }

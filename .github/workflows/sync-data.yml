@@ -33,10 +33,19 @@ jobs:
       - name: Restore durable eligibility state
         run: python3 ingest/eligibility_state.py pull --required
 
+      - name: Restore private ANNE identity index
+        run: python3 ingest/identity_state.py pull --required
+
       - name: Sync source data through the ANNE gateway
         run: |
           set -o pipefail
           python3 ingest/run_sync.py 2>&1 | tee "$RUNNER_TEMP/source-sync.log"
+
+      - name: Refresh private ANNE identity index when stale
+        run: python3 ingest/anne_user_index.py --max-age-hours 168
+
+      - name: Save private ANNE identity index
+        run: python3 ingest/identity_state.py push
 
       - name: Upload source sync log
         if: always()

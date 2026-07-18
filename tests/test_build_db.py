@@ -43,9 +43,9 @@ class AnneIdentityTests(unittest.TestCase):
         )
 
     def test_synthetic_ids_are_deterministic_and_identity_scoped(self):
-        first = build_db.PersonRegistry().from_legacy("Anna Beispiel", 1988)
-        second = build_db.PersonRegistry().from_legacy("Anna Beispiel", 1988)
-        different_yob = build_db.PersonRegistry().from_legacy("Anna Beispiel", 1989)
+        first = build_db.PersonRegistry().from_legacy("Anna Beispiel", 1988)[0]
+        second = build_db.PersonRegistry().from_legacy("Anna Beispiel", 1988)[0]
+        different_yob = build_db.PersonRegistry().from_legacy("Anna Beispiel", 1989)[0]
         self.assertLess(first, 0)
         self.assertEqual(first, second)
         self.assertNotEqual(first, different_yob)
@@ -84,12 +84,12 @@ class AnneIdentityTests(unittest.TestCase):
             con.execute("SELECT person_id, time_s FROM result ORDER BY person_id").fetchall(),
             [(9787, 500), (9910, 600)],
         )
-        self.assertEqual(persons.by_id[9910][2:], (2014, "AUT", None))
+        self.assertEqual(persons.by_id[9910][2:], (2014, "AUT"))
         self.assertEqual(
             con.execute(
                 "SELECT observed_user_id, identity_basis, identity_confidence "
                 "FROM result ORDER BY person_id").fetchall(),
-            [("9787", "anne-user-id", 1.0), ("9910", "anne-user-id", 1.0)],
+            [("9787", "source-oefol-id", 1.0), ("9910", "source-oefol-id", 1.0)],
         )
 
     def test_verified_members_survive_a_crossed_anne_name_and_user_id(self):
@@ -97,25 +97,25 @@ class AnneIdentityTests(unittest.TestCase):
         con.executescript(build_db.SCHEMA)
         persons = build_db.PersonRegistry()
 
-        persons.from_anne(1644, "Christian Arbter", None, None, None)
+        persons.from_anne(1644, "Christian Arbter", None, None)
         persons.record(1644, "Christian Arbter", authoritative=True)
-        persons.from_anne(3682, "Christian Arbter", None, None, None)
+        persons.from_anne(3682, "Christian Arbter", None, None)
         persons.record(3682, "Christian Arbter", authoritative=True)
         build_db.insert_result(
             con.cursor(), stage_id=1, person_id=3682, category="H21", status="ok",
             source="anne-api", observed_name="Christian Arbter",
-            observed_user_id="3682", identity_basis="anne-user-id",
+            observed_user_id="3682", identity_basis="source-oefol-id",
             identity_confidence=1.0,
         )
 
-        synthetic_sabine = persons.from_legacy("Sabine Jandl", None)
+        synthetic_sabine = persons.from_legacy("Sabine Jandl", None)[0]
         persons.record(synthetic_sabine, "Sabine Jandl")
         build_db.insert_result(
             con.cursor(), stage_id=1, person_id=synthetic_sabine, category="D45",
             status="ok", source="anne-api", observed_name="Sabine Jandl",
             identity_basis="legacy-name", identity_confidence=0.55,
         )
-        persons.from_anne(3682, "Sabine Jandl", None, None, None)
+        persons.from_anne(3682, "Sabine Jandl", None, None)
         persons.record(3682, "Sabine Jandl", authoritative=True)
 
         members = [
@@ -145,8 +145,8 @@ class AnneIdentityTests(unittest.TestCase):
 
     def test_verified_member_id_wins_over_a_duplicate_anne_account(self):
         persons = build_db.PersonRegistry()
-        persons.from_anne(3000, "Ada Beispiel", 1985, None, None)
-        persons.from_anne(5000, "Ada Beispiel", 1985, None, None)
+        persons.from_anne(3000, "Ada Beispiel", 1985, None)
+        persons.from_anne(5000, "Ada Beispiel", 1985, None)
 
         merges = build_db.duplicate_identity_merge_edges(persons, {5000})
 
@@ -156,14 +156,14 @@ class AnneIdentityTests(unittest.TestCase):
         con = sqlite3.connect(":memory:")
         con.executescript(build_db.SCHEMA)
         persons = build_db.PersonRegistry()
-        persons.from_anne(8520, "Kathrin Kollndorfer", 1981, None, None)
+        persons.from_anne(8520, "Kathrin Kollndorfer", 1981, None)
         persons.record(8520, "Kathrin Kollndorfer", authoritative=True)
-        persons.from_anne(10344, "Kathrin Kollndorfer", 1981, None, None)
+        persons.from_anne(10344, "Kathrin Kollndorfer", 1981, None)
         persons.record(10344, "Kathrin Kollndorfer", authoritative=True)
         build_db.insert_result(
             con.cursor(), stage_id=1, person_id=10344, category="D40", status="ok",
             source="anne-api", observed_name="Kathrin Kollndorfer",
-            observed_user_id="10344", identity_basis="anne-user-id",
+            observed_user_id="10344", identity_basis="source-oefol-id",
             identity_confidence=1.0,
         )
         members = [{

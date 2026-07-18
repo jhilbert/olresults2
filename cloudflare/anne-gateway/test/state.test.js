@@ -3,8 +3,10 @@ import test from "node:test";
 
 import {
   eligibilityCounts,
+  identityCounts,
   stateWouldShrink,
   validateEligibilityState,
+  validateIdentityState,
 } from "../src/index.js";
 import worker from "../src/index.js";
 
@@ -74,6 +76,20 @@ test("counts people and event-scoped decisions", () => {
   );
 });
 
+test("validates a private ANNE identity snapshot without exposing it", () => {
+  const snapshot = {
+    schema_version: 1,
+    fetched_at: "2026-07-18T12:00:00Z",
+    users: [{ oefol_id: 9589, active_memberships: [] }],
+  };
+  assert.equal(validateIdentityState(snapshot), true);
+  assert.deepEqual(identityCounts(snapshot), { people: 1 });
+  assert.equal(validateIdentityState({ ...snapshot, users: [
+    ...snapshot.users, { oefol_id: 9589, active_memberships: [] },
+  ] }), false);
+  assert.equal(validateIdentityState({ ...snapshot, users: [{}] }), false);
+});
+
 test("normal updates may grow but never shrink the ledger", () => {
   assert.equal(stateWouldShrink({ people: 2, decisions: 3 }, { people: 2, decisions: 4 }), false);
   assert.equal(stateWouldShrink({ people: 2, decisions: 3 }, { people: 1, decisions: 3 }), true);
@@ -107,4 +123,27 @@ test("gateway snapshots updates, rejects shrink, and restores history", async ()
   const restored = await response.json();
   assert.equal(restored.decisions, 1);
   assert.ok(restored.backupKey);
+});
+
+test("gateway stores and versions the private identity snapshot", async () => {
+  const env = { SYNC_GATEWAY_TOKEN: "test-token", PRIVATE_STATE: new MemoryR2() };
+  const first = {
+    schema_version: 1,
+    fetched_at: "2026-07-18T12:00:00Z",
+    users: [{ oefol_id: 1, active_memberships: [] }],
+  };
+  const updated = {
+    ...first,
+    fetched_at: "2026-07-19T12:00:00Z",
+    users: [...first.users, { oefol_id: 2, active_memberships: [] }],
+  };
+  let response = await worker.fetch(stateRequest("/state/identity", "PUT", first), env);
+  assert.equal(response.status, 200);
+  response = await worker.fetch(stateRequest("/state/identity", "PUT", updated), env);
+  const saved = await response.json();
+  assert.equal(saved.people, 2);
+  assert.match(saved.backupKey, /^identity\/history\//);
+  response = await worker.fetch(stateRequest("/state/identity"), env);
+  const restored = await response.json();
+  assert.equal(restored.users.length, 2);
 });

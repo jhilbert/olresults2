@@ -1,9 +1,11 @@
 # Identity and provenance model
 
 The public database separates what a source said from the identity OLRESULTS2
-currently assigns it to.  This is intentionally evidence-based: an ANNE user
-id is a strong source identifier, but only Naturfreunde Wien's book of record
-is treated as independently verified club membership.
+currently assigns it to. A private, complete ANNE `/user` snapshot supplies
+authoritative ÖFOL-ID, canonical name and birth-year evidence; only the
+profiles needed by actual result rows are derived into the public database.
+Naturfreunde Wien's book of record remains a separate, independent membership
+confirmation.
 
 ## Source evidence
 
@@ -31,12 +33,15 @@ static site.  Supporting tables make its derivation auditable:
 
 Identifier semantics:
 
-- `anne_user_id`: supplied by ANNE, strong person evidence, not independent
-  proof of club membership;
-- `oefol_id`: verified only when present in the club's private book of record;
-- `iof_id`: supplied by ANNE;
-- `club_internal`: verified internal Naturfreunde Wien identity without an
-  ÖFOL id.
+- `oefol_id` from `anne-user-registry`: authoritative identifier from ANNE's
+  person registry;
+- `oefol_id` from `naturfreunde-wien-book-of-record`:
+  independently confirmed membership evidence for the same identifier.
+
+`anne_is_verified` is a raw ANNE account property retained in the private
+index; it is not conflated with identifier authority or a club's independent
+roster confirmation. IOF IDs and internal club member numbers are not part of
+the OLRESULTS2 person-identifier model.
 
 Legacy-only identities receive a deterministic negative id derived from their
 normalized name and birth year. The cumulative
@@ -47,7 +52,7 @@ newly built databases; older redirects are retained and chained to a current
 target. Historical ids that represented only misparsed split-time rows are
 deliberately not redirected to a real person.
 
-Verified book-of-record IDs are canonicalized before duplicate-account
+Independently confirmed book-of-record IDs are canonicalized before duplicate-account
 matching and are never merged into a different ID. If ANNE crosses a verified
 ID with another person's exact name, only the affected result row is reassigned
 when that name uniquely identifies an independently established identity. The
@@ -55,6 +60,8 @@ source-supplied ID remains in `result.observed_user_id` as conflict evidence.
 
 ## Future matching decisions
 
-New automatic matchers should add evidence and an explicit confidence/basis;
-they must not claim that another club's roster is verified.  Ambiguous or
-conflicting evidence belongs in a review queue, not in an automatic merge.
+New automatic matchers should add evidence and an explicit confidence/basis.
+An exact ANNE-registry name+birth-year match is `resolved`; a match supported
+only by a current club is a `candidate`, because current membership cannot
+rewrite a historic result club. Ambiguous or conflicting evidence belongs in a
+review queue, not in an automatic merge.

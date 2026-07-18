@@ -20,6 +20,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw" / "anne"
+USER_INDEX_PATH = RAW / "user_index.json"
 NORM = ROOT / "data" / "normalized"
 DB_PATH = ROOT / "site" / "data" / "results.db"
 REVIEW_DECISIONS_PATH = ROOT / "data" / "review" / "verification.json"
@@ -45,15 +46,16 @@ CREATE TABLE person (
     id INTEGER PRIMARY KEY,
     name TEXT NOT NULL,
     name_key TEXT NOT NULL,
-    year_of_birth INTEGER, nationality TEXT, iof_id TEXT
+    year_of_birth INTEGER, nationality TEXT
 );
 CREATE TABLE person_identifier (
-    scheme TEXT NOT NULL,             -- anne_user_id|oefol_id|iof_id|club_internal
+    scheme TEXT NOT NULL,             -- oefol_id
     identifier TEXT NOT NULL,
     person_id INTEGER NOT NULL REFERENCES person(id),
-    verified INTEGER NOT NULL DEFAULT 0,
-    verification_source TEXT NOT NULL,
-    PRIMARY KEY (scheme, identifier, person_id)
+    identifier_state TEXT NOT NULL,   -- authoritative|independently_confirmed|redirected
+    source TEXT NOT NULL,             -- anne-user-registry|club-book-of-record|result-observation
+    observed_at TEXT,
+    PRIMARY KEY (scheme, identifier, person_id, source)
 );
 CREATE TABLE person_alias (
     person_id INTEGER NOT NULL REFERENCES person(id),
@@ -855,7 +857,7 @@ def prepare_verified_member_identities(cur, persons, members):
     # It is useful as independent evidence for repairing one crossed source
     # row (including when the correctly named target is not in our club).
     anne_ids_by_name = defaultdict(list)
-    for pid, (_name, nk, _yob, _nat, _iof) in persons.by_id.items():
+    for pid, (_name, nk, _yob, _nat) in persons.by_id.items():
         if pid > 0:
             anne_ids_by_name[nk].append(pid)
 
@@ -871,7 +873,7 @@ def prepare_verified_member_identities(cur, persons, members):
         persons.by_id[oid] = (
             member["name"], member["name_key"],
             member["yob"] if member["yob"] is not None else existing[2],
-            existing[3], existing[4],
+            existing[3],
         )
         persons._link(oid, member["name"], member["yob"])
 
@@ -920,7 +922,7 @@ def prepare_verified_member_identities(cur, persons, members):
         cur.execute(
             """UPDATE result
                SET person_id = ?, identity_basis = 'club-book-of-record',
-                   identity_confidence = 1.0, identity_state = 'verified'
+                   identity_confidence = 1.0, identity_state = 'resolved'
                WHERE id = ?""",
             (target_id, result_id),
         )
@@ -954,7 +956,7 @@ def duplicate_identity_merge_edges(persons, verified_member_ids=()):
     merge is made; uncertainty is safer than destroying two identities.
     """
     by_name_group = defaultdict(list)
-    for pid, (_name, nk, _yob, _nat, _iof) in persons.by_id.items():
+    for pid, (_name, nk, _yob, _nat) in persons.by_id.items():
         keys = {nk, *persons.reconciliation_name_keys.get(pid, set())}
         for grouping_key in keys:
             by_name_group[grouping_key].append(pid)
@@ -978,7 +980,7 @@ def duplicate_identity_merge_edges(persons, verified_member_ids=()):
             if target_yob is not None and persons.by_id[target][2] is None:
                 current = persons.by_id[target]
                 persons.by_id[target] = (
-                    current[0], current[1], target_yob, current[3], current[4])
+                    current[0], current[1], target_yob, current[3])
             for synth_id in synth_ids:
                 synth_yob = persons.by_id[synth_id][2]
                 if synth_yob is None or target_yob is None or synth_yob == target_yob:
@@ -1451,6 +1453,93 @@ def is_valid_name(name):
     return True
 
 
+def club_match_key(name):
+    """Loose key only for supporting a legacy identity candidate with a
+    *current* ANNE membership.  It is never used to overwrite an observed
+    historic result club or to prove an identity on its own."""
+    value = unicodedata.normalize("NFKD", name or "")
+    value = "".join(c for c in value if not unicodedata.combining(c))
+    return re.sub(r"[^a-z0-9]", "", value.casefold())
+
+
+class AnneProfileIndex:
+    """Private, complete ANNE /user snapshot used only while building.
+
+    The index is intentionally not copied into the public SQLite database.
+    It can resolve a result's direct ÖFOL-ID and safely promote an exact
+    name+birth-year legacy match; a current club match is merely a candidate
+    signal because memberships can have changed since an old result.
+    """
+
+    def __init__(self, profiles=(), fetched_at=None):
+        self.fetched_at = fetched_at
+        self.by_id = {}
+        self.by_name_yob = defaultdict(list)
+        self.by_name = defaultdict(list)
+        for profile in profiles:
+            try:
+                oefol_id = int(profile["oefol_id"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            first = (profile.get("first_name") or "").strip()
+            last = (profile.get("last_name") or "").strip()
+            name = f"{first} {last}".strip()
+            if oefol_id <= 0 or not is_valid_name(name):
+                continue
+            yob = profile.get("year_of_birth")
+            yob = yob if isinstance(yob, int) else None
+            normalised = {
+                "oefol_id": oefol_id,
+                "name": name,
+                "name_key": name_key(name),
+                "year_of_birth": yob,
+                "nationality": profile.get("nationality") or None,
+                "anne_is_verified": bool(profile.get("anne_is_verified")),
+                "memberships": tuple(
+                    club_match_key((m.get("club") or {}).get("name"))
+                    for m in profile.get("active_memberships", [])
+                    if isinstance(m, dict) and isinstance(m.get("club"), dict)
+                ),
+            }
+            self.by_id[oefol_id] = normalised
+            self.by_name[normalised["name_key"]].append(normalised)
+            if yob is not None:
+                self.by_name_yob[(normalised["name_key"], yob)].append(normalised)
+
+    @classmethod
+    def empty(cls):
+        return cls()
+
+    def match(self, name, yob, club=None):
+        nk = name_key(name)
+        if yob is not None:
+            matches = self.by_name_yob.get((nk, yob), [])
+            return matches, "name-yob"
+        club_key = club_match_key(club)
+        if club_key:
+            matches = [profile for profile in self.by_name.get(nk, [])
+                       if club_key in profile["memberships"]]
+            return matches, "name-club"
+        return [], None
+
+
+def load_anne_profile_index():
+    if not USER_INDEX_PATH.exists():
+        return AnneProfileIndex.empty()
+    try:
+        snapshot = json.loads(USER_INDEX_PATH.read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"warning: private ANNE user index is unreadable: {exc}")
+        return AnneProfileIndex.empty()
+    if snapshot.get("schema_version") != 1 or not isinstance(snapshot.get("users"), list):
+        print("warning: private ANNE user index has unsupported shape")
+        return AnneProfileIndex.empty()
+    index = AnneProfileIndex(snapshot["users"], snapshot.get("fetched_at"))
+    print(f"loaded private ANNE identity index: {len(index.by_id)} ÖFOL profiles"
+          + (f" (snapshot {index.fetched_at})" if index.fetched_at else ""))
+    return index
+
+
 class PersonRegistry:
     """Identity resolution across sources.
 
@@ -1463,7 +1552,7 @@ class PersonRegistry:
     over minting a new synthetic one.
     """
 
-    def __init__(self):
+    def __init__(self, anne_profiles=None):
         self.by_id = {}
         self.by_key = {}     # (name_key, yob) -> pid
         self.by_name = {}    # name_key -> [pid, ...], insertion order, no dupes
@@ -1473,6 +1562,7 @@ class PersonRegistry:
         self.first_names = set()               # lowercased firstNames from the API
         self.last_names = set()                # lowercased lastNames from the API
         self.anne_ids = set()                   # source-supplied ANNE identifiers
+        self.anne_profiles = anne_profiles or AnneProfileIndex.empty()
 
     def add_first_name(self, name):
         """Record a firstName seen in the ANNE API, for reorder_first_last's
@@ -1509,14 +1599,14 @@ class PersonRegistry:
         if authoritative:
             self.name_auth[pid][name] += 1
 
-    def _new(self, name, yob, nationality=None, iof_id=None, pid=None):
+    def _new(self, name, yob, nationality=None, pid=None):
         if pid is None:
             salt = 0
             pid = stable_synthetic_id(name, yob, salt)
             while pid in self.by_id and self.by_id[pid][1:3] != (name_key(name), yob):
                 salt += 1
                 pid = stable_synthetic_id(name, yob, salt)
-        self.by_id[pid] = (name, name_key(name), yob, nationality, iof_id)
+        self.by_id[pid] = (name, name_key(name), yob, nationality)
         self._link(pid, name, yob)
         return pid
 
@@ -1527,20 +1617,40 @@ class PersonRegistry:
         if pid not in lst:
             lst.append(pid)
 
-    def from_anne(self, user_id, name, yob, nationality, iof_id):
+    def from_anne(self, user_id, name, yob, nationality=None):
+        profile = self.anne_profiles.by_id.get(user_id)
+        if profile:
+            name = profile["name"] or name
+            yob = profile["year_of_birth"] or yob
+            nationality = profile["nationality"] or nationality
         self.anne_ids.add(user_id)
         if user_id in self.by_id:
             self._link(user_id, name, yob)
             if yob is not None and self.by_id[user_id][2] is None:
                 cur = self.by_id[user_id]
-                self.by_id[user_id] = (cur[0], cur[1], yob, cur[3] or nationality, cur[4] or iof_id)
+                self.by_id[user_id] = (cur[0], cur[1], yob, cur[3] or nationality)
+            if profile and profile["name"]:
+                self.record(user_id, profile["name"], authoritative=True)
             return user_id
-        return self._new(name, yob, nationality, iof_id, pid=user_id)
+        pid = self._new(name, yob, nationality, pid=user_id)
+        if profile and profile["name"]:
+            self.record(pid, profile["name"], authoritative=True)
+        return pid
 
-    def from_legacy(self, name, yob):
+    def from_legacy(self, name, yob, club=None):
         nk = name_key(name)
+        profile_matches, profile_basis = self.anne_profiles.match(name, yob, club)
+        if len(profile_matches) == 1:
+            profile = profile_matches[0]
+            pid = self.from_anne(profile["oefol_id"], profile["name"],
+                                  profile["year_of_birth"], profile["nationality"])
+            self._link(pid, name, yob)
+            if profile_basis == "name-yob":
+                return pid, "anne-registry-name-yob", 0.99, "resolved"
+            return pid, "anne-registry-name-club", 0.85, "candidate"
         if (nk, yob) in self.by_key:
-            return self.by_key[(nk, yob)]
+            return self.by_key[(nk, yob)], ("legacy-name-yob" if yob else "legacy-name"), \
+                (0.75 if yob else 0.55), "candidate"
 
         candidates = self.by_name.get(nk, [])
         anne_candidates = [c for c in candidates if c > 0]
@@ -1553,10 +1663,12 @@ class PersonRegistry:
             # no candidate has a conflicting *known* birth year -> same person
             pid = candidates[0]
         else:
-            return self._new(name, yob)
+            return self._new(name, yob), ("legacy-name-yob" if yob else "legacy-name"), \
+                (0.75 if yob else 0.55), "candidate"
 
         self._link(pid, name, yob)
-        return pid
+        return pid, ("legacy-name-yob" if yob else "legacy-name"), \
+            (0.75 if yob else 0.55), "candidate"
 
 
 def is_bewertung_clone(event):
@@ -1715,8 +1827,8 @@ def insert_result(cur, **kw):
     kw.setdefault("result_kind", "individual")
     kw.setdefault("identity_basis", "unknown")
     kw.setdefault("identity_confidence", 0.0)
-    kw.setdefault("identity_state", "verified" if kw.get("identity_confidence", 0) >= 1.0
-                  else ("mapped" if kw.get("person_id") is not None else "provisional"))
+    kw.setdefault("identity_state", "resolved" if kw.get("identity_confidence", 0) >= 1.0
+                  else ("candidate" if kw.get("person_id") is not None else "unresolved"))
     vals = [kw.get(c) for c in RESULT_COLS]
     cur.execute(f"INSERT INTO result ({','.join(RESULT_COLS)}) "
                 f"VALUES ({','.join('?' * len(RESULT_COLS))})", vals)
@@ -1895,18 +2007,20 @@ def load_anne_results(cur, events, persons, stage_ids):
             if not is_valid_name(name) or "empty" in name.lower():
                 continue
             uid = anne_user_id(r.get("userId"))
+            club = clean_club(r.get("clubName"))
             if uid:
-                pid = persons.from_anne(uid, name, r.get("yearOfBirth"),
-                                        r.get("nationality"), r.get("iofId"))
+                pid = persons.from_anne(uid, name, r.get("yearOfBirth"), r.get("nationality"))
+                identity_basis, identity_confidence, identity_state = \
+                    "source-oefol-id", 1.0, "resolved"
             else:
-                pid = persons.from_legacy(name, r.get("yearOfBirth"))
+                pid, identity_basis, identity_confidence, identity_state = persons.from_legacy(
+                    name, r.get("yearOfBirth"), club)
             if r.get("firstName"):
                 persons.add_first_name(r["firstName"])
             if r.get("lastName"):
                 persons.add_last_name(r["lastName"])
             persons.record(pid, name, authoritative=bool(r.get("firstName") and r.get("lastName")))
             course = r.get("course") or {}
-            club = clean_club(r.get("clubName"))
             raw_status = r.get("classification")
             status, ooc = normalize_status(
                 ANNE_STATUS.get(raw_status, "unknown"), raw_status,
@@ -1928,11 +2042,9 @@ def load_anne_results(cur, events, persons, stage_ids):
                           observed_rank=str(r.get("rank")) if r.get("rank") is not None else None,
                           observed_status=raw_status,
                           observed_time=str(r.get("time")) if r.get("time") is not None else None,
-                          identity_basis="anne-user-id" if uid is not None
-                                         else ("legacy-name-yob" if r.get("yearOfBirth")
-                                               else "legacy-name"),
-                          identity_confidence=1.0 if uid is not None
-                                              else (0.75 if r.get("yearOfBirth") else 0.55),
+                          identity_basis=identity_basis,
+                          identity_confidence=identity_confidence,
+                          identity_state=identity_state,
                           championship=anne_championship(r))
             n += 1
     return n
@@ -1976,11 +2088,14 @@ def insert_anne_relay(cur, persons, sid, cat, team, source_document_id=None,
         if not nm:
             continue
         uid = anne_user_id(m.get("userId"))
+        relay_club = clean_club(team.get("clubName"))
         if uid is not None:
-            pid = persons.from_anne(uid, nm, m.get("yearOfBirth"),
-                                    m.get("nationality"), m.get("iofId"))
+            pid = persons.from_anne(uid, nm, m.get("yearOfBirth"), m.get("nationality"))
+            identity_basis, identity_confidence, identity_state = \
+                "source-oefol-id", 1.0, "resolved"
         else:
-            pid = persons.from_legacy(nm, m.get("yearOfBirth"))
+            pid, identity_basis, identity_confidence, identity_state = persons.from_legacy(
+                nm, m.get("yearOfBirth"), relay_club)
         if m.get("firstName"):
             persons.add_first_name(m["firstName"])
         if m.get("lastName"):
@@ -1991,7 +2106,6 @@ def insert_anne_relay(cur, persons, sid, cat, team, source_document_id=None,
                      f"Leg {m.get('leg') or member_index}/{len(members)}"]
         if mates:
             note_bits.append("Team: " + ", ".join(mates))
-        relay_club = clean_club(team.get("clubName"))
         observed_name = f"{m.get('firstName') or ''} {m.get('lastName') or ''}".strip()
         raw_status = (m.get("classification") or
                       (m.get("overall") or {}).get("classification"))
@@ -2017,11 +2131,9 @@ def insert_anne_relay(cur, persons, sid, cat, team, source_document_id=None,
                       observed_rank=str(team.get("rank")) if team.get("rank") is not None else None,
                       observed_status=raw_status,
                       observed_time=str(leg_time) if leg_time is not None else None,
-                      identity_basis="anne-user-id" if uid is not None
-                                     else ("legacy-name-yob" if m.get("yearOfBirth")
-                                           else "legacy-name"),
-                      identity_confidence=1.0 if uid is not None
-                                          else (0.75 if m.get("yearOfBirth") else 0.55),
+                      identity_basis=identity_basis,
+                      identity_confidence=identity_confidence,
+                      identity_state=identity_state,
                       championship=championship)
         n += 1
     return n
@@ -2495,7 +2607,10 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                 if key in seen:
                     continue
                 seen.add(key)
-                pid = persons.from_legacy(name, r.get("yearOfBirth"))
+                club_value = source_club_for_team(
+                    r.get("club"), metadata.get("team_name") if metadata else None, kind)
+                pid, identity_basis, identity_confidence, identity_state = persons.from_legacy(
+                    name, r.get("yearOfBirth"), club_value)
                 persons.record(pid, name)
                 raw_status = r.get("status", "unknown")
                 status, ooc = normalize_status(
@@ -2512,8 +2627,6 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                             individual_raw or raw_status,
                             r.get("timeText") or individual_raw or raw_status)[0]
                     metadata["team_status"] = status
-                club_value = source_club_for_team(
-                    r.get("club"), metadata.get("team_name") if metadata else None, kind)
                 insert_result(cur, stage_id=sid, person_id=pid, result_list_id=list_id,
                               category=cat["name"],
                               category_full=cat["name"], club=club_value,
@@ -2531,9 +2644,9 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                               observed_rank=str(r.get("rank"))
                               if r.get("rank") is not None else None,
                               observed_status=raw_status, observed_time=r.get("timeText"),
-                              identity_basis="legacy-name-yob" if r.get("yearOfBirth")
-                                             else "legacy-name",
-                              identity_confidence=0.75 if r.get("yearOfBirth") else 0.55,
+                              identity_basis=identity_basis,
+                              identity_confidence=identity_confidence,
+                              identity_state=identity_state,
                               championship=r.get("championship"), **metadata)
                 n += 1
 
@@ -2673,12 +2786,12 @@ def populate_quality_model(cur):
         provisional = cur.execute(
             """SELECT id, observed_name FROM result
                WHERE result_list_id = ? AND person_id IS NOT NULL
-                 AND identity_state NOT IN ('verified', 'mapped', 'not_applicable')
+                 AND identity_state NOT IN ('resolved', 'not_applicable')
                  AND championship IS NOT NULL""", (list_id,)).fetchall()
         for result_id, observed_name in provisional:
             add_audit_issue(
                 cur, list_id, "provisional_championship_identity", "warning",
-                f"Meisterschaftsidentität von {observed_name} ist nicht extern verifiziert.",
+                f"Meisterschaftsidentität von {observed_name} ist noch nicht aufgelöst.",
                 result_id)
 
         ranked = cur.execute(
@@ -2818,7 +2931,7 @@ def main():
     cur.executescript(SCHEMA)
 
     events = load_events(cur)
-    persons = PersonRegistry()
+    persons = PersonRegistry(load_anne_profile_index())
     stage_ids = set()
 
     def has_usable_names(path):
@@ -3010,7 +3123,7 @@ def main():
                                   "db_name": existing[0], "matched_from": persons.by_id[sid][0]})
                 continue
             if oid not in persons.by_id:         # member with only legacy rows: mint them
-                persons.by_id[oid] = (m["name"], m["name_key"], m["yob"], None, None)
+                persons.by_id[oid] = (m["name"], m["name_key"], m["yob"], None)
             target = resolve(oid)
             if sid != target:
                 merge_map[sid] = target
@@ -3038,12 +3151,12 @@ def main():
             cur.execute(
                 """UPDATE result
                    SET identity_basis = 'club-book-of-record', identity_confidence = 1.0
-                       , identity_state = 'verified'
+                       , identity_state = 'resolved'
                    WHERE person_id = ?""", (old,))
         cur.execute("UPDATE result SET person_id = ? WHERE person_id = ?", (new, old))
         persons.by_id.pop(old, None)
 
-    for pid, (name, key, yob, nat, iof) in persons.by_id.items():
+    for pid, (name, key, yob, nat) in persons.by_id.items():
         # prefer the API's authoritative 'First Last' spelling; otherwise the
         # most-frequent spelling, flipped to 'First Last' when it's a legacy
         # 'Lastname Firstname' form we can recognise
@@ -3063,8 +3176,8 @@ def main():
             name, key = m_name, name_key(m_name)
             if m_yob is not None:
                 yob = m_yob
-        cur.execute("INSERT INTO person VALUES (?,?,?,?,?,?)",
-                    (pid, name, key, yob, nat, iof))
+        cur.execute("INSERT INTO person VALUES (?,?,?,?,?)",
+                    (pid, name, key, yob, nat))
 
     # split_override: a garbled row that crammed several runners into one name
     # field (relay/family/night-run pairs, e.g. "Anna+Selina Skern") - give each
@@ -3095,40 +3208,33 @@ def main():
             cur.execute("DELETE FROM person WHERE id = ?", (gid,))
 
     # Publish identity evidence separately from the canonical person row.  An
-    # ANNE id is a strong source-supplied identifier; only this club's private
-    # book of record marks an ÖFOL id as independently verified membership.
+    # ÖFOL ID from the private ANNE registry is authoritative identity
+    # evidence. The Naturfreunde Wien roster is an independent second source,
+    # not a competing identifier scheme. Internal club IDs and IOF IDs are
+    # intentionally excluded from this public model.
     surviving_people = {pid for (pid,) in cur.execute("SELECT id FROM person")}
     for anne_id in sorted(persons.anne_ids):
         target = resolve(anne_id)
         if target in surviving_people:
+            source = "anne-user-registry" if anne_id in persons.anne_profiles.by_id else "result-observation"
             cur.execute(
-                "INSERT OR REPLACE INTO person_identifier VALUES (?,?,?,?,?)",
-                ("anne_user_id", str(anne_id), target, 0, "anne-api"))
+                "INSERT OR REPLACE INTO person_identifier VALUES (?,?,?,?,?,?)",
+                ("oefol_id", str(anne_id), target, "authoritative", source,
+                 persons.anne_profiles.fetched_at if anne_id in persons.anne_profiles.by_id else None))
     for member in members:
         target = resolve(member["ofol_id"])
         if target in surviving_people:
             cur.execute(
-                "INSERT OR REPLACE INTO person_identifier VALUES (?,?,?,?,?)",
-                ("oefol_id", str(member["ofol_id"]), target, 1,
-                 "naturfreunde-wien-book-of-record"))
-    person_rows = cur.execute(
-        "SELECT id, name, name_key, year_of_birth, nationality, iof_id FROM person").fetchall()
-    for pid, _name, _key, _yob, _nat, iof_id in person_rows:
-        if iof_id:
-            cur.execute(
-                "INSERT OR IGNORE INTO person_identifier VALUES (?,?,?,?,?)",
-                ("iof_id", str(iof_id), pid, 0, "anne-api"))
-        if pid >= INTERNAL_ID_BASE:
-            cur.execute(
-                "INSERT OR IGNORE INTO person_identifier VALUES (?,?,?,?,?)",
-                ("club_internal", str(pid), pid, 1, "naturfreunde-wien-book-of-record"))
+                "INSERT OR REPLACE INTO person_identifier VALUES (?,?,?,?,?,?)",
+                ("oefol_id", str(member["ofol_id"]), target,
+                 "independently_confirmed", "naturfreunde-wien-book-of-record", None))
 
     for pid, counts in final_names.items():
         if pid not in surviving_people:
             continue
         auth_names = final_auth.get(pid, {})
         for alias, occurrences in counts.items():
-            source = "anne-api" if alias in auth_names else "result-observation"
+            source = "anne-user-registry" if alias in auth_names else "result-observation"
             cur.execute(
                 "INSERT OR REPLACE INTO person_alias VALUES (?,?,?,?,?,?)",
                 (pid, alias, name_key(alias), source, 0, occurrences))
@@ -3483,7 +3589,7 @@ def main():
     populate_championship_model(cur)
     populate_quality_model(cur)
 
-    cur.execute("PRAGMA user_version = 4")
+    cur.execute("PRAGMA user_version = 5")
     con.commit()
     for table in ("event", "stage", "person", "person_identifier", "person_alias",
                   "person_redirect", "person_tombstone", "source_document", "result_list", "result",

@@ -14,10 +14,10 @@ GitHub Pages.
 
 Collection and deployment are deliberately separate. A small authenticated
 Cloudflare Worker is the only component that talks to ANNE from CI; it keeps
-the ANNE API key out of GitHub, exposes only the read endpoints this project
-needs, and stores the private championship-eligibility ledger in R2. The
-scheduled `sync-data.yml` workflow commits new public snapshots and explicitly
-dispatches the pure `deploy-pages.yml` build, which never contacts ANNE.
+the ANNE API key out of GitHub and stores the private championship-eligibility
+ledger plus the private ANNE person index in R2. The scheduled
+`sync-data.yml` workflow commits only public result snapshots and explicitly
+dispatches the pure `deploy-pages.yml` build.
 
 ```
 ingest/    source adapters (ANNE API, SportSoftware HTML/PDF parsers)
@@ -50,6 +50,7 @@ events.
 ```
 python3 ingest/anne_sync.py            # sync events + structured results
 python3 ingest/parse_sportsoftware_html.py  # parse tier-2 HTML attachments
+python3 ingest/anne_user_index.py      # private complete ANNE /user identity snapshot
 python3 build/build_db.py              # build site/data/results.db (pass 1)
 python3 ingest/anne_user_eligibility.py     # sync ÖM/ÖSTM championship eligibility (needs ANNE_API_KEY)
 python3 build/build_db.py              # rebuild with any newly-decided eligibility (pass 2)
@@ -94,6 +95,21 @@ ANNE_GATEWAY_TOKEN=<token> \
 python3 ingest/eligibility_state.py push
 ```
 
+Build the private ANNE person index on a trusted machine and store it in the
+same bucket. It contains every API-returned user, so it is intentionally
+gitignored and never copied wholesale into the public Pages artifact:
+
+```bash
+python3 ingest/anne_user_index.py
+OLRESULTS_GATEWAY_URL=https://<worker> \
+ANNE_GATEWAY_TOKEN=<token> \
+python3 ingest/identity_state.py push
+```
+
+The nightly workflow restores this snapshot before building and refreshes it
+at most once every seven days through the gateway. It publishes only profiles
+that are actually needed by result rows.
+
 Both workflows intentionally fail if the remote ledger cannot be restored;
 silently building without it would change historical ÖM/ÖSTM medal decisions.
 Normal state uploads are monotonic: the gateway rejects a lower person or
@@ -115,10 +131,11 @@ UNAVAILABLE`, while every unrecognized failure still aborts the run.
 
 ## Identity and provenance
 
-ANNE/ÖFOL identifiers, book-of-record verification, legacy aliases and raw
-source observations are separate concepts in the generated database. Every
-result points to a hashed source document; legacy-only people use stable,
-deterministic ids and old runner links are retained through redirects. See
+ANNE/ÖFOL identifiers, ANNE's raw account-verification bit, independent
+book-of-record confirmation, legacy aliases and raw source observations are
+separate concepts in the generated database. Every result points to a hashed
+source document; legacy-only people use stable, deterministic ids and old
+runner links are retained through redirects. See
 [`docs/identity-provenance.md`](docs/identity-provenance.md) for the table and
 trust semantics.
 

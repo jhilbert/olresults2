@@ -10,6 +10,7 @@ site/data/results.db.gz
 # endpoint (see ingest/anne_user_eligibility.py) - never publish the raw
 # mapping, only its derived effect on medal counts in results.db.
 data/raw/anne/user_eligibility.json
+data/raw/anne/user_index.json
 
 # Club "book of record" member data (roster incl. minors' full birthdates,
 # gender, OEFOL-IDs, and members with no public results) - the private

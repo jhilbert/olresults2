@@ -108,24 +108,33 @@ function identityMappingHtml(r) {
   }
   const basis = {
     "club-book-of-record": "Zuordnung: verifizierte Vereinsliste",
-    "anne-user-id": "Zuordnung: ANNE-ID",
+    "source-oefol-id": "Zuordnung: ÖFOL-ID aus Ergebnisquelle",
+    "anne-registry-name-yob": "Zuordnung: ANNE-Register · Name + Geburtsjahr",
+    "anne-registry-name-club": "Zuordnung: ANNE-Register · Name + aktueller Verein",
     "legacy-name-yob": "Zuordnung: Name + Jahrgang",
     "legacy-name": "Zuordnung: Name",
   }[r.identity_basis] || "Zuordnung: ungeklärt";
-  const anneId = r.anne_user_ids ||
-    (r.identity_basis === "anne-user-id" ? r.observed_user_id : null);
-  const anneIdentity = anneId
-    ? `ANNE-Identität: ${anneId}`
-    : "keine ANNE-Identität im Index";
-  const registryIdentity = r.verified_oefol_ids
-    ? `ÖFOL-ID im Vereinsregister bestätigt: ${r.verified_oefol_ids}`
-    : "ÖFOL-ID im Vereinsregister: nicht unabhängig bestätigt";
+  const state = {
+    resolved: "Identitätsstatus: aufgelöst",
+    candidate: "Identitätsstatus: Kandidat – prüfen",
+    unresolved: "Identitätsstatus: nicht aufgelöst",
+    conflict: "Identitätsstatus: Konflikt",
+  }[r.identity_state] || "Identitätsstatus: ungeklärt";
+  const oefolIdentity = r.registry_oefol_ids
+    ? `ÖFOL-ID aus ANNE-Register: ${r.registry_oefol_ids}`
+    : r.observed_oefol_ids
+      ? `ÖFOL-ID aus Ergebnisquelle: ${r.observed_oefol_ids}`
+      : "keine ÖFOL-ID im Index";
+  const registryIdentity = r.independently_confirmed_oefol_ids
+    ? `ÖFOL-ID im Vereinsregister bestätigt: ${r.independently_confirmed_oefol_ids}`
+    : "Vereinslisten-Bestätigung: keine";
   const championship = r.championship
     ? `ÖM/ÖSTM-Wertung: berücksichtigt (${r.championship})`
     : "";
-  return `<small class="review-mapping ${esc(r.identity_state)}">${esc(basis)}</small>` +
-    `<small class="review-mapping id">${esc(anneIdentity)}</small>` +
-    `<small class="review-mapping registry ${r.verified_oefol_ids ? "verified" : ""}">${esc(registryIdentity)}</small>` +
+  return `<small class="review-mapping identity-state ${esc(r.identity_state)}">${esc(state)}</small>` +
+    `<small class="review-mapping">${esc(basis)}</small>` +
+    `<small class="review-mapping id">${esc(oefolIdentity)}</small>` +
+    `<small class="review-mapping registry ${r.independently_confirmed_oefol_ids ? "verified" : ""}">${esc(registryIdentity)}</small>` +
     (championship ? `<small class="review-mapping championship">${esc(championship)}</small>` : "");
 }
 
@@ -155,9 +164,14 @@ function renderDetail() {
            r.individual_status, r.team_status, r.team_time_s, r.observed_team_time,
            COALESCE(p.name, r.observed_name) AS mapped_name, r.national_rank,
            (SELECT GROUP_CONCAT(pi.identifier, ', ') FROM person_identifier pi
-            WHERE pi.person_id = r.person_id AND pi.scheme = 'oefol_id' AND pi.verified = 1) AS verified_oefol_ids,
+            WHERE pi.person_id = r.person_id AND pi.scheme = 'oefol_id'
+              AND pi.identifier_state = 'authoritative' AND pi.source = 'anne-user-registry') AS registry_oefol_ids,
            (SELECT GROUP_CONCAT(pi.identifier, ', ') FROM person_identifier pi
-            WHERE pi.person_id = r.person_id AND pi.scheme = 'anne_user_id') AS anne_user_ids,
+            WHERE pi.person_id = r.person_id AND pi.scheme = 'oefol_id'
+              AND pi.identifier_state = 'authoritative' AND pi.source = 'result-observation') AS observed_oefol_ids,
+           (SELECT GROUP_CONCAT(pi.identifier, ', ') FROM person_identifier pi
+            WHERE pi.person_id = r.person_id AND pi.scheme = 'oefol_id'
+              AND pi.identifier_state = 'independently_confirmed') AS independently_confirmed_oefol_ids,
            GROUP_CONCAT(ai.code, ', ') AS issue_codes
     FROM result r LEFT JOIN person p ON p.id = r.person_id
     LEFT JOIN audit_issue ai ON ai.result_id = r.id

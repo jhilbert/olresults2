@@ -36,6 +36,9 @@ jobs:
       - name: Restore durable eligibility state
         run: python3 ingest/eligibility_state.py pull --required
 
+      - name: Restore private ANNE identity index
+        run: python3 ingest/identity_state.py pull --required
+
       - name: Build database
         run: python3 build/build_db.py
 

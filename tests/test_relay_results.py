@@ -26,17 +26,29 @@ BUILD_SPEC.loader.exec_module(build_db)
 class RelayStructureTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        source = ROOT / "data" / "raw" / "anne" / "files" / "4480-0.html"
+        cls.relay_source = ROOT / "data" / "raw" / "anne" / "files" / "4480-0.html"
+        if not cls.relay_source.exists():
+            cls.category = None
+            return
         categories = html_parser.parse_relay_document(
-            html_parser.decode(source.read_bytes()))
+            html_parser.decode(cls.relay_source.read_bytes()))
         cls.category = next(c for c in categories if c["name"] == "Mixed Staffel ab 35")
 
+    @classmethod
+    def require_source_fixture(cls, path):
+        if not path.exists():
+            raise unittest.SkipTest(
+                f"source fixture not present locally: {path.name}; "
+                "the raw ANNE cache is intentionally not committed")
+
     def test_source_starter_count_means_teams_not_member_status_groups(self):
+        self.require_source_fixture(self.relay_source)
         self.assertEqual(self.category["declaredStarters"], 14)
         self.assertEqual(len(self.category["results"]), 42)
         self.assertEqual(len({r["teamNumber"] for r in self.category["results"]}), 14)
 
     def test_team_status_propagates_and_individual_cause_is_preserved(self):
+        self.require_source_fixture(self.relay_source)
         by_number = {}
         for result in self.category["results"]:
             by_number.setdefault(result["teamNumber"], []).append(result)
@@ -66,15 +78,16 @@ class RelayStructureTests(unittest.TestCase):
     def test_short_ak_status_does_not_match_slovakia(self):
         self.assertIsNone(html_parser.parse_status("Slovakia"))
         source = ROOT / "data" / "raw" / "anne" / "files" / "3474-0.html"
+        self.require_source_fixture(source)
         categories = html_parser.parse_bracket_html(html_parser.decode(source.read_bytes()))
         men_50 = next(c for c in categories if c["name"] == "Men 50+")
         milan = next(r for r in men_50["results"] if r["name"] == "Milan Beles")
         self.assertEqual((milan["timeText"], milan["status"]), ("DNS", "dns"))
 
     def test_relay_ak_is_preserved_for_every_member(self):
-        source = ROOT / "data" / "raw" / "anne" / "files" / "4480-0.html"
+        self.require_source_fixture(self.relay_source)
         categories = html_parser.parse_relay_document(
-            html_parser.decode(source.read_bytes()))
+            html_parser.decode(self.relay_source.read_bytes()))
         category = next(c for c in categories if c["name"] == "Mixed Staffel bis 16")
         by_number = {}
         for result in category["results"]:
@@ -94,15 +107,16 @@ class RelayStructureTests(unittest.TestCase):
             build_db.canonicalize_official_club(source_club, build_db.OFFICIAL_CLUBS),
             "FUN.O NOe",
         )
-        # This is a genuine combined-team label, not a safe mapping to either
-        # one of its two constituent official clubs. It remains visible via
-        # the source-club fallback without inventing a canonical association.
-        combined = "Orienteering Innsbruck Imst"
-        self.assertIsNone(
-            build_db.canonicalize_official_club(combined, build_db.OFFICIAL_CLUBS))
+        # A retired ÖFOL club stays a distinct historical club; it must not
+        # be remapped to Orienteering Imst Oberland or Laufklub Kompass.
+        historic = "Orienteering Innsbruck Imst"
+        self.assertEqual(
+            build_db.canonicalize_official_club(historic, build_db.OFFICIAL_CLUBS),
+            historic)
 
     def test_mannschaft_pdf_has_one_unit_per_team_without_page_chrome(self):
         source = ROOT / "data" / "raw" / "anne" / "files" / "3507-1.pdf"
+        self.require_source_fixture(source)
         categories, _ = pdf_parser.parse_pdf(source)
         category = next(c for c in categories if c["name"] == "Herren ab 19")
         results = category["results"]

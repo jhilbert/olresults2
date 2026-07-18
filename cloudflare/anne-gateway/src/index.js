@@ -1,7 +1,10 @@
 const ANNE_ORIGIN = "https://anne-api.oefol.at";
 const ELIGIBILITY_STATE_KEY = "eligibility/user_eligibility.json";
 const ELIGIBILITY_HISTORY_PREFIX = "eligibility/history/";
+const IDENTITY_STATE_KEY = "identity/anne_user_index.json";
+const IDENTITY_HISTORY_PREFIX = "identity/history/";
 const MAX_STATE_BYTES = 2 * 1024 * 1024;
+const MAX_IDENTITY_STATE_BYTES = 20 * 1024 * 1024;
 
 function jsonResponse(value, status = 200) {
   return new Response(JSON.stringify(value), {
@@ -22,6 +25,8 @@ function isAuthorized(request, env) {
 function isAllowedAnnePath(pathname) {
   return pathname === "/v1/event"
     || pathname === "/v1/club"
+    || pathname === "/v1/user"
+    || /^\/v1\/user\/\d+$/.test(pathname)
     || /^\/v1\/event\/\d+\/(results|stages|attachments)$/.test(pathname);
 }
 
@@ -79,11 +84,29 @@ function validateEligibilityState(value) {
       && (eligibility === true || eligibility === null || eligibility === "error")));
 }
 
+function validateIdentityState(value) {
+  if (!value || Array.isArray(value) || typeof value !== "object") return false;
+  if (value.schema_version !== 1 || typeof value.fetched_at !== "string"
+      || !Array.isArray(value.users)) return false;
+  const seen = new Set();
+  return value.users.every((user) => {
+    if (!user || Array.isArray(user) || typeof user !== "object"
+        || !Number.isInteger(user.oefol_id) || user.oefol_id <= 0
+        || seen.has(user.oefol_id)) return false;
+    seen.add(user.oefol_id);
+    return Array.isArray(user.active_memberships);
+  });
+}
+
 function eligibilityCounts(state) {
   return {
     people: Object.keys(state).length,
     decisions: Object.values(state).reduce((sum, events) => sum + Object.keys(events).length, 0),
   };
+}
+
+function identityCounts(state) {
+  return { people: state.users.length };
 }
 
 function stateWouldShrink(current, incoming) {
@@ -109,6 +132,22 @@ async function readStateObject(env, key) {
     throw new Error(`stored eligibility state has invalid shape: ${key}`);
   }
   return { object, body, state, counts: eligibilityCounts(state), sha256: await sha256Hex(body) };
+}
+
+async function readIdentityStateObject(env, key) {
+  const object = await env.PRIVATE_STATE.get(key);
+  if (!object) return null;
+  const body = await object.arrayBuffer();
+  let state;
+  try {
+    state = JSON.parse(new TextDecoder().decode(body));
+  } catch {
+    throw new Error(`stored identity state is invalid JSON: ${key}`);
+  }
+  if (!validateIdentityState(state)) {
+    throw new Error(`stored identity state has invalid shape: ${key}`);
+  }
+  return { object, body, state, counts: identityCounts(state), sha256: await sha256Hex(body) };
 }
 
 async function saveHistory(env, stored, reason) {
@@ -137,6 +176,38 @@ async function putCurrentState(env, body, state, reason) {
       sha256,
       people: String(counts.people),
       decisions: String(counts.decisions),
+      reason,
+    },
+  });
+  return { counts, sha256 };
+}
+
+async function saveIdentityHistory(env, stored, reason) {
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const key = `${IDENTITY_HISTORY_PREFIX}${stamp}-${stored.sha256.slice(0, 16)}.json`;
+  await env.PRIVATE_STATE.put(key, stored.body, {
+    httpMetadata: { contentType: "application/json; charset=utf-8" },
+    customMetadata: {
+      savedAt: new Date().toISOString(),
+      sha256: stored.sha256,
+      people: String(stored.counts.people),
+      fetchedAt: stored.state.fetched_at,
+      reason,
+    },
+  });
+  return key;
+}
+
+async function putIdentityState(env, body, state, reason) {
+  const counts = identityCounts(state);
+  const sha256 = await sha256Hex(body);
+  await env.PRIVATE_STATE.put(IDENTITY_STATE_KEY, body, {
+    httpMetadata: { contentType: "application/json; charset=utf-8" },
+    customMetadata: {
+      updatedAt: new Date().toISOString(),
+      fetchedAt: state.fetched_at,
+      sha256,
+      people: String(counts.people),
       reason,
     },
   });
@@ -221,6 +292,54 @@ async function eligibilityHistory(request, env) {
   return jsonResponse({ versions, truncated: listed.truncated });
 }
 
+async function identityState(request, env) {
+  if (request.method === "GET") {
+    const stored = await readIdentityStateObject(env, IDENTITY_STATE_KEY);
+    if (!stored) return jsonResponse({ error: "identity state not initialized" }, 404);
+    const headers = new Headers({
+      "content-type": stored.object.httpMetadata?.contentType || "application/json; charset=utf-8",
+      "cache-control": "no-store",
+      etag: stored.object.httpEtag,
+      "x-state-sha256": stored.sha256,
+      "x-state-people": String(stored.counts.people),
+      "x-state-fetched-at": stored.state.fetched_at,
+    });
+    return new Response(stored.body, { headers });
+  }
+  if (request.method !== "PUT") return jsonResponse({ error: "method not allowed" }, 405);
+  const contentLength = Number(request.headers.get("content-length") || 0);
+  if (contentLength > MAX_IDENTITY_STATE_BYTES) return jsonResponse({ error: "identity state too large" }, 413);
+  const body = await request.arrayBuffer();
+  if (body.byteLength > MAX_IDENTITY_STATE_BYTES) return jsonResponse({ error: "identity state too large" }, 413);
+  let state;
+  try {
+    state = JSON.parse(new TextDecoder().decode(body));
+  } catch {
+    return jsonResponse({ error: "invalid JSON" }, 400);
+  }
+  if (!validateIdentityState(state)) return jsonResponse({ error: "invalid identity state shape" }, 400);
+  const current = await readIdentityStateObject(env, IDENTITY_STATE_KEY);
+  const incomingSha = await sha256Hex(body);
+  if (current && current.sha256 === incomingSha) {
+    return jsonResponse({ ok: true, unchanged: true, ...identityCounts(state), sha256: incomingSha });
+  }
+  const backupKey = current ? await saveIdentityHistory(env, current, "before-update") : null;
+  const saved = await putIdentityState(env, body, state, "normal-update");
+  return jsonResponse({ ok: true, ...saved.counts, sha256: saved.sha256, backupKey });
+}
+
+async function identityHistory(request, env) {
+  if (request.method !== "GET") return jsonResponse({ error: "method not allowed" }, 405);
+  const listed = await env.PRIVATE_STATE.list({
+    prefix: IDENTITY_HISTORY_PREFIX,
+    include: ["customMetadata"],
+  });
+  const versions = listed.objects
+    .map((object) => ({ key: object.key, size: object.size, uploaded: object.uploaded, ...object.customMetadata }))
+    .sort((a, b) => b.key.localeCompare(a.key));
+  return jsonResponse({ versions, truncated: listed.truncated });
+}
+
 async function restoreEligibility(request, env) {
   if (request.method !== "POST") return jsonResponse({ error: "method not allowed" }, 405);
   let key;
@@ -260,6 +379,12 @@ export default {
     if (url.pathname === "/state/eligibility/history") {
       return eligibilityHistory(request, env);
     }
+    if (url.pathname === "/state/identity") {
+      return identityState(request, env);
+    }
+    if (url.pathname === "/state/identity/history") {
+      return identityHistory(request, env);
+    }
     if (url.pathname === "/state/eligibility/restore") {
       return restoreEligibility(request, env);
     }
@@ -274,4 +399,7 @@ export default {
   },
 };
 
-export { eligibilityCounts, stateWouldShrink, validateEligibilityState };
+export {
+  eligibilityCounts, identityCounts, stateWouldShrink,
+  validateEligibilityState, validateIdentityState,
+};

@@ -26,7 +26,9 @@ Liste, `F` markiert sie zur Nacharbeit, `J`/`K` wechseln vor/zurück.
 - `completeness`: Alle Einträge der Originalquelle sind vorhanden.
 - `parsing`: Namen, Vereine, Zeiten und DNS/DNF/MP/DSQ/OOC wurden korrekt gelesen.
 - `identity`: Jeder personenbezogene Eintrag ist dem richtigen Läuferindex
-  zugeordnet. Family ist hier `not_applicable`.
+  zugeordnet. Family ist hier `not_applicable`. Die Oberfläche zeigt getrennt
+  Identitätsstatus, Zuordnungsbasis, ÖFOL-ID-Herkunft und unabhängige
+  Vereinslisten-Bestätigung.
 - `ranking`: Klasse/Bahn und Reihenfolge stimmen mit der Quelle überein.
 - `rules`: Nur bei Meisterschaften; Eligibility und Medaillenregel wurden
   geprüft.
@@ -48,6 +50,12 @@ Eindeutige Family-Kategorien bleiben in der Ergebnisliste, haben aber keinen
 erscheinen daher weder im Läuferindex noch in persönlichen Statistiken oder
 Medaillen. Mehrdeutige Kurzcodes (`F`, `AT-F`) werden nicht automatisch als
 Family interpretiert.
+
+Identitätsstatus ist einer von `resolved`, `candidate`, `unresolved`,
+`conflict` oder `not_applicable`. `resolved` bedeutet entweder eine direkte
+ÖFOL-ID aus der Quelle, einen exakten ANNE-Registertreffer über Name und
+Geburtsjahr oder eine bestätigte Vereinsliste. Ein Treffer nur über den
+heutigen Verein bleibt bewusst `candidate`.
 
 ## Kampagnen
 
