@@ -47,7 +47,14 @@ def validate(value):
 
 def request(method, path="", body=None):
     base, token = config()
-    headers = {"Accept": "application/json", "Authorization": f"Bearer {token}"}
+    headers = {
+        "Accept": "application/json",
+        "Authorization": f"Bearer {token}",
+        # Cloudflare's Worker front door rejects Python's default user-agent
+        # (error 1010); use the same descriptive sync signature as the
+        # existing eligibility-state client.
+        "User-Agent": "olresults-sync/1.0 (+https://github.com/jhilbert/olresults2)",
+    }
     if body is not None:
         headers["Content-Type"] = "application/json"
     req = urllib.request.Request(f"{base}/state/identity{path}", data=body,
