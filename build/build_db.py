@@ -1284,6 +1284,11 @@ def canonicalize_official_club(name, official):
     if m:
         cur = m.group(1).strip()
     cur = CLUB_SOURCE_ALIASES.get(cur, cur)
+    # Club spelling in historical exports often differs only in upper/lower
+    # case (for example "LZ Omaha" vs the ANNE registry's "LZ OMAHA").
+    # This is an exact case-insensitive match, not a fuzzy club guess.
+    official_casefold = {candidate.casefold(): candidate for candidate in official}
+    cur = official_casefold.get(cur.casefold(), cur)
     while cur not in official:
         changed = False
         m = CLUB_PREFIX_CODE_RE.match(cur)

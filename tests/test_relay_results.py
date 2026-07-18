@@ -107,6 +107,10 @@ class RelayStructureTests(unittest.TestCase):
             build_db.canonicalize_official_club(source_club, build_db.OFFICIAL_CLUBS),
             "FUN.O NOe",
         )
+        self.assertEqual(
+            build_db.canonicalize_official_club("LZ Omaha", build_db.OFFICIAL_CLUBS),
+            "LZ OMAHA",
+        )
         # A retired ÖFOL club stays a distinct historical club; it must not
         # be remapped to Orienteering Imst Oberland or Laufklub Kompass.
         historic = "Orienteering Innsbruck Imst"
