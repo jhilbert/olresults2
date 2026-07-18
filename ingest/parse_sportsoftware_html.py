@@ -26,7 +26,7 @@ from pathlib import Path
 from sportsoftware_common import (
     CAT_LINE_RE, COURSE_RE, MANUAL_ATTACHMENT_SKIP, MANUAL_CATEGORY_SKIP, MANUAL_DOC_DATE_OVERRIDES,
     TIME_TOKEN_RE, classify_championship_text, detect_list_type, expand_pair_result, extract_html_title,
-    aggregate_team_status, guess_doc_date, is_junk_name, is_ooc_status,
+    aggregate_team_status, guess_doc_date, is_junk_name, is_ooc_status, is_ooc_time,
     parse_champion_annotation, parse_course_info, parse_status, parse_time,
     parse_time_loose, number_team_results, team_results_from_pairs,
 )
@@ -185,7 +185,7 @@ def parse_document(html_text):
             # SportSoftware writes AK in the rank cell, not the time cell.
             # It remains a perfectly valid result, but must never be counted
             # as a ranked competitor or considered for medals.
-            if is_ooc_status(rank_text):
+            if is_ooc_status(rank_text) or is_ooc_time(time_text):
                 result["outOfCompetition"] = True
             # In some OE12 exports the winner's championship label is
             # appended directly to her name.  Keep the actual person and the
@@ -294,20 +294,24 @@ def parse_bracket_html(html_text):
             # isn't reliably at a fixed position - scan for whichever of the
             # two it actually is, preferring a real time over a status word
             values = [c.strip().lstrip("+") for c in cells[2:]]
-            time_text = next((v for v in values if TIME_TOKEN_RE.fullmatch(v)), None)
+            # An AK result is written as ``(39:58)``.  A strict token-only
+            # scan skipped it and then selected the later +24:00 difference
+            # as the runner's time.  parse_time_loose accepts both normal and
+            # bracketed elapsed times, so take the first actual time column.
+            time_text = next((v for v in values if parse_time_loose(v) is not None), None)
             status_text = None if time_text else next((v for v in values if parse_status(v)), None)
             result = {"name": name, "club": club, "timeText": time_text or status_text or ""}
             if rank is not None:
                 result["rank"] = rank
             if championship:
                 result["championship"] = championship
-            seconds = parse_time(time_text) if time_text else None
+            seconds = parse_time_loose(time_text) if time_text else None
             if seconds is not None:
                 result["timeS"] = seconds
                 result["status"] = "ok"
             else:
                 result["status"] = parse_status(status_text or "") or "unknown"
-            if is_ooc_status(status_text):
+            if is_ooc_status(status_text) or is_ooc_time(time_text):
                 result["outOfCompetition"] = True
             current["results"].append(result)
     return [c for c in categories if c["results"]]

@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "ingest"))
-from sportsoftware_common import parse_time
+from sportsoftware_common import is_junk_name, parse_flow_row, parse_status, parse_time
 
 HTML_SPEC = importlib.util.spec_from_file_location(
     "parse_sportsoftware_html", ROOT / "ingest" / "parse_sportsoftware_html.py")
@@ -99,6 +99,27 @@ class RelayStructureTests(unittest.TestCase):
         men_50 = next(c for c in categories if c["name"] == "Men 50+")
         milan = next(r for r in men_50["results"] if r["name"] == "Milan Beles")
         self.assertEqual((milan["timeText"], milan["status"]), ("DNS", "dns"))
+
+    def test_legacy_ak_prefix_and_omt_are_normalized(self):
+        parsed = parse_flow_row(
+            "AK 1 Kerschbaumer Gernot vereinslos 14:22", {"vereinslos": "vereinslos"})
+        self.assertEqual(parsed["names"], ["Kerschbaumer Gernot"])
+        self.assertIsNone(parsed["rank"])
+        self.assertTrue(parsed["outOfCompetition"])
+        self.assertEqual(parse_status("OMT"), "dns")
+
+    def test_pdf_page_header_fragments_are_not_runners(self):
+        self.assertTrue(is_junk_name("Orientierungslauf-Club"))
+        self.assertTrue(is_junk_name("Austria Cup"))
+
+    def test_bracketed_ak_time_wins_over_the_later_behind_value(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "4220-0.html"
+        self.require_source_fixture(source)
+        categories = html_parser.parse_bracket_html(html_parser.decode(source.read_bytes()))
+        h65 = next(c for c in categories if c["name"] == "H65-")
+        tim = next(r for r in h65["results"] if r["name"] == "Tim Skern")
+        self.assertEqual((tim["timeText"], tim["timeS"], tim.get("rank")), ("(39:58)", 2398, None))
+        self.assertTrue(tim["outOfCompetition"])
 
     def test_relay_ak_is_preserved_for_every_member(self):
         self.require_source_fixture(self.relay_source)

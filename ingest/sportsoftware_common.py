@@ -232,7 +232,13 @@ CONTROLS_RE = re.compile(r"(\d+)\s*P\b")
 # the explicit hours component of ``H:MM:SS``.
 TIME_RE = re.compile(r"^(?:(\d+):)?(\d{1,3}):(\d{2})$")
 JUNK_NAME_RE = re.compile(r"^[\d\s:.,()/-]*$")
-JUNK_NAMES = {"empty", "vacant", "leer", "frei"}
+# Exact page-header fragments that can land in the reconstructed Name column
+# at a PDF page break.  They are labels, never person names (real club names
+# remain valid in the dedicated club column).
+JUNK_NAMES = {
+    "empty", "vacant", "leer", "frei",
+    "orientierungslauf-club", "orientierungslauf club", "austria cup",
+}
 
 # German status strings SportSoftware prints in the time column
 STATUS_MAP = {
@@ -241,6 +247,9 @@ STATUS_MAP = {
     "disq": "dsq", "disqualifiziert": "dsq",
     "n. angetr.": "dns", "n.angetr.": "dns", "nicht angetreten": "dns",
     "n ang": "dns", "nicht ang": "dns",
+    # OE2010's old HTML export uses OMT ("omitted") for a listed runner
+    # who did not start.  It is equivalent to DNS for result purposes.
+    "omt": "dns",
     "ohne wertung": "ok", "außer konkurrenz": "ok", "ausser konkurrenz": "ok",
     "wertungsfrei": "ok", "ak": "ok",
     "dnf": "dnf", "dns": "dns", "dsq": "dsq", "mp": "mp",
@@ -257,6 +266,7 @@ def parse_time(text):
 
 
 TIME_TOKEN_RE = re.compile(r"\d{1,3}:\d{2}(?::\d{2})?")
+PARENTHESIZED_TIME_RE = re.compile(r"^\(\s*\d{1,3}:\d{2}(?::\d{2})?\s*\)$")
 
 
 def parse_time_loose(text):
@@ -267,6 +277,16 @@ def parse_time_loose(text):
         return s
     m = TIME_TOKEN_RE.search(text or "")
     return parse_time(m.group()) if m else None
+
+
+def is_ooc_time(text):
+    """Whether an otherwise valid finish time is explicitly bracketed.
+
+    OE2010/SportSoftware prints an AK finish as ``(39:58)`` in several
+    export families.  Parentheses are the source's non-competitive marker,
+    not part of the elapsed time.
+    """
+    return bool(PARENTHESIZED_TIME_RE.fullmatch((text or "").strip()))
 
 
 def parse_status(text):
@@ -689,7 +709,7 @@ def expand_pair_result(result, category=None):
 STATUS_TAIL_RE = re.compile(
     r"(?i)(n\.?\s*ang\.?|nicht angetreten|aufg\.?|fehlst\.?|disq\.?|"
     r"ohne wertung|außer konkurrenz|ausser konkurrenz|wertungsfrei|AK|"
-    r"dnf|dns|dsq|mp)\s*$")
+    r"dnf|dns|dsq|mp|omt)\s*$")
 
 
 def parse_flow_row(text, clubs):
@@ -701,6 +721,13 @@ def parse_flow_row(text, clubs):
     toks = text.split()
     if not toks:
         return None
+    # In older OE2010 PDFs AK is a leading marker before the bib number,
+    # rather than a value in the rank column.  Remove it before finding the
+    # person name and, importantly, do not mistake the following bib for a
+    # competitive rank.
+    forced_ooc = bool(toks and toks[0].rstrip(".").casefold() == "ak")
+    if forced_ooc:
+        toks = toks[1:]
     # peel up to two leading integers (Pl and/or Stnr)
     lead = []
     while toks and toks[0].isdigit() and len(lead) < 2:
@@ -721,7 +748,7 @@ def parse_flow_row(text, clubs):
 
     # a finisher's first leading integer is the rank; a non-finisher (status,
     # no time) has no Pl, so its single leading integer is just the start number
-    rank = int(lead[0]) if (time_text is not None and lead) else None
+    rank = int(lead[0]) if (time_text is not None and lead and not forced_ooc) else None
 
     club, body = find_trailing_club(body, clubs)
     jg = None
@@ -730,7 +757,7 @@ def parse_flow_row(text, clubs):
     names = split_pair_names(" ".join(body))
     return {"rank": rank, "names": names, "club": club, "jg": jg,
             "timeText": time_text, "statusText": status_text,
-            "outOfCompetition": is_ooc_status(status_text)}
+            "outOfCompetition": forced_ooc or is_ooc_status(status_text)}
 
 
 def split_pair_names(name_text):

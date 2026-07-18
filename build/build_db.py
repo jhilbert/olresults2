@@ -230,6 +230,8 @@ ANNE_STATUS = {
 VALID_STATUSES = {"ok", "dnf", "dsq", "mp", "dns", "unknown"}
 OOC_STATUS_TEXT_RE = re.compile(
     r"^(?:ak|au(?:ß|ss)er konkurrenz|ohne wertung|wertungsfrei)$", re.I)
+OOC_TIME_TEXT_RE = re.compile(r"^\(\s*\d{1,3}:\d{2}(?::\d{2})?\s*\)$")
+OOC_NAME_PREFIX_RE = re.compile(r"^A\.?\s?K\.?\s+", re.I)
 FAMILY_CATEGORY_RE = re.compile(
     r"(?:\bfam(?:ilie|ily|iliy|iliy|iliy)?\b|familien|rahmenbewerb\s+familie)", re.I)
 AMBIGUOUS_FAMILY_CATEGORY_RE = re.compile(r"^(?:AT-)?F$", re.I)
@@ -256,8 +258,13 @@ def normalize_status(status, raw_text=None, out_of_competition=False):
     an unqualified old ``nc`` therefore becomes ``unknown`` and is audited.
     """
     raw = str(raw_text if raw_text is not None else status or "").strip()
-    ooc = bool(out_of_competition) or bool(OOC_STATUS_TEXT_RE.fullmatch(raw))
+    ooc = (bool(out_of_competition) or bool(OOC_STATUS_TEXT_RE.fullmatch(raw))
+           or bool(OOC_TIME_TEXT_RE.fullmatch(raw)))
     normalized = status if status in VALID_STATUSES else "unknown"
+    # Compatibility for cached legacy parses made before the SportSoftware
+    # parser learned OE2010's OMT (= omitted / did not start) spelling.
+    if normalized == "unknown" and re.fullmatch(r"omt\.?", raw, re.I):
+        normalized = "dns"
     if ooc and normalized == "unknown":
         normalized = "ok"
     return normalized, int(ooc)
@@ -2552,7 +2559,8 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                     raw_status = first.get("status", "unknown")
                     status, ooc = normalize_status(
                         raw_status, first.get("timeText") or raw_status,
-                        first.get("outOfCompetition"))
+                        first.get("outOfCompetition") or
+                        bool(OOC_NAME_PREFIX_RE.match(first.get("name") or "")))
                     insert_result(
                         cur, stage_id=sid, person_id=None, result_list_id=list_id,
                         category=cat["name"], category_full=cat["name"],
@@ -2629,7 +2637,8 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                 raw_status = r.get("status", "unknown")
                 status, ooc = normalize_status(
                     raw_status, r.get("timeText") or raw_status,
-                    r.get("outOfCompetition"))
+                    r.get("outOfCompetition") or
+                    bool(OOC_NAME_PREFIX_RE.match(observed_name)))
                 if metadata:
                     if kind == "team":
                         # A Mannschaft runs together with one SI card: there
@@ -2770,16 +2779,30 @@ OBSERVED_TIME_RE = re.compile(r"^\d{1,3}:\d{2}(?::\d{2})?$")
 def populate_quality_model(cur):
     """Compute review units, deterministic findings and current assertions."""
     lists = cur.execute(
-        """SELECT rl.id, rl.category, rl.declared_starters, rl.input_fingerprint,
+        """SELECT rl.id, rl.stage_id, rl.category, rl.declared_starters, rl.input_fingerprint,
                   sd.source_type
              FROM result_list rl JOIN source_document sd ON sd.id = rl.source_document_id"""
     ).fetchall()
-    for list_id, category, declared, fingerprint, source_type in lists:
+    # The same official result is often attached twice (for example PDF and
+    # HTML, or a main and an AC-standings URL).  Legacy rows are intentionally
+    # deduplicated while loading, so the later copy has zero persisted rows
+    # even when its parser was perfectly successful.  Treat that as a shadow
+    # source rather than a parser blocker; the populated sibling list remains
+    # the one the reviewer actually verifies.
+    list_rows = {}
+    coverage = defaultdict(list)
+    for list_id, stage_id, category, _declared, _fingerprint, _source_type in lists:
         rows = cur.execute(
             """SELECT id, result_kind, rank, status, time_s, club, note,
                       team_number, team_name
                FROM result WHERE result_list_id = ? ORDER BY id""", (list_id,)).fetchall()
         entries = len({competitor_unit_key(row) for row in rows})
+        list_rows[list_id] = (rows, entries)
+        coverage[(stage_id, category)].append(entries)
+
+    for list_id, stage_id, category, declared, fingerprint, source_type in lists:
+        rows, entries = list_rows[list_id]
+        shadow_duplicate = entries == 0 and max(coverage[(stage_id, category)]) > 0
         cur.execute(
             "UPDATE result_list SET parsed_entries = ?, parsed_rows = ? WHERE id = ?",
             (entries, len(rows), list_id))
@@ -2788,7 +2811,7 @@ def populate_quality_model(cur):
             add_audit_issue(
                 cur, list_id, "ambiguous_family_category", "warning",
                 f"Kurzklasse {category!r}: Family-Kategorie oder reguläre Klasse bestätigen.")
-        if declared is not None and declared != entries:
+        if declared is not None and declared != entries and not shadow_duplicate:
             add_audit_issue(
                 cur, list_id, "entry_count_mismatch", "blocker",
                 f"Quelle nennt {declared} Starts, geparst wurden {entries} Einträge.")
@@ -2878,7 +2901,7 @@ def populate_quality_model(cur):
     assertions = payload.get("assertions", []) if isinstance(payload, dict) else payload
     fingerprints = {
         list_id: fingerprint
-        for list_id, _cat, _declared, fingerprint, _source_type in lists
+        for list_id, _stage_id, _cat, _declared, fingerprint, _source_type in lists
     }
     for assertion in assertions:
         if not isinstance(assertion, dict):

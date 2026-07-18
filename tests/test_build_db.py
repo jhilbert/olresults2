@@ -19,6 +19,8 @@ class AnneIdentityTests(unittest.TestCase):
         self.assertEqual(build_db.classify_family_category("AT-F"), "ambiguous")
         self.assertEqual(build_db.classify_family_category("D 14"), "ordinary")
         self.assertEqual(build_db.normalize_status("nc", "AK"), ("ok", 1))
+        self.assertEqual(build_db.normalize_status("ok", "(39:58)"), ("ok", 1))
+        self.assertEqual(build_db.normalize_status("unknown", "OMT"), ("dns", 0))
         self.assertEqual(build_db.normalize_status("nc", "nc"), ("unknown", 0))
         self.assertEqual(build_db.normalize_status("dnf", "DNF", True), ("dnf", 1))
         self.assertTrue(build_db.is_vienna_championship_candidate("Wr/NÖ MS Mittel"))
@@ -41,6 +43,28 @@ class AnneIdentityTests(unittest.TestCase):
             ).fetchone(),
             (None, "Livia + Papa", "family", "not_applicable"),
         )
+
+    def test_quality_model_does_not_flag_a_deduplicated_second_source(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id, title) VALUES (1, 'ÖM Test')")
+        cur.execute("INSERT INTO stage (id, event_id, number) VALUES (1, 1, 1)")
+        for doc_id, list_id in (("doc:pdf", "list:pdf"), ("doc:html", "list:html")):
+            cur.execute(
+                "INSERT INTO source_document (id, event_id, source_type, file_name) VALUES (?,?,?,?)",
+                (doc_id, 1, "sportsoftware-pdf", doc_id))
+            cur.execute(
+                """INSERT INTO result_list (id, stage_id, source_document_id, category,
+                   declared_starters, input_fingerprint) VALUES (?,?,?,?,?,?)""",
+                (list_id, 1, doc_id, "H21", 1, doc_id))
+        build_db.insert_result(cur, stage_id=1, result_list_id="list:pdf", category="H21",
+                               status="ok", time_s=100, rank=1, source="sportsoftware-pdf",
+                               observed_name="Max Beispiel")
+        build_db.populate_quality_model(cur)
+        self.assertEqual(cur.execute(
+            "SELECT count(*) FROM audit_issue WHERE code = 'entry_count_mismatch'"
+        ).fetchone()[0], 0)
 
     def test_synthetic_ids_are_deterministic_and_identity_scoped(self):
         first = build_db.PersonRegistry().from_legacy("Anna Beispiel", 1988)[0]
