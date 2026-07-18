@@ -9,6 +9,7 @@ this header only affects local development.
 import json
 import mimetypes
 import os
+import errno
 import sqlite3
 import sys
 import urllib.parse
@@ -98,5 +99,27 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8643
-    HTTPServer(("127.0.0.1", port), NoCacheHandler).serve_forever()
+    requested_port = int(sys.argv[1]) if len(sys.argv) > 1 else 8643
+    ports = [requested_port] if len(sys.argv) > 1 else range(requested_port, requested_port + 10)
+    server = None
+    for port in ports:
+        try:
+            server = HTTPServer(("127.0.0.1", port), NoCacheHandler)
+            break
+        except OSError as exc:
+            if exc.errno != errno.EADDRINUSE:
+                raise
+    if server is None:
+        raise SystemExit(
+            f"Kein freier Port zwischen {requested_port} und {requested_port + 9} gefunden.")
+    if server.server_port != requested_port:
+        print(f"Port {requested_port} ist belegt; verwende stattdessen {server.server_port}.",
+              flush=True)
+    print(f"OLResults: http://127.0.0.1:{server.server_port}/", flush=True)
+    print(f"Prüfung:  http://127.0.0.1:{server.server_port}/review.html", flush=True)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nServer beendet.")
+    finally:
+        server.server_close()

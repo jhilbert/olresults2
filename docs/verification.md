@@ -12,9 +12,11 @@ hat.
 python3 site/serve.py
 ```
 
-Danach `http://127.0.0.1:8643/review.html` öffnen. Der Server bindet nur an
-localhost. Entscheidungen werden in `data/review/verification.json`
-gespeichert. Auf GitHub Pages ist dieselbe Oberfläche absichtlich nur lesbar.
+Danach die vom Server ausgegebene Prüf-URL öffnen (normalerweise
+`http://127.0.0.1:8643/review.html`). Ist Port 8643 bereits belegt, wird
+automatisch der nächste freie Port verwendet. Der Server bindet nur an
+localhost. Entscheidungen werden in `data/review/verification.json` gespeichert.
+Auf GitHub Pages ist dieselbe Oberfläche absichtlich nur lesbar.
 
 Tasten: `A` bestätigt die aktuelle Liste und springt zur nächsten offenen
 Liste, `F` markiert sie zur Nacharbeit, `J`/`K` wechseln vor/zurück.

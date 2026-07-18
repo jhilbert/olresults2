@@ -56,9 +56,11 @@ python3 build/build_db.py              # rebuild with any newly-decided eligibil
 python3 site/serve.py                  # local preview + writable result review
 ```
 
-Open `http://127.0.0.1:8643/review.html` for the optimized list-by-list
-verification workflow. See [docs/verification.md](docs/verification.md) for
-the review dimensions, Family/OOC model and championship campaigns.
+Open the review URL printed by the server (normally
+`http://127.0.0.1:8643/review.html`) for the optimized list-by-list verification
+workflow. If port 8643 is already in use, the server automatically selects the
+next free port. See [docs/verification.md](docs/verification.md) for the review
+dimensions, Family/OOC model and championship campaigns.
 
 Direct local access to ANNE remains supported. CI instead sets
 `ANNE_BASE_URL=https://<worker>/v1` and `ANNE_GATEWAY_TOKEN`.
