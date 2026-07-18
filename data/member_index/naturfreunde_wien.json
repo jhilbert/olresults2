@@ -875,11 +875,6 @@
   "yob": 1971
  },
  {
-  "ofol_id": 8885,
-  "name": "Laurens Roche",
-  "yob": 2008
- },
- {
   "ofol_id": 8900,
   "name": "Annina Urbanek",
   "yob": 2011
@@ -888,6 +883,11 @@
   "ofol_id": 8901,
   "name": "Lauri Urbanek",
   "yob": 2009
+ },
+ {
+  "ofol_id": 8910,
+  "name": "Lynn Dautermann",
+  "yob": 2004
  },
  {
   "ofol_id": 8974,
@@ -1253,21 +1253,6 @@
   "ofol_id": 10576,
   "name": "Linda Spitzl",
   "yob": 1978
- },
- {
-  "ofol_id": 10577,
-  "name": "Livia Spitzl",
-  "yob": 2013
- },
- {
-  "ofol_id": 10578,
-  "name": "Alice Spitzl",
-  "yob": 2013
- },
- {
-  "ofol_id": 10579,
-  "name": "Sonja Spitzl",
-  "yob": 2013
  },
  {
   "ofol_id": 10593,

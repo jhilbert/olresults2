@@ -29,7 +29,7 @@ HEADERS = {"User-Agent": "olresults-sync/0.1 (+https://github.com/josefhilbert/o
 
 # liveresultat's numeric status code -> our vocabulary (matches the IOF/MeOS
 # convention this and similar Nordic live-timing services follow)
-STATUS_MAP = {0: "ok", 1: "dns", 2: "dnf", 3: "mp", 4: "dsq", 5: "nc"}
+STATUS_MAP = {0: "ok", 1: "dns", 2: "dnf", 3: "mp", 4: "dsq", 5: "unknown"}
 
 
 def get(url):
@@ -61,7 +61,8 @@ def fetch_comp(comp):
                 continue
             status = STATUS_MAP.get(r.get("status", 0), "unknown")
             res = {"name": rname, "club": re.sub(r"\s+", " ", (r.get("club") or "")).strip(),
-                   "timeText": "", "status": status}
+                   "timeText": "", "status": status,
+                   "rawStatusCode": r.get("status", 0)}
             place = str(r.get("place") or "").strip()
             if place.isdigit():
                 res["rank"] = int(place)

@@ -53,8 +53,12 @@ python3 ingest/parse_sportsoftware_html.py  # parse tier-2 HTML attachments
 python3 build/build_db.py              # build site/data/results.db (pass 1)
 python3 ingest/anne_user_eligibility.py     # sync ÖM/ÖSTM championship eligibility (needs ANNE_API_KEY)
 python3 build/build_db.py              # rebuild with any newly-decided eligibility (pass 2)
-cd site && python3 -m http.server 8643 # local preview
+python3 site/serve.py                  # local preview + writable result review
 ```
+
+Open `http://127.0.0.1:8643/review.html` for the optimized list-by-list
+verification workflow. See [docs/verification.md](docs/verification.md) for
+the review dimensions, Family/OOC model and championship campaigns.
 
 Direct local access to ANNE remains supported. CI instead sets
 `ANNE_BASE_URL=https://<worker>/v1` and `ANNE_GATEWAY_TOKEN`.

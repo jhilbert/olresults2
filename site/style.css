@@ -179,6 +179,8 @@ td a:hover { color: var(--accent-dark); }
 .of { color: var(--ink-faint); font-weight: 400; }
 .dim { color: var(--ink-faint); }
 .status { font-size: 12px; font-weight: 700; color: var(--ink-faint); text-transform: uppercase; }
+.status.ooc { color: #7c4b16; background: #fff3dd; border-radius: 4px; padding: 2px 5px; }
+.family-name { font-weight: 600; }
 .pct-good { color: var(--ok); font-weight: 600; }
 
 .badge {
@@ -254,6 +256,76 @@ footer {
   padding: 14px 0; font-size: 13px; color: var(--ink-soft);
 }
 footer a { color: var(--accent-dark); text-decoration: none; }
+
+/* Local result-list verification workspace. It intentionally favors one-key
+   list decisions and keeps source + parsed output visible at the same time. */
+.review-body { height: 100vh; overflow: hidden; }
+.review-wrap { width: 100%; max-width: 1680px; margin: 0 auto; padding: 0 18px; }
+.review-header { height: 58px; display: flex; align-items: center; gap: 18px; }
+.review-header strong { font-size: 15px; }
+.review-mode { margin-left: auto; font-size: 12px; color: var(--ink-faint); }
+.review-mode.writable { color: var(--ok); }
+.review-shortcuts { font-size: 12px; color: var(--ink-faint); }
+.review-main { display: grid; grid-template-columns: 320px minmax(0, 1fr); height: calc(100vh - 58px); padding: 0; }
+.review-queue { border-right: 1px solid var(--line); min-height: 0; display: flex; flex-direction: column; background: var(--card); }
+.review-filters { padding: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 7px; border-bottom: 1px solid var(--line); }
+.review-filters select, .review-filters input { min-width: 0; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; background: white; }
+.review-filters input { grid-column: 1 / -1; }
+.review-progress { padding: 8px 13px; font-size: 12px; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
+.review-blocker { color: #b42318; }
+.queue-list { overflow: auto; min-height: 0; }
+.queue-item { width: 100%; border: 0; border-bottom: 1px solid var(--line); background: white; display: grid; grid-template-columns: 24px minmax(0, 1fr) 24px; gap: 5px; text-align: left; padding: 9px 10px; cursor: pointer; color: var(--ink); }
+.queue-item:hover, .queue-item.active { background: #fff7f2; }
+.queue-item.active { box-shadow: inset 3px 0 var(--accent); }
+.queue-item small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-faint); font-size: 11px; font-weight: 400; }
+.queue-state { font-weight: 900; color: var(--ink-faint); }
+.queue-item.blocked .queue-state { color: #b42318; }
+.queue-item.warning .queue-state, .queue-item.flagged .queue-state { color: #b56a00; }
+.queue-item.confirmed .queue-state { color: var(--ok); }
+.queue-count { color: #b42318; font-weight: 700; font-size: 12px; text-align: right; }
+.queue-empty { padding: 20px; color: var(--ink-faint); }
+.review-detail { overflow: auto; min-width: 0; padding: 20px 24px 30px; }
+.review-titlebar { display: flex; justify-content: space-between; gap: 20px; align-items: start; }
+.review-titlebar h1 { margin: 0; }
+.review-titlebar p { color: var(--ink-soft); }
+.review-kicker { text-transform: uppercase; letter-spacing: .06em; font-size: 11px; }
+.review-facts { display: flex; align-items: center; gap: 18px; margin: 13px 0; font-size: 13px; color: var(--ink-soft); }
+.review-facts b { color: var(--ink); }
+.review-issues { margin: 10px 0; max-height: 150px; overflow: auto; }
+.review-issue { padding: 6px 9px; margin: 4px 0; border-radius: 5px; font-size: 12px; }
+.review-issue.blocker { background: #fff0ee; color: #8f1d14; }
+.review-issue.warning { background: #fff8e7; color: #805300; }
+.review-clean { color: #15753a; background: #effbf3; padding: 7px 10px; border-radius: 5px; margin: 10px 0; font-size: 13px; }
+.review-dimensions { display: flex; gap: 6px; flex-wrap: wrap; }
+.dimension { padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink-faint); font-size: 11px; }
+.dimension.confirmed, .dimension.not_applicable { border-color: #9fd7b1; color: #15753a; background: #f1fbf4; }
+.dimension.flagged { border-color: #e9c36a; color: #805300; background: #fff8e7; }
+.review-actions { display: flex; align-items: center; gap: 7px; margin: 13px 0; }
+.review-actions button { border: 1px solid var(--line); border-radius: 7px; padding: 8px 12px; cursor: pointer; }
+.review-actions button:disabled { opacity: .45; cursor: not-allowed; }
+.review-primary { background: var(--accent); border-color: var(--accent) !important; color: white; font-weight: 700; }
+.review-primary.review-batch { background: #8f3e20; border-color: #8f3e20 !important; }
+.review-secondary { background: white; color: var(--ink-soft); }
+.review-actions kbd { margin-left: 7px; background: rgba(255,255,255,.18); padding: 1px 5px; border-radius: 3px; }
+#review-save-status { font-size: 12px; color: var(--ink-faint); }
+.review-workspace { display: grid; grid-template-columns: minmax(360px, .9fr) minmax(500px, 1.1fr); gap: 12px; height: min(66vh, 760px); }
+.review-source, .review-parsed { border: 1px solid var(--line); border-radius: 8px; background: white; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.pane-head { flex: none; padding: 7px 10px; background: #f7f6f4; border-bottom: 1px solid var(--line); font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--ink-soft); }
+.pane-head a { float: right; text-transform: none; color: var(--accent-dark); text-decoration: none; }
+.review-source iframe { flex: 1; width: 100%; border: 0; background: white; }
+.review-table-wrap { overflow: auto; }
+.review-parsed table { border: 0; border-radius: 0; font-size: 12px; }
+.review-parsed td, .review-parsed th { padding: 6px 8px; }
+.review-parsed td small { display: block; color: var(--ink-faint); }
+.review-row-issue { background: #fff5f2; }
+.review-placeholder { padding: 40px; text-align: center; color: var(--ink-faint); }
+
+@media (max-width: 1050px) {
+  .review-shortcuts { display: none; }
+  .review-main { grid-template-columns: 260px minmax(0, 1fr); }
+  .review-workspace { grid-template-columns: 1fr; height: auto; }
+  .review-source, .review-parsed { height: 520px; }
+}
 
 @media (max-width: 640px) {
   .header-inner {

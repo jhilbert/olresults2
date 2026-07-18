@@ -34,7 +34,7 @@ from pathlib import Path
 from sportsoftware_common import (
     CAT_LINE_RE, KAT_TOKEN_RE, MANUAL_ATTACHMENT_SKIP, MANUAL_DOC_DATE_OVERRIDES, STATUS_TAIL_RE,
     classify_championship_text, detect_list_type, find_trailing_club, guess_doc_date,
-    is_junk_name, load_clubs, looks_like_person, split_by_kat,
+    is_junk_name, is_ooc_status, load_clubs, looks_like_person, split_by_kat,
     parse_champion_annotation, parse_course_info, parse_flow_row, parse_status, parse_time,
     parse_time_loose, strip_champion_name_prefix,
 )
@@ -77,6 +77,8 @@ def flow_results(flow):
         if seconds is not None:
             res["timeS"] = seconds
         res["status"] = status
+        if flow.get("outOfCompetition"):
+            res["outOfCompetition"] = True
         jg = flow.get("jg")
         if jg and jg.isdigit():
             y = int(jg)
@@ -489,8 +491,10 @@ def parse_flow_result_row(text, clubs):
     if not toks:
         return None
     forced_status = None
+    forced_ooc = False
     if toks[0] == "AK":  # "außer Konkurrenz" - non-competitive entry
-        forced_status = "nc"
+        forced_status = "ok"
+        forced_ooc = True
         toks = toks[1:]
     if not toks:
         return None
@@ -528,6 +532,8 @@ def parse_flow_result_row(text, clubs):
     if seconds is not None:
         result["timeS"] = seconds
     result["status"] = forced_status or ("ok" if seconds is not None else (parse_status(status_text or "") or "unknown"))
+    if forced_ooc or is_ooc_status(status_text):
+        result["outOfCompetition"] = True
     return result
 
 

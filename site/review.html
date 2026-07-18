@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OLResults — Ergebnisprüfung</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+</head>
+<body class="review-body">
+<header>
+  <div class="review-wrap review-header">
+    <a class="brand" href="index.html">OL<span>Results</span></a>
+    <strong>Ergebnisprüfung</strong>
+    <span id="save-mode" class="review-mode">wird geladen …</span>
+    <span class="review-shortcuts">A bestätigen · F markieren · J/K weiter/zurück</span>
+  </div>
+</header>
+<main class="review-wrap review-main">
+  <aside class="review-queue">
+    <div class="review-filters">
+      <select id="campaign" aria-label="Prüfkampagne">
+        <option value="national">1 · ÖM / ÖSTM</option>
+        <option value="vienna">2 · Wiener Meisterschaften</option>
+        <option value="all">Alle Ergebnislisten</option>
+      </select>
+      <select id="queue-state" aria-label="Bearbeitungsstand">
+        <option value="open">Nur offen</option>
+        <option value="issues">Nur mit Hinweisen</option>
+        <option value="confirmed">Bestätigt</option>
+        <option value="all">Alle</option>
+      </select>
+      <input id="queue-search" type="search" placeholder="Wettkampf oder Klasse …">
+    </div>
+    <div id="progress" class="review-progress"></div>
+    <div id="queue" class="queue-list"><div class="loading"><div class="spinner"></div></div></div>
+  </aside>
+  <section id="review-detail" class="review-detail">
+    <div class="loading"><div class="spinner"></div><p>Lade Prüfdatenbank …</p></div>
+  </section>
+</main>
+<script src="review.js"></script>
+</body>
+</html>

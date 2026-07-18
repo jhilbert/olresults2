@@ -87,6 +87,7 @@ function query(sql, params = []) {
 }
 
 function rankCell(r) {
+  if (r.out_of_competition) return `<span class="status ooc">OOC</span>`;
   if (r.status !== "ok") return `<span class="status">${esc(r.status)}</span>`;
   if (r.rank == null) return "";
   return `<span class="rank ${r.rank === 1 ? "rank-1" : ""}">${r.rank}</span>` +
@@ -407,8 +408,8 @@ function viewEvent(id, medalsOnly, stageNum) {
     const stageHasOfficial = cats.some((c) => !isBahn(c.category));
     for (const c of cats) {
       const results = reorderTeamMembers(query(`
-        SELECT r.*, p.name AS person_name FROM result r
-        JOIN person p ON p.id = r.person_id
+        SELECT r.*, COALESCE(p.name, r.observed_name) AS person_name FROM result r
+        LEFT JOIN person p ON p.id = r.person_id
         WHERE r.stage_id = ? AND r.category = ?
           ${medalsOnly ? "AND r.championship IS NOT NULL AND r.national_rank <= 3" : ""}
         ORDER BY CASE WHEN r.rank IS NULL THEN 1 ELSE 0 END, r.rank, r.club, r.time_s`,
@@ -438,7 +439,10 @@ function viewEvent(id, medalsOnly, stageNum) {
                 <td class="num">${tier
                   ? `<span class="rank-medal rank-medal-${tier}" title="${medalName[r.national_rank]} (ÖM/ÖSTM)">${r.rank ?? ""}</span>`
                   : rankCell({ ...r, starters: null })}</td>
-                <td><a href="#/runner/${r.person_id}">${esc(r.person_name)}</a>${r.note ? `<div class="note">${esc(r.note)}</div>` : ""}</td>
+                <td>${r.person_id == null
+                  ? `<span class="family-name">${esc(r.person_name || "Family")}</span>`
+                  : `<a href="#/runner/${r.person_id}">${esc(r.person_name)}</a>`
+                }${r.result_kind === "family" ? ` <span class="badge">Family</span>` : ""}${r.note ? `<div class="note">${esc(r.note)}</div>` : ""}</td>
                 <td class="hide-sm dim">${esc(r.club || "")}</td>
                 <td class="num">${fmtTime(r.time_s)}</td>
                 <td class="num dim">${r.status === "ok" && r.time_behind_s ? "+" + fmtTime(r.time_behind_s) : ""}</td>

@@ -22,6 +22,8 @@ ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw" / "anne"
 NORM = ROOT / "data" / "normalized"
 DB_PATH = ROOT / "site" / "data" / "results.db"
+REVIEW_DECISIONS_PATH = ROOT / "data" / "review" / "verification.json"
+CHAMPIONSHIP_CATALOG_PATH = ROOT / "data" / "review" / "championship_catalog.json"
 
 SCHEMA = """
 CREATE TABLE event (
@@ -66,6 +68,10 @@ CREATE TABLE person_redirect (
     old_id INTEGER PRIMARY KEY,
     new_id INTEGER NOT NULL REFERENCES person(id)
 );
+CREATE TABLE person_tombstone (
+    old_id INTEGER PRIMARY KEY,
+    reason TEXT NOT NULL
+);
 CREATE TABLE source_document (
     id TEXT PRIMARY KEY,
     event_id INTEGER NOT NULL REFERENCES event(id),
@@ -78,30 +84,51 @@ CREATE TABLE source_document (
     normalized_sha256 TEXT,
     parser_version TEXT
 );
+CREATE TABLE result_list (
+    id TEXT PRIMARY KEY,
+    stage_id INTEGER NOT NULL REFERENCES stage(id),
+    source_document_id TEXT NOT NULL REFERENCES source_document(id),
+    category TEXT NOT NULL,
+    category_full TEXT,
+    declared_starters INTEGER,
+    parsed_entries INTEGER NOT NULL DEFAULT 0,
+    parsed_rows INTEGER NOT NULL DEFAULT 0,
+    course_length_m INTEGER,
+    course_climb_m INTEGER,
+    course_controls INTEGER,
+    input_fingerprint TEXT NOT NULL,
+    UNIQUE (stage_id, source_document_id, category)
+);
 CREATE TABLE result (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     stage_id INTEGER NOT NULL REFERENCES stage(id),
-    person_id INTEGER NOT NULL REFERENCES person(id),
+    person_id INTEGER REFERENCES person(id),
+    result_list_id TEXT REFERENCES result_list(id),
     category TEXT NOT NULL,
     category_full TEXT,
     club TEXT,
     official_club TEXT,               -- club canonicalized to ANNE's /v1/club
                                        -- registry, for the Vereine section only
     rank INTEGER,
-    status TEXT NOT NULL,            -- ok|dnf|dsq|mp|dns|nc|unknown
+    status TEXT NOT NULL,            -- ok|dnf|dsq|mp|dns|unknown
     time_s INTEGER,
     time_behind_s INTEGER,
     out_of_competition INTEGER NOT NULL DEFAULT 0,
     course_length_m INTEGER, course_climb_m INTEGER, course_controls INTEGER,
-    result_kind TEXT NOT NULL DEFAULT 'individual',  -- individual|pair|relay
+    result_kind TEXT NOT NULL DEFAULT 'individual',  -- individual|pair|relay|team|family
     note TEXT,                       -- e.g. "Partner: X" / "Staffel Y, Leg N"
     source TEXT NOT NULL,            -- anne-api|sportsoftware-html|...
     source_document_id TEXT REFERENCES source_document(id),
     observed_name TEXT,              -- source spelling before canonical identity resolution
     observed_club TEXT,              -- source spelling before club canonicalization
     observed_user_id TEXT,           -- source-supplied identity, never inferred
+    observed_category TEXT,
+    observed_rank TEXT,
+    observed_status TEXT,
+    observed_time TEXT,
     identity_basis TEXT NOT NULL DEFAULT 'unknown',
     identity_confidence REAL NOT NULL DEFAULT 0.0,
+    identity_state TEXT NOT NULL DEFAULT 'provisional',
     championship TEXT,               -- ÖM|ÖSTM, when this (stage, category)
                                       -- is a genuine Austrian championship
     national_rank INTEGER            -- placement among ONLY championship-
@@ -111,11 +138,64 @@ CREATE TABLE result (
                                       -- competitor placed ahead - see the
                                       -- national-rank computation in main()
 );
+CREATE TABLE verification_assertion (
+    scope_type TEXT NOT NULL,        -- result_list|championship
+    scope_key TEXT NOT NULL,
+    dimension TEXT NOT NULL,         -- completeness|parsing|identity|ranking|rules
+    state TEXT NOT NULL,             -- confirmed|flagged|not_applicable
+    input_fingerprint TEXT NOT NULL,
+    reviewer TEXT,
+    reviewed_at TEXT,
+    note TEXT,
+    PRIMARY KEY (scope_type, scope_key, dimension)
+);
+CREATE TABLE audit_issue (
+    id TEXT PRIMARY KEY,
+    result_list_id TEXT REFERENCES result_list(id),
+    result_id INTEGER REFERENCES result(id),
+    code TEXT NOT NULL,
+    severity TEXT NOT NULL,          -- blocker|warning|info
+    message TEXT NOT NULL,
+    auto_resolvable INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE championship_rule_set (
+    id TEXT PRIMARY KEY,
+    jurisdiction TEXT NOT NULL,
+    version INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    status TEXT NOT NULL,            -- active|draft
+    description TEXT
+);
+CREATE TABLE championship_instance (
+    id TEXT PRIMARY KEY,
+    jurisdiction TEXT NOT NULL,      -- AUT|WIEN
+    stage_id INTEGER NOT NULL REFERENCES stage(id),
+    category TEXT NOT NULL,
+    championship_type TEXT NOT NULL,
+    rule_set_id TEXT NOT NULL REFERENCES championship_rule_set(id),
+    state TEXT NOT NULL,             -- confirmed|candidate|rejected
+    detection_basis TEXT NOT NULL,
+    input_fingerprint TEXT NOT NULL,
+    UNIQUE (jurisdiction, stage_id, category, championship_type)
+);
+CREATE TABLE award (
+    id TEXT PRIMARY KEY,
+    championship_instance_id TEXT NOT NULL REFERENCES championship_instance(id),
+    result_id INTEGER NOT NULL REFERENCES result(id),
+    medal TEXT NOT NULL,              -- gold|silver|bronze
+    award_rank INTEGER NOT NULL,
+    state TEXT NOT NULL,              -- derived|verified
+    UNIQUE (championship_instance_id, result_id)
+);
 CREATE INDEX idx_result_person ON result(person_id);
 CREATE INDEX idx_result_stage_cat ON result(stage_id, category);
 CREATE INDEX idx_result_official_club ON result(official_club);
 CREATE INDEX idx_person_name ON person(name_key);
 CREATE INDEX idx_result_source_document ON result(source_document_id);
+CREATE INDEX idx_result_list ON result(result_list_id);
+CREATE INDEX idx_audit_list ON audit_issue(result_list_id, severity);
+CREATE INDEX idx_championship_stage ON championship_instance(stage_id, category);
+CREATE INDEX idx_award_instance ON award(championship_instance_id);
 CREATE INDEX idx_person_alias_key ON person_alias(name_key);
 CREATE INDEX idx_person_identifier_value ON person_identifier(scheme, identifier);
 CREATE VIEW category_stats AS
@@ -124,18 +204,53 @@ SELECT stage_id, category,
        SUM(status = 'ok')                             AS classified,
        MIN(CASE WHEN rank = 1 THEN time_s END)        AS winner_time_s
 FROM result
-WHERE status != 'dns' AND result_kind != 'relay'  -- relay leg times aren't comparable
+WHERE status != 'dns' AND result_kind NOT IN ('relay', 'family')
 GROUP BY stage_id, category;
 """
 
 ANNE_STATUS = {
     "classified": "ok",
-    "notClassified": "nc",
+    "notClassified": "unknown",
     "didNotFinish": "dnf",
     "disqualified": "dsq",
     "missingPunch": "mp",
     "didNotStart": "dns",
 }
+
+VALID_STATUSES = {"ok", "dnf", "dsq", "mp", "dns", "unknown"}
+OOC_STATUS_TEXT_RE = re.compile(
+    r"^(?:ak|au(?:ß|ss)er konkurrenz|ohne wertung|wertungsfrei)$", re.I)
+FAMILY_CATEGORY_RE = re.compile(
+    r"(?:\bfam(?:ilie|ily|iliy|iliy|iliy)?\b|familien|rahmenbewerb\s+familie)", re.I)
+AMBIGUOUS_FAMILY_CATEGORY_RE = re.compile(r"^(?:AT-)?F$", re.I)
+
+
+def classify_family_category(category):
+    """Return ``family``, ``ambiguous`` or ``ordinary``.
+
+    Full words and common misspellings are safe to classify automatically.
+    Historic one-letter classes such as ``F`` are deliberately review work:
+    depending on the event they can mean Family, female, or a course label.
+    """
+    value = re.sub(r"\s+", " ", (category or "").strip())
+    if AMBIGUOUS_FAMILY_CATEGORY_RE.fullmatch(value):
+        return "ambiguous"
+    return "family" if FAMILY_CATEGORY_RE.search(value) else "ordinary"
+
+
+def normalize_status(status, raw_text=None, out_of_competition=False):
+    """Normalize status while keeping OOC as an orthogonal flag.
+
+    Old committed parser output used ``nc`` both for genuine AK/OOC and for
+    an unexplained LiveResult status. Only explicit AK wording proves OOC;
+    an unqualified old ``nc`` therefore becomes ``unknown`` and is audited.
+    """
+    raw = str(raw_text if raw_text is not None else status or "").strip()
+    ooc = bool(out_of_competition) or bool(OOC_STATUS_TEXT_RE.fullmatch(raw))
+    normalized = status if status in VALID_STATUSES else "unknown"
+    if ooc and normalized == "unknown":
+        normalized = "ok"
+    return normalized, int(ooc)
 
 CLUB_JUNK_PREFIX_RE = re.compile(r"^(?:empty|leer|vacant|frei|\.)\s+", re.I)
 
@@ -797,7 +912,7 @@ def prepare_verified_member_identities(cur, persons, members):
         cur.execute(
             """UPDATE result
                SET person_id = ?, identity_basis = 'club-book-of-record',
-                   identity_confidence = 1.0
+                   identity_confidence = 1.0, identity_state = 'verified'
                WHERE id = ?""",
             (target_id, result_id),
         )
@@ -1494,24 +1609,53 @@ def register_legacy_document(cur, doc):
     stem = normalized_path.stem
     source = doc["source"]
     document_id = f"legacy:{stem}"
+    snapshot_path = next(iter((RAW / "files").glob(f"{stem}.*")), None)
     cur.execute(
         """INSERT OR IGNORE INTO source_document
            (id, event_id, source_type, source_url, file_name, snapshot_path,
             snapshot_sha256, normalized_path, normalized_sha256, parser_version)
            VALUES (?,?,?,?,?,?,?,?,?,?)""",
         (document_id, doc["eventId"], source, doc.get("sourceUrl"),
-         doc.get("fileName"), None, None,
+         doc.get("fileName"), repo_path(snapshot_path) if snapshot_path else None,
+         file_sha256(snapshot_path),
          repo_path(normalized_path), file_sha256(normalized_path),
          parser_version(source)))
     return document_id
 
 
-RESULT_COLS = ("stage_id", "person_id", "category", "category_full", "club", "official_club",
+def result_list_id(stage_id, source_document_id, category):
+    raw = f"{stage_id}\0{source_document_id}\0{category}".encode()
+    return "list:" + hashlib.sha256(raw).hexdigest()[:24]
+
+
+def register_result_list(cur, stage_id, source_document_id, category, category_full,
+                         declared_starters, rows, course=None):
+    """Create the stable review unit for one category in one source list."""
+    list_id = result_list_id(stage_id, source_document_id, category)
+    course = course or {}
+    fingerprint = hashlib.sha256(json.dumps(
+        rows, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+        default=str).encode()).hexdigest()
+    cur.execute(
+        """INSERT OR IGNORE INTO result_list
+           (id, stage_id, source_document_id, category, category_full,
+            declared_starters, course_length_m, course_climb_m, course_controls,
+            input_fingerprint)
+           VALUES (?,?,?,?,?,?,?,?,?,?)""",
+        (list_id, stage_id, source_document_id, category, category_full,
+         declared_starters, course.get("length") or course.get("courseLengthM"),
+         course.get("climb") or course.get("courseClimbM"),
+         course.get("controlCount") or course.get("courseControls"), fingerprint))
+    return list_id
+
+
+RESULT_COLS = ("stage_id", "person_id", "result_list_id", "category", "category_full", "club", "official_club",
                "rank", "status", "time_s", "time_behind_s", "out_of_competition",
                "course_length_m", "course_climb_m", "course_controls",
                "result_kind", "note", "source", "source_document_id",
-               "observed_name", "observed_club", "observed_user_id",
-               "identity_basis", "identity_confidence", "championship")
+               "observed_name", "observed_club", "observed_user_id", "observed_category",
+               "observed_rank", "observed_status", "observed_time",
+               "identity_basis", "identity_confidence", "identity_state", "championship")
 
 
 def insert_result(cur, **kw):
@@ -1519,6 +1663,8 @@ def insert_result(cur, **kw):
     kw.setdefault("result_kind", "individual")
     kw.setdefault("identity_basis", "unknown")
     kw.setdefault("identity_confidence", 0.0)
+    kw.setdefault("identity_state", "verified" if kw.get("identity_confidence", 0) >= 1.0
+                  else ("mapped" if kw.get("person_id") is not None else "provisional"))
     vals = [kw.get(c) for c in RESULT_COLS]
     cur.execute(f"INSERT INTO result ({','.join(RESULT_COLS)}) "
                 f"VALUES ({','.join('?' * len(RESULT_COLS))})", vals)
@@ -1598,11 +1744,58 @@ def load_anne_results(cur, events, persons, stage_ids):
         rows = [r for r in rows
                 if priority.get(r.get("resultType"), 3)
                 == best[(r.get("eventStageId"), r.get("categoryShortTitle"))]]
+        list_ids = {}
+        rows_by_list = defaultdict(list)
+        for row in rows:
+            sid = row.get("eventStageId") or default_stage(cur, event, stage_ids)
+            cat = row.get("categoryShortTitle") or row.get("categoryTitle")
+            rows_by_list[(sid, cat)].append(row)
+        for (sid, cat), list_rows in rows_by_list.items():
+            sample = list_rows[0]
+            list_ids[(sid, cat)] = register_result_list(
+                cur, sid, source_document_id, cat, sample.get("categoryTitle"),
+                None, list_rows, sample.get("course") or {})
         for r in rows:
             sid = r.get("eventStageId") or default_stage(cur, event, stage_ids)
             cat = r.get("categoryShortTitle") or r.get("categoryTitle")
+            list_id = list_ids[(sid, cat)]
+            family_state = classify_family_category(cat)
+            if family_state == "family":
+                members = r.get("teamMembers") or []
+                member_names = [
+                    clean_name(f"{m.get('firstName') or ''} {m.get('lastName') or ''}".strip())
+                    for m in members]
+                observed_name = (r.get("teamName") or
+                                 " + ".join(n for n in member_names if n) or
+                                 f"{r.get('firstName') or ''} {r.get('lastName') or ''}".strip())
+                raw_status = r.get("classification")
+                status, ooc = normalize_status(
+                    ANNE_STATUS.get(raw_status, "unknown"), raw_status,
+                    r.get("outOfCompetition"))
+                course = r.get("course") or {}
+                club = clean_club(r.get("clubName"))
+                insert_result(
+                    cur, stage_id=sid, person_id=None, result_list_id=list_id,
+                    category=cat, category_full=r.get("categoryTitle"), club=club,
+                    official_club=canonicalize_official_club(club, OFFICIAL_CLUBS),
+                    rank=r.get("rank"), status=status, time_s=r.get("time"),
+                    time_behind_s=r.get("timeBehind"), out_of_competition=ooc,
+                    course_length_m=course.get("length"), course_climb_m=course.get("climb"),
+                    course_controls=course.get("controlCount"), result_kind="family",
+                    note="Family-Ergebnis ohne Personenzuordnung", source="anne-api",
+                    source_document_id=source_document_id, observed_name=observed_name,
+                    observed_club=r.get("clubName"), observed_user_id=str(r.get("userId"))
+                    if r.get("userId") not in (None, "") else None,
+                    observed_category=cat, observed_rank=str(r.get("rank"))
+                    if r.get("rank") is not None else None,
+                    observed_status=raw_status, observed_time=str(r.get("time"))
+                    if r.get("time") is not None else None,
+                    identity_basis="not-applicable-family", identity_confidence=1.0,
+                    identity_state="not_applicable", championship=None)
+                n += 1
+                continue
             if r.get("teamMembers"):
-                n += insert_anne_relay(cur, persons, sid, cat, r, source_document_id)
+                n += insert_anne_relay(cur, persons, sid, cat, r, source_document_id, list_id)
                 continue
             observed_name = f"{r.get('firstName') or ''} {r.get('lastName') or ''}".strip()
             name = clean_name(observed_name)
@@ -1622,19 +1815,27 @@ def load_anne_results(cur, events, persons, stage_ids):
             persons.record(pid, name, authoritative=bool(r.get("firstName") and r.get("lastName")))
             course = r.get("course") or {}
             club = clean_club(r.get("clubName"))
-            insert_result(cur, stage_id=sid, person_id=pid, category=cat,
+            raw_status = r.get("classification")
+            status, ooc = normalize_status(
+                ANNE_STATUS.get(raw_status, "unknown"), raw_status,
+                r.get("outOfCompetition"))
+            insert_result(cur, stage_id=sid, person_id=pid, result_list_id=list_id, category=cat,
                           category_full=r.get("categoryTitle"), club=club,
                           official_club=canonicalize_official_club(club, OFFICIAL_CLUBS),
                           rank=r.get("rank"),
-                          status=ANNE_STATUS.get(r.get("classification"), "unknown"),
+                          status=status,
                           time_s=r.get("time"), time_behind_s=r.get("timeBehind"),
-                          out_of_competition=1 if r.get("outOfCompetition") else 0,
+                          out_of_competition=ooc,
                           course_length_m=course.get("length"),
                           course_climb_m=course.get("climb"),
                           course_controls=course.get("controlCount"),
                           source="anne-api", source_document_id=source_document_id,
                           observed_name=observed_name, observed_club=r.get("clubName"),
                           observed_user_id=str(uid) if uid is not None else None,
+                          observed_category=cat,
+                          observed_rank=str(r.get("rank")) if r.get("rank") is not None else None,
+                          observed_status=raw_status,
+                          observed_time=str(r.get("time")) if r.get("time") is not None else None,
                           identity_basis="anne-user-id" if uid is not None
                                          else ("legacy-name-yob" if r.get("yearOfBirth")
                                                else "legacy-name"),
@@ -1645,7 +1846,8 @@ def load_anne_results(cur, events, persons, stage_ids):
     return n
 
 
-def insert_anne_relay(cur, persons, sid, cat, team, source_document_id=None):
+def insert_anne_relay(cur, persons, sid, cat, team, source_document_id=None,
+                      result_list_id_value=None):
     """Explode a structured relay team into one result per leg runner, sharing
     the team's rank/club, with the runner's own leg time and a note naming the
     team and teammates. Leg time is the cumulative team time at that leg minus
@@ -1686,17 +1888,25 @@ def insert_anne_relay(cur, persons, sid, cat, team, source_document_id=None):
             note_bits.append("Team: " + ", ".join(mates))
         relay_club = clean_club(team.get("clubName"))
         observed_name = f"{m.get('firstName') or ''} {m.get('lastName') or ''}".strip()
-        insert_result(cur, stage_id=sid, person_id=pid, category=cat,
+        raw_status = m.get("classification") or team.get("classification")
+        status, ooc = normalize_status(
+            ANNE_STATUS.get(raw_status, "unknown"), raw_status,
+            team.get("outOfCompetition"))
+        insert_result(cur, stage_id=sid, person_id=pid,
+                      result_list_id=result_list_id_value, category=cat,
                       category_full=team.get("categoryTitle"), club=relay_club,
                       official_club=canonicalize_official_club(relay_club, OFFICIAL_CLUBS),
                       rank=team.get("rank"),
-                      status=ANNE_STATUS.get(m.get("classification")
-                                             or team.get("classification"), "unknown"),
+                      status=status, out_of_competition=ooc,
                       time_s=leg_time, result_kind="relay",
                       note=" · ".join(note_bits), source="anne-api",
                       source_document_id=source_document_id,
                       observed_name=observed_name, observed_club=team.get("clubName"),
                       observed_user_id=str(uid) if uid is not None else None,
+                      observed_category=cat,
+                      observed_rank=str(team.get("rank")) if team.get("rank") is not None else None,
+                      observed_status=raw_status,
+                      observed_time=str(leg_time) if leg_time is not None else None,
                       identity_basis="anne-user-id" if uid is not None
                                      else ("legacy-name-yob" if m.get("yearOfBirth")
                                            else "legacy-name"),
@@ -2085,9 +2295,60 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
             stage_doc_titles[sid].append(doc["docTitle"])
         flip_doc = detect_lastname_firstname_doc(doc["categories"], persons.first_names)
         for cat in doc["categories"]:
+            list_id = register_result_list(
+                cur, sid, source_document_id, cat["name"], cat["name"],
+                cat.get("declaredStarters"), cat.get("results") or [], {
+                    "courseLengthM": cat.get("courseLengthM"),
+                    "courseClimbM": cat.get("courseClimbM"),
+                    "courseControls": cat.get("courseControls"),
+                })
+            if classify_family_category(cat["name"]) == "family":
+                grouped = []
+                group_index = {}
+                for idx, row in enumerate(cat["results"]):
+                    kind = row.get("resultKind") or "individual"
+                    if kind in ("pair", "team"):
+                        key = (kind, row.get("rank"), row.get("status"), row.get("timeS"),
+                               row.get("club"))
+                    else:
+                        key = ("row", idx)
+                    if key not in group_index:
+                        group_index[key] = len(grouped)
+                        grouped.append([])
+                    grouped[group_index[key]].append(row)
+                for unit in grouped:
+                    first = unit[0]
+                    names = list(dict.fromkeys(
+                        (row.get("name") or "").strip() for row in unit
+                        if (row.get("name") or "").strip()))
+                    label = " + ".join(names)
+                    raw_status = first.get("status", "unknown")
+                    status, ooc = normalize_status(
+                        raw_status, first.get("timeText") or raw_status,
+                        first.get("outOfCompetition"))
+                    insert_result(
+                        cur, stage_id=sid, person_id=None, result_list_id=list_id,
+                        category=cat["name"], category_full=cat["name"],
+                        club=first.get("club"),
+                        official_club=canonicalize_official_club(
+                            first.get("club"), OFFICIAL_CLUBS),
+                        rank=first.get("rank"), status=status, time_s=first.get("timeS"),
+                        out_of_competition=ooc,
+                        course_length_m=cat.get("courseLengthM"),
+                        course_climb_m=cat.get("courseClimbM"),
+                        course_controls=cat.get("courseControls"),
+                        result_kind="family", note="Family-Ergebnis ohne Personenzuordnung",
+                        source=doc["source"], source_document_id=source_document_id,
+                        observed_name=label, observed_club=first.get("club"),
+                        observed_category=cat["name"],
+                        observed_rank=str(first.get("rank"))
+                        if first.get("rank") is not None else None,
+                        observed_status=raw_status, observed_time=first.get("timeText"),
+                        identity_basis="not-applicable-family", identity_confidence=1.0,
+                        identity_state="not_applicable", championship=None)
+                    n += 1
+                continue
             for r in cat["results"]:
-                if r.get("status") == "dns":
-                    continue
                 # a parsed row may carry several runners (a pair): the parser
                 # emits one entry per runner already, each with its own name
                 # and a note; treat them uniformly here
@@ -2118,17 +2379,27 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                     kind, note = "individual", r.get("note")
                 pid = persons.from_legacy(name, r.get("yearOfBirth"))
                 persons.record(pid, name)
-                insert_result(cur, stage_id=sid, person_id=pid, category=cat["name"],
+                raw_status = r.get("status", "unknown")
+                status, ooc = normalize_status(
+                    raw_status, r.get("timeText") or raw_status,
+                    r.get("outOfCompetition"))
+                insert_result(cur, stage_id=sid, person_id=pid, result_list_id=list_id,
+                              category=cat["name"],
                               category_full=cat["name"], club=r.get("club"),
                               official_club=canonicalize_official_club(r.get("club"), OFFICIAL_CLUBS),
-                              rank=r.get("rank"), status=r.get("status", "unknown"),
+                              rank=r.get("rank"), status=status,
                               time_s=r.get("timeS"),
+                              out_of_competition=ooc,
                               course_length_m=cat.get("courseLengthM"),
                               course_climb_m=cat.get("courseClimbM"),
                               course_controls=cat.get("courseControls"),
                               result_kind=kind, note=note, source=doc["source"],
                               source_document_id=source_document_id,
                               observed_name=observed_name, observed_club=r.get("club"),
+                              observed_category=cat["name"],
+                              observed_rank=str(r.get("rank"))
+                              if r.get("rank") is not None else None,
+                              observed_status=raw_status, observed_time=r.get("timeText"),
                               identity_basis="legacy-name-yob" if r.get("yearOfBirth")
                                              else "legacy-name",
                               identity_confidence=0.75 if r.get("yearOfBirth") else 0.55,
@@ -2143,6 +2414,203 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                 break
 
     return n
+
+
+def _issue_id(list_id, result_id, code, message):
+    raw = f"{list_id or ''}\0{result_id or ''}\0{code}\0{message}".encode()
+    return "issue:" + hashlib.sha256(raw).hexdigest()[:24]
+
+
+def add_audit_issue(cur, list_id, code, severity, message, result_id=None,
+                    auto_resolvable=False):
+    cur.execute(
+        "INSERT OR IGNORE INTO audit_issue VALUES (?,?,?,?,?,?,?)",
+        (_issue_id(list_id, result_id, code, message), list_id, result_id,
+         code, severity, message, int(auto_resolvable)))
+
+
+def competitor_unit_key(row):
+    """Stable unit key for entry counts after pair/relay member expansion."""
+    rid, kind, rank, status, time_s, club, note = row
+    if kind in ("individual", "family"):
+        return f"row:{rid}"
+    if kind == "pair":
+        return f"pair:{rank}:{status}:{time_s}:{club or ''}"
+    team = note or ""
+    m = re.search(r"Staffel:\s*([^·]+)", team)
+    return f"{kind}:{rank}:{status}:{club or ''}:{m.group(1).strip() if m else team}"
+
+
+def populate_quality_model(cur):
+    """Compute review units, deterministic findings and current assertions."""
+    lists = cur.execute(
+        "SELECT id, category, declared_starters, input_fingerprint FROM result_list"
+    ).fetchall()
+    for list_id, category, declared, fingerprint in lists:
+        rows = cur.execute(
+            """SELECT id, result_kind, rank, status, time_s, club, note
+               FROM result WHERE result_list_id = ? ORDER BY id""", (list_id,)).fetchall()
+        entries = len({competitor_unit_key(row) for row in rows})
+        cur.execute(
+            "UPDATE result_list SET parsed_entries = ?, parsed_rows = ? WHERE id = ?",
+            (entries, len(rows), list_id))
+        family_state = classify_family_category(category)
+        if family_state == "ambiguous":
+            add_audit_issue(
+                cur, list_id, "ambiguous_family_category", "warning",
+                f"Kurzklasse {category!r}: Family-Kategorie oder reguläre Klasse bestätigen.")
+        if declared is not None and declared != entries:
+            add_audit_issue(
+                cur, list_id, "entry_count_mismatch", "blocker",
+                f"Quelle nennt {declared} Starts, geparst wurden {entries} Einträge.")
+
+        unknown = cur.execute(
+            "SELECT id, observed_status FROM result WHERE result_list_id = ? AND status = 'unknown'",
+            (list_id,)).fetchall()
+        for result_id, observed_status in unknown:
+            add_audit_issue(
+                cur, list_id, "unknown_status", "blocker",
+                f"Status {observed_status or '(leer)'} ist nicht eindeutig normalisiert.",
+                result_id)
+
+        provisional = cur.execute(
+            """SELECT id, observed_name FROM result
+               WHERE result_list_id = ? AND person_id IS NOT NULL
+                 AND identity_state NOT IN ('verified', 'mapped', 'not_applicable')
+                 AND championship IS NOT NULL""", (list_id,)).fetchall()
+        for result_id, observed_name in provisional:
+            add_audit_issue(
+                cur, list_id, "provisional_championship_identity", "warning",
+                f"Meisterschaftsidentität von {observed_name} ist nicht extern verifiziert.",
+                result_id)
+
+        ranked = cur.execute(
+            """SELECT rank, MIN(time_s) FROM result
+               WHERE result_list_id = ? AND status = 'ok' AND rank IS NOT NULL
+                 AND time_s IS NOT NULL AND out_of_competition = 0
+                 AND result_kind NOT IN ('relay', 'family')
+               GROUP BY rank ORDER BY rank""", (list_id,)).fetchall()
+        best_so_far = None
+        for rank, time_s in ranked:
+            if best_so_far is not None and time_s < best_so_far:
+                add_audit_issue(
+                    cur, list_id, "rank_time_inversion", "warning",
+                    f"Rang {rank} ist schneller als ein besser gereihter Eintrag.")
+                break
+            best_so_far = time_s if best_so_far is None else max(best_so_far, time_s)
+
+    if not REVIEW_DECISIONS_PATH.exists():
+        return
+    payload = json.loads(REVIEW_DECISIONS_PATH.read_text())
+    assertions = payload.get("assertions", []) if isinstance(payload, dict) else payload
+    fingerprints = {list_id: fingerprint for list_id, _cat, _declared, fingerprint in lists}
+    for assertion in assertions:
+        if not isinstance(assertion, dict):
+            continue
+        scope_type = assertion.get("scope_type", "result_list")
+        scope_key = assertion.get("scope_key")
+        expected = fingerprints.get(scope_key) if scope_type == "result_list" else None
+        supplied = assertion.get("input_fingerprint")
+        if scope_type == "result_list" and expected != supplied:
+            if scope_key in fingerprints:
+                add_audit_issue(
+                    cur, scope_key, "stale_verification", "blocker",
+                    "Die Quelle oder Parserlogik hat sich seit der Bestätigung geändert.")
+            continue
+        cur.execute(
+            """INSERT OR REPLACE INTO verification_assertion
+               (scope_type, scope_key, dimension, state, input_fingerprint,
+                reviewer, reviewed_at, note) VALUES (?,?,?,?,?,?,?,?)""",
+            (scope_type, scope_key, assertion.get("dimension"), assertion.get("state"),
+             supplied or "", assertion.get("reviewer"), assertion.get("reviewed_at"),
+             assertion.get("note")))
+
+
+VIENNA_CHAMPIONSHIP_RE = re.compile(
+    r"(?:\bwr\.?\b|\bwien(?:er)?\b|\bw\s*\+|\bn\.?ö\.?\s*(?:&|/|u\.?nd?)\s*w\b)"
+    r".*(?:\bms\b|meister|landes)", re.I)
+VIENNA_CHAMPIONSHIP_REVERSE = re.compile(
+    r"(?:\bms\b|meister|landes).*"
+    r"(?:\bwr\.?\b|\bwien(?:er)?\b|\bw\s*\+|\bn\.?ö\.?\s*(?:&|/|u\.?nd?)\s*w\b)", re.I)
+
+
+def is_vienna_championship_candidate(title, stage_title=None):
+    text = f"{title or ''} {stage_title or ''}"
+    if re.search(r"Wiener\s+Neust(?:adt|ädter)|Schul", text, re.I):
+        return False
+    return bool(VIENNA_CHAMPIONSHIP_RE.search(text) or
+                VIENNA_CHAMPIONSHIP_REVERSE.search(text))
+
+
+def _championship_id(jurisdiction, stage_id, category, championship_type):
+    raw = f"{jurisdiction}\0{stage_id}\0{category}\0{championship_type}".encode()
+    return "champ:" + hashlib.sha256(raw).hexdigest()[:24]
+
+
+def populate_championship_model(cur):
+    """Publish national awards and a reviewable Wiener-MS candidate catalog.
+
+    National awards reuse the established eligibility/rank computation.
+    Wiener rules remain draft: candidates are intentionally not turned into
+    medals until a versioned rule set and catalog decision confirm them.
+    """
+    cur.executemany(
+        "INSERT INTO championship_rule_set VALUES (?,?,?,?,?,?)",
+        [
+            ("aut-national-v1", "AUT", 1, "ÖM/ÖSTM Bestandslogik", "active",
+             "Eligibility, Mindeststarter und nationale Rangberechnung des Bestandsmodells."),
+            ("wien-draft-v1", "WIEN", 1, "Wiener Meisterschaften – Entwurf", "draft",
+             "Kandidatenkatalog; Kategorien, Vereins-/Teilnahmeberechtigung und Sonderregeln sind zu bestätigen."),
+        ])
+
+    national = cur.execute(
+        """SELECT r.stage_id, r.category, r.championship,
+                  GROUP_CONCAT(DISTINCT rl.input_fingerprint)
+           FROM result r LEFT JOIN result_list rl ON rl.id = r.result_list_id
+           WHERE r.championship IS NOT NULL
+           GROUP BY r.stage_id, r.category, r.championship""").fetchall()
+    for stage_id, category, champ_type, fingerprints in national:
+        instance_id = _championship_id("AUT", stage_id, category, champ_type)
+        digest = hashlib.sha256((fingerprints or "").encode()).hexdigest()
+        cur.execute(
+            "INSERT INTO championship_instance VALUES (?,?,?,?,?,?,?,?,?)",
+            (instance_id, "AUT", stage_id, category, champ_type, "aut-national-v1",
+             "confirmed", "result-championship", digest))
+        for result_id, rank in cur.execute(
+                """SELECT id, national_rank FROM result
+                   WHERE stage_id = ? AND category = ? AND championship = ?
+                     AND national_rank BETWEEN 1 AND 3 AND status = 'ok'
+                     AND out_of_competition = 0""",
+                (stage_id, category, champ_type)).fetchall():
+            medal = {1: "gold", 2: "silver", 3: "bronze"}[rank]
+            award_id = "award:" + hashlib.sha256(
+                f"{instance_id}\0{result_id}".encode()).hexdigest()[:24]
+            cur.execute("INSERT INTO award VALUES (?,?,?,?,?,?)",
+                        (award_id, instance_id, result_id, medal, rank, "derived"))
+
+    catalog = {item.get("id"): item for item in json.loads(
+        CHAMPIONSHIP_CATALOG_PATH.read_text()).get("instances", [])
+        if isinstance(item, dict)} if CHAMPIONSHIP_CATALOG_PATH.exists() else {}
+    stages = cur.execute(
+        """SELECT s.id, e.title, s.title FROM stage s JOIN event e ON e.id = s.event_id
+           WHERE EXISTS (SELECT 1 FROM result r WHERE r.stage_id = s.id)""").fetchall()
+    for stage_id, event_title, stage_title in stages:
+        if not is_vienna_championship_candidate(event_title, stage_title):
+            continue
+        for category, fingerprints in cur.execute(
+                """SELECT r.category, GROUP_CONCAT(DISTINCT rl.input_fingerprint)
+                   FROM result r LEFT JOIN result_list rl ON rl.id = r.result_list_id
+                   WHERE r.stage_id = ? GROUP BY r.category""", (stage_id,)).fetchall():
+            instance_id = _championship_id("WIEN", stage_id, category, "WMS")
+            decision = catalog.get(instance_id, {})
+            state = decision.get("state", "candidate")
+            if state not in {"candidate", "confirmed", "rejected"}:
+                state = "candidate"
+            digest = hashlib.sha256((fingerprints or "").encode()).hexdigest()
+            cur.execute(
+                "INSERT INTO championship_instance VALUES (?,?,?,?,?,?,?,?,?)",
+                (instance_id, "WIEN", stage_id, category, "WMS", "wien-draft-v1",
+                 state, "title-candidate", digest))
 
 
 def main():
@@ -2282,7 +2750,8 @@ def main():
         # those results ran under the club's official name
         assoc = defaultdict(lambda: [0, 0])  # sid -> [nfw_rows, total_rows]
         for person_id, nfw, n in cur.execute(
-                "SELECT person_id, SUM(official_club = ?), COUNT(*) FROM result GROUP BY person_id",
+                """SELECT person_id, SUM(official_club = ?), COUNT(*) FROM result
+                   WHERE person_id IS NOT NULL GROUP BY person_id""",
                 (MEMBER_CLUB_NAME,)).fetchall():
             sid = resolve(person_id)
             assoc[sid][0] += nfw or 0
@@ -2371,6 +2840,7 @@ def main():
             cur.execute(
                 """UPDATE result
                    SET identity_basis = 'club-book-of-record', identity_confidence = 1.0
+                       , identity_state = 'verified'
                    WHERE person_id = ?""", (old,))
         cur.execute("UPDATE result SET person_id = ? WHERE person_id = ?", (new, old))
         persons.by_id.pop(old, None)
@@ -2405,11 +2875,12 @@ def main():
     # Confirmed non-championship rows only (night runs / family categories), so
     # no medal impact. Copy each result once per extra runner (while the garbled
     # person still owns them), then hand the originals to the first runner.
-    _copy_cols = ("stage_id, category, category_full, club, official_club, rank, "
+    _copy_cols = ("stage_id, result_list_id, category, category_full, club, official_club, rank, "
                   "status, time_s, time_behind_s, out_of_competition, course_length_m, "
                   "course_climb_m, course_controls, result_kind, note, source, "
                   "source_document_id, observed_name, observed_club, observed_user_id, "
-                  "identity_basis, identity_confidence, championship")
+                  "observed_category, observed_rank, observed_status, observed_time, "
+                  "identity_basis, identity_confidence, identity_state, championship")
     for gnk, targets in split_override.items():
         tids = [t["id"] for t in targets]
         if len(tids) < 2:
@@ -2473,7 +2944,10 @@ def main():
         for old_id, new_id in redirects.items():
             old_id, new_id = int(old_id), int(new_id)
             if new_id not in surviving_people:
-                raise RuntimeError(f"person redirect target does not exist: {old_id} -> {new_id}")
+                cur.execute(
+                    "INSERT OR REPLACE INTO person_tombstone VALUES (?, ?)",
+                    (old_id, "retired-non-person-result"))
+                continue
             if old_id != new_id:
                 cur.execute("INSERT INTO person_redirect VALUES (?, ?)", (old_id, new_id))
 
@@ -2538,6 +3012,12 @@ def main():
 
     n_eligibility = apply_championship_eligibility_overrides(cur)
 
+    # OOC/AK is independent of finish status but never participates in a
+    # championship ranking or medal award.
+    cur.execute(
+        "UPDATE result SET championship = NULL, national_rank = NULL "
+        "WHERE out_of_competition = 1")
+
     # Every non-nationality-API exclusion source, collected once into a temp
     # table and reused for (1) stripping championship tags below and (2) the
     # eligible-starter count further down - a DNF/MP/DSQ row never got a
@@ -2584,9 +3064,9 @@ def main():
     cur.execute("""
         INSERT INTO ineligible_starter (event_id, person_id)
         SELECT DISTINCT s.event_id, r.person_id FROM result r JOIN stage s ON s.id = r.stage_id
-        WHERE (r.club LIKE 'AA %' AND r.club NOT LIKE 'AA %Kärnten%'
+        WHERE r.person_id IS NOT NULL AND ((r.club LIKE 'AA %' AND r.club NOT LIKE 'AA %Kärnten%'
                AND r.club NOT LIKE 'AA %Steiermark%')
-           OR r.club GLOB '[0-9][0-9][0-9][0-9] - *'
+           OR r.club GLOB '[0-9][0-9][0-9][0-9] - *')
     """)
 
     # Broader pass: FOREIGN_CLUB_KEYWORDS (see its own docstring for how it
@@ -2596,7 +3076,7 @@ def main():
     cur.execute("""
         SELECT DISTINCT s.event_id, r.person_id, r.club FROM result r
         JOIN stage s ON s.id = r.stage_id
-        WHERE r.club IS NOT NULL AND r.club != ''
+        WHERE r.person_id IS NOT NULL AND r.club IS NOT NULL AND r.club != ''
     """)
     for eid, pid, club in cur.fetchall():
         lc = club.lower()
@@ -2609,7 +3089,7 @@ def main():
     cur.execute("""
         SELECT DISTINCT s.event_id, r.person_id, r.club FROM result r
         JOIN stage s ON s.id = r.stage_id
-        WHERE r.club IS NOT NULL AND r.club != ''
+        WHERE r.person_id IS NOT NULL AND r.club IS NOT NULL AND r.club != ''
     """)
     for eid, pid, club in cur.fetchall():
         if CLUBLESS_CLUB_RE.search(club):
@@ -2788,10 +3268,15 @@ def main():
         WHERE time_behind_s IS NULL AND time_s IS NOT NULL AND status = 'ok'
     """)
 
-    cur.execute("PRAGMA user_version = 2")
+    populate_championship_model(cur)
+    populate_quality_model(cur)
+
+    cur.execute("PRAGMA user_version = 3")
     con.commit()
     for table in ("event", "stage", "person", "person_identifier", "person_alias",
-                  "person_redirect", "source_document", "result"):
+                  "person_redirect", "person_tombstone", "source_document", "result_list", "result",
+                  "audit_issue", "verification_assertion", "championship_rule_set",
+                  "championship_instance", "award"):
         print(table, cur.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
     print(f"api results: {n_api}, legacy results: {n_legacy}, "
           f"championship rows from title fallback: {n_title_fallback}, "

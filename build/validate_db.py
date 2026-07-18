@@ -24,8 +24,15 @@ FINGERPRINT_ORDER = {
     "person_identifier": "scheme, identifier, person_id",
     "person_alias": "person_id, name, source",
     "person_redirect": "old_id",
+    "person_tombstone": "old_id",
     "source_document": "id",
+    "result_list": "id",
     "result": "id",
+    "audit_issue": "id",
+    "verification_assertion": "scope_type, scope_key, dimension",
+    "championship_rule_set": "id",
+    "championship_instance": "id",
+    "award": "id",
 }
 
 
@@ -70,7 +77,10 @@ def collect(db_path, eligibility_path):
         if fk_errors:
             raise RuntimeError(f"SQLite foreign_key_check found {len(fk_errors)} errors")
         counts = {table: scalar(con, f"SELECT COUNT(*) FROM {table}") for table in CORE_COUNTS}
-        for table in ("source_document", "person_identifier", "person_alias", "person_redirect"):
+        for table in ("source_document", "person_identifier", "person_alias", "person_redirect",
+                      "person_tombstone", "result_list", "audit_issue", "verification_assertion"):
+            counts[table] = scalar(con, f"SELECT COUNT(*) FROM {table}")
+        for table in ("championship_rule_set", "championship_instance", "award"):
             counts[table] = scalar(con, f"SELECT COUNT(*) FROM {table}")
         missing_provenance = scalar(
             con, "SELECT COUNT(*) FROM result WHERE source_document_id IS NULL")
@@ -80,6 +90,28 @@ def collect(db_path, eligibility_path):
             con, "SELECT COUNT(*) FROM result WHERE identity_basis = 'unknown'")
         if missing_identity_basis:
             raise RuntimeError(f"{missing_identity_basis} result rows have no identity basis")
+        missing_list = scalar(con, "SELECT COUNT(*) FROM result WHERE result_list_id IS NULL")
+        if missing_list:
+            raise RuntimeError(f"{missing_list} result rows have no result-list review unit")
+        illegal_status = scalar(
+            con, """SELECT COUNT(*) FROM result
+                    WHERE status NOT IN ('ok','dns','dnf','mp','dsq','unknown')""")
+        if illegal_status:
+            raise RuntimeError(f"{illegal_status} results use a non-normalized status")
+        family_identity = scalar(
+            con, """SELECT COUNT(*) FROM result WHERE result_kind = 'family'
+                    AND (person_id IS NOT NULL OR identity_state != 'not_applicable'
+                         OR championship IS NOT NULL)""")
+        if family_identity:
+            raise RuntimeError(f"{family_identity} Family results leak into person/championship data")
+        personless_ordinary = scalar(
+            con, "SELECT COUNT(*) FROM result WHERE person_id IS NULL AND result_kind != 'family'")
+        if personless_ordinary:
+            raise RuntimeError(f"{personless_ordinary} non-Family results have no person mapping")
+        ooc_championship = scalar(
+            con, "SELECT COUNT(*) FROM result WHERE out_of_competition = 1 AND championship IS NOT NULL")
+        if ooc_championship:
+            raise RuntimeError(f"{ooc_championship} OOC results still carry championship eligibility")
         identifier_conflicts = scalar(
             con,
             """SELECT COUNT(*) FROM (
@@ -93,7 +125,7 @@ def collect(db_path, eligibility_path):
         counts["championship_result"] = scalar(
             con, "SELECT COUNT(*) FROM result WHERE championship IS NOT NULL")
         return {
-            "schema_version": 1,
+            "schema_version": scalar(con, "PRAGMA user_version"),
             "logical_sha256": logical_fingerprint(con),
             "counts": counts,
             "result_by_source": by_source,
@@ -102,6 +134,11 @@ def collect(db_path, eligibility_path):
             "quality": {
                 "results_without_provenance": missing_provenance,
                 "results_without_identity_basis": missing_identity_basis,
+                "results_without_result_list": missing_list,
+                "illegal_statuses": illegal_status,
+                "family_identity_leaks": family_identity,
+                "personless_non_family": personless_ordinary,
+                "ooc_championship_leaks": ooc_championship,
                 "identifier_conflicts": identifier_conflicts,
             },
         }

@@ -233,7 +233,8 @@ STATUS_MAP = {
     "disq": "dsq", "disqualifiziert": "dsq",
     "n. angetr.": "dns", "n.angetr.": "dns", "nicht angetreten": "dns",
     "n ang": "dns", "nicht ang": "dns",
-    "ohne wertung": "nc", "außer konkurrenz": "nc", "wertungsfrei": "nc",
+    "ohne wertung": "ok", "außer konkurrenz": "ok", "ausser konkurrenz": "ok",
+    "wertungsfrei": "ok", "ak": "ok",
     "dnf": "dnf", "dns": "dns", "dsq": "dsq", "mp": "mp",
 }
 
@@ -266,6 +267,12 @@ def parse_status(text):
         if key in t:
             return val
     return None
+
+
+def is_ooc_status(text):
+    return bool(re.search(
+        r"(?:^|\b)(?:AK|au(?:ß|ss)er konkurrenz|ohne wertung|wertungsfrei)(?:\b|$)",
+        text or "", re.I))
 
 
 # SportSoftware announces the Austrian champion on the winner's own row in
@@ -600,7 +607,8 @@ def expand_pair_result(result, category=None):
 
 STATUS_TAIL_RE = re.compile(
     r"(?i)(n\.?\s*ang\.?|nicht angetreten|aufg\.?|fehlst\.?|disq\.?|"
-    r"ohne wertung|dnf|dns|dsq|mp)\s*$")
+    r"ohne wertung|außer konkurrenz|ausser konkurrenz|wertungsfrei|AK|"
+    r"dnf|dns|dsq|mp)\s*$")
 
 
 def parse_flow_row(text, clubs):
@@ -640,7 +648,8 @@ def parse_flow_row(text, clubs):
         jg, body = body[-1], body[:-1]
     names = split_pair_names(" ".join(body))
     return {"rank": rank, "names": names, "club": club, "jg": jg,
-            "timeText": time_text, "statusText": status_text}
+            "timeText": time_text, "statusText": status_text,
+            "outOfCompetition": is_ooc_status(status_text)}
 
 
 def split_pair_names(name_text):

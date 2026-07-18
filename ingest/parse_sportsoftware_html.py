@@ -25,7 +25,7 @@ from pathlib import Path
 from sportsoftware_common import (
     CAT_LINE_RE, COURSE_RE, MANUAL_ATTACHMENT_SKIP, MANUAL_CATEGORY_SKIP, MANUAL_DOC_DATE_OVERRIDES,
     TIME_TOKEN_RE, classify_championship_text, detect_list_type, expand_pair_result, extract_html_title,
-    guess_doc_date, is_junk_name, parse_champion_annotation, parse_course_info, parse_status, parse_time,
+    guess_doc_date, is_junk_name, is_ooc_status, parse_champion_annotation, parse_course_info, parse_status, parse_time,
     parse_time_loose, team_results_from_pairs,
 )
 
@@ -277,6 +277,8 @@ def parse_bracket_html(html_text):
                 result["status"] = "ok"
             else:
                 result["status"] = parse_status(status_text or "") or "unknown"
+            if is_ooc_status(status_text):
+                result["outOfCompetition"] = True
             current["results"].append(result)
     return [c for c in categories if c["results"]]
 

@@ -47,6 +47,7 @@ jobs:
           V="${GITHUB_SHA:0:8}-${GITHUB_RUN_NUMBER}"
           sed -i "s/style.css\"/style.css?v=$V\"/; s/app.js\"/app.js?v=$V\"/" site/index.html
           sed -i "s#<script src=\"app.js?v=$V\"></script>#<script>window.OLR_BUILD=\"$V\";</script>\n<script src=\"app.js?v=$V\"></script>#" site/index.html
+          sed -i "s/style.css\"/style.css?v=$V\"/; s/review.js\"/review.js?v=$V\"/" site/review.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

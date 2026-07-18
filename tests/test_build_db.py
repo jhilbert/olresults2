@@ -11,6 +11,37 @@ SPEC.loader.exec_module(build_db)
 
 
 class AnneIdentityTests(unittest.TestCase):
+    def test_family_categories_are_conservative_and_status_ooc_is_orthogonal(self):
+        self.assertEqual(build_db.classify_family_category("Family"), "family")
+        self.assertEqual(build_db.classify_family_category("Rahmenbewerb Familie"), "family")
+        self.assertEqual(build_db.classify_family_category("Familiy"), "family")
+        self.assertEqual(build_db.classify_family_category("F"), "ambiguous")
+        self.assertEqual(build_db.classify_family_category("AT-F"), "ambiguous")
+        self.assertEqual(build_db.classify_family_category("D 14"), "ordinary")
+        self.assertEqual(build_db.normalize_status("nc", "AK"), ("ok", 1))
+        self.assertEqual(build_db.normalize_status("nc", "nc"), ("unknown", 0))
+        self.assertEqual(build_db.normalize_status("dnf", "DNF", True), ("dnf", 1))
+        self.assertTrue(build_db.is_vienna_championship_candidate("Wr/NÖ MS Mittel"))
+        self.assertTrue(build_db.is_vienna_championship_candidate("Landesmeisterschaften für Wien, NÖ"))
+        self.assertFalse(build_db.is_vienna_championship_candidate(
+            "47. Wiener Neustädter Stadtmeisterschaft"))
+        self.assertFalse(build_db.is_vienna_championship_candidate("Wiener Schulmeisterschaft"))
+
+    def test_family_result_can_exist_without_person_identity(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        build_db.insert_result(
+            con.cursor(), stage_id=1, person_id=None, category="Familie",
+            status="ok", result_kind="family", source="test",
+            observed_name="Livia + Papa", identity_basis="not-applicable-family",
+            identity_confidence=1.0, identity_state="not_applicable")
+        self.assertEqual(
+            con.execute(
+                "SELECT person_id, observed_name, result_kind, identity_state FROM result"
+            ).fetchone(),
+            (None, "Livia + Papa", "family", "not_applicable"),
+        )
+
     def test_synthetic_ids_are_deterministic_and_identity_scoped(self):
         first = build_db.PersonRegistry().from_legacy("Anna Beispiel", 1988)
         second = build_db.PersonRegistry().from_legacy("Anna Beispiel", 1988)

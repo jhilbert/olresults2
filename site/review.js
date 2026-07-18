@@ -1,0 +1,299 @@
+"use strict";
+
+let db;
+let lists = [];
+let visible = [];
+let decisions = [];
+let selectedId = null;
+let writable = false;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+}[c]));
+
+function query(sql, params = []) {
+  const stmt = db.prepare(sql);
+  stmt.bind(params);
+  const rows = [];
+  while (stmt.step()) rows.push(stmt.getAsObject());
+  stmt.free();
+  return rows;
+}
+
+function decisionMap(listId) {
+  return new Map(decisions.filter((a) => a.scope_key === listId)
+    .map((a) => [a.dimension, a]));
+}
+
+function requiredDimensions(list) {
+  const base = ["completeness", "parsing", "identity", "ranking"];
+  if (list.is_national) base.push("rules");
+  return base;
+}
+
+function isConfirmed(list) {
+  const byDim = decisionMap(list.id);
+  return requiredDimensions(list).every((d) =>
+    ["confirmed", "not_applicable"].includes(byDim.get(d)?.state) &&
+    byDim.get(d)?.input_fingerprint === list.input_fingerprint);
+}
+
+function isFlagged(list) {
+  return [...decisionMap(list.id).values()].some((a) => a.state === "flagged");
+}
+
+function isVienna(list) {
+  return Boolean(list.is_vienna_candidate);
+}
+
+function applyFilters() {
+  const campaign = $("campaign").value;
+  const state = $("queue-state").value;
+  const needle = $("queue-search").value.trim().toLocaleLowerCase("de");
+  visible = lists.filter((list) => {
+    if (campaign === "national" && !list.is_national) return false;
+    if (campaign === "vienna" && !isVienna(list)) return false;
+    if (state === "open" && isConfirmed(list)) return false;
+    if (state === "issues" && !(list.blockers || list.warnings)) return false;
+    if (state === "confirmed" && !isConfirmed(list)) return false;
+    if (needle && !`${list.event_title} ${list.stage_title} ${list.category}`
+      .toLocaleLowerCase("de").includes(needle)) return false;
+    return true;
+  });
+  visible.sort((a, b) =>
+    Number(isConfirmed(a)) - Number(isConfirmed(b)) ||
+    b.blockers - a.blockers || b.warnings - a.warnings ||
+    b.is_national - a.is_national || String(b.date || "").localeCompare(String(a.date || "")) ||
+    String(a.category).localeCompare(String(b.category), "de"));
+  renderQueue();
+  if (!visible.some((l) => l.id === selectedId)) selectedId = visible[0]?.id || null;
+  renderDetail();
+}
+
+function renderQueue() {
+  const confirmed = visible.filter(isConfirmed).length;
+  const blockers = visible.filter((l) => l.blockers).length;
+  $("progress").innerHTML = `<b>${confirmed}/${visible.length}</b> bestätigt` +
+    (blockers ? ` · <span class="review-blocker">${blockers} mit Blockern</span>` : "");
+  $("queue").innerHTML = visible.map((list) => {
+    const state = isConfirmed(list) ? "confirmed" : isFlagged(list) ? "flagged" :
+      list.blockers ? "blocked" : list.warnings ? "warning" : "clean";
+    const label = { confirmed: "✓", flagged: "⚑", blocked: "!", warning: "!", clean: "○" }[state];
+    return `<button class="queue-item ${state} ${list.id === selectedId ? "active" : ""}"
+      data-id="${esc(list.id)}">
+      <span class="queue-state">${label}</span><span><b>${esc(list.category)}</b>
+      <small>${esc(list.date || "")} · ${esc(list.event_title)}</small></span>
+      <span class="queue-count">${list.blockers || list.warnings || ""}</span></button>`;
+  }).join("") || `<p class="queue-empty">Keine Listen in diesem Filter.</p>`;
+  $("queue").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => {
+    selectedId = button.dataset.id;
+    renderQueue();
+    renderDetail();
+  }));
+}
+
+function fmtTime(seconds) {
+  if (seconds == null) return "";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return h ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` :
+    `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function renderDetail() {
+  const list = lists.find((l) => l.id === selectedId);
+  if (!list) {
+    $("review-detail").innerHTML = `<div class="review-placeholder">Filter abgeschlossen – oder links einen anderen Bereich wählen.</div>`;
+    return;
+  }
+  const rows = query(`
+    SELECT r.id, r.rank, r.status, r.out_of_competition, r.time_s, r.observed_time,
+           r.observed_name, r.club, r.result_kind, r.identity_state,
+           COALESCE(p.name, r.observed_name) AS mapped_name, r.national_rank,
+           GROUP_CONCAT(ai.code, ', ') AS issue_codes
+    FROM result r LEFT JOIN person p ON p.id = r.person_id
+    LEFT JOIN audit_issue ai ON ai.result_id = r.id
+    WHERE r.result_list_id = ? GROUP BY r.id
+    ORDER BY r.rank IS NULL, r.rank, r.time_s`, [list.id]);
+  const issues = query(`SELECT severity, code, message FROM audit_issue
+    WHERE result_list_id = ? ORDER BY CASE severity WHEN 'blocker' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END, code`, [list.id]);
+  const byDim = decisionMap(list.id);
+  const dimensions = requiredDimensions(list);
+  const cleanInSource = visible.filter((candidate) =>
+    candidate.source_document_id === list.source_document_id &&
+    !candidate.blockers && !candidate.warnings && !isConfirmed(candidate));
+  const issueHtml = issues.length ? `<div class="review-issues">${issues.map((i) =>
+    `<div class="review-issue ${esc(i.severity)}"><b>${i.severity === "blocker" ? "Blocker" : "Hinweis"}</b> ${esc(i.message)}</div>`).join("")}</div>` :
+    `<div class="review-clean">Automatische Prüfungen ohne Befund.</div>`;
+  const sourceUrl = list.snapshot_path ? `/review-source?id=${encodeURIComponent(list.id)}` : list.source_url;
+  $("review-detail").innerHTML = `
+    <div class="review-titlebar">
+      <div><p class="review-kicker">${esc(list.date || "")} · ${esc(list.source_type)}</p>
+      <h1>${esc(list.category)}</h1><p>${esc(list.event_title)}${list.stage_title ? ` · ${esc(list.stage_title)}` : ""}</p></div>
+      <a href="index.html#/event/${list.event_id}" target="_blank" class="chip">Öffentliche Ansicht ↗</a>
+    </div>
+    <div class="review-facts">
+      <span><b>${list.declared_starters ?? "–"}</b> Quelle</span>
+      <span><b>${list.parsed_entries}</b> geparst</span>
+      <span><b>${rows.length}</b> Datenzeilen</span>
+      ${list.is_national ? `<span class="badge champ-badge">ÖM/ÖSTM</span>` : ""}
+      ${list.family_rows ? `<span class="badge">Family · Identität n/a</span>` : ""}
+    </div>
+    ${issueHtml}
+    <div class="review-dimensions">${dimensions.map((d) => {
+      const a = byDim.get(d);
+      const label = { completeness: "vollständig", parsing: "Parsing/Status", identity: "Identitäten",
+        ranking: "Rang/Kategorie", rules: "Medaillenregeln" }[d];
+      return `<span class="dimension ${esc(a?.state || "open")}">${a?.state === "confirmed" ? "✓" : a?.state === "flagged" ? "⚑" : "○"} ${label}</span>`;
+    }).join("")}</div>
+    <div class="review-actions">
+      <button id="confirm-list" class="review-primary" ${!writable ? "disabled" : ""}>Bestätigen &amp; weiter <kbd>A</kbd></button>
+      ${cleanInSource.length > 1 ? `<button id="confirm-source" class="review-primary review-batch" ${!writable ? "disabled" : ""}>${cleanInSource.length} saubere Klassen dieser Quelle <kbd>⇧A</kbd></button>` : ""}
+      <button id="flag-list" class="review-secondary" ${!writable ? "disabled" : ""}>Zur Nacharbeit markieren <kbd>F</kbd></button>
+      <button id="previous-list" class="review-secondary">←</button><button id="next-list" class="review-secondary">→</button>
+      <span id="review-save-status"></span>
+    </div>
+    <div class="review-workspace">
+      <div class="review-source">
+        <div class="pane-head">Originalquelle ${sourceUrl ? `<a href="${esc(sourceUrl)}" target="_blank">separat öffnen ↗</a>` : ""}</div>
+        ${sourceUrl ? `<iframe src="${esc(sourceUrl)}" title="Originalquelle"></iframe>` : `<div class="review-placeholder">Kein lokaler Snapshot; Quellenlink fehlt.</div>`}
+      </div>
+      <div class="review-parsed"><div class="pane-head">Geparstes Ergebnis</div>
+        <div class="review-table-wrap"><table><thead><tr><th>Pl</th><th>Name / Mapping</th><th>Status</th><th>Zeit</th><th>Verein</th></tr></thead>
+        <tbody>${rows.map((r) => `<tr class="${r.issue_codes ? "review-row-issue" : ""}">
+          <td>${r.out_of_competition ? "OOC" : r.rank ?? ""}</td>
+          <td><b>${esc(r.observed_name)}</b>${r.mapped_name !== r.observed_name ? `<small>→ ${esc(r.mapped_name)}</small>` : ""}${r.result_kind === "family" ? `<small>nicht personenbezogen</small>` : ""}</td>
+          <td>${esc(r.status)}${r.issue_codes ? `<small>${esc(r.issue_codes)}</small>` : ""}</td>
+          <td>${esc(r.observed_time || fmtTime(r.time_s))}</td><td>${esc(r.club || "")}</td></tr>`).join("")}</tbody></table></div>
+      </div>
+    </div>`;
+  $("confirm-list").addEventListener("click", () => saveCurrent("confirmed"));
+  $("confirm-source")?.addEventListener("click", () => saveSourceBatch(cleanInSource));
+  $("flag-list").addEventListener("click", () => saveCurrent("flagged"));
+  $("previous-list").addEventListener("click", () => move(-1));
+  $("next-list").addEventListener("click", () => move(1));
+}
+
+async function saveAssertion(list, dimension, state) {
+  const assertion = {
+    scope_type: "result_list", scope_key: list.id, dimension, state,
+    input_fingerprint: list.input_fingerprint, reviewer: "local-admin",
+    reviewed_at: new Date().toISOString(), note: state === "flagged" ? "Manuell zur Nacharbeit markiert" : "",
+  };
+  const response = await fetch("/api/review", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(assertion) });
+  if (!response.ok) throw new Error((await response.json()).error || "Speichern fehlgeschlagen");
+  decisions = decisions.filter((a) => !(a.scope_key === list.id && a.dimension === dimension));
+  decisions.push(assertion);
+}
+
+async function saveCurrent(state) {
+  const list = lists.find((l) => l.id === selectedId);
+  if (!list || !writable) return;
+  const status = $("review-save-status");
+  status.textContent = "speichert …";
+  try {
+    if (state === "confirmed") {
+      for (const dimension of requiredDimensions(list)) {
+        const dimState = dimension === "identity" && list.family_rows === list.parsed_rows ? "not_applicable" : "confirmed";
+        await saveAssertion(list, dimension, dimState);
+      }
+    } else {
+      await saveAssertion(list, "parsing", "flagged");
+    }
+    status.textContent = "gespeichert ✓";
+    renderQueue();
+    move(1, true);
+  } catch (error) {
+    status.textContent = error.message;
+  }
+}
+
+async function saveSourceBatch(batch) {
+  if (!writable || !batch.length) return;
+  const status = $("review-save-status");
+  status.textContent = `${batch.length} Listen werden gespeichert …`;
+  try {
+    for (const list of batch) {
+      for (const dimension of requiredDimensions(list)) {
+        const dimState = dimension === "identity" && list.family_rows === list.parsed_rows ? "not_applicable" : "confirmed";
+        await saveAssertion(list, dimension, dimState);
+      }
+    }
+    status.textContent = `${batch.length} Listen gespeichert ✓`;
+    applyFilters();
+  } catch (error) {
+    status.textContent = error.message;
+  }
+}
+
+function move(delta, preferOpen = false) {
+  let idx = visible.findIndex((l) => l.id === selectedId);
+  if (preferOpen && delta > 0) {
+    const next = visible.slice(idx + 1).find((l) => !isConfirmed(l)) || visible.find((l) => !isConfirmed(l));
+    if (next) idx = visible.indexOf(next) - 1;
+  }
+  const target = visible[idx + delta];
+  if (!target) return;
+  selectedId = target.id;
+  renderQueue();
+  renderDetail();
+  document.querySelector(`.queue-item[data-id="${CSS.escape(selectedId)}"]`)?.scrollIntoView({ block: "nearest" });
+}
+
+async function boot() {
+  const SQL = await initSqlJs({ locateFile: (file) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${file}` });
+  db = new SQL.Database(new Uint8Array(await (await fetch("data/results.db")).arrayBuffer()));
+  lists = query(`
+    SELECT rl.*, e.id AS event_id, e.title AS event_title, e.date_from AS date,
+           s.title AS stage_title, sd.source_type, sd.source_url, sd.snapshot_path,
+           COALESCE(ai.blockers, 0) AS blockers, COALESCE(ai.warnings, 0) AS warnings,
+           COALESCE(rr.is_national, 0) AS is_national, COALESCE(rr.family_rows, 0) AS family_rows,
+           COALESCE(ci.is_vienna_candidate, 0) AS is_vienna_candidate
+    FROM result_list rl JOIN stage s ON s.id = rl.stage_id JOIN event e ON e.id = s.event_id
+    JOIN source_document sd ON sd.id = rl.source_document_id
+    LEFT JOIN (SELECT result_list_id, SUM(severity='blocker') AS blockers,
+                      SUM(severity='warning') AS warnings FROM audit_issue GROUP BY result_list_id) ai
+      ON ai.result_list_id = rl.id
+    LEFT JOIN (SELECT result_list_id, MAX(championship IS NOT NULL) AS is_national,
+                      SUM(result_kind='family') AS family_rows FROM result GROUP BY result_list_id) rr
+      ON rr.result_list_id = rl.id
+    LEFT JOIN (SELECT stage_id, category, MAX(jurisdiction='WIEN' AND state!='rejected') AS is_vienna_candidate
+               FROM championship_instance GROUP BY stage_id, category) ci
+      ON ci.stage_id = rl.stage_id AND ci.category = rl.category
+    WHERE rl.parsed_rows > 0`);
+  try {
+    const response = await fetch("/api/review");
+    if (!response.ok || !(response.headers.get("content-type") || "").includes("application/json")) throw new Error();
+    decisions = (await response.json()).assertions || [];
+    writable = true;
+    $("save-mode").textContent = "lokal · Änderungen werden gespeichert";
+    $("save-mode").classList.add("writable");
+  } catch {
+    decisions = query("SELECT * FROM verification_assertion");
+    $("save-mode").textContent = "nur lesen · lokal mit site/serve.py öffnen";
+  }
+  ["campaign", "queue-state"].forEach((id) => $(id).addEventListener("change", applyFilters));
+  $("queue-search").addEventListener("input", applyFilters);
+  applyFilters();
+}
+
+document.addEventListener("keydown", (event) => {
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
+  if (event.shiftKey && event.key.toLowerCase() === "a") {
+    event.preventDefault();
+    const list = lists.find((l) => l.id === selectedId);
+    const batch = visible.filter((candidate) => list && candidate.source_document_id === list.source_document_id &&
+      !candidate.blockers && !candidate.warnings && !isConfirmed(candidate));
+    saveSourceBatch(batch);
+    return;
+  }
+  if (event.key.toLowerCase() === "a") saveCurrent("confirmed");
+  if (event.key.toLowerCase() === "f") saveCurrent("flagged");
+  if (event.key.toLowerCase() === "j" || event.key === "ArrowDown") move(1);
+  if (event.key.toLowerCase() === "k" || event.key === "ArrowUp") move(-1);
+});
+
+boot().catch((error) => { $("review-detail").innerHTML = `<p>Prüfoberfläche konnte nicht geladen werden: ${esc(error.message)}</p>`; });
