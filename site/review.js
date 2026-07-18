@@ -114,13 +114,19 @@ function identityMappingHtml(r) {
   }[r.identity_basis] || "Zuordnung: ungeklärt";
   const anneId = r.anne_user_ids ||
     (r.identity_basis === "anne-user-id" ? r.observed_user_id : null);
-  const ids = r.verified_oefol_ids
-    ? `ÖFOL-ID ${r.verified_oefol_ids} · Vereinsliste verifiziert`
-    : anneId
-      ? `ANNE-ID ${anneId} im Index · keine Vereinslisten-Verifikation`
-      : "keine ANNE-ID oder ÖFOL-ID im Index";
+  const anneIdentity = anneId
+    ? `ANNE-Identität: ${anneId}`
+    : "keine ANNE-Identität im Index";
+  const registryIdentity = r.verified_oefol_ids
+    ? `ÖFOL-ID im Vereinsregister bestätigt: ${r.verified_oefol_ids}`
+    : "ÖFOL-ID im Vereinsregister: nicht unabhängig bestätigt";
+  const championship = r.championship
+    ? `ÖM/ÖSTM-Wertung: berücksichtigt (${r.championship})`
+    : "";
   return `<small class="review-mapping ${esc(r.identity_state)}">${esc(basis)}</small>` +
-    `<small class="review-mapping id">${esc(ids)}</small>`;
+    `<small class="review-mapping id">${esc(anneIdentity)}</small>` +
+    `<small class="review-mapping registry ${r.verified_oefol_ids ? "verified" : ""}">${esc(registryIdentity)}</small>` +
+    (championship ? `<small class="review-mapping championship">${esc(championship)}</small>` : "");
 }
 
 function clubMappingHtml(r) {
@@ -144,7 +150,7 @@ function renderDetail() {
   const rows = query(`
     SELECT r.id, r.rank, r.status, r.out_of_competition, r.time_s, r.observed_time,
            r.observed_name, r.observed_club, r.club, r.official_club, r.result_kind,
-           r.identity_basis, r.identity_state, r.observed_user_id,
+           r.identity_basis, r.identity_state, r.observed_user_id, r.championship,
            r.team_number, r.team_name, r.leg_number, r.leg_count,
            r.individual_status, r.team_status, r.team_time_s, r.observed_team_time,
            COALESCE(p.name, r.observed_name) AS mapped_name, r.national_rank,
