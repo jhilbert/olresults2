@@ -112,13 +112,15 @@ function identityMappingHtml(r) {
     "legacy-name-yob": "Zuordnung: Name + Jahrgang",
     "legacy-name": "Zuordnung: Name",
   }[r.identity_basis] || "Zuordnung: ungeklärt";
-  const id = r.verified_oefol_ids
-    ? `ÖFOL-ID ${r.verified_oefol_ids} · verifiziert`
-    : r.identity_basis === "anne-user-id" && r.observed_user_id
-      ? `ANNE-ID ${r.observed_user_id}`
-      : "keine verifizierte ÖFOL-ID im Index";
+  const anneId = r.anne_user_ids ||
+    (r.identity_basis === "anne-user-id" ? r.observed_user_id : null);
+  const ids = r.verified_oefol_ids
+    ? `ÖFOL-ID ${r.verified_oefol_ids} · Vereinsliste verifiziert`
+    : anneId
+      ? `ANNE-ID ${anneId} im Index · keine Vereinslisten-Verifikation`
+      : "keine ANNE-ID oder ÖFOL-ID im Index";
   return `<small class="review-mapping ${esc(r.identity_state)}">${esc(basis)}</small>` +
-    `<small class="review-mapping id">${esc(id)}</small>`;
+    `<small class="review-mapping id">${esc(ids)}</small>`;
 }
 
 function clubMappingHtml(r) {
@@ -148,6 +150,8 @@ function renderDetail() {
            COALESCE(p.name, r.observed_name) AS mapped_name, r.national_rank,
            (SELECT GROUP_CONCAT(pi.identifier, ', ') FROM person_identifier pi
             WHERE pi.person_id = r.person_id AND pi.scheme = 'oefol_id' AND pi.verified = 1) AS verified_oefol_ids,
+           (SELECT GROUP_CONCAT(pi.identifier, ', ') FROM person_identifier pi
+            WHERE pi.person_id = r.person_id AND pi.scheme = 'anne_user_id') AS anne_user_ids,
            GROUP_CONCAT(ai.code, ', ') AS issue_codes
     FROM result r LEFT JOIN person p ON p.id = r.person_id
     LEFT JOIN audit_issue ai ON ai.result_id = r.id
