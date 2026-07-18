@@ -56,8 +56,9 @@ class AnneIdentityTests(unittest.TestCase):
                 (doc_id, 1, "sportsoftware-pdf", doc_id))
             cur.execute(
                 """INSERT INTO result_list (id, stage_id, source_document_id, category,
-                   declared_starters, input_fingerprint) VALUES (?,?,?,?,?,?)""",
-                (list_id, 1, doc_id, "H21", 1, doc_id))
+                   declared_starters, parsed_entries, parsed_rows, input_fingerprint)
+                   VALUES (?,?,?,?,?,?,?,?)""",
+                (list_id, 1, doc_id, "H21", 1, 1, 1, doc_id))
         build_db.insert_result(cur, stage_id=1, result_list_id="list:pdf", category="H21",
                                status="ok", time_s=100, rank=1, source="sportsoftware-pdf",
                                observed_name="Max Beispiel")
@@ -65,6 +66,15 @@ class AnneIdentityTests(unittest.TestCase):
         self.assertEqual(cur.execute(
             "SELECT count(*) FROM audit_issue WHERE code = 'entry_count_mismatch'"
         ).fetchone()[0], 0)
+
+    def test_normalized_source_count_groups_expanded_team_members(self):
+        rows = [
+            {"resultKind": "relay", "teamNumber": "106", "name": "Anna", "leg": 1},
+            {"resultKind": "relay", "teamNumber": "106", "name": "Berta", "leg": 2},
+            {"resultKind": "relay", "teamNumber": "119", "name": "Clara", "leg": 1},
+            {"resultKind": "individual", "name": "Dora"},
+        ]
+        self.assertEqual(build_db.normalized_source_unit_count(rows), 3)
 
     def test_synthetic_ids_are_deterministic_and_identity_scoped(self):
         first = build_db.PersonRegistry().from_legacy("Anna Beispiel", 1988)[0]

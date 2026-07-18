@@ -25,7 +25,8 @@ from pathlib import Path
 
 from sportsoftware_common import (
     CAT_LINE_RE, COURSE_RE, MANUAL_ATTACHMENT_SKIP, MANUAL_CATEGORY_SKIP, MANUAL_DOC_DATE_OVERRIDES,
-    TIME_TOKEN_RE, classify_championship_text, detect_list_type, expand_pair_result, extract_html_title,
+    TIME_TOKEN_RE, category_starter_count, classify_championship_text, detect_list_type,
+    expand_pair_result, extract_html_title,
     aggregate_team_status, guess_doc_date, is_junk_name, is_ooc_status, is_ooc_time,
     parse_champion_annotation, parse_course_info, parse_status, parse_time,
     parse_time_loose, number_team_results, team_results_from_pairs,
@@ -113,7 +114,7 @@ def parse_document(html_text):
                 # category header: "D14  (1)" | "2,3 km  130 Hm" | "8 P"
                 current = {
                     "name": m.group("name").strip(),
-                    "declaredStarters": int(m.group("starters")),
+                    "declaredStarters": category_starter_count(m),
                     "results": [],
                 }
                 current.update(parse_course_info(" ".join(row[1:])))
@@ -159,9 +160,42 @@ def parse_document(html_text):
             rank_ok = rec.get("Pl", "").strip().isdigit()
             club = (rec.get("Verein") or rec.get("Verein/Schule") or "").strip()
 
+            member_values = []
+            for header, value in zip(columns, row):
+                if re.fullmatch(r"Name(?:\s*\d+)?", (header or "").strip(), re.I):
+                    value = re.sub(r"\s+", " ", (value or "").replace(",", " ")).strip()
+                    if value and not is_junk_name(value):
+                        member_values.append(value)
+            family_row = "famil" in current["name"].casefold()
+            individual_member_layout = "einzel" in current["name"].casefold()
+
+            if family_row and member_values and (rank_ok or time_text):
+                # The same Name-1/2/3 report layout is also used for Family,
+                # but these arbitrary combinations must not create person
+                # identities. Keep exactly one result unit and its displayed
+                # source names; build_db intentionally leaves it personless.
+                family = {
+                    "name": " + ".join(member_values),
+                    "club": club,
+                    "timeText": time_text,
+                    "resultKind": "family",
+                }
+                rank_text = rec.get("Pl", "").strip()
+                if rank_text.isdigit():
+                    family["rank"] = int(rank_text)
+                if is_ooc_status(rank_text) or is_ooc_time(time_text):
+                    family["outOfCompetition"] = True
+                seconds = parse_time_loose(time_text)
+                if seconds is not None:
+                    family.update({"timeS": seconds, "status": "ok"})
+                else:
+                    family["status"] = parse_status(time_text) or "unknown"
+                current["results"].append(family)
+                continue
+
             # team (Mannschaft) tables: members across several columns
             # (Name 1/2/3, Name Läufer2 Läufer3, or repeated 'Name' headers)
-            if rank_ok or time_text:
+            if (rank_ok or time_text) and not individual_member_layout:
                 team = team_results_from_pairs(list(zip(columns, row)),
                                                club, rec.get("Pl", ""), time_text)
                 if team is not None:
@@ -171,6 +205,8 @@ def parse_document(html_text):
                     continue
 
             name = rec.get("Name", "").strip()
+            if not name and individual_member_layout and member_values:
+                name = member_values[0]
             if is_junk_name(name):
                 continue
             # club/spacer rows in split-time lists carry neither rank nor time
@@ -181,6 +217,11 @@ def parse_document(html_text):
                 "club": (rec.get("Verein") or rec.get("Verein/Schule") or "").strip(),
                 "timeText": time_text,
             }
+            if individual_member_layout:
+                # Explicitly defeat the legacy DB fallback which otherwise
+                # guesses any 3-token name inside a team event is a surname-
+                # only Mannschaft roster (e.g. Tobler-Egger Gabriele).
+                result["resultKind"] = "individual"
             rank_text = rec.get("Pl", "").strip()
             # SportSoftware writes AK in the rank cell, not the time cell.
             # It remains a perfectly valid result, but must never be counted
@@ -431,7 +472,7 @@ def parse_relay_document(html_text):
                 has_stnr = True
                 team_row_len = member_row_len = None
                 current = {"name": m.group("name").strip(),
-                           "declaredStarters": int(m.group("starters")), "results": []}
+                           "declaredStarters": category_starter_count(m), "results": []}
                 current.update(parse_course_info(" ".join(row[1:])))
                 categories.append(current)
                 continue

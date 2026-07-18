@@ -1251,6 +1251,8 @@ CLUB_SOURCE_ALIASES = {
     # Historic/source spellings versus ANNE's current official registry.
     "FUN-OL NÖ": "FUN.O NOe",
     "FUN-OL NOE": "FUN.O NOe",
+    # Name used by the Klosterneuburg club in older result lists.
+    "OK Gittis Klosterneuburg": "Orienteering Klosterneuburg",
 }
 
 
@@ -1290,7 +1292,9 @@ def canonicalize_official_club(name, official):
     m = CLUB_SUFFIX_NUM_RE.match(cur)
     if m:
         cur = m.group(1).strip()
-    cur = CLUB_SOURCE_ALIASES.get(cur, cur)
+    source_aliases = {source.casefold(): target
+                      for source, target in CLUB_SOURCE_ALIASES.items()}
+    cur = source_aliases.get(cur.casefold(), cur)
     # Club spelling in historical exports often differs only in upper/lower
     # case (for example "LZ Omaha" vs the ANNE registry's "LZ OMAHA").
     # This is an exact case-insensitive match, not a fuzzy club guess.
@@ -1802,6 +1806,31 @@ def result_list_id(stage_id, source_document_id, category):
     return "list:" + hashlib.sha256(raw).hexdigest()[:24]
 
 
+def normalized_source_unit_count(rows):
+    """Count units in parser output before cross-source result deduplication.
+
+    A complete PDF can overlap a narrower championship PDF. Results are
+    intentionally deduplicated in the public result table, but that must not
+    turn the complete source's 26 parsed rows into a false 26-vs-16 parser
+    blocker. This count belongs to the source-list snapshot itself.
+    """
+    keys = []
+    for index, row in enumerate(rows or []):
+        kind = row.get("resultKind") or "individual"
+        if kind in ("individual", "family"):
+            key = ("row", index)
+        elif kind == "pair" and row.get("teamNumber"):
+            key = (kind, "number", row["teamNumber"])
+        elif kind == "pair":
+            key = (kind, row.get("rank"), row.get("status"),
+                   row.get("timeS"), row.get("club"))
+        else:
+            key = (kind, row.get("teamNumber") or row.get("teamName")
+                   or row.get("note"))
+        keys.append(key)
+    return len(set(keys))
+
+
 def register_result_list(cur, stage_id, source_document_id, category, category_full,
                          declared_starters, rows, course=None):
     """Create the stable review unit for one category in one source list."""
@@ -1813,11 +1842,12 @@ def register_result_list(cur, stage_id, source_document_id, category, category_f
     cur.execute(
         """INSERT OR IGNORE INTO result_list
            (id, stage_id, source_document_id, category, category_full,
-            declared_starters, course_length_m, course_climb_m, course_controls,
-            input_fingerprint)
-           VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            declared_starters, parsed_entries, parsed_rows,
+            course_length_m, course_climb_m, course_controls, input_fingerprint)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
         (list_id, stage_id, source_document_id, category, category_full,
-         declared_starters, course.get("length") or course.get("courseLengthM"),
+         declared_starters, normalized_source_unit_count(rows), len(rows or []),
+         course.get("length") or course.get("courseLengthM"),
          course.get("climb") or course.get("courseClimbM"),
          course.get("controlCount") or course.get("courseControls"), fingerprint))
     return list_id
@@ -2604,7 +2634,9 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                 parser_kind = r.get("resultKind")
                 if parser_kind:
                     kind, note = parser_kind, r.get("note")
-                elif doc_is_team_only or (is_team and len(name.split()) >= 3):
+                elif (doc_is_team_only
+                      or (is_team and "einzel" not in cat["name"].casefold()
+                          and len(name.split()) >= 3)):
                     kind, note = "team", "Mannschaft"
                 else:
                     kind, note = "individual", r.get("note")
@@ -2797,6 +2829,8 @@ def competitor_unit_key(row):
     rid, kind, rank, status, time_s, club, note, team_number, team_name = row
     if kind in ("individual", "family"):
         return f"row:{rid}"
+    if kind == "pair" and team_number:
+        return f"pair:number:{team_number}"
     if kind == "pair":
         return f"pair:{rank}:{status}:{time_s}:{club or ''}"
     if team_number:
@@ -2816,41 +2850,36 @@ def populate_quality_model(cur):
     """Compute review units, deterministic findings and current assertions."""
     lists = cur.execute(
         """SELECT rl.id, rl.stage_id, rl.category, rl.declared_starters, rl.input_fingerprint,
-                  sd.source_type
+                  rl.parsed_entries, rl.parsed_rows, sd.source_type
              FROM result_list rl JOIN source_document sd ON sd.id = rl.source_document_id"""
     ).fetchall()
-    # The same official result is often attached twice (for example PDF and
-    # HTML, or a main and an AC-standings URL).  Legacy rows are intentionally
-    # deduplicated while loading, so the later copy has zero persisted rows
-    # even when its parser was perfectly successful.  Treat that as a shadow
-    # source rather than a parser blocker; the populated sibling list remains
-    # the one the reviewer actually verifies.
+    # Keep the result rows which survived cross-source deduplication for
+    # row-level audits.  Entry completeness, however, must use the counts
+    # captured directly from each normalized source in register_result_list:
+    # a second official document can overlap the first one and consequently
+    # persist only a subset (or no rows at all) without being misparsed.
     list_rows = {}
-    coverage = defaultdict(list)
-    for list_id, stage_id, category, _declared, _fingerprint, _source_type in lists:
+    for (list_id, _stage_id, _category, _declared, _fingerprint,
+         _source_entries, _source_rows, _source_type) in lists:
         rows = cur.execute(
             """SELECT id, result_kind, rank, status, time_s, club, note,
                       team_number, team_name
                FROM result WHERE result_list_id = ? ORDER BY id""", (list_id,)).fetchall()
-        entries = len({competitor_unit_key(row) for row in rows})
-        list_rows[list_id] = (rows, entries)
-        coverage[(stage_id, category)].append(entries)
+        persisted_entries = len({competitor_unit_key(row) for row in rows})
+        list_rows[list_id] = (rows, persisted_entries)
 
-    for list_id, stage_id, category, declared, fingerprint, source_type in lists:
-        rows, entries = list_rows[list_id]
-        shadow_duplicate = entries == 0 and max(coverage[(stage_id, category)]) > 0
-        cur.execute(
-            "UPDATE result_list SET parsed_entries = ?, parsed_rows = ? WHERE id = ?",
-            (entries, len(rows), list_id))
+    for (list_id, stage_id, category, declared, fingerprint,
+         source_entries, source_rows, source_type) in lists:
+        rows, _persisted_entries = list_rows[list_id]
         family_state = classify_family_category(category)
         if family_state == "ambiguous":
             add_audit_issue(
                 cur, list_id, "ambiguous_family_category", "warning",
                 f"Kurzklasse {category!r}: Family-Kategorie oder reguläre Klasse bestätigen.")
-        if declared is not None and declared != entries and not shadow_duplicate:
+        if declared is not None and declared != source_entries:
             add_audit_issue(
                 cur, list_id, "entry_count_mismatch", "blocker",
-                f"Quelle nennt {declared} Starts, geparst wurden {entries} Einträge.")
+                f"Quelle nennt {declared} Starts, geparst wurden {source_entries} Einträge.")
 
         timed_rows, ranked_rows = cur.execute(
             """SELECT SUM(time_s IS NOT NULL), SUM(rank IS NOT NULL)
@@ -2939,7 +2968,8 @@ def populate_quality_model(cur):
     assertions = payload.get("assertions", []) if isinstance(payload, dict) else payload
     fingerprints = {
         list_id: fingerprint
-        for list_id, _stage_id, _cat, _declared, fingerprint, _source_type in lists
+        for (list_id, _stage_id, _cat, _declared, fingerprint,
+             _source_entries, _source_rows, _source_type) in lists
     }
     for assertion in assertions:
         if not isinstance(assertion, dict):

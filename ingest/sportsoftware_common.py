@@ -219,10 +219,32 @@ CAT_RE = re.compile(r"^(?P<name>.+?)\s+\((?P<starters>\d+)\)\s*$")
 # Masters relays can carry a birth-year qualifier before it, e.g.
 # ``H 150- (1974 u. aelt (17)``.  A lazy name capture mistakes 1974 for the
 # count; the greedy capture deliberately backtracks to the final ``(17)``.
-CAT_LINE_RE = re.compile(r"^(?!\d+\.\s+\d)(?P<name>.+)\s+\((?P<starters>\d+)(?:/\d*)?\)?\s*(?P<rest>.*)$")
+CAT_LINE_RE = re.compile(
+    r"^(?!\d+\.\s+\d)(?P<name>.+)\s+\((?P<starters>\d+)"
+    r"(?:\s*/\s*(?P<entered>\d*))?\)?\s*(?P<rest>.*)$")
+
+
+def category_starter_count(match):
+    """Return the number of competitor units actually printed in the list.
+
+    MeOS writes ``(shown / entered)``. The second value includes registrations
+    omitted from this result document; comparing it with parsed rows creates
+    false parser blockers (for example ``H-12 (5 / 8)`` visibly contains five
+    rows, including its printed DNS entries). Older exports only have one
+    value. Relay/pair members are grouped separately by the quality model.
+    """
+    # A few narrow PDFs physically clip the right edge of the count (``M 21
+    # Short (1 Preliminary results`` for fourteen rows, or ``Damen 45- (1
+    # 3,7 km`` for eighteen). A missing closing parenthesis is evidence that
+    # the captured number is incomplete, not a trustworthy declared count.
+    # Returning None lets the parser use the complete row count.
+    if ")" not in match.string[:match.end()]:
+        return None
+    return int(match.group("starters"))
 
 # English-locale SportSoftware exports use different column headers
-COLUMN_ALIASES = {"Time": "Zeit", "Club": "Verein", "YB": "Jg",
+COLUMN_ALIASES = {"Time": "Zeit", "Club": "Verein", "School": "Verein/Schule",
+                  "Schule": "Verein/Schule", "YB": "Jg",
                   "Stno": "Stnr", "Runner": "Name", "Pos": "Pl", "Place": "Pl"}
 COURSE_RE = re.compile(r"(?:(?P<km>[\d.,]+)\s*km)?\s*(?:(?P<climb>\d+)\s*Hm)?")
 CONTROLS_RE = re.compile(r"(\d+)\s*P\b")
@@ -248,11 +270,17 @@ STATUS_MAP = {
     "aufg": "dnf", "aufgegeben": "dnf",
     "fehlst": "mp", "fehlstempel": "mp",
     "disq": "dsq", "disqu": "dsq", "disqualifiziert": "dsq",
+    # Czech-localized OE2010 result exports use ``disk``.
+    "disk": "dsq",
     "n. angetr.": "dns", "n.angetr.": "dns", "nicht angetreten": "dns",
-    "n ang": "dns", "nicht ang": "dns",
+    "n ang": "dns", "n.ang": "dns", "nicht ang": "dns",
     # OE2010's old HTML export uses OMT ("omitted") for a listed runner
     # who did not start.  It is equivalent to DNS for result purposes.
     "omt": "dns",
+    # Children's introductory classes sometimes use a qualitative successful
+    # result instead of a time/rank.
+    "gut": "ok", "teilg": "ok", "teilgenommen": "ok",
+    "zeitüb": "dsq", "zeitüberschreitung": "dsq",
     "ohne wertung": "ok", "außer konkurrenz": "ok", "ausser konkurrenz": "ok",
     "wertungsfrei": "ok", "ak": "ok",
     "dnf": "dnf", "dns": "dns", "dsq": "dsq", "mp": "mp",
@@ -467,7 +495,8 @@ def detect_list_type(file_name, doc_text, is_sole_attachment=False):
     # check below, since a split-times file can ALSO have "staffel" in its
     # name (event 3824's "...-relind-result-splits.pdf") and must still be
     # recognized as redundant, not misrouted to the relay parser instead.
-    if re.search(r"(?:zwischen|zw)zeit|split", file_name, re.I) or re.match(r"\s*\S*\s*Zwischenzeiten", head):
+    if (re.search(r"(?:zwischen|zw)zeit|split|erg(?:ebnis)?[-_]?bahnen", file_name, re.I)
+            or re.search(r"\bZwischenzeiten\b", head)):
         return "overall"                       # split-times report, redundant
     if re.search(r"einzel", file_name, re.I):
         return "race"                          # individual results within a Staffel event
@@ -482,7 +511,9 @@ def detect_list_type(file_name, doc_text, is_sole_attachment=False):
     # 18 teams with 54 people in the quality check.
     if re.search(r"<th\b[^>]*>\s*Staffel\s*</th>", doc_text, re.I):
         return "relay"
-    if (re.search(r"gesamt", file_name, re.I) or "Gesamtwertung" in head) and not is_sole_attachment:
+    if (re.search(r"gesamt|wertung|overall", file_name, re.I)
+            or re.search(r"Gesamt(?:wertung|-Ergebnis)|Overall\s+results?", head, re.I)) \
+            and not is_sole_attachment:
         return "overall"
     return "race"
 
@@ -548,9 +579,6 @@ def is_junk_name(name):
     return not name or bool(JUNK_NAME_RE.match(name)) or name.lower() in JUNK_NAMES
 
 
-PERSON_TOKEN_RE = re.compile(r"^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ.'’-]*$")
-
-
 def looks_like_person(name):
     """A plausible person name: 1-4 alphabetic tokens, no digits or markup.
     Guards the '/'-pair split against title/header fragments that also contain
@@ -558,7 +586,14 @@ def looks_like_person(name):
     toks = name.split()
     if not (1 <= len(toks) <= 4):
         return False
-    return all(PERSON_TOKEN_RE.match(t) for t in toks)
+    # ``À-ÿ`` only covers Latin-1 and rejected common Central-European names
+    # containing č/š/ž/ő/… . Python's Unicode alphabetic classification is
+    # both stricter about digits/markup and complete across those exports.
+    return all(
+        bool(token) and token[0].isalpha()
+        and all(char.isalpha() or char in ".'’-" for char in token)
+        for token in toks
+    )
 
 
 # ---- multi-runner (pairs) handling for flowing-layout PDFs ----
@@ -572,6 +607,28 @@ def load_clubs():
     out = {}
     for c in json.loads(path.read_text()):
         out[re.sub(r"\s+", " ", c).strip().lower()] = c
+    # Stable legacy/foreign spellings needed as parsing boundaries even when
+    # they are absent from the current ANNE club registry snapshot.
+    out.update({
+        "laufklub kompass innsbruck imst": "Laufklub Kompass Innsbruck Imst",
+        "ola tsv deggendorf": "OLA TSV Deggendorf",
+        "orienteering klosterneubur": "Orienteering Klosterneuburg",
+        "naturfreunde villach - ori": "Naturfreunde Villach - Orienteering",
+        "naturfreunde villach-orienteering": "Naturfreunde Villach - Orienteering",
+        "naturfreunde villach - orie": "Naturfreunde Villach - Orienteering",
+        "naturfreunde villach": "Naturfreunde Villach - Orienteering",
+        "lk kompass innsbruck-imst": "Laufklub Kompass Innsbruck Imst",
+        "askö olc ebental": "ASKÖ OLC Ebental",
+        "oc c. budejovice": "OC C. Budejovice",
+        "kob cesky krumlov": "KOB Cesky Krumlov",
+        "skv olg deutsch kaltenbrun": "SKV OLG Deutsch Kaltenbrunn",
+        "sk zabovresky brno": "SK Zabovresky Brno",
+        "ltu mtbo team": "LTU MTBO Team",
+        "mtbo hungary": "MTBO Hungary",
+        "ok slovenj gradec": "OK Slovenj Gradec",
+        "sk vazka bratislava": "SK VAZKA Bratislava",
+        "tipo orienteering club": "Tipo Orienteering Club",
+    })
     return out
 
 
@@ -710,9 +767,11 @@ def expand_pair_result(result, category=None):
 
 
 STATUS_TAIL_RE = re.compile(
-    r"(?i)(n\.?\s*ang\.?|nicht angetreten|aufg\.?|fehlst\.?|disq\.?|"
+    r"(?i)(n\.?\s*ang\.?|nicht\s+ang\.?|nicht angetreten|aufg\.?|fehlst\.?|"
+    r"disq(?:u)?\.?|"
+    r"disk\.?|"
     r"ohne wertung|außer konkurrenz|ausser konkurrenz|wertungsfrei|AK|"
-    r"dnf|dns|dsq|mp|omt)\s*$")
+    r"dnf|dns|dsq|mp|omt|gut|zeitüb\.?|zeitüberschreitung)\s*$")
 
 
 def parse_flow_row(text, clubs):

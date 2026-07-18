@@ -33,7 +33,8 @@ import urllib.request
 from pathlib import Path
 
 from sportsoftware_common import (
-    CAT_LINE_RE, CLUB_LINK_ALLOWLIST, COLUMN_ALIASES, classify_championship_text, detect_list_type,
+    CAT_LINE_RE, CLUB_LINK_ALLOWLIST, COLUMN_ALIASES, category_starter_count,
+    classify_championship_text, detect_list_type,
     expand_pair_result, is_expected_source_failure, is_junk_name, is_ooc_status,
     parse_champion_annotation, parse_course_info,
     parse_status, parse_time, parse_time_loose, number_team_results,
@@ -53,6 +54,10 @@ TIME_COL_PAD = 6  # chars to widen the trailing time column leftward
 CHAMPION_MARKER_RE = re.compile(r"(?i)\b(?:staats?)?meister(?:in(?:nen)?)?\b")
 CHAMPION_TRAILING_RANK_RE = re.compile(
     r"(?i)\b(?:staats?)?meister(?:in(?:nen)?)?\s+(\d+)\s*$")
+SCORE_CAT_LINE_RE = re.compile(
+    r"^(?P<name>(?!\d).+?)\s+\d+\s*min\b.*\b(?:P|Pkt)\b", re.I)
+COURSE_CAT_LINE_RE = re.compile(
+    r"^(?P<name>(?!\d).+?)\s+\d+(?:[.,]\d+)?\s*km\b", re.I)
 
 
 def extract_pre_blocks(text):
@@ -77,10 +82,19 @@ def column_bounds(labels, starts):
     """Slice boundaries from header word positions. The trailing right-aligned
     time column is pulled left (longer times overflow their header width); the
     preceding column's right edge is pulled left to match so the time's
-    leading digits don't leak into it."""
+    leading digits don't leak into it. ``Zeit`` is not always the final column:
+    older exports append a Bundesland/country column (``BL``). Moving that
+    final column instead split ``39:08`` into club="... 3", time="9:" and
+    BL="08 ST", silently dropping every normally timed row while retaining
+    only trailing DNS/MP rows."""
     bounds = list(starts)
-    if len(bounds) > 1:
-        bounds[-1] = max(bounds[-2] + 1, bounds[-1] - TIME_COL_PAD)
+    time_index = next(
+        (i for i, label in enumerate(labels) if label in ("Zeit", "Gesamt")),
+        len(bounds) - 1,
+    )
+    if time_index > 0:
+        bounds[time_index] = max(
+            bounds[time_index - 1] + 1, bounds[time_index] - TIME_COL_PAD)
     return bounds
 
 
@@ -125,10 +139,38 @@ def parse_text(text):
             if current and current["name"] == name:
                 continue
             current = {"name": name,
-                       "declaredStarters": int(cm.group("starters")),
+                       "declaredStarters": category_starter_count(cm),
                        "results": []}
             current.update(parse_course_info(cm.group("rest")))
             categories.append(current)
+            pending_rank = pending_championship = None
+            team_counts = defaultdict(int)
+            continue
+
+        # OEScore sometimes omits ``(N)`` for a class while still printing a
+        # structural score-course heading such as ``Herren Oberstufe 40 min
+        # 29 P 590 Pkt``. Without this boundary its rows leak into the
+        # preceding class and create an apparent +N parser mismatch.
+        score_category = SCORE_CAT_LINE_RE.match(line.strip())
+        if score_category:
+            name = score_category.group("name").strip()
+            if not current or current["name"] != name:
+                current = {"name": name, "declaredStarters": None, "results": []}
+                categories.append(current)
+            pending_rank = pending_championship = None
+            team_counts = defaultdict(int)
+            continue
+
+        # Truncated historic exports often lose the whole ``(N)`` field but
+        # retain an unambiguous course heading (``Herren C Erwachsene 2.5 km
+        # 12 Posten``). Treat it as a new class with unknown declared size;
+        # otherwise all following rows leak into the previous counted class.
+        course_category = COURSE_CAT_LINE_RE.match(line.strip())
+        if course_category:
+            name = re.sub(r"\s*\($", "", course_category.group("name")).strip()
+            if not current or current["name"] != name:
+                current = {"name": name, "declaredStarters": None, "results": []}
+                categories.append(current)
             pending_rank = pending_championship = None
             team_counts = defaultdict(int)
             continue
@@ -202,7 +244,7 @@ def parse_text(text):
         name = (rec.get("Name") or "").strip()
         if is_junk_name(name):
             continue
-        if not rank_text.isdigit() and not time_text:
+        if not rank_text.isdigit() and not time_text and not parse_status(line):
             continue
 
         result = {
@@ -231,9 +273,19 @@ def parse_text(text):
         explicit_status = parse_status(line)
         if explicit_status == "ok":
             explicit_status = None
+        score_mode = (rank_text.isdigit()
+                      and any(rec.get(label) for label in ("Pkt", "Erg", "Punkte")))
         if seconds is not None:
             result["timeS"] = seconds
             result["status"] = explicit_status or "ok"
+        elif score_mode:
+            # OEScore uses Zeit for whole elapsed minutes (``40``) and ranks
+            # by the final score in Erg/Pkt. This is a classified result even
+            # though that source value deliberately is not an HH:MM time.
+            result["status"] = explicit_status or "ok"
+            result["scoreText"] = next(
+                (rec[label].strip() for label in ("Erg", "Pkt", "Punkte")
+                 if rec.get(label)), "")
         else:
             status = explicit_status or parse_status(time_text)
             if status is None:
@@ -288,11 +340,14 @@ def collect_jobs():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--event-id", type=int, help="only process one ANNE event")
     args = ap.parse_args()
 
     FILES.mkdir(parents=True, exist_ok=True)
     OUT.mkdir(parents=True, exist_ok=True)
     jobs = collect_jobs()
+    if args.event_id is not None:
+        jobs = [job for job in jobs if job[0] == args.event_id]
     if args.limit:
         jobs = jobs[: args.limit]
     print(f"text/link+text/plain files to parse: {len(jobs)}")
