@@ -55,6 +55,7 @@ function applyFilters() {
     if (campaign === "national" && !list.is_national) return false;
     if (campaign === "vienna" && !isVienna(list)) return false;
     if (state === "open" && isConfirmed(list)) return false;
+    if (state === "quality" && !(list.parser_blockers || list.ranking_warnings)) return false;
     if (state === "issues" && !(list.blockers || list.warnings)) return false;
     if (state === "confirmed" && !isConfirmed(list)) return false;
     if (needle && !`${list.event_title} ${list.stage_title} ${list.category}`
@@ -63,6 +64,7 @@ function applyFilters() {
   });
   visible.sort((a, b) =>
     Number(isConfirmed(a)) - Number(isConfirmed(b)) ||
+    b.parser_blockers - a.parser_blockers || b.ranking_warnings - a.ranking_warnings ||
     b.blockers - a.blockers || b.warnings - a.warnings ||
     b.is_national - a.is_national || String(b.date || "").localeCompare(String(a.date || "")) ||
     String(a.category).localeCompare(String(b.category), "de"));
@@ -83,7 +85,7 @@ function renderQueue() {
     return `<button class="queue-item ${state} ${list.id === selectedId ? "active" : ""}"
       data-id="${esc(list.id)}">
       <span class="queue-state">${label}</span><span><b>${esc(list.category)}</b>
-      <small>${esc(list.date || "")} · ${esc(list.event_title)}</small></span>
+      <small>${esc(list.date || "")} · ${esc(list.event_title)}${list.parser_blockers ? ` · ${list.parser_blockers} Zeitfehler` : list.ranking_warnings ? " · Rangprüfung" : ""}</small></span>
       <span class="queue-count">${list.blockers || list.warnings || ""}</span></button>`;
   }).join("") || `<p class="queue-empty">Keine Listen in diesem Filter.</p>`;
   $("queue").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => {
@@ -235,6 +237,8 @@ function renderDetail() {
       <span><b>${list.declared_starters ?? "–"}</b> Quelle</span>
       <span><b>${list.parsed_entries}</b> geparst</span>
       <span><b>${rows.length}</b> Datenzeilen</span>
+      <span><b>${list.timed_rows}</b> Zeiten</span>
+      <span><b>${list.ranked_rows}</b> Ränge</span>
       ${list.is_national ? `<span class="badge champ-badge">ÖM/ÖSTM</span>` : ""}
       ${list.family_rows ? `<span class="badge">Family · Identität n/a</span>` : ""}
     </div>
@@ -246,7 +250,7 @@ function renderDetail() {
       return `<span class="dimension ${esc(a?.state || "open")}">${a?.state === "confirmed" ? "✓" : a?.state === "flagged" ? "⚑" : "○"} ${label}</span>`;
     }).join("")}</div>
     <div class="review-actions">
-      <button id="confirm-list" class="review-primary" ${!writable ? "disabled" : ""}>Bestätigen &amp; weiter <kbd>A</kbd></button>
+      <button id="confirm-list" class="review-primary ${list.blockers ? "review-confirm-blocked" : ""}" ${!writable ? "disabled" : ""}>${list.blockers ? `Trotz ${list.blockers} Blocker bestätigen` : "Bestätigen &amp; weiter"} <kbd>A</kbd></button>
       ${cleanInSource.length > 1 ? `<button id="confirm-source" class="review-primary review-batch" ${!writable ? "disabled" : ""}>${cleanInSource.length} saubere Klassen dieser Quelle <kbd>⇧A</kbd></button>` : ""}
       <button id="flag-list" class="review-secondary" ${!writable ? "disabled" : ""}>Zur Nacharbeit markieren <kbd>F</kbd></button>
       <button id="previous-list" class="review-secondary">←</button><button id="next-list" class="review-secondary">→</button>
@@ -344,14 +348,23 @@ async function boot() {
            s.title AS stage_title, sd.source_type, sd.source_url, sd.snapshot_path,
            COALESCE(ai.blockers, 0) AS blockers, COALESCE(ai.warnings, 0) AS warnings,
            COALESCE(rr.is_national, 0) AS is_national, COALESCE(rr.family_rows, 0) AS family_rows,
+           COALESCE(rr.timed_rows, 0) AS timed_rows, COALESCE(rr.ranked_rows, 0) AS ranked_rows,
+           COALESCE(ai.parser_blockers, 0) AS parser_blockers,
+           COALESCE(ai.ranking_warnings, 0) AS ranking_warnings,
            COALESCE(ci.is_vienna_candidate, 0) AS is_vienna_candidate
     FROM result_list rl JOIN stage s ON s.id = rl.stage_id JOIN event e ON e.id = s.event_id
     JOIN source_document sd ON sd.id = rl.source_document_id
     LEFT JOIN (SELECT result_list_id, SUM(severity='blocker') AS blockers,
-                      SUM(severity='warning') AS warnings FROM audit_issue GROUP BY result_list_id) ai
+                      SUM(severity='warning') AS warnings,
+                      SUM(code='time_text_unparsed') AS parser_blockers,
+                      SUM(code='partial_ranking_coverage') AS ranking_warnings
+               FROM audit_issue GROUP BY result_list_id) ai
       ON ai.result_list_id = rl.id
     LEFT JOIN (SELECT result_list_id, MAX(championship IS NOT NULL) AS is_national,
-                      SUM(result_kind='family') AS family_rows FROM result GROUP BY result_list_id) rr
+                      SUM(result_kind='family') AS family_rows,
+                      SUM(status='ok' AND time_s IS NOT NULL) AS timed_rows,
+                      SUM(rank IS NOT NULL) AS ranked_rows
+               FROM result GROUP BY result_list_id) rr
       ON rr.result_list_id = rl.id
     LEFT JOIN (SELECT stage_id, category, MAX(jurisdiction='WIEN' AND state!='rejected') AS is_vienna_candidate
                FROM championship_instance GROUP BY stage_id, category) ci

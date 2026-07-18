@@ -6,6 +6,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "ingest"))
+from sportsoftware_common import parse_time
 
 HTML_SPEC = importlib.util.spec_from_file_location(
     "parse_sportsoftware_html", ROOT / "ingest" / "parse_sportsoftware_html.py")
@@ -24,6 +25,11 @@ BUILD_SPEC.loader.exec_module(build_db)
 
 
 class RelayStructureTests(unittest.TestCase):
+    def test_elapsed_times_over_99_minutes_are_valid(self):
+        self.assertEqual(parse_time("114:08"), 6848)
+        self.assertEqual(parse_time("136:54"), 8214)
+        self.assertEqual(parse_time("1:54:08"), 6848)
+
     @classmethod
     def setUpClass(cls):
         cls.relay_source = ROOT / "data" / "raw" / "anne" / "files" / "4480-0.html"

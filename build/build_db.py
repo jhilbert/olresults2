@@ -2755,6 +2755,9 @@ def competitor_unit_key(row):
     return f"{kind}:legacy:{legacy_name.strip().casefold()}"
 
 
+OBSERVED_TIME_RE = re.compile(r"^\d{1,3}:\d{2}(?::\d{2})?$")
+
+
 def populate_quality_model(cur):
     """Compute review units, deterministic findings and current assertions."""
     lists = cur.execute(
@@ -2780,13 +2783,43 @@ def populate_quality_model(cur):
                 f"Quelle nennt {declared} Starts, geparst wurden {entries} Einträge.")
 
         unknown = cur.execute(
-            "SELECT id, observed_status FROM result WHERE result_list_id = ? AND status = 'unknown'",
+            """SELECT id, observed_status, observed_time FROM result
+               WHERE result_list_id = ? AND status = 'unknown'""",
             (list_id,)).fetchall()
-        for result_id, observed_status in unknown:
+        for result_id, observed_status, observed_time in unknown:
+            # This is a parser failure, not an ambiguous sporting status: a
+            # source time such as 114:08 exists but never became seconds.
+            # Surface it separately so the review queue points at the parser
+            # signature rather than asking a reviewer to interpret "unknown".
+            if OBSERVED_TIME_RE.fullmatch((observed_time or "").strip()):
+                add_audit_issue(
+                    cur, list_id, "time_text_unparsed", "blocker",
+                    f"Zeit {observed_time!r} ist in der Quelle vorhanden, wurde aber nicht als Zeit gelesen.",
+                    result_id, auto_resolvable=True)
+                continue
             add_audit_issue(
                 cur, list_id, "unknown_status", "blocker",
                 f"Status {observed_status or '(leer)'} ist nicht eindeutig normalisiert.",
                 result_id)
+
+        # A mixed category with some ranked finishers and many timed but
+        # unranked ordinary entries is rarely intentional.  It is not a hard
+        # blocker (AK/foreign classifications do exist), but it is exactly
+        # the kind of layout shift a reviewer should see before confirming a
+        # category. Relay/team members are excluded because their shared team
+        # rank is deliberately stored only on the team unit.
+        ranked_count, timed_count = cur.execute(
+            """SELECT
+                   SUM(rank IS NOT NULL),
+                   SUM(status = 'ok' AND time_s IS NOT NULL)
+               FROM result
+               WHERE result_list_id = ? AND out_of_competition = 0
+                 AND result_kind = 'individual'""", (list_id,)).fetchone()
+        ranked_count, timed_count = ranked_count or 0, timed_count or 0
+        if timed_count >= 3 and ranked_count > 0 and ranked_count < timed_count:
+            add_audit_issue(
+                cur, list_id, "partial_ranking_coverage", "warning",
+                f"Nur {ranked_count} von {timed_count} klassifizierten Einträgen haben einen Rang; Ranking in der Quelle prüfen.")
 
         provisional = cur.execute(
             """SELECT id, observed_name FROM result

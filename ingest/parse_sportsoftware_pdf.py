@@ -955,6 +955,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0, help="only process N files (0 = all)")
     ap.add_argument("--event-id", type=int, help="only process one ANNE event")
+    ap.add_argument("--cached", action="store_true",
+                    help="reparse already downloaded PDFs without fetching them again")
     args = ap.parse_args()
 
     FILES.mkdir(parents=True, exist_ok=True)
@@ -984,7 +986,8 @@ def main():
         out_path = OUT / f"{eid}-{n}.json"
         pdf_path = FILES / f"{eid}-{n}.pdf"
         try:
-            fetch(f["url"], pdf_path)
+            if not (args.cached and pdf_path.exists()):
+                fetch(f["url"], pdf_path)
             cats, head_text = parse_pdf(pdf_path, allow_inline_splits=sole_attachment)
             if SPLITS_RE.search(head_text) and not sole_attachment:
                 # A genuine Zwischenzeiten/split-times report only duplicates

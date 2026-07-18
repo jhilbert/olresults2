@@ -222,7 +222,11 @@ COLUMN_ALIASES = {"Time": "Zeit", "Club": "Verein", "YB": "Jg",
                   "Stno": "Stnr", "Runner": "Name", "Pos": "Pl", "Place": "Pl"}
 COURSE_RE = re.compile(r"(?:(?P<km>[\d.,]+)\s*km)?\s*(?:(?P<climb>\d+)\s*Hm)?")
 CONTROLS_RE = re.compile(r"(\d+)\s*P\b")
-TIME_RE = re.compile(r"^(?:(\d+):)?(\d{1,2}):(\d{2})$")
+# SportSoftware prints elapsed times over 99 minutes as ``114:08`` rather
+# than ``1:54:08``.  The middle field is minutes only when there are two
+# fields, so three digits are safe here; the optional leading field remains
+# the explicit hours component of ``H:MM:SS``.
+TIME_RE = re.compile(r"^(?:(\d+):)?(\d{1,3}):(\d{2})$")
 JUNK_NAME_RE = re.compile(r"^[\d\s:.,()/-]*$")
 JUNK_NAMES = {"empty", "vacant", "leer", "frei"}
 
