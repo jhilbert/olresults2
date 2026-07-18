@@ -298,8 +298,11 @@ function viewRunner(id, year) {
 }
 
 function teamUnitKey(result) {
-  if (!['relay', 'team'].includes(result.result_kind)) return null;
+  if (!['relay', 'team', 'pair'].includes(result.result_kind)) return null;
   if (result.team_number) return `${result.result_kind}:number:${result.team_number}`;
+  if (result.result_kind === 'pair') {
+    return `pair:${result.rank ?? ''}:${result.status}:${result.time_s ?? ''}:${result.club || ''}`;
+  }
   return `${result.result_kind}:name:${result.team_name || result.club || result.note || result.id}`;
 }
 
@@ -389,7 +392,10 @@ function viewEvent(id, medalsOnly, stageNum) {
     const cats = query(`
       SELECT r.category, MAX(r.category_full) AS category_full,
              cs.starters, cs.classified, cs.winner_time_s,
-             COUNT(DISTINCT CASE WHEN r.result_kind IN ('relay', 'team')
+             COUNT(DISTINCT CASE WHEN r.result_kind = 'pair'
+                   THEN 'p:' || COALESCE(r.rank, '') || ':' || r.status || ':' ||
+                        COALESCE(r.time_s, '') || ':' || COALESCE(r.club, '')
+                   WHEN r.result_kind IN ('relay', 'team')
                    THEN COALESCE('n:' || r.team_number, 't:' || r.team_name,
                                  'c:' || r.club, 'r:' || r.id)
                    ELSE 'r:' || r.id END) AS entries,
@@ -476,16 +482,18 @@ function viewEvent(id, medalsOnly, stageNum) {
                 </tr>`;
               }
               const team = unit.rows[0], tier = medalTier[team.national_rank];
-              const teamLabel = `${team.team_number ? `#${team.team_number} ` : ""}${team.team_name || team.club || "Team"}`;
+              const teamLabel = team.result_kind === "pair"
+                ? unit.rows.map((r) => r.person_name).join(" + ")
+                : `${team.team_number ? `#${team.team_number} ` : ""}${team.team_name || team.club || "Team"}`;
               const teamTime = team.team_time_s != null ? fmtTime(team.team_time_s)
                 : team.team_status && team.team_status !== "ok" ? `<span class="status">${esc(team.team_status)}</span>` : "";
               return `<tr class="team-summary ${tier ? `medal-row-${tier}` : ""}">
                   <td class="num">${placementCell(team, tier)}</td>
-                  <td><strong>${esc(teamLabel)}</strong> <span class="badge">${team.result_kind === "relay" ? "Staffel" : "Mannschaft"}</span></td>
+                  <td><strong>${team.result_kind === "pair" ? unit.rows.map((r) => `<a href="#/runner/${r.person_id}">${esc(r.person_name)}</a>`).join(" + ") : esc(teamLabel)}</strong> <span class="badge">${team.result_kind === "relay" ? "Staffel" : team.result_kind === "pair" ? "Paar" : "Mannschaft"}</span></td>
                   <td class="hide-sm dim">${esc(team.official_club || team.club || "")}</td>
                   <td class="num">${teamTime}</td>
                   <td class="num dim">${team.status === "ok" && team.time_behind_s ? "+" + fmtTime(team.time_behind_s) : ""}</td>
-                </tr>${unit.rows.map((r) => `<tr class="team-member">
+                </tr>${team.result_kind === "pair" ? "" : unit.rows.map((r) => `<tr class="team-member">
                   <td class="num dim"></td>
                   <td><a href="#/runner/${r.person_id}">${esc(r.person_name)}</a>${r.result_kind === "relay" ? `<span class="leg-label">Leg ${r.leg_number || "?"}/${r.leg_count || unit.rows.length}</span>` : ""}</td>
                   <td class="hide-sm dim"></td><td class="num">${r.result_kind === "relay" ? individualTime(r) : ""}</td><td></td>

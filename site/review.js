@@ -160,7 +160,7 @@ function renderDetail() {
   }
   const rows = query(`
     SELECT r.id, r.rank, r.status, r.out_of_competition, r.time_s, r.observed_time,
-           r.observed_name, r.observed_club, r.club, r.official_club, r.result_kind,
+           r.person_id, r.observed_name, r.observed_club, r.club, r.official_club, r.result_kind,
            r.identity_basis, r.identity_state, r.observed_user_id, r.championship,
            r.team_number, r.team_name, r.leg_number, r.leg_count,
            r.individual_status, r.team_status, r.team_time_s, r.observed_team_time,
@@ -194,10 +194,12 @@ function renderDetail() {
   const parsedUnits = [];
   const parsedUnitIndex = new Map();
   for (const row of rows) {
-    const isTeam = ["relay", "team"].includes(row.result_kind);
+    const isTeam = ["relay", "team", "pair"].includes(row.result_kind);
     const key = !isTeam ? null : row.team_number
       ? `${row.result_kind}:number:${row.team_number}`
-      : `${row.result_kind}:name:${row.team_name || row.club || row.id}`;
+      : row.result_kind === "pair"
+        ? `${row.result_kind}:rank:${row.rank ?? ""}:status:${row.status}:time:${row.time_s ?? ""}:club:${row.club || ""}`
+        : `${row.result_kind}:name:${row.team_name || row.club || row.id}`;
     if (!key) parsedUnits.push({ team: false, rows: [row] });
     else if (!parsedUnitIndex.has(key)) {
       parsedUnitIndex.set(key, parsedUnits.length);
@@ -209,20 +211,22 @@ function renderDetail() {
       const r = unit.rows[0];
       return `<tr class="${r.issue_codes ? "review-row-issue" : ""}">
         <td>${r.out_of_competition ? "AK" : r.rank ?? ""}</td><td></td>
-        <td><b>${esc(r.observed_name)}</b>${r.mapped_name !== r.observed_name ? `<small>→ ${esc(r.mapped_name)}</small>` : ""}${identityMappingHtml(r)}</td>
+        <td><b>${r.person_id == null ? esc(r.observed_name) : `<a href="index.html#/runner/${r.person_id}" target="_blank">${esc(r.observed_name)}</a>`}</b>${r.mapped_name !== r.observed_name ? `<small>→ ${esc(r.mapped_name)}</small>` : ""}${identityMappingHtml(r)}</td>
         <td>${esc(r.status)}${r.issue_codes ? `<small>${esc(r.issue_codes)}</small>` : ""}</td>
         <td>${esc(r.observed_time || fmtTime(r.time_s))}</td><td>${clubMappingHtml(r)}</td></tr>`;
     }
     const team = unit.rows[0];
-    const label = `${team.team_number ? `#${team.team_number} ` : ""}${team.team_name || team.club || "Team"}`;
+    const label = team.result_kind === "pair"
+      ? unit.rows.map((r) => r.observed_name).join(" + ")
+      : `${team.team_number ? `#${team.team_number} ` : ""}${team.team_name || team.club || "Team"}`;
     const total = team.observed_team_time || fmtTime(team.team_time_s) ||
       (team.team_status !== "ok" ? team.team_status : "");
     return `<tr class="review-team-row"><td>${team.out_of_competition ? "AK" : team.rank ?? ""}</td>
-      <td colspan="2">${esc(label)}</td><td>${esc(team.team_status || team.status)}</td>
+      <td colspan="2">${esc(label)}${team.result_kind === "pair" ? " <small>Paar</small>" : ""}</td><td>${esc(team.team_status || team.status)}</td>
       <td>${esc(total)}</td><td>${clubMappingHtml(team)}</td></tr>` +
       unit.rows.map((r) => `<tr class="review-team-member ${r.issue_codes ? "review-row-issue" : ""}">
         <td></td><td>${r.result_kind === "relay" ? `Leg ${r.leg_number || "?"}/${r.leg_count || unit.rows.length}` : ""}</td>
-        <td><b>${esc(r.observed_name)}</b>${r.mapped_name !== r.observed_name ? `<small>→ ${esc(r.mapped_name)}</small>` : ""}${identityMappingHtml(r)}</td>
+        <td><b>${r.person_id == null ? esc(r.observed_name) : `<a href="index.html#/runner/${r.person_id}" target="_blank">${esc(r.observed_name)}</a>`}</b>${r.mapped_name !== r.observed_name ? `<small>→ ${esc(r.mapped_name)}</small>` : ""}${identityMappingHtml(r)}</td>
         <td>${r.issue_codes ? `<small>${esc(r.issue_codes)}</small>` : ""}</td>
         <td>${r.result_kind === "relay" ? (r.individual_status && r.individual_status !== "ok" ? `<b>${esc(r.individual_status)}</b>` : esc(r.observed_time || fmtTime(r.time_s))) : ""}</td>
         <td></td></tr>`).join("");

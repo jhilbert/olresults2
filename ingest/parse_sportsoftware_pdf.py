@@ -107,7 +107,11 @@ SPLITS_RE = re.compile(r"Zwischenzeiten|\d+\(\d+\)\s+\d+\(\d+\)")
 # SportSoftware repeats the event title + full date as a running page header on
 # every page; it leaks in as a bogus result row ("AC Mitteldistanz"). A real
 # result row never carries a full dd.mm.yyyy date, so skip any line that does.
-DATE_HEADER_RE = re.compile(r"\d{1,2}\.\d{1,2}\.\d{4}")
+# Older SportSoftware exports use a two-digit year in their repeated page
+# header ("Sat 17.02.18 13:54").  Accept both variants: a result row never
+# contains a dotted full date, while this blocks the header from becoming a
+# synthetic runner such as "Annaberg" after a page break.
+DATE_HEADER_RE = re.compile(r"\b\d{1,2}\.\d{1,2}\.(?:\d{2}|\d{4})\b")
 PDF_PAGE_CHROME_RE = re.compile(
     r"(?:\bSeite\s+\d+\b|SportSoftware|Stephan\s+Kr[äa]mer)", re.I)
 TIME_TOKEN_RE = re.compile(r"\d{1,3}:\d{2}(?::\d{2})?")
@@ -507,6 +511,13 @@ def parse_pdf(path, allow_inline_splits=False):
                         tm = TIME_TOKEN_RE.search(time_text)
                         if tm:
                             seconds = parse_time(tm.group())
+                            # The prefix belongs to a long club name that
+                            # overflowed into the time column ("HSV OL Wiener
+                            # Neustad 21:18"), not to the time itself.
+                            overflow = time_text[:tm.start()].strip()
+                            if overflow:
+                                result["club"] = f"{result['club']} {overflow}".strip()
+                            result["timeText"] = tm.group()
                     if seconds is not None:
                         result["timeS"] = seconds
                         result["status"] = "ok"

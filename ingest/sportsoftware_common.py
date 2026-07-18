@@ -626,7 +626,12 @@ def expand_pair_result(result, category=None):
     sources where name and club are already column-separated — the
     flowing-PDF path has its own club-anchored handling."""
     name = result.get("name", "")
-    if "/" in name:
+    # A literal '+' is SportSoftware's clearest pair separator in the
+    # night-run D/H-12 and D/H-14 exports ("Kaiser Vincent + Maier Niklas").
+    # Unlike a hyphen it is never part of a person's name, so it is safe to
+    # recognise wherever it occurs.  A trailing '+' with only one real name
+    # remains a normal individual AK/DNS result below.
+    if "/" in name or "+" in name:
         names = split_pair_names(name)
     elif category and PAIR_CATEGORY_RE.search(category):
         names = split_hyphenated_pair_names(name)
@@ -646,7 +651,16 @@ def expand_pair_result(result, category=None):
                 names = [f"{toks[0]} {toks[1]}", f"{toks[2]} {toks[3]}"]
     else:
         return [result]
-    if len(names) < 2 or not all(
+    if len(names) < 2:
+        # A single AK/DNS entry may retain the source's dangling separator
+        # ("Greiner Anton +").  It is not a pair, but it is still a genuine
+        # individual result and the visible name must not include the marker.
+        if "+" in name:
+            cleaned = dict(result)
+            cleaned["name"] = name.rstrip().rstrip("+").strip()
+            return [cleaned]
+        return [result]
+    if not all(
             len(n.split()) == 2 and looks_like_person(n) for n in names):
         return [result]
     out = []
@@ -718,12 +732,13 @@ def split_pair_names(name_text):
     Binder/Egger' -> ['Jannis Binder', 'Marie Egger']. Unambiguous versus the
     convention above because that one never has a '/' in its first
     whitespace-separated group."""
+    separator = "+" if "+" in name_text else "/"
     groups = name_text.split()
-    if len(groups) == 2 and groups[0].count("/") == 1 and groups[1].count("/") == 1:
-        firsts = groups[0].split("/")
-        lasts = groups[1].split("/")
+    if len(groups) == 2 and groups[0].count(separator) == 1 and groups[1].count(separator) == 1:
+        firsts = groups[0].split(separator)
+        lasts = groups[1].split(separator)
         return [f"{f} {l}" for f, l in zip(firsts, lasts)]
-    parts = [p.strip() for p in re.split(r"\s*/\s*", name_text) if p.strip()]
+    parts = [p.strip() for p in re.split(r"\s*[+/]\s*", name_text) if p.strip()]
     if len(parts) <= 1:
         return parts
     surname = parts[0].split()[0] if parts[0].split() else ""

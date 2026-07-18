@@ -2608,6 +2608,15 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                 # real source rows.
                 unit_identity = (metadata.get("team_number") or metadata.get("team_name")
                                  if metadata else None)
+                # A youth night-runner can appear once in a ranked pair and
+                # again as a DNS/AK reserve pair in the same category.  The
+                # partner note is the persisted identity of that pair; using
+                # it in the dedup key retains both real observations instead
+                # of silently dropping the second appearance of (for example)
+                # Fuchs Max.
+                if kind == "pair":
+                    unit_identity = r.get("note") or (
+                        r.get("rank"), r.get("status"), r.get("timeS"), r.get("club"))
                 key = (sid, cat["name"], name_key(name), kind, unit_identity)
                 if key in seen:
                     continue

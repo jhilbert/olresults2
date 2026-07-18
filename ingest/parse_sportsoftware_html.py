@@ -182,6 +182,22 @@ def parse_document(html_text):
                 "timeText": time_text,
             }
             rank_text = rec.get("Pl", "").strip()
+            # SportSoftware writes AK in the rank cell, not the time cell.
+            # It remains a perfectly valid result, but must never be counted
+            # as a ranked competitor or considered for medals.
+            if is_ooc_status(rank_text):
+                result["outOfCompetition"] = True
+            # In some OE12 exports the winner's championship label is
+            # appended directly to her name.  Keep the actual person and the
+            # championship signal separately; otherwise the name validator in
+            # build_db quite correctly rejects the title phrase as non-person
+            # text and silently turns 53 source entries into 52 database rows.
+            suffix = re.search(r"\s*(\([^)]*(?:meister|champion)[^)]*\))\s*$", name, re.I)
+            if suffix:
+                championship = classify_championship_text(suffix.group(1))
+                if championship:
+                    result["name"] = name[:suffix.start()].strip()
+                    result["championship"] = championship
             if rank_text.isdigit():
                 # this row has its own rank after all - not the one the
                 # pending announcement belonged to
