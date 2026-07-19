@@ -264,6 +264,12 @@ JUNK_NAMES = {
     # columns and therefore looked superficially like timed competitors.
     "mittel ms", "nolv schulcup ternitz wed",
 }
+JUNK_NAME_PATTERNS = (
+    # A repeated page title can be interleaved with a garbled ``Seite N`` at
+    # the same PDF y-coordinate.  Column assignment then leaves only this
+    # venue/title fragment in the nominal Name field.
+    re.compile(r"^Etappe\s+\d+\b", re.I),
+)
 
 # German status strings SportSoftware prints in the time column
 STATUS_MAP = {
@@ -576,7 +582,8 @@ def parse_course_info(text):
 
 
 def is_junk_name(name):
-    return not name or bool(JUNK_NAME_RE.match(name)) or name.lower() in JUNK_NAMES
+    return (not name or bool(JUNK_NAME_RE.match(name)) or name.lower() in JUNK_NAMES
+            or any(pattern.search(name) for pattern in JUNK_NAME_PATTERNS))
 
 
 def looks_like_person(name):
@@ -628,6 +635,18 @@ def load_clubs():
         "ok slovenj gradec": "OK Slovenj Gradec",
         "sk vazka bratislava": "SK VAZKA Bratislava",
         "tipo orienteering club": "Tipo Orienteering Club",
+        # School result lists use the school in the same structural column as
+        # a club.  These stable full names are parsing boundaries, not club-
+        # registry claims; without them the last school token becomes the
+        # club and the prefix contaminates the person's name.
+        "stiftsgym kremsmünster": "Stiftsgym Kremsmünster",
+        "htl wels": "HTL Wels",
+        "bg freistadt": "BG Freistadt",
+        "europagym auhof": "Europagym Auhof",
+        "brg solar city linz": "BRG Solar City Linz",
+        "mms freistadt": "MMS Freistadt",
+        "tnms stadl-paura": "TNMS Stadl-Paura",
+        "ms schwertberg": "MS Schwertberg",
     })
     return out
 
@@ -719,6 +738,11 @@ def expand_pair_result(result, category=None):
     sources where name and club are already column-separated — the
     flowing-PDF path has its own club-anchored handling."""
     name = result.get("name", "")
+    # Family class labels may contain perfectly parseable combinations such
+    # as ``Rothauer Tim + Emma``.  They are deliberately one anonymous
+    # competitor unit, not two person identities.
+    if result.get("resultKind") == "family":
+        return [result]
     # A literal '+' is SportSoftware's clearest pair separator in the
     # night-run D/H-12 and D/H-14 exports ("Kaiser Vincent + Maier Niklas").
     # Unlike a hyphen it is never part of a person's name, so it is safe to

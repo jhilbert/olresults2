@@ -292,7 +292,7 @@ def normalize_school_schnupper_pairs(categories):
                 and category.get("declaredStarters") == 2 * len(results)
                 and results
                 and all((result.get("resultKind") or "individual") == "individual"
-                        and len(names) == 2
+                        and len(names) in (2, 4)
                         for result, names, _school_prefix in prepared)):
             # Some school Schnupper lists state the number of participating
             # children (28) but rank 14 two-child teams, one row per pair.
@@ -300,14 +300,17 @@ def normalize_school_schnupper_pairs(categories):
             # the quality check against the 14 actual starts.
             paired = []
             for pair_number, (result, names, school_prefix) in enumerate(prepared, 1):
-                for name in names:
+                pair_names = (names if len(names) == 2 else
+                              [" ".join(names[:2]), " ".join(names[2:])])
+                for name in pair_names:
                     pair = dict(result)
                     pair.update({
                         "name": name,
                         "club": f"{school_prefix} {result.get('club', '')}".strip(),
                         "resultKind": "pair",
                         "teamNumber": f"school-pair-{pair_number}",
-                        "note": "Partner: " + next(other for other in names if other != name),
+                        "note": "Partner: " + next(
+                            other for other in pair_names if other != name),
                     })
                     paired.append(pair)
             category["results"] = paired
@@ -638,10 +641,15 @@ def parse_pdf(path, allow_inline_splits=False):
                              if word["text"].casefold() in {"zeit", "time"}), None)
                         pair_row_mode = bool(
                             len(runner_headers) >= 2 and club_header and time_header)
+                        name_header = next(
+                            (word for word in line
+                             if word["text"].casefold() in {"name"}), None)
+                        pair_name_starts = (([name_header["x0"]] if name_header else [])
+                                            + [word["x0"] for word in runner_headers])
                         pair_columns = (
-                            runner_headers[0]["x0"], runner_headers[1]["x0"],
+                            pair_name_starts,
                             club_header["x0"],
-                            (club_header["x0"] + time_header["x0"]) / 2
+                            (club_header["x0"] + time_header["x0"]) / 2,
                         ) if pair_row_mode else None
                         school_row_mode = any(
                             word["text"].casefold() in {"schule", "school"}
@@ -742,16 +750,18 @@ def parse_pdf(path, allow_inline_splits=False):
                         continue
 
                     if pair_row_mode and pair_columns:
-                        first_x, second_x, club_x, time_x = pair_columns
+                        name_starts, club_x, time_x = pair_columns
+                        first_x = name_starts[0]
                         rank_text = " ".join(
                             word["text"] for word in line if word["x0"] < first_x).strip()
                         lead_numbers = re.findall(r"\b(\d+)\.?\b", rank_text)
-                        names = [
-                            " ".join(word["text"] for word in line
-                                     if first_x <= word["x0"] < second_x).strip(),
-                            " ".join(word["text"] for word in line
-                                     if second_x <= word["x0"] < club_x).strip(),
-                        ]
+                        names = []
+                        for index, start_x in enumerate(name_starts):
+                            end_x = (name_starts[index + 1]
+                                     if index + 1 < len(name_starts) else club_x)
+                            names.append(" ".join(
+                                word["text"] for word in line
+                                if start_x <= word["x0"] < end_x).strip())
                         names = [name for name in names
                                  if looks_like_person(name) and not is_junk_name(name)]
                         club = " ".join(
@@ -776,10 +786,12 @@ def parse_pdf(path, allow_inline_splits=False):
                                     "name": name, "club": club,
                                     "timeText": (TIME_TOKEN_RE.search(value).group(0)
                                                  if seconds is not None else value),
-                                    "status": status, "resultKind": "pair",
-                                    "note": "Partner: " + ", ".join(
-                                        other for other in names if other != name),
+                                    "status": status,
                                 }
+                                if len(names) > 1:
+                                    result["resultKind"] = "pair"
+                                    result["note"] = "Partner: " + ", ".join(
+                                        other for other in names if other != name)
                                 if pair_rank is not None:
                                     result["rank"] = pair_rank
                                 if pair_number is not None:
@@ -1308,8 +1320,19 @@ def parse_flowing_pdf(path):
                         continue
                     if current is None:
                         continue
+                    bracket_rank = re.match(r"^\((\d+)\)\s*(.+)$", line)
+                    if bracket_rank:
+                        # Foreign/non-championship finishers are printed with
+                        # their overall place in parentheses, occasionally
+                        # glued directly to the surname.  Preserve the row as
+                        # OOC instead of feeding ``(2)Surname`` to the name
+                        # validator and losing the person entirely.
+                        line = bracket_rank.group(2)
                     flow = parse_flow_row(line, CLUBS)
                     if valid_flow(flow):
+                        if bracket_rank:
+                            flow["rank"] = int(bracket_rank.group(1))
+                            flow["outOfCompetition"] = True
                         # Older night championships list the -12/-14 pairs
                         # as either ``A/B`` or four consecutive name tokens.
                         # The latter has no textual separator, but in these

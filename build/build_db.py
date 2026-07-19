@@ -1816,14 +1816,25 @@ def normalized_source_unit_count(rows):
     """
     keys = []
     for index, row in enumerate(rows or []):
+        if row.get("excludedFromDeclaredCount"):
+            continue
         kind = row.get("resultKind") or "individual"
         if kind in ("individual", "family"):
             key = ("row", index)
         elif kind == "pair" and row.get("teamNumber"):
             key = (kind, "number", row["teamNumber"])
         elif kind == "pair":
-            key = (kind, row.get("rank"), row.get("status"),
-                   row.get("timeS"), row.get("club"))
+            partner_note = row.get("note") or ""
+            if partner_note.startswith("Partner: "):
+                members = [row.get("name") or ""] + [
+                    member.strip() for member in partner_note[9:].split(",")
+                    if member.strip()
+                ]
+                key = (kind, "members", tuple(sorted(
+                    member.casefold() for member in members)))
+            else:
+                key = (kind, row.get("rank"), row.get("status"),
+                       row.get("timeS"), row.get("club"))
         else:
             key = (kind, row.get("teamNumber") or row.get("teamName")
                    or row.get("note"))
@@ -2826,12 +2837,26 @@ def normalize_team_results(cur):
 
 def competitor_unit_key(row):
     """Stable unit key for entry counts after pair/relay member expansion."""
-    rid, kind, rank, status, time_s, club, note, team_number, team_name = row
+    if len(row) == 10:
+        rid, observed_name, kind, rank, status, time_s, club, note, team_number, team_name = row
+    else:
+        rid, kind, rank, status, time_s, club, note, team_number, team_name = row
+        observed_name = ""
     if kind in ("individual", "family"):
         return f"row:{rid}"
     if kind == "pair" and team_number:
         return f"pair:number:{team_number}"
     if kind == "pair":
+        if note and note.startswith("Partner: "):
+            # Persisted rows do not carry their observed partner as a
+            # separate relation.  The source note still provides a stable
+            # roster key and prevents several same-club MP pairs from being
+            # collapsed into one competitor unit.
+            members = ([observed_name] if observed_name else []) + [
+                member.strip() for member in note[9:].split(",") if member.strip()
+            ]
+            return "pair:members:" + ":".join(sorted(
+                member.casefold() for member in members))
         return f"pair:{rank}:{status}:{time_s}:{club or ''}"
     if team_number:
         return f"{kind}:number:{team_number}"
@@ -2862,7 +2887,7 @@ def populate_quality_model(cur):
     for (list_id, _stage_id, _category, _declared, _fingerprint,
          _source_entries, _source_rows, _source_type) in lists:
         rows = cur.execute(
-            """SELECT id, result_kind, rank, status, time_s, club, note,
+            """SELECT id, observed_name, result_kind, rank, status, time_s, club, note,
                       team_number, team_name
                FROM result WHERE result_list_id = ? ORDER BY id""", (list_id,)).fetchall()
         persisted_entries = len({competitor_unit_key(row) for row in rows})

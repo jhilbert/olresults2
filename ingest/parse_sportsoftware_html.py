@@ -24,7 +24,8 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 from sportsoftware_common import (
-    CAT_LINE_RE, COURSE_RE, MANUAL_ATTACHMENT_SKIP, MANUAL_CATEGORY_SKIP, MANUAL_DOC_DATE_OVERRIDES,
+    CAT_LINE_RE, COLUMN_ALIASES, COURSE_RE, MANUAL_ATTACHMENT_SKIP, MANUAL_CATEGORY_SKIP,
+    MANUAL_DOC_DATE_OVERRIDES,
     TIME_TOKEN_RE, category_starter_count, classify_championship_text, detect_list_type,
     expand_pair_result, extract_html_title,
     aggregate_team_status, guess_doc_date, is_junk_name, is_ooc_status, is_ooc_time,
@@ -124,7 +125,12 @@ def parse_document(html_text):
                 team_counts = defaultdict(int)
                 continue
             if first == "Pl" or (current and "Name" in row):
-                columns = row
+                # OE's English export uses Time/Club/YB/Stno while the
+                # parser's canonical field names are German.  Keeping the
+                # raw labels made every ranked row look time-less and also
+                # dropped unranked MP/DNF rows completely, because neither
+                # rank nor the nominal ``Zeit`` field then existed.
+                columns = [COLUMN_ALIASES.get(cell, cell) for cell in row]
                 continue
             if current is None or columns is None:
                 continue
@@ -274,7 +280,21 @@ def parse_document(html_text):
                 result["scoreText"] = rec["Pkt"].strip()
             current["results"].extend(expand_pair_result(result, current.get("name")))
 
-    return [c for c in categories if c["results"]]
+    parsed = [c for c in categories if c["results"]]
+    for category in parsed:
+        results = category["results"]
+        if not results or any(
+                (result.get("resultKind") or "individual") not in {"individual", "family"}
+                for result in results):
+            continue
+        ranks = [result["rank"] for result in results if result.get("rank") is not None]
+        # Some classic OE HTMLs put only the highest classified placement in
+        # ``(N)`` and print MP/DNF rows below it.  When N exactly equals that
+        # highest rank, the visible result-unit count is unambiguous.
+        if (ranks and category.get("declaredStarters") == max(ranks)
+                and len(results) > category["declaredStarters"]):
+            category["declaredStarters"] = len(results)
+    return parsed
 
 
 BRACKET_CAT_RE = re.compile(r"^\(\d+(?:\s*/\s*\d+)?\)$")
@@ -348,6 +368,15 @@ def parse_bracket_html(html_text):
             # isn't reliably at a fixed position - scan for whichever of the
             # two it actually is, preferring a real time over a status word
             values = [c.strip().lstrip("+") for c in cells[2:]]
+            status_in_club_column = not values and parse_status(club) is not None
+            if status_in_club_column:
+                # Club-less MeOS result tables collapse an unranked status
+                # into the second remaining cell (the nominal club slot).
+                # DNS rows are printed below the ``(started / entered)``
+                # count and therefore remain visible but are not part of the
+                # declared competitor count.
+                values = [club]
+                club = ""
             # An AK result is written as ``(39:58)``.  A strict token-only
             # scan skipped it and then selected the later +24:00 difference
             # as the runner's time.  parse_time_loose accepts both normal and
@@ -365,10 +394,26 @@ def parse_bracket_html(html_text):
                 result["status"] = "ok"
             else:
                 result["status"] = parse_status(status_text or "") or "unknown"
+            if status_in_club_column and result["status"] == "dns":
+                result["excludedFromDeclaredCount"] = True
             if out_of_competition or is_ooc_status(status_text) or is_ooc_time(time_text):
                 result["outOfCompetition"] = True
             current["results"].append(result)
-    return [c for c in categories if c["results"]]
+    parsed = [c for c in categories if c["results"]]
+    for category in parsed:
+        declared = category.get("declaredStarters")
+        results = category["results"]
+        # MeOS has used both count conventions over time.  Some documents'
+        # header includes printed DNS rows, others name only runners who
+        # started and append DNS registrations below.  Infer the latter only
+        # when the source number exactly equals the non-DNS rows; this keeps
+        # every DNS visible without creating a false parser mismatch.
+        if (declared is not None and len(results) > declared
+                and sum(r.get("status") != "dns" for r in results) == declared):
+            for result in results:
+                if result.get("status") == "dns":
+                    result["excludedFromDeclaredCount"] = True
+    return parsed
 
 
 def parse_relay_document(html_text):

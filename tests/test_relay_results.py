@@ -135,6 +135,70 @@ class RelayStructureTests(unittest.TestCase):
         self.assertTrue(allwinger["outOfCompetition"])
         self.assertEqual(allwinger["status"], "ok")
 
+    def test_mannschaft_text_switches_to_compact_individual_rows(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "2236-0.txt"
+        self.require_source_fixture(source)
+        categories = text_parser.parse_text(text_parser.decode(source.read_bytes()))
+
+        long = next(c for c in categories if c["name"] == "Einzel Lang")
+        self.assertEqual(len(long["results"]), 7)
+        lauri = next(r for r in long["results"] if r["name"] == "Lauri Pekka")
+        self.assertEqual((lauri["club"], lauri["timeS"], lauri["status"]),
+                         ("Keravan Urheiljat (FIN)", 4437, "ok"))
+
+        family = next(c for c in categories if c["name"] == "Family")
+        self.assertEqual(len(family["results"]), 7)
+        self.assertEqual({r.get("resultKind") for r in family["results"]}, {"family"})
+        self.assertEqual(next(r for r in family["results"]
+                             if r["name"] == "Urbanek Annina")["status"], "dns")
+
+    def test_english_html_columns_keep_times_and_unranked_statuses(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "1524-0.html"
+        self.require_source_fixture(source)
+        categories = html_parser.parse_document(html_parser.decode(source.read_bytes()))
+        women = next(c for c in categories if c["name"] == "W21E")
+        self.assertEqual(len(women["results"]), women["declaredStarters"])
+        marina = next(r for r in women["results"] if r["name"] == "Reiner Marina")
+        primus = next(r for r in women["results"] if r["name"] == "Primus Eva")
+        self.assertEqual((marina["timeS"], marina["status"]), (5682, "ok"))
+        self.assertEqual(primus["status"], "dnf")
+
+        classic = ROOT / "data" / "raw" / "anne" / "files" / "992-0.html"
+        self.require_source_fixture(classic)
+        classic_categories = text_parser.parse_text(text_parser.extract_pre_blocks(
+            html_parser.decode(classic.read_bytes())))
+        short = next(c for c in classic_categories if c["name"] == "Open Kurz")
+        self.assertEqual((short["declaredStarters"], len(short["results"])), (17, 17))
+
+    def test_score_category_with_clock_duration_starts_a_new_class(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "1971-0.html"
+        self.require_source_fixture(source)
+        text = text_parser.extract_pre_blocks(text_parser.decode(source.read_bytes()))
+        categories = text_parser.parse_text(text)
+        plain_d = next(c for c in categories if c["name"] == "D")
+        school_d = next(c for c in categories if c["name"] == "E Schüler Dame")
+        self.assertEqual((len(plain_d["results"]), len(school_d["results"])), (1, 6))
+
+    def test_pair_unit_count_uses_roster_for_same_club_statuses(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "1067-1.html"
+        self.require_source_fixture(source)
+        text = text_parser.extract_pre_blocks(html_parser.decode(source.read_bytes()))
+        categories = text_parser.parse_text(text)
+        women = next(c for c in categories if c["name"] == "Ew")
+        self.assertEqual(build_db.normalized_source_unit_count(women["results"]),
+                         women["declaredStarters"])
+
+    def test_clubless_bracket_dns_stays_visible_but_outside_start_count(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "4915-1.html"
+        self.require_source_fixture(source)
+        categories = html_parser.parse_bracket_html(html_parser.decode(source.read_bytes()))
+        basic = next(c for c in categories if c["name"] == "Lyceum basic")
+        self.assertEqual(len(basic["results"]), 19)
+        self.assertEqual(build_db.normalized_source_unit_count(basic["results"]), 8)
+        dns = [r for r in basic["results"] if r["status"] == "dns"]
+        self.assertEqual(len(dns), 11)
+        self.assertTrue(all(r.get("excludedFromDeclaredCount") for r in dns))
+
     def test_ampersand_champion_annotation_carries_rank_to_html_result(self):
         self.assertEqual(
             parse_champion_annotation("2 & österreichischer Meister"),
@@ -167,6 +231,7 @@ class RelayStructureTests(unittest.TestCase):
         self.assertTrue(is_junk_name("Austria Cup"))
         self.assertTrue(is_junk_name("Mittel MS"))
         self.assertTrue(is_junk_name("NOLV Schulcup Ternitz Wed"))
+        self.assertTrue(is_junk_name("Etappe 2 Rosegg/St.Lambrecht"))
 
     def test_compact_not_started_status_is_a_real_result_value(self):
         dns = parse_flow_row(
@@ -525,6 +590,50 @@ class RelayStructureTests(unittest.TestCase):
         women = next(c for c in score_categories if c["name"] == "Damen B")
         self.assertFalse(any(
             r["name"] == "Donauinsel-Kaisermühlen" for r in women["results"]))
+
+    def test_pair_pdf_keeps_primary_name_column_and_optional_partners(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "4153-1.pdf"
+        self.require_source_fixture(source)
+        categories, _ = pdf_parser.parse_pdf(source)
+        guests = next(c for c in categories if c["name"] == "Herren Gäste")
+
+        units = {
+            (r.get("rank"), r.get("status"), r.get("timeS"), r.get("club"))
+            if r.get("resultKind") == "pair" else ("row", index)
+            for index, r in enumerate(guests["results"])
+        }
+        self.assertEqual(len(units), guests["declaredStarters"])
+        self.assertIn("Benjamin ALTMANN", {r["name"] for r in guests["results"]})
+        pair = [r for r in guests["results"] if r.get("resultKind") == "pair"]
+        self.assertEqual({r["name"] for r in pair}, {"Fabian SAMEC", "DRAESNER Felix"})
+        peter = next(r for r in guests["results"] if r["name"] == "Peter ILLIG")
+        self.assertTrue(peter["outOfCompetition"])
+
+    def test_flowing_pdf_keeps_parenthesized_foreign_place(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "4474-1.pdf"
+        self.require_source_fixture(source)
+        categories = pdf_parser.parse_flowing_pdf(source)
+        elite = next(c for c in categories if c["name"] == "H 21E")
+        vitek = next(r for r in elite["results"] if r["name"] == "Pospisil Vitek")
+        self.assertEqual((vitek["rank"], vitek["timeS"]), (2, 5472))
+        self.assertTrue(vitek["outOfCompetition"])
+        self.assertEqual(len(elite["results"]), elite["declaredStarters"])
+
+    def test_school_pdf_uses_full_school_boundary_and_does_not_split_names(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "4779-0.pdf"
+        self.require_source_fixture(source)
+        categories = pdf_parser.parse_flowing_pdf(source)
+        women = next(c for c in categories if c["name"] == "Oberstufe Weibl.")
+        self.assertEqual(len(women["results"]), women["declaredStarters"])
+        alexia = next(r for r in women["results"] if r["name"] == "Lazar Alexia")
+        self.assertEqual((alexia["club"], alexia["status"]),
+                         ("BRG Solar City Linz", "dsq"))
+
+        beginners = next(c for c in categories if c["name"] == "Schnupperkateg.")
+        self.assertEqual(len(beginners["results"]), 6)
+        self.assertEqual({r.get("resultKind", "individual") for r in beginners["results"]},
+                         {"individual"})
+        self.assertIn("Andexlinger Lisa", {r["name"] for r in beginners["results"]})
 
     def test_broad_pdf_layout_regressions_keep_declared_competitor_units(self):
         def units(category):

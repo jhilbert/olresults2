@@ -55,7 +55,7 @@ CHAMPION_MARKER_RE = re.compile(r"(?i)\b(?:staats?)?meister(?:in(?:nen)?)?\b")
 CHAMPION_TRAILING_RANK_RE = re.compile(
     r"(?i)\b(?:staats?)?meister(?:in(?:nen)?)?\s+(\d+)\s*$")
 SCORE_CAT_LINE_RE = re.compile(
-    r"^(?P<name>(?!\d).+?)\s+\d+\s*min\b.*\b(?:P|Pkt)\b", re.I)
+    r"^(?P<name>(?!\d).+?)\s+\d+(?::\d{2})?\s*min\b.*\b(?:P|Pkt)\b", re.I)
 COURSE_CAT_LINE_RE = re.compile(
     r"^(?P<name>(?!\d).+?)\s+\d+(?:[.,]\d+)?\s*km\b", re.I)
 
@@ -231,8 +231,25 @@ def parse_text(text):
         time_text = (rec.get("Zeit") or rec.get("Gesamt") or "").strip()
         rank_text = (rec.get("Pl") or "").strip().rstrip(".")
 
+        # A Mannschaft report can switch to compact individual classes near
+        # the end while retaining the document-wide
+        # Name/Läufer2/Läufer3/Zeit header.  Those shorter rows place their
+        # elapsed time or status in the Läufer2 slice and leave Zeit empty.
+        # Treat that value as the result column and do not manufacture a
+        # two-person team from ``Name + 34:45``.
+        compact_value = ""
+        if not time_text:
+            compact_value = next((
+                (rec.get(label) or "").strip()
+                for label in ("Läufer2", "Laeufer2", "Runner2", "Läufer3", "Laeufer3", "Runner3")
+                if parse_time_loose((rec.get(label) or "").strip()) is not None
+                or parse_status((rec.get(label) or "").strip())
+            ), "")
+            if compact_value:
+                time_text = compact_value
+
         # team (Mannschaft) fixed-width lists: members across Name/Läufer2/… cols
-        if rank_text.isdigit() or time_text:
+        if (rank_text.isdigit() or time_text) and not compact_value:
             club = (rec.get("Verein") or "").strip()
             team = team_results_from_pairs(pairs, club, rec.get("Pl", ""), time_text)
             if team is not None:
@@ -252,6 +269,12 @@ def parse_text(text):
             "club": (rec.get("Verein") or rec.get("Verein/Schule") or "").strip(),
             "timeText": time_text,
         }
+        if "famil" in current["name"].casefold():
+            # Family combinations stay visible as one source result but must
+            # never create or attach to a person identity.
+            result["resultKind"] = "family"
+        elif compact_value:
+            result["resultKind"] = "individual"
         # AK replaces the numeric placement in old fixed-width exports.  It
         # is orthogonal to the finish classification: both ``AK 48:12`` and
         # ``AK Fehlst`` are valid source combinations.
@@ -299,7 +322,18 @@ def parse_text(text):
             result["yearOfBirth"] = y + (2000 if y <= 26 else 1900) if y < 100 else y
         current["results"].extend(expand_pair_result(result, current.get("name")))
 
-    return [c for c in categories if c["results"]]
+    parsed = [c for c in categories if c["results"]]
+    for category in parsed:
+        results = category["results"]
+        if not results or any(
+                (result.get("resultKind") or "individual") not in {"individual", "family"}
+                for result in results):
+            continue
+        ranks = [result["rank"] for result in results if result.get("rank") is not None]
+        if (ranks and category.get("declaredStarters") == max(ranks)
+                and len(results) > category["declaredStarters"]):
+            category["declaredStarters"] = len(results)
+    return parsed
 
 
 def fetch(url, dest):
