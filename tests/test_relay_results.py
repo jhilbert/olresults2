@@ -1266,6 +1266,7 @@ class RelayStructureTests(unittest.TestCase):
                 ])
 
         school = ROOT / "data" / "raw" / "anne" / "files" / "2477-0.pdf"
+        self.require_source_fixture(school)
         school_categories, _ = pdf_parser.parse_pdf(school)
         beginners = next(c for c in school_categories if c["name"] == "E Schnupperklasse")
         self.assertEqual(
