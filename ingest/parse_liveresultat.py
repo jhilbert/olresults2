@@ -29,7 +29,15 @@ HEADERS = {"User-Agent": "olresults-sync/0.1 (+https://github.com/josefhilbert/o
 
 # liveresultat's numeric status code -> our vocabulary (matches the IOF/MeOS
 # convention this and similar Nordic live-timing services follow)
-STATUS_MAP = {0: "ok", 1: "dns", 2: "dnf", 3: "mp", 4: "dsq", 5: "unknown"}
+STATUS_MAP = {
+    0: "ok", 1: "dns", 2: "dnf", 3: "mp", 4: "dsq",
+    # LiveResults documents 5 as OT (over maximum time). OLRESULTS2 uses the
+    # same normalized classification as SportSoftware's Zeitüberschreitung.
+    5: "dsq",
+    # 9/10 are "Not Started Yet" and 11 is "Walk Over". In OLRESULTS2's
+    # archived, completed-event result model all three mean no start/result.
+    9: "dns", 10: "dns", 11: "dns",
+}
 
 
 def get(url):

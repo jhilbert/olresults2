@@ -1878,7 +1878,10 @@ def register_result_list(cur, stage_id, source_document_id, category, category_f
            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (list_id, stage_id, source_document_id, category, category_full,
          declared_starters, normalized_source_unit_count(rows), len(rows or []),
-         "score" if any(row.get("scoreText") not in (None, "") for row in (rows or [])) else "time",
+         ("other" if any(row.get("rankingBasis") == "other" for row in (rows or []))
+          else "score" if any(row.get("scoreText") not in (None, "")
+                              for row in (rows or []))
+          else "time"),
          course.get("length") or course.get("courseLengthM"),
          course.get("climb") or course.get("courseClimbM"),
          course.get("controlCount") or course.get("courseControls"), fingerprint))
@@ -1901,6 +1904,15 @@ def insert_result(cur, **kw):
     kw.setdefault("result_kind", "individual")
     kw.setdefault("identity_basis", "unknown")
     kw.setdefault("identity_confidence", 0.0)
+    # A numeric placement is itself an explicit classification. Several
+    # score, school-cup and browser-to-PDF result lists intentionally omit the
+    # elapsed-time column, while old normalized snapshots consequently stored
+    # these ranked finishers as ``unknown``. Do not override an explicit API
+    # classification such as ``notClassified``; this compatibility rule is
+    # limited to parser output whose raw status was absent/unknown.
+    if (kw.get("status") == "unknown" and kw.get("rank") is not None
+            and kw.get("observed_status") in (None, "", "unknown")):
+        kw["status"] = "ok"
     kw.setdefault("identity_state", "resolved" if kw.get("identity_confidence", 0) >= 1.0
                   else ("candidate" if kw.get("person_id") is not None else "unresolved"))
     vals = [kw.get(c) for c in RESULT_COLS]
@@ -1946,6 +1958,26 @@ def relay_metadata(row, kind):
         "team_time_s": row.get("teamTimeS"),
         "observed_team_time": row.get("teamTimeText"),
     }
+
+
+def legacy_result_unit_identity(row, kind, metadata=None,
+                                preserve_repeated_relay_leg=False):
+    """Stable within-list identity used before cross-source deduplication.
+
+    Most overlapping HTML/PDF relay sources disagree about leg metadata, so
+    adding the leg globally would duplicate thousands of otherwise identical
+    observations. It is essential only when the *same source category*
+    actually contains the same person/team more than once.
+    """
+    metadata = metadata or relay_metadata(row, kind)
+    team_identity = metadata.get("team_number") or metadata.get("team_name")
+    if (kind == "relay" and preserve_repeated_relay_leg
+            and metadata.get("leg_number") is not None):
+        return team_identity, metadata["leg_number"]
+    if kind == "pair":
+        return row.get("note") or (
+            row.get("rank"), row.get("status"), row.get("timeS"), row.get("club"))
+    return team_identity
 
 
 def default_stage(cur, event, stage_ids):
@@ -2679,17 +2711,16 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                 # and once in a DNS reserve team). Team identity therefore
                 # belongs in the dedup key; name alone silently dropped those
                 # real source rows.
-                unit_identity = (metadata.get("team_number") or metadata.get("team_name")
-                                 if metadata else None)
+                unit_identity = legacy_result_unit_identity(
+                    r, kind, metadata,
+                    preserve_repeated_relay_leg=bool(
+                        r.get("preserveRepeatedRelayLeg")))
                 # A youth night-runner can appear once in a ranked pair and
                 # again as a DNS/AK reserve pair in the same category.  The
                 # partner note is the persisted identity of that pair; using
                 # it in the dedup key retains both real observations instead
                 # of silently dropping the second appearance of (for example)
                 # Fuchs Max.
-                if kind == "pair":
-                    unit_identity = r.get("note") or (
-                        r.get("rank"), r.get("status"), r.get("timeS"), r.get("club"))
                 key = (sid, cat["name"], name_key(name), kind, unit_identity)
                 if key in seen:
                     continue
@@ -2700,6 +2731,21 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                     name, r.get("yearOfBirth"), club_value)
                 persons.record(pid, name)
                 raw_status = r.get("status", "unknown")
+                observed_raw_status = raw_status
+                if doc.get("source") == "liveresultat" and r.get("rawStatusCode") == 5:
+                    # LiveResults' official code 5 is OT (over maximum time).
+                    # Old committed snapshots called it unknown; normalize it
+                    # reproducibly without requiring another network fetch.
+                    raw_status = "dsq"
+                    observed_raw_status = "overTime"
+                elif (doc.get("source") == "liveresultat"
+                      and doc.get("eventId") == 4292
+                      and raw_status == "unknown"):
+                    # The old snapshot predates rawStatusCode persistence.
+                    # The completed competition's public API was rechecked:
+                    # every one of these nine rows is code 9, Not Started Yet.
+                    raw_status = "dns"
+                    observed_raw_status = "notStartedYet"
                 status, ooc = normalize_status(
                     raw_status, r.get("timeText") or raw_status,
                     r.get("outOfCompetition") or
@@ -2731,7 +2777,8 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                               observed_category=cat["name"],
                               observed_rank=str(r.get("rank"))
                               if r.get("rank") is not None else None,
-                              observed_status=raw_status, observed_time=r.get("timeText"),
+                              observed_status=observed_raw_status,
+                              observed_time=r.get("timeText"),
                               identity_basis=identity_basis,
                               identity_confidence=identity_confidence,
                               identity_state=identity_state,

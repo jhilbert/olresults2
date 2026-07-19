@@ -275,13 +275,16 @@ JUNK_NAME_PATTERNS = (
     # columns that footer has exactly the same x positions as a result row;
     # the title fragment consequently landed in Name and ``Page N`` in Zeit.
     re.compile(r"^Results\s*\(\s*stage\b", re.I),
+    re.compile(r"^Bib\.?\s+Name$", re.I),
+    re.compile(r"^mit\s+weniger$", re.I),
 )
 
 # German status strings SportSoftware prints in the time column
 STATUS_MAP = {
     "aufg": "dnf", "aufgegeben": "dnf", "not finish": "dnf",
+    "vzdal": "dnf",
     "verletzt": "dnf",
-    "fehlst": "mp", "fehlstempel": "mp",
+    "fehlst": "mp", "ehlst": "mp", "fehlstempel": "mp",
     "missing punch": "mp", "posten fehlt": "mp", "posten fehlen": "mp",
     "ziel fehlt": "mp",
     "dis": "dsq", "disq": "dsq", "disqu": "dsq", "disqualifiziert": "dsq",
@@ -292,7 +295,7 @@ STATUS_MAP = {
     # A narrow PDF time column can clip the leading ``N `` and leave the
     # otherwise standalone status token ``Ang``. Token-boundary matching in
     # parse_status keeps this from matching ordinary words.
-    "ang": "dns",
+    "ang": "dns", "apng": "dns",
     "n.gest": "dns", "nicht gestartet": "dns",
     # OE2010's old HTML export uses OMT ("omitted") for a listed runner
     # who did not start.  It is equivalent to DNS for result purposes.
@@ -304,7 +307,7 @@ STATUS_MAP = {
     "ohne wertung": "ok", "außer konkurrenz": "ok", "ausser konkurrenz": "ok",
     "wertungsfrei": "ok", "ak": "ok",
     "nc": "ok",
-    "dnf": "dnf", "dns": "dns", "dsq": "dsq", "mp": "mp",
+    "ok": "ok", "dnf": "dnf", "dns": "dns", "dsq": "dsq", "mp": "mp",
 }
 
 
@@ -688,6 +691,8 @@ def load_clubs():
         # full spelling is required as a parsing boundary when it overflows
         # into the adjacent time/score columns.
         "bg/brg zehnergasse wiener neustadt": "BG/BRG Zehnergasse Wiener Neustadt",
+        "bg/brg zehnergasse wr. neustadt": "BG/BRG Zehnergasse Wiener Neustadt",
+        "knc oob tj sokol kostelec": "KNC OOB TJ Sokol Kostelec",
         "mms freistadt": "MMS Freistadt",
         "tnms stadl-paura": "TNMS Stadl-Paura",
         "ms schwertberg": "MS Schwertberg",
@@ -836,12 +841,12 @@ def expand_pair_result(result, category=None):
 
 STATUS_TAIL_RE = re.compile(
     r"(?i)(n\.?\s*ang\.?|n\.?\s*gest\.?|nicht\s+ang\.?|nicht angetreten|"
-    r"nicht gestartet|aufg\.?|not\s+finish(?:ed)?|verletzt|"
-    r"fehlst\.?|missing\s+punch|\d+\s+posten\s+fehl(?:t|en)|ziel\s+fehlt|"
+    r"nicht gestartet|aufg\.?|not\s+finish(?:ed)?|verletzt|vzdal|"
+    r"fehlst\.?|ehlst\.?|missing\s+punch|\d+\s+posten\s+fehl(?:t|en)|ziel\s+fehlt|"
     r"dis\.?|disq(?:u)?\.?|"
     r"disk\.?|"
     r"ohne wertung|außer konkurrenz|ausser konkurrenz|wertungsfrei|AK|NC|"
-    r"dnf|dns|dsq|mp|omt|gut|teilgenommen|zeitüb\.?|zeitüberschreitung)\s*$")
+    r"ok|dnf|dns|dsq|mp|omt|apng|gut|teilgenommen|zeitüb\.?|zeitüberschreitung)\s*$")
 
 
 def parse_flow_row(text, clubs):

@@ -390,10 +390,13 @@ def parse_bracket_html(html_text):
             # isn't reliably at a fixed position - scan for whichever of the
             # two it actually is, preferring a real time over a status word
             values = [c.strip().lstrip("+") for c in cells[2:]]
-            status_in_club_column = not values and parse_status(club) is not None
-            if status_in_club_column:
-                # Club-less MeOS result tables collapse an unranked status
-                # into the second remaining cell (the nominal club slot).
+            value_in_club_column = (not values and
+                                    (parse_status(club) is not None
+                                     or parse_time_loose(club) is not None))
+            if value_in_club_column:
+                # Club-less MeOS result tables collapse an unranked status or
+                # a ranked time into the second remaining cell (the nominal
+                # club slot).
                 # DNS rows are printed below the ``(started / entered)``
                 # count and therefore remain visible but are not part of the
                 # declared competitor count.
@@ -416,7 +419,7 @@ def parse_bracket_html(html_text):
                 result["status"] = "ok"
             else:
                 result["status"] = parse_status(status_text or "") or "unknown"
-            if status_in_club_column and result["status"] == "dns":
+            if value_in_club_column and result["status"] == "dns":
                 result["excludedFromDeclaredCount"] = True
             if out_of_competition or is_ooc_status(status_text) or is_ooc_time(time_text):
                 result["outOfCompetition"] = True

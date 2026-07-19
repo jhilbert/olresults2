@@ -50,6 +50,32 @@ class AnneIdentityTests(unittest.TestCase):
             (None, "Livia + Papa", "family", "not_applicable"),
         )
 
+    def test_numeric_rank_classifies_a_parser_row_without_printed_time(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        build_db.insert_result(
+            con.cursor(), stage_id=1, category="D3", rank=1,
+            status="unknown", source="sportsoftware-pdf",
+            observed_name="Anna Rang", observed_status="unknown")
+        build_db.insert_result(
+            con.cursor(), stage_id=1, category="D3", rank=2,
+            status="unknown", source="anne-api",
+            observed_name="Berta API", observed_status="notClassified")
+        self.assertEqual(con.execute(
+            "SELECT status FROM result ORDER BY id"
+        ).fetchall(), [("ok",), ("unknown",)])
+
+    def test_same_runner_on_two_relay_legs_has_distinct_unit_identity(self):
+        first = {"resultKind": "relay", "teamNumber": "239", "leg": 1}
+        second = {"resultKind": "relay", "teamNumber": "239", "leg": 2}
+        first_identity = build_db.legacy_result_unit_identity(
+            first, "relay", build_db.relay_metadata(first, "relay"), True)
+        second_identity = build_db.legacy_result_unit_identity(
+            second, "relay", build_db.relay_metadata(second, "relay"), True)
+        self.assertEqual(first_identity, ("239", 1))
+        self.assertEqual(second_identity, ("239", 2))
+        self.assertNotEqual(first_identity, second_identity)
+
     def test_quality_model_does_not_flag_a_deduplicated_second_source(self):
         con = sqlite3.connect(":memory:")
         con.executescript(build_db.SCHEMA)
