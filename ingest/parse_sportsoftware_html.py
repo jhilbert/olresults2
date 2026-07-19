@@ -755,6 +755,10 @@ def main():
                 empty += 1
                 out_path.unlink(missing_ok=True)  # stale output from an earlier, buggier run
                 continue
+            if re.search(r"\bOEScore(?:\d{4})?\b|\bSCORE[- ]?OL\b", text, re.I):
+                for category in cats:
+                    for result in category.get("results") or []:
+                        result["rankingBasis"] = "score"
             out_path.write_text(json.dumps({
                 "eventId": eid,
                 "source": "sportsoftware-html",

@@ -148,6 +148,42 @@ class AnneIdentityTests(unittest.TestCase):
             "SELECT count(*) FROM audit_issue WHERE code='rank_time_inversion'"
         ).fetchone()[0], 0)
 
+    def test_source_native_score_and_cup_series_are_not_time_rankings(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id, title) VALUES (1, 'Source rankings')")
+        cur.execute("INSERT INTO stage (id, event_id, number) VALUES (1, 1, 1)")
+        cur.execute(
+            "INSERT INTO source_document (id,event_id,source_type) VALUES ('doc',1,'anne-api')")
+
+        score = build_db.register_result_list(
+            cur, 1, "doc", "Pro", "Pro", 2, [
+                {"name": "Anna", "rank": 1, "timeS": 1802, "scorePoints": 330},
+                {"name": "Berta", "rank": 2, "timeS": 1740, "scorePoints": 312},
+            ])
+        meos_score = build_db.register_result_list(
+            cur, 1, "doc", "Score", "Score", 2, [
+                {"name": "Clara", "rank": 1, "timeS": 2700,
+                 "club": "WAT 640 p."},
+                {"name": "Dora", "rank": 2, "timeS": 2400,
+                 "club": "Bad Vöslau 623 p."},
+            ])
+        series = build_db.register_result_list(
+            cur, 1, "doc", "DA 1.Lauf - A 2.Lauf - B", "DA", 2, [
+                {"name": "Eva", "rank": 1, "timeS": 3806},
+                {"name": "Fiona", "rank": 2, "timeS": 3334},
+            ])
+        self.assertEqual(
+            cur.execute("SELECT ranking_basis FROM result_list WHERE id=?", (score,)).fetchone()[0],
+            "score")
+        self.assertEqual(
+            cur.execute("SELECT ranking_basis FROM result_list WHERE id=?", (meos_score,)).fetchone()[0],
+            "score")
+        self.assertEqual(
+            cur.execute("SELECT ranking_basis FROM result_list WHERE id=?", (series,)).fetchone()[0],
+            "other")
+
     def test_fully_classified_extra_source_row_is_not_a_parser_blocker(self):
         con = sqlite3.connect(":memory:")
         con.executescript(build_db.SCHEMA)

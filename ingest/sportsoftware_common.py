@@ -658,12 +658,15 @@ def load_clubs():
     # they are absent from the current ANNE club registry snapshot.
     out.update({
         "laufklub kompass innsbruck imst": "Laufklub Kompass Innsbruck Imst",
+        "orienteering innsbruck": "Orienteering Innsbruck Imst",
         "ola tsv deggendorf": "OLA TSV Deggendorf",
         "orienteering klosterneubur": "Orienteering Klosterneuburg",
         "naturfreunde villach - ori": "Naturfreunde Villach - Orienteering",
         "naturfreunde villach-orienteering": "Naturfreunde Villach - Orienteering",
         "naturfreunde villach - orie": "Naturfreunde Villach - Orienteering",
+        "naturfreunde villach - oriente": "Naturfreunde Villach - Orienteering",
         "naturfreunde villach": "Naturfreunde Villach - Orienteering",
+        "naturfreunde wien - orienteering": "Naturfreunde Wien",
         "naturfreunde bad vöslau": "Naturfreunde Bad Vöslau",
         "sv mölten raiffeisen amateursportverein": "SV Mölten Raiffeisen ASV",
         "lk kompass innsbruck-imst": "Laufklub Kompass Innsbruck Imst",

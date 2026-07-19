@@ -1878,8 +1878,20 @@ def register_result_list(cur, stage_id, source_document_id, category, category_f
            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (list_id, stage_id, source_document_id, category, category_full,
          declared_starters, normalized_source_unit_count(rows), len(rows or []),
-         ("other" if any(row.get("rankingBasis") == "other" for row in (rows or []))
-          else "score" if any(row.get("scoreText") not in (None, "")
+         ("other" if (any(row.get("rankingBasis") == "other" for row in (rows or []))
+                      # Cup end standings expose one representative stage
+                      # time per row, but rank by the accumulated points over
+                      # several races.  Their category header enumerates the
+                      # stages explicitly (``1.Lauf ... 2.Lauf ...``).
+                      or len(re.findall(r"\b\d+\.\s*Lauf\b", category or "", re.I)) >= 2)
+          else "score" if any(row.get("rankingBasis") == "score"
+                              or row.get("scoreText") not in (None, "")
+                              or row.get("scorePoints") not in (None, "")
+                              # Some old MeOS Score PDFs placed ``640 p.`` in
+                              # the reconstructed club cell.  It is still an
+                              # unambiguous source-native points column.
+                              or re.search(r"\b-?\d+\s*p\.\s*$",
+                                           row.get("club") or "", re.I)
                               for row in (rows or []))
           else "time"),
          course.get("length") or course.get("courseLengthM"),
