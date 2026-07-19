@@ -1830,8 +1830,8 @@ def normalized_source_unit_count(rows):
                     member.strip() for member in partner_note[9:].split(",")
                     if member.strip()
                 ]
-                key = (kind, "members", tuple(sorted(
-                    member.casefold() for member in members)))
+                key = (kind, "members", tuple(sorted({
+                    member.casefold() for member in members})))
             else:
                 key = (kind, row.get("rank"), row.get("status"),
                        row.get("timeS"), row.get("club"))
@@ -2571,7 +2571,8 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
         flip_doc = detect_lastname_firstname_doc(doc["categories"], persons.first_names)
         for cat in doc["categories"]:
             list_id = register_result_list(
-                cur, sid, source_document_id, cat["name"], cat["name"],
+                cur, sid, source_document_id, cat["name"],
+                cat.get("sourceCategory") or cat["name"],
                 cat.get("declaredStarters"), cat.get("results") or [], {
                     "courseLengthM": cat.get("courseLengthM"),
                     "courseClimbM": cat.get("courseClimbM"),
@@ -2855,8 +2856,8 @@ def competitor_unit_key(row):
             members = ([observed_name] if observed_name else []) + [
                 member.strip() for member in note[9:].split(",") if member.strip()
             ]
-            return "pair:members:" + ":".join(sorted(
-                member.casefold() for member in members))
+            return "pair:members:" + ":".join(sorted({
+                member.casefold() for member in members}))
         return f"pair:{rank}:{status}:{time_s}:{club or ''}"
     if team_number:
         return f"{kind}:number:{team_number}"
@@ -2874,7 +2875,8 @@ OBSERVED_TIME_RE = re.compile(r"^\d{1,3}:\d{2}(?::\d{2})?$")
 def populate_quality_model(cur):
     """Compute review units, deterministic findings and current assertions."""
     lists = cur.execute(
-        """SELECT rl.id, rl.stage_id, rl.category, rl.declared_starters, rl.input_fingerprint,
+        """SELECT rl.id, rl.stage_id, rl.category, rl.category_full,
+                  rl.declared_starters, rl.input_fingerprint,
                   rl.parsed_entries, rl.parsed_rows, sd.source_type
              FROM result_list rl JOIN source_document sd ON sd.id = rl.source_document_id"""
     ).fetchall()
@@ -2884,7 +2886,7 @@ def populate_quality_model(cur):
     # a second official document can overlap the first one and consequently
     # persist only a subset (or no rows at all) without being misparsed.
     list_rows = {}
-    for (list_id, _stage_id, _category, _declared, _fingerprint,
+    for (list_id, _stage_id, _category, _category_full, _declared, _fingerprint,
          _source_entries, _source_rows, _source_type) in lists:
         rows = cur.execute(
             """SELECT id, observed_name, result_kind, rank, status, time_s, club, note,
@@ -2893,7 +2895,7 @@ def populate_quality_model(cur):
         persisted_entries = len({competitor_unit_key(row) for row in rows})
         list_rows[list_id] = (rows, persisted_entries)
 
-    for (list_id, stage_id, category, declared, fingerprint,
+    for (list_id, stage_id, category, category_full, declared, fingerprint,
          source_entries, source_rows, source_type) in lists:
         rows, _persisted_entries = list_rows[list_id]
         family_state = classify_family_category(category)
@@ -2908,14 +2910,21 @@ def populate_quality_model(cur):
 
         timed_rows, ranked_rows = cur.execute(
             """SELECT SUM(time_s IS NOT NULL), SUM(rank IS NOT NULL)
-               FROM result WHERE result_list_id = ?""", (list_id,)).fetchone()
+               FROM result WHERE result_list_id = ?
+                 AND out_of_competition = 0 AND result_kind = 'individual'""",
+            (list_id,)).fetchone()
         # A full timed result list with no placement at all is a parser/data
         # quality problem, not a reviewer decision.  It used to be invisible
         # because the ranking audit only looked for a *partial* rank set.
         # Keep family/team semantics out of this signal: their ranking is
         # represented by their competitor unit and is handled elsewhere.
+        ranking_not_applicable = bool(re.search(
+            r"(?i)\b(?:annulliert|annulled|cancelled|canceled)\b", category_full or ""))
+        course_only_list = bool(re.match(
+            r"(?i)^(?:bahn|course)\s+\d+\b", category.strip()))
         if (source_type != "anne-api" and (timed_rows or 0) >= 3
-                and (ranked_rows or 0) == 0 and family_state == "ordinary"):
+                and (ranked_rows or 0) == 0 and family_state == "ordinary"
+                and not ranking_not_applicable and not course_only_list):
             add_audit_issue(
                 cur, list_id, "missing_ranking", "blocker",
                 "Quelle enthält Zeiten, aber keine einzige Platzierung wurde gelesen.")
@@ -2954,9 +2963,8 @@ def populate_quality_model(cur):
                WHERE result_list_id = ? AND out_of_competition = 0
                  AND result_kind = 'individual'""", (list_id,)).fetchone()
         ranked_count, timed_count = ranked_count or 0, timed_count or 0
-        course_only_list = bool(re.match(r"(?i)^(?:bahn|course)\s+\d+\b", category.strip()))
         if (timed_count >= 3 and ranked_count > 0 and ranked_count < timed_count
-                and not course_only_list):
+                and not course_only_list and not ranking_not_applicable):
             add_audit_issue(
                 cur, list_id, "partial_ranking_coverage", "warning",
                 f"Nur {ranked_count} von {timed_count} klassifizierten Einträgen haben einen Rang; Ranking in der Quelle prüfen.")
@@ -2993,7 +3001,7 @@ def populate_quality_model(cur):
     assertions = payload.get("assertions", []) if isinstance(payload, dict) else payload
     fingerprints = {
         list_id: fingerprint
-        for (list_id, _stage_id, _cat, _declared, fingerprint,
+        for (list_id, _stage_id, _cat, _category_full, _declared, fingerprint,
              _source_entries, _source_rows, _source_type) in lists
     }
     for assertion in assertions:

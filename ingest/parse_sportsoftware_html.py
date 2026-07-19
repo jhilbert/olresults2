@@ -14,6 +14,7 @@ category:
 """
 import argparse
 from collections import defaultdict
+import html as html_mod
 import json
 import re
 import sys
@@ -57,6 +58,7 @@ class TableExtractor(HTMLParser):
         self._rows = None
         self._cells = None
         self._buf = None
+        self._row_buf = None
 
     def handle_starttag(self, tag, attrs):
         if tag == "table":
@@ -66,6 +68,7 @@ class TableExtractor(HTMLParser):
         elif tag == "tr" and self._rows is not None:
             self._flush_row()
             self._cells = []
+            self._row_buf = []
         elif tag in ("td", "th") and self._cells is not None:
             self._flush_cell()
             self._buf = []
@@ -82,6 +85,8 @@ class TableExtractor(HTMLParser):
     def handle_data(self, data):
         if self._buf is not None:
             self._buf.append(data)
+        elif self._row_buf is not None:
+            self._row_buf.append(data)
 
     def _flush_cell(self):
         if self._buf is not None and self._cells is not None:
@@ -92,8 +97,17 @@ class TableExtractor(HTMLParser):
     def _flush_row(self):
         self._flush_cell()
         if self._cells is not None and self._rows is not None:
+            # Some old OE exports put the championship announcement directly
+            # inside <tr><b>...</b></tr>, without any td/th at all. Preserve
+            # that malformed but meaningful row so rank 1 can be carried to
+            # the winner row that follows with a blank placement cell.
+            row_text = re.sub(
+                r"\s+", " ", "".join(self._row_buf or [])).strip().strip("\xa0").strip()
+            if not self._cells and row_text:
+                self._cells.append(row_text)
             self._rows.append(self._cells)
         self._cells = None
+        self._row_buf = None
 
 
 def parse_document(html_text):
@@ -115,6 +129,7 @@ def parse_document(html_text):
                 # category header: "D14  (1)" | "2,3 km  130 Hm" | "8 P"
                 current = {
                     "name": m.group("name").strip(),
+                    "sourceCategory": first.strip(),
                     "declaredStarters": category_starter_count(m),
                     "results": [],
                 }
@@ -206,8 +221,15 @@ def parse_document(html_text):
                                                club, rec.get("Pl", ""), time_text)
                 if team is not None:
                     team_counts[club] += 1
-                    current["results"].extend(
-                        number_team_results(team, club, team_counts[club]))
+                    numbered = number_team_results(team, club, team_counts[club])
+                    if pending_rank is not None and not any(
+                            result.get("rank") is not None for result in numbered):
+                        for result in numbered:
+                            result["rank"] = pending_rank
+                            if pending_championship:
+                                result["championship"] = pending_championship
+                    pending_rank = pending_championship = None
+                    current["results"].extend(numbered)
                     continue
 
             name = rec.get("Name", "").strip()
@@ -459,6 +481,8 @@ def parse_relay_document(html_text):
                      # telling a rankless team row from a member row when
                      # there's no Stnr column to check (row length differs
                      # between the two even though both start with a blank cell)
+    sprint_relay_mode = False  # English OS2010 layout: member rows start with
+                     # an explicit numeric Leg instead of an empty Pl cell
 
     def flush():
         nonlocal pending_team
@@ -516,6 +540,7 @@ def parse_relay_document(html_text):
                 staffel_idx = 2
                 has_stnr = True
                 team_row_len = member_row_len = None
+                sprint_relay_mode = False
                 current = {"name": m.group("name").strip(),
                            "declaredStarters": category_starter_count(m), "results": []}
                 current.update(parse_course_info(" ".join(row[1:])))
@@ -526,9 +551,15 @@ def parse_relay_document(html_text):
             if first == "Pl":
                 if "Staffel" in row:
                     staffel_idx = row.index("Staffel")
-                has_stnr = "Stnr" in row
+                elif "Team" in row:
+                    staffel_idx = row.index("Team")
+                    sprint_relay_mode = True
+                has_stnr = "Stnr" in row or "Stno" in row
                 continue  # outer header row
-            if not first and len(row) > 1 and row[1].strip() == "Name":
+            if ((not first or first == "Leg") and len(row) > 1
+                    and row[1].strip() == "Name"):
+                if first == "Leg":
+                    sprint_relay_mode = True
                 continue  # inner (member) header row
 
             # champion annotation, split across cells - either the plain-digit
@@ -538,6 +569,15 @@ def parse_relay_document(html_text):
             # entirely on its own, so it never has trailing text for the
             # annot_m regex below to anchor on), or as one cell together
             # ('1. und österr. Staatsmeister 2016')
+            annotation_text = " ".join(
+                cell for cell in row if cell and cell != "&nbsp").strip()
+            common_rank, common_championship = parse_champion_annotation(
+                annotation_text)
+            if common_rank is not None:
+                flush()
+                pending_rank = common_rank
+                pending_championship = common_championship
+                continue
             first_rank_digit = first.rstrip(".").isdigit()
             annot_m = re.match(r"^(\d+)\.?\s", first) if not first_rank_digit else None
             joined = " ".join(row[1:]) if first_rank_digit else " ".join(row)
@@ -556,14 +596,17 @@ def parse_relay_document(html_text):
             # and otherwise the observed row length for team vs. member rows
             # (captured from the first unambiguous instance of each) usually
             # differs even though both layouts start with a blank cell.
-            confident_rank = first.isdigit() or pending_rank is not None
+            sprint_member = (sprint_relay_mode and first.isdigit()
+                             and len(row) > 1 and not row[1].strip().isdigit())
+            confident_rank = ((first.isdigit() and not sprint_member)
+                              or pending_rank is not None)
             stnr_marks_team = has_stnr and len(row) > 1 and row[1].strip().isdigit()
             len_marks_team = (not has_stnr and team_row_len and member_row_len
                               and team_row_len != member_row_len and len(row) == team_row_len)
 
             if confident_rank or stnr_marks_team or len_marks_team:
                 flush()
-                if first.isdigit():
+                if first.isdigit() and not sprint_member:
                     rank_val = int(first)
                 elif pending_rank is not None:
                     rank_val = pending_rank
@@ -584,6 +627,12 @@ def parse_relay_document(html_text):
                         team_time_text = cell
                         break
                 team_time_s = parse_time_loose(team_time_text)
+                if (rank_val is None and team_time_s is not None
+                        and not current["results"]):
+                    # A few nested-table exports drop the standalone champion
+                    # annotation from the parser's table stream entirely. The
+                    # first finishing team is nevertheless unambiguously rank 1.
+                    rank_val = 1
                 team_status = ("ok" if team_time_s is not None else
                                (parse_status(team_time_text) or "unknown"))
                 pending_team = {"rank": rank_val, "name": team_name,
@@ -683,6 +732,17 @@ def main():
                     # with the fixed-width text logic
                     from parse_sportsoftware_text import extract_pre_blocks, parse_text
                     cats = parse_text(extract_pre_blocks(text))
+                if (not cats and re.search(r"<font\b", text, re.I)
+                        and re.search(r"\bPl\s+.*\bName\s+.*\bVerein", text, re.I | re.S)):
+                    # Older OE score exports are fixed-width reports wrapped
+                    # only in inline <font>/<i>/<b> markup (no table and no
+                    # <pre>).  Keep the physical source lines and remove just
+                    # the formatting tags before using the text parser.  This
+                    # also preserves explicit rank-cell AK markers which the
+                    # historic cached JSON had lost.
+                    from parse_sportsoftware_text import parse_text
+                    fixed_text = html_mod.unescape(re.sub(r"<[^>]+>", "", text))
+                    cats = parse_text(fixed_text)
                 if not cats:
                     cats = parse_bracket_html(text)
             skip_cats = MANUAL_CATEGORY_SKIP.get((eid, f["fileName"]))

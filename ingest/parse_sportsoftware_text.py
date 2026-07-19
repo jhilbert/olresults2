@@ -212,7 +212,13 @@ def parse_text(text):
             # their original fixed-column interpretation.
             two = re.match(r"^\s*(\d+)\s+(\d+)\s+(.+)$", line)
             one = re.match(r"^\s*(\d+)\s+(.+)$", line)
-            name_start = starts[labels.index("Name")]
+            # In a Mannschaft table the post-annotation winner line starts
+            # with bib + Verein, not bib + Name. Anchoring it at Name shifts
+            # the club into the first roster slot and the third runner into
+            # the time cell. Individual tables still anchor at Name.
+            anchor_label = ("Verein" if "Verein" in labels and any(
+                label.startswith("Läufer") for label in labels) else "Name")
+            name_start = starts[labels.index(anchor_label)]
             if two:
                 repaired_rank, repaired_bib, remainder = two.groups()
                 parse_line = " " * name_start + remainder
@@ -254,8 +260,15 @@ def parse_text(text):
             team = team_results_from_pairs(pairs, club, rec.get("Pl", ""), time_text)
             if team is not None:
                 team_counts[club] += 1
-                current["results"].extend(
-                    number_team_results(team, club, team_counts[club]))
+                numbered = number_team_results(team, club, team_counts[club])
+                if pending_rank is not None and not any(
+                        result.get("rank") is not None for result in numbered):
+                    for result in numbered:
+                        result["rank"] = pending_rank
+                        if pending_championship:
+                            result["championship"] = pending_championship
+                pending_rank = pending_championship = None
+                current["results"].extend(numbered)
                 continue
 
         name = (rec.get("Name") or "").strip()
@@ -392,6 +405,11 @@ def main():
         try:
             data = fetch(f["url"], FILES / f"{eid}-{n}.{kind}")
             text = extract_pre_blocks(decode(data))
+            list_type = detect_list_type(f["fileName"] or f["url"], text)
+            if list_type == "overall":
+                empty += 1
+                out_path.unlink(missing_ok=True)
+                continue
             cats = parse_text(text)
             if not cats:
                 empty += 1
@@ -402,7 +420,7 @@ def main():
                 "source": "sportsoftware-text",
                 "sourceUrl": f["url"],
                 "fileName": f["fileName"] or f["url"],
-                "listType": detect_list_type(f["fileName"] or f["url"], text),
+                "listType": list_type,
                 "categories": cats,
             }, ensure_ascii=False))
             ok += 1

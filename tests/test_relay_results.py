@@ -71,6 +71,323 @@ class RelayStructureTests(unittest.TestCase):
         self.assertEqual(masters["declaredStarters"], 17)
         self.assertEqual(len({r["teamNumber"] for r in masters["results"]}), 17)
 
+    def test_structural_team_leg_headers_parse_sprint_relay_as_teams(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "1523-1.html"
+        self.require_source_fixture(source)
+        text = html_parser.decode(source.read_bytes())
+        self.assertEqual(html_parser.detect_list_type(source.name, text), "relay")
+        categories = html_parser.parse_relay_document(text)
+        senior = next(c for c in categories if c["name"] == "Senior 33-80")
+        self.assertEqual(senior["declaredStarters"], 16)
+        self.assertEqual(len(senior["results"]), 64)
+        self.assertEqual(len({r["teamNumber"] for r in senior["results"]}), 16)
+        self.assertEqual({r["leg"] for r in senior["results"]}, {1, 2, 3, 4})
+
+    def test_pdf_page_furniture_signatures_are_rejected(self):
+        self.assertTrue(pdf_parser.PDF_PAGE_CHROME_RE.search("Page 3 of 4"))
+        self.assertTrue(is_junk_name("MTBO World Cup"))
+
+    def test_inline_font_score_html_preserves_ak_results(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "1367-0.html"
+        self.require_source_fixture(source)
+        text = html_parser.decode(source.read_bytes())
+        import html as html_mod
+        import re
+        fixed_text = html_mod.unescape(re.sub(r"<[^>]+>", "", text))
+        categories = text_parser.parse_text(fixed_text)
+        men = next(c for c in categories if c["name"] == "Herren B")
+        ooc = {r["name"] for r in men["results"] if r.get("outOfCompetition")}
+        self.assertEqual(ooc, {"Biel Axel", "Jörgen Deubel"})
+
+    def test_duplicate_rankless_relay_start_number_prefers_ranked_team(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "1455-1.pdf"
+        self.require_source_fixture(source)
+        categories = pdf_parser.parse_relay_pdf(source)
+        pairs = next(c for c in categories if c["name"] == "Offen 2er")
+        self.assertEqual(pairs["declaredStarters"], 11)
+        self.assertEqual(len({r["teamNumber"] for r in pairs["results"]}), 11)
+        team_93 = [r for r in pairs["results"] if r["teamNumber"] == "93"]
+        self.assertEqual({r["name"] for r in team_93}, {"Cart Andreas", "Cart Johanna"})
+        self.assertEqual({r["rank"] for r in team_93}, {4})
+        self.assertEqual({r["status"] for r in team_93}, {"ok"})
+
+    def test_course_class_pdf_recovers_rank_full_name_and_club(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "874-1.pdf"
+        self.require_source_fixture(source)
+        categories, _ = pdf_parser.parse_pdf(source)
+        course = next(c for c in categories if c["name"] == "Bahn 4")
+        self.assertEqual(pdf_parser.category_competitor_unit_count(course), 10)
+        winner = next(r for r in course["results"] if r["name"] == "Hoffmann Hannah")
+        self.assertEqual((winner["rank"], winner["club"], winner["timeS"]),
+                         (1, "LZ Omaha", 1757))
+        samec = next(r for r in course["results"] if r["name"] == "Samec Fabian")
+        self.assertTrue(samec["outOfCompetition"])
+
+    def test_multi_round_pdf_uses_total_and_preserves_every_rank(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "952-0.pdf"
+        self.require_source_fixture(source)
+        categories, _ = pdf_parser.parse_pdf(source)
+        results = categories[0]["results"]
+        self.assertEqual([r["rank"] for r in results], list(range(1, 22)))
+        ditz = next(r for r in results if r["name"] == "Ditz Robert")
+        self.assertEqual((ditz["club"], ditz["timeText"], ditz["timeS"]),
+                         ("Naturfreunde Wien", "21:02", 1262))
+
+    def test_score_pdf_is_split_into_independently_ranked_courses(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "1837-0.pdf"
+        self.require_source_fixture(source)
+        categories, _ = pdf_parser.parse_pdf(source)
+        self.assertEqual({c["name"] for c in categories},
+                         {"Bahn A-50MIN", "Bahn B-40MIN", "Bahn C-30MIN"})
+        course_a = next(c for c in categories if c["name"] == "Bahn A-50MIN")
+        self.assertEqual(len(course_a["results"]), 14)
+        winner = course_a["results"][0]
+        self.assertEqual((winner["rank"], winner["name"], winner["club"],
+                          winner["timeS"], winner["scoreText"]),
+                         (1, "Kubelka Stefan", "Leibnitzer AC", 3185, "490"))
+
+    def test_cellless_html_champion_row_restores_winner_rank(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "2579-1.html"
+        self.require_source_fixture(source)
+        categories = html_parser.parse_document(html_parser.decode(source.read_bytes()))
+        men_60 = next(c for c in categories if c["name"] == "Herren 60-")
+        winner = next(r for r in men_60["results"] if r["name"] == "Zapletal Josef")
+        self.assertEqual(winner["rank"], 1)
+        self.assertEqual(winner["championship"], "ÖM")
+        self.assertFalse([
+            r["name"] for c in categories for r in c["results"]
+            if r.get("status") == "ok" and r.get("timeS") is not None
+            and r.get("rank") is None and not r.get("outOfCompetition")
+        ])
+
+    def test_secondary_championship_rank_column_does_not_hide_overall_rank(self):
+        self.assertEqual(
+            parse_champion_annotation(
+                "3 1 und Wr. ASKÖ-Meisterin 2023 der Kategorie D 13-14"),
+            (3, None),
+        )
+        self.assertEqual(
+            parse_champion_annotation(
+                "2 1 2 und Wr. Senioren-Meister 2021 der Kategorie H 45-"),
+            (2, None),
+        )
+        source = ROOT / "data" / "raw" / "anne" / "files" / "3977-1.pdf"
+        self.require_source_fixture(source)
+        categories = pdf_parser.parse_flowing_pdf(source)
+        women = next(c for c in categories if c["name"] == "Damen 13-14")
+        merryn = next(r for r in women["results"] if r["name"] == "MILLARD Merryn")
+        self.assertEqual(merryn["rank"], 3)
+
+    def test_exact_time_tie_inherits_preceding_competition_rank(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "2764-2.pdf"
+        self.require_source_fixture(source)
+        categories = pdf_parser.parse_flowing_pdf(source)
+        men = next(c for c in categories if c["name"] == "Herren 55-")
+        tied = {r["name"]: r.get("rank") for r in men["results"]
+                if r["timeText"] == "00:51:22"}
+        self.assertEqual(tied, {"BIEL Axel": 1, "ZAPLETAL Josef": 1})
+
+    def test_word_processor_championship_list_uses_flowing_structure(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "3055-2.pdf"
+        self.require_source_fixture(source)
+        categories = pdf_parser.parse_flowing_pdf(source)
+        self.assertGreaterEqual(len(categories), 20)
+        women = next(c for c in categories if c["name"] == "Damen 55-")
+        winner = next(r for r in women["results"] if r["name"] == "GOLLMANN Birgit")
+        self.assertEqual((winner["rank"], winner["timeS"]), (1, 2573))
+        finder = next(r for r in women["results"] if r["name"] == "FINDER Gaby")
+        self.assertTrue(finder["outOfCompetition"])
+        dns = next(c for c in categories if c["name"] == "Damen 65-")["results"][0]
+        self.assertEqual(dns["status"], "dns")
+        self.assertEqual(
+            html_parser.detect_list_type(
+                "event_3055_ergebnis-wienerwertung.pdf", "", False),
+            "race",
+        )
+
+    def test_status_note_parentheses_do_not_create_phantom_category(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "1967-0.pdf"
+        self.require_source_fixture(source)
+        categories, _ = pdf_parser.parse_pdf(source)
+        self.assertNotIn("Hittisau 2 23:56 Fehlst 7",
+                         {c["name"] for c in categories})
+        self.assertIn("Damen 3", {c["name"] for c in categories})
+        women = next(c for c in categories if c["name"] == "Damen 3")
+        self.assertEqual([r["rank"] for r in women["results"]], list(range(1, 13)))
+        women_2 = next(c for c in categories if c["name"] == "Damen 2")
+        lahr = next(r for r in women_2["results"] if r["name"] == "Leoni Lahr")
+        self.assertEqual((lahr["status"], lahr["timeS"]), ("mp", 1436))
+
+    def test_status_after_time_preserves_time_and_ooc_semantics(self):
+        from sportsoftware_common import parse_flow_row
+        flow = parse_flow_row(
+            "173 Wieser Niklas M17 HSV Pinkafeld 75:19 nc", pdf_parser.CLUBS)
+        nc = pdf_parser.flow_results(flow)[0]
+        self.assertEqual((nc["status"], nc["timeS"]), ("ok", 4519))
+        self.assertTrue(nc["outOfCompetition"])
+
+    def test_single_rank_gap_between_neighbors_is_recovered(self):
+        categories = [{"results": [
+            {"name": "A", "rank": 5, "status": "ok", "timeS": 10},
+            {"name": "B", "status": "ok", "timeS": 11},
+            {"name": "C", "rank": 7, "status": "ok", "timeS": 12},
+        ]}]
+        pdf_parser.normalize_exact_time_ties(categories)
+        self.assertEqual(categories[0]["results"][1]["rank"], 6)
+
+    def test_champion_wording_in_rank_cell_keeps_first_place(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "3325-1.pdf"
+        self.require_source_fixture(source)
+        categories, _ = pdf_parser.parse_pdf(source)
+        girls = next(c for c in categories if c["name"] == "Damen -12 NOE")
+        self.assertEqual(girls["results"][0]["rank"], 1)
+
+    def test_detached_multi_rank_line_is_carried_to_runner(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "3325-0.pdf"
+        self.require_source_fixture(source)
+        categories = pdf_parser.parse_flowing_pdf(source)
+        seniors = next(c for c in categories
+                       if c["name"] == "ASKÖ MS Herren 65- + Herren 75-")
+        b = next(r for r in seniors["results"] if r["name"] == "BONEK Ernst")
+        self.assertEqual(b["rank"], 6)
+
+    def test_ak_marker_with_surname_in_rank_cell_keeps_full_name(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "2040-1.pdf"
+        self.require_source_fixture(source)
+        categories = pdf_parser.parse_flowing_pdf(source)
+        men = next(c for c in categories if c["name"] == "Herren 50- Wien")
+        pekka = next(r for r in men["results"] if r["name"] == "PEKKA Lauri")
+        self.assertTrue(pekka["outOfCompetition"])
+
+    def test_points_cup_categories_and_excel_duration_are_recovered(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "2205-0.pdf"
+        self.require_source_fixture(source)
+        categories, _ = pdf_parser.parse_pdf(source)
+        self.assertEqual([c["name"] for c in categories],
+                         ["Kategorie A", "Kategorie B", "Kategorie C", "Kategorie D"])
+        holper = categories[0]["results"][0]
+        self.assertEqual((holper["rank"], holper["timeText"], holper["timeS"]),
+                         (1, "48:16", 2896))
+
+    def test_multi_attachment_cup_final_standings_are_not_a_race(self):
+        self.assertEqual(
+            html_parser.detect_list_type(
+                "event_3184_wolv-cup-2020-endergebnis-4-l-int.pdf",
+                "WOLV-Cup 2020 Endergebnis nach dem 4. Lauf", False),
+            "overall",
+        )
+
+    def test_html_mannschaft_champion_rank_propagates_to_all_members(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "3831-0.html"
+        self.require_source_fixture(source)
+        categories = html_parser.parse_document(
+            html_parser.decode(source.read_bytes()))
+        men = next(c for c in categories if c["name"] == "Herren ab 19")
+        first = [r for r in men["results"] if r["teamName"] == "HSV Pinkafeld 1"]
+        self.assertEqual({r.get("rank") for r in first}, {1})
+
+    def test_text_mannschaft_champion_rank_propagates_to_all_members(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "2236-0.txt"
+        self.require_source_fixture(source)
+        categories = text_parser.parse_text(source.read_text(encoding="cp1252"))
+        men = next(c for c in categories if c["name"] == "Herren 19-")
+        first = [r for r in men["results"] if r["teamName"] == "OLC Graz 1"]
+        self.assertEqual({r.get("rank") for r in first}, {1})
+
+    def test_relay_annotation_in_second_cell_keeps_team_rank(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "1738-1.html"
+        self.require_source_fixture(source)
+        categories = html_parser.parse_relay_document(
+            html_parser.decode(source.read_bytes()))
+        men = next(c for c in categories if c["name"] == "Herren 17- NÖ")
+        first = [r for r in men["results"] if r["teamNumber"] == "117"]
+        self.assertEqual({r.get("rank") for r in first}, {1})
+
+    def test_relay_first_finisher_recovers_rank_when_nested_annotation_drops(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "2713-1.html"
+        self.require_source_fixture(source)
+        categories = html_parser.parse_relay_document(
+            html_parser.decode(source.read_bytes()))
+        masters = next(c for c in categories if c["name"].startswith("H 150-"))
+        first = [r for r in masters["results"] if r["teamNumber"] == "53"]
+        self.assertEqual({r.get("rank") for r in first}, {1})
+
+    def test_pdf_relay_dotted_ranks_keep_team_number_and_name(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "1455-1.pdf"
+        self.require_source_fixture(source)
+        categories = pdf_parser.parse_relay_pdf(source)
+        men = next(c for c in categories if c["name"] == "Herren -14 / WIEN")
+        by_number = {}
+        for result in men["results"]:
+            by_number.setdefault(result["teamNumber"], result)
+        self.assertEqual(
+            [(number, by_number[number]["rank"], by_number[number]["teamName"])
+             for number in ("36", "39", "37", "38")],
+            [("36", 1, "Naturfreunde Wien 2"),
+             ("39", 2, "OLT Transdanubien 1"),
+             ("37", 3, "Naturfreunde Wien 1"),
+             ("38", 4, "OLC Wienerwald 1")],
+        )
+
+    def test_glued_pl_name_and_year_club_columns_are_recovered(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "5419-0.pdf"
+        self.require_source_fixture(source)
+        categories = pdf_parser.parse_glued_header_pdf(source)
+        girls = next(c for c in categories if c["name"] == "Damen bis 12")
+        self.assertEqual(len(girls["results"]), 2)
+        self.assertEqual(
+            (girls["results"][0]["name"], girls["results"][0]["rank"],
+             girls["results"][0]["club"], girls["results"][0]["yearOfBirth"]),
+            ("Pötsch Alma", 1, "OLC Graz", 2014),
+        )
+        self.assertEqual(girls["results"][1]["status"], "dnf")
+        newcomers = next(c for c in categories if c["name"] == "Neulinge")
+        wolfgang = next(r for r in newcomers["results"] if r["name"] == "Neuhold Wolfgang")
+        self.assertEqual(wolfgang["rank"], 2)
+        women_45 = next(c for c in categories if c["name"] == "Damen ab 45")
+        champion = women_45["results"][0]
+        self.assertEqual((champion["name"], champion["rank"], champion["championship"]),
+                         ("Walther Katja", 1, "ÖM"))
+
+    def test_reports_and_si_protocols_are_not_race_results(self):
+        self.assertEqual(html_parser.detect_list_type(
+            "event_5060_bericht-schachol-wien-2025.pdf", "", False), "overall")
+        self.assertEqual(html_parser.detect_list_type(
+            "event_1915_soc2017-3-si-a.pdf", "", False), "overall")
+        self.assertEqual(
+            html_parser.detect_list_type(
+                "event_4408_wolv-cup-2024-endergebnis-nach-5-laufen-int.pdf",
+                "WOLV-Cup 2024", False),
+            "overall",
+        )
+
+    def test_school_score_pdf_keeps_true_placements(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "1943-1.pdf"
+        self.require_source_fixture(source)
+        categories = pdf_parser.parse_school_score_pdf(source)
+        men = next(c for c in categories if c["name"] == "Oberstufe – männlich")
+        self.assertEqual(
+            [(r["rank"], r["name"]) for r in men["results"][:3]],
+            [(1, "Zippusch Patrick"), (2, "Prets Johannes"), (3, "Shevlin John")],
+        )
+        lower = pdf_parser.parse_school_score_pdf(
+            ROOT / "data" / "raw" / "anne" / "files" / "1943-0.pdf")
+        boys = next(c for c in lower if c["name"] == "Unterstufe – männlich")
+        self.assertEqual((boys["results"][0]["rank"], boys["results"][0]["name"]),
+                         (1, "WIESER Lukas"))
+
+    def test_school_final_pdf_splits_classes_and_glued_columns(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "1204-1.pdf"
+        self.require_source_fixture(source)
+        categories = pdf_parser.parse_school_final_pdf(source)
+        self.assertGreaterEqual(len(categories), 6)
+        boys = next(c for c in categories if c["name"] == "Unterstufe männlich")
+        self.assertEqual(
+            (boys["results"][0]["rank"], boys["results"][0]["name"],
+             boys["results"][0]["club"], boys["results"][0]["timeS"]),
+            (1, "Ritter Jan", "FF Fürstenfeld", 986),
+        )
+
     def test_team_status_propagates_and_individual_cause_is_preserved(self):
         self.require_source_fixture(self.relay_source)
         by_number = {}

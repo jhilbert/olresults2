@@ -67,6 +67,29 @@ class AnneIdentityTests(unittest.TestCase):
             "SELECT count(*) FROM audit_issue WHERE code = 'entry_count_mismatch'"
         ).fetchone()[0], 0)
 
+    def test_annulled_category_does_not_require_a_ranking(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id, title) VALUES (1, 'ÖM Test')")
+        cur.execute("INSERT INTO stage (id, event_id, number) VALUES (1, 1, 1)")
+        cur.execute(
+            "INSERT INTO source_document (id,event_id,source_type) VALUES ('doc',1,'sportsoftware-html')")
+        cur.execute(
+            """INSERT INTO result_list
+               (id,stage_id,source_document_id,category,category_full,
+                declared_starters,parsed_entries,parsed_rows,input_fingerprint)
+               VALUES ('list',1,'doc','D40','D40 (3) Annulliert',3,3,3,'x')""")
+        for name, seconds in (("Anna A", 100), ("Berta B", 110), ("Clara C", 120)):
+            build_db.insert_result(
+                cur, stage_id=1, result_list_id="list", category="D40",
+                status="ok", time_s=seconds, source="sportsoftware-html",
+                observed_name=name)
+        build_db.populate_quality_model(cur)
+        self.assertEqual(cur.execute(
+            "SELECT count(*) FROM audit_issue WHERE code = 'missing_ranking'"
+        ).fetchone()[0], 0)
+
     def test_normalized_source_count_groups_expanded_team_members(self):
         rows = [
             {"resultKind": "relay", "teamNumber": "106", "name": "Anna", "leg": 1},
@@ -75,6 +98,17 @@ class AnneIdentityTests(unittest.TestCase):
             {"resultKind": "individual", "name": "Dora"},
         ]
         self.assertEqual(build_db.normalized_source_unit_count(rows), 3)
+
+    def test_pair_roster_count_is_stable_with_duplicate_display_names(self):
+        rows = [
+            {"resultKind": "pair", "name": "Muslic B",
+             "note": "Partner: Muslic T, Muslic S, Muslic S"},
+            {"resultKind": "pair", "name": "Muslic T",
+             "note": "Partner: Muslic B, Muslic S, Muslic S"},
+            {"resultKind": "pair", "name": "Muslic S",
+             "note": "Partner: Muslic B, Muslic T"},
+        ]
+        self.assertEqual(build_db.normalized_source_unit_count(rows), 1)
 
     def test_synthetic_ids_are_deterministic_and_identity_scoped(self):
         first = build_db.PersonRegistry().from_legacy("Anna Beispiel", 1988)[0]

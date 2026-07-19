@@ -262,7 +262,8 @@ JUNK_NAMES = {
     "orientierungslauf-club", "orientierungslauf club", "austria cup",
     # Repeated PDF page headers that happened to align with Name/Club/Time
     # columns and therefore looked superficially like timed competitors.
-    "mittel ms", "nolv schulcup ternitz wed",
+    "mittel ms", "nolv schulcup ternitz wed", "mtbo world cup",
+    "sg mtbo 2019 - wre",
 }
 JUNK_NAME_PATTERNS = (
     # A repeated page title can be interleaved with a garbled ``Seite N`` at
@@ -280,6 +281,7 @@ STATUS_MAP = {
     "disk": "dsq",
     "n. angetr.": "dns", "n.angetr.": "dns", "nicht angetreten": "dns",
     "n ang": "dns", "n.ang": "dns", "nicht ang": "dns",
+    "n.gest": "dns", "nicht gestartet": "dns",
     # OE2010's old HTML export uses OMT ("omitted") for a listed runner
     # who did not start.  It is equivalent to DNS for result purposes.
     "omt": "dns",
@@ -289,6 +291,7 @@ STATUS_MAP = {
     "zeitüb": "dsq", "zeitüberschreitung": "dsq",
     "ohne wertung": "ok", "außer konkurrenz": "ok", "ausser konkurrenz": "ok",
     "wertungsfrei": "ok", "ak": "ok",
+    "nc": "ok",
     "dnf": "dnf", "dns": "dns", "dsq": "dsq", "mp": "mp",
 }
 
@@ -367,7 +370,7 @@ def aggregate_team_status(declared_status, member_statuses):
 
 def is_ooc_status(text):
     return bool(re.search(
-        r"(?:^|\b)(?:A\s*K|NC|au(?:ß|ss)er konkurrenz|ohne wertung|wertungsfrei)(?:\b|$)",
+        r"(?:^|\b)(?:A\.?\s*K\.?|NC|au(?:ß|ss)er konkurrenz|ohne wertung|wertungsfrei)(?:\b|$)",
         text or "", re.I))
 
 
@@ -389,7 +392,8 @@ def is_ooc_status(text):
 # but not the national one) doesn't false-positive just because it contains
 # "österreich" as a substring: there is no word boundary between "Nieder"
 # and "österreichischer" since they're fused into one word.
-CHAMPION_ANNOT_LEAD_RE = re.compile(r"(?i)^(\d+)\.?\s*(?:und|&)\s+(.+)$")
+CHAMPION_ANNOT_LEAD_RE = re.compile(
+    r"(?i)^(\d+)\.?(?:\s+\d+)*\s+(?:und|&)\s+(.+)$")
 # A layout where the announcement occupies its own table row entirely -
 # real name/club/time sit on the FOLLOWING row instead, which has no rank
 # of its own - so there's no "und" connecting the rank to anything, just
@@ -489,6 +493,14 @@ def detect_list_type(file_name, doc_text, is_sole_attachment=False):
     no other source to fall back on, so treat it as this race's own results
     rather than silently discarding the entire event."""
     head = doc_text[:4000]
+    if re.search(r"(?:^|[-_])si[-_]", file_name, re.I) and not is_sole_attachment:
+        # SportIdent station/control protocols shipped alongside a real result
+        # list are diagnostic split data, not another race result.
+        return "overall"
+    if re.search(r"(?:^|[-_ ])bericht(?:[-_ .]|$)|\breport\b", file_name, re.I):
+        # Narrative event reports contain prose times and participant counts
+        # that a permissive PDF fallback can otherwise turn into phantom rows.
+        return "overall"
     # "split" (English) is as common a filename marker for a split-times
     # report as the German "zwischenzeit" - confirmed real: event 4515's
     # "split-teame-slit.html" (a typo'd "team-split") was never recognized,
@@ -506,6 +518,11 @@ def detect_list_type(file_name, doc_text, is_sole_attachment=False):
         return "overall"                       # split-times report, redundant
     if re.search(r"einzel", file_name, re.I):
         return "race"                          # individual results within a Staffel event
+    if re.search(r"wiener[-_ ]?wertung", file_name, re.I):
+        # A regional championship subranking is still a result list for this
+        # race, not a cumulative series ``Wertung``. It can coexist with the
+        # full field and must remain available for the Vienna medal review.
+        return "race"
     if re.search(r"staffel|relay", file_name, re.I):
         return "relay"
     # A number of historic SportSoftware exports use anonymous filenames
@@ -517,8 +534,16 @@ def detect_list_type(file_name, doc_text, is_sole_attachment=False):
     # 18 teams with 54 people in the quality check.
     if re.search(r"<th\b[^>]*>\s*Staffel\s*</th>", doc_text, re.I):
         return "relay"
-    if (re.search(r"gesamt|wertung|overall", file_name, re.I)
-            or re.search(r"Gesamt(?:wertung|-Ergebnis)|Overall\s+results?", head, re.I)) \
+    # Sprint relays exported by OS2010 use the English outer/inner headers
+    # ``Team`` and ``Leg`` even when the attachment has an anonymous name.
+    if (re.search(r"<th\b[^>]*>\s*Team\s*</th>", doc_text, re.I)
+            and re.search(r"<th\b[^>]*>\s*Leg\s*</th>", doc_text, re.I)):
+        return "relay"
+    if (re.search(r"gesamt|wertung|overall|endergebnis.*(?:lauf|läuf)", file_name, re.I)
+            or re.search(
+                r"Gesamt(?:wertung|-Ergebnis)|Overall\s+results?|"
+                r"Endergebnis\s+nach\s+dem\s+\d+\.?\s*Lauf",
+                head, re.I)) \
             and not is_sole_attachment:
         return "overall"
     return "race"
@@ -791,10 +816,11 @@ def expand_pair_result(result, category=None):
 
 
 STATUS_TAIL_RE = re.compile(
-    r"(?i)(n\.?\s*ang\.?|nicht\s+ang\.?|nicht angetreten|aufg\.?|fehlst\.?|"
+    r"(?i)(n\.?\s*ang\.?|n\.?\s*gest\.?|nicht\s+ang\.?|nicht angetreten|"
+    r"nicht gestartet|aufg\.?|fehlst\.?|"
     r"disq(?:u)?\.?|"
     r"disk\.?|"
-    r"ohne wertung|außer konkurrenz|ausser konkurrenz|wertungsfrei|AK|"
+    r"ohne wertung|außer konkurrenz|ausser konkurrenz|wertungsfrei|AK|NC|"
     r"dnf|dns|dsq|mp|omt|gut|zeitüb\.?|zeitüberschreitung)\s*$")
 
 
@@ -829,14 +855,13 @@ def parse_flow_row(text, clubs):
         return None
 
     time_text = status_text = None
-    if TIME_RE.match(body[-1]):
+    m = STATUS_TAIL_RE.search(" ".join(body[-3:]))
+    if m:
+        status_text = m.group(0).strip()
+        body = body[: len(body) - len(status_text.split())]
+    if body and TIME_RE.match(body[-1]):
         time_text = body[-1]
         body = body[:-1]
-    else:
-        m = STATUS_TAIL_RE.search(" ".join(body[-3:]))
-        if m:
-            status_text = m.group(0).strip()
-            body = body[: len(body) - len(status_text.split())]
 
     # a finisher's first leading integer is the rank; a non-finisher (status,
     # no time) has no Pl, so its single leading integer is just the start number
