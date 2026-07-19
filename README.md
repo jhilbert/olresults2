@@ -49,6 +49,9 @@ events.
 
 ```
 python3 ingest/anne_sync.py            # sync events + structured results
+python3 ingest/run_sync.py             # incremental source sync: parse only new attachments
+python3 ingest/run_sync.py --event-id 4474  # reparse cached sources of one historic event
+python3 ingest/run_sync.py --event-id 4474 --refresh-source  # re-download + reparse it
 python3 ingest/parse_sportsoftware_html.py  # parse tier-2 HTML attachments
 python3 ingest/anne_user_index.py      # private complete ANNE /user identity snapshot
 python3 build/build_db.py              # build site/data/results.db (pass 1)
@@ -65,6 +68,16 @@ dimensions, Family/OOC model and championship campaigns.
 
 Direct local access to ANNE remains supported. CI instead sets
 `ANNE_BASE_URL=https://<worker>/v1` and `ANNE_GATEWAY_TOKEN`.
+
+The automatic sync reads the paginated event list to discover new events. It
+fetches attachment indexes only for previously unknown events and events from
+the last 30 days, then downloads/parses only attachment URLs not already in
+`data/raw/anne/attachments.json`. Existing attachment indexes are never
+renumbered. A historic file whose bytes changed under the same URL is
+deliberately not probed with HEAD/ETag requests; select `Sync source data` in
+GitHub Actions, enter its `event_id`, and enable `refresh_source` to download
+and parse that event again. With `refresh_source` disabled, the same action
+quickly reparses the cached source using the current parser.
 
 ## One-time Cloudflare/GitHub setup
 

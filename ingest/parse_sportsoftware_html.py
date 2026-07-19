@@ -33,6 +33,7 @@ from sportsoftware_common import (
     parse_champion_annotation, parse_course_info, parse_status, parse_time,
     parse_time_loose, number_team_results, team_results_from_pairs,
 )
+from sync_selection import select_jobs
 
 ANNOT_RANK_RE = re.compile(r"(?i)meister|sieger")
 
@@ -668,8 +669,8 @@ def parse_relay_document(html_text):
     return [c for c in categories if c["results"]]
 
 
-def fetch(url, dest):
-    if dest.exists():
+def fetch(url, dest, force=False):
+    if dest.exists() and not force:
         return dest.read_bytes()
     safe_url = urllib.parse.quote(url, safe=":/?&=%")
     data = urllib.request.urlopen(
@@ -693,6 +694,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0, help="only process N files (0 = all)")
     ap.add_argument("--event-id", type=int, help="only process one ANNE event")
+    ap.add_argument("--attachment-manifest", type=Path,
+                    help="only process attachments listed by the current incremental sync")
+    ap.add_argument("--force-download", action="store_true",
+                    help="re-download selected source files even when cached")
     args = ap.parse_args()
 
     FILES.mkdir(parents=True, exist_ok=True)
@@ -701,12 +706,11 @@ def main():
 
     jobs = []
     for eid, files in attachments.items():
-        if args.event_id is not None and int(eid) != args.event_id:
-            continue
         sole_attachment = len(files or []) == 1
         for n, f in enumerate(files or []):
             if f["mimeType"] == "text/html":
                 jobs.append((int(eid), n, f, sole_attachment))
+    jobs = select_jobs(jobs, args.event_id, args.attachment_manifest)
     if args.limit:
         jobs = jobs[: args.limit]
     print(f"html files to parse: {len(jobs)}")
@@ -718,7 +722,7 @@ def main():
             continue
         out_path = OUT / f"{eid}-{n}.json"
         try:
-            data = fetch(f["url"], FILES / f"{eid}-{n}.html")
+            data = fetch(f["url"], FILES / f"{eid}-{n}.html", args.force_download)
             text = decode(data)
             list_type = detect_list_type(f["fileName"], text, sole_attachment)
             if list_type == "overall":

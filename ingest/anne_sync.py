@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Sync events, structured results, stages and attachment indexes from the ANNE API.
+"""Sync events, structured results, stages and attachment indexes from ANNE.
 
-Idempotent: existing snapshots are kept unless --force is given or the event
-is recent (events within REFRESH_DAYS of today are re-fetched, since results
-can still be corrected after publication).
+Existing attachment entries keep their index forever.  The automatic sync
+only emits newly discovered attachment URLs for downstream parsers.  Historic
+events can be selected explicitly with ``--event-id``; re-downloading a known
+URL is intentionally a parser-level, explicit operation.
 """
 import argparse
 import json
@@ -118,15 +119,51 @@ def has_unusable_structured_results(eid):
                    for r in rows)
 
 
-def sync_attachments(events, known, force):
-    """Fetch attachment indexes for past events not yet in attachments.json,
-    plus events whose structured API results turned out to be unusable."""
+def merge_attachment_index(existing, fetched):
+    """Append genuinely new URLs without renumbering historic attachments."""
+    merged = list(existing or [])
+    urls = {item.get("url") for item in merged}
+    added = []
+    for item in fetched or []:
+        if not item.get("url") or item["url"] in urls:
+            continue
+        merged.append(item)
+        urls.add(item["url"])
+        added.append((len(merged) - 1, item))
+    return merged, added
+
+
+def sync_attachments(events, known, force=False, refresh_cutoff=None, event_ids=None):
+    """Refresh only new/recent/selected attachment indexes and return additions.
+
+    Reading an attachment *index* is a small JSON request; the attachment file
+    itself is not fetched here.  Events older than ``refresh_cutoff`` are not
+    revisited automatically once present in ``attachments.json``.
+    """
     today = date.today().isoformat()
+    event_ids = set(event_ids or [])
+
+    def eligible(e):
+        eid = int(e["id"])
+        is_selected = eid in event_ids
+        has_legacy_need = (
+            not (e.get("hasOfficialResults") or e.get("hasUnofficialResults"))
+            or has_unusable_structured_results(eid)
+        )
+        needs_index = (
+            force
+            or str(eid) not in known
+            or is_selected
+            or (refresh_cutoff and (e.get("dateFrom") or "")[:10] >= refresh_cutoff)
+        )
+        return (
+            (e.get("dateFrom") or "9999")[:10] <= today
+            and needs_index
+            and (is_selected or has_legacy_need)
+        )
+
     todo = [e for e in events
-            if (e.get("dateFrom") or "9999")[:10] <= today
-            and (force or str(e["id"]) not in known)
-            and (not (e.get("hasOfficialResults") or e.get("hasUnofficialResults"))
-                 or has_unusable_structured_results(e["id"]))]
+            if eligible(e)]
     print(f"attachment indexes to fetch: {len(todo)}")
 
     def is_club_allowlisted(url):
@@ -145,41 +182,45 @@ def sync_attachments(events, known, force):
             for a in res
         ]
 
+    additions = []
     with ThreadPoolExecutor(max_workers=WORKERS) as ex:
         for fut in as_completed([ex.submit(check, e) for e in todo]):
             eid, files = fut.result()
-            known[eid] = files
+            merged, added = merge_attachment_index(known.get(eid), files)
+            known[eid] = merged
+            additions.extend({"eventId": int(eid), "index": index, **item}
+                             for index, item in added)
 
-    for eid, overrides in MANUAL_ATTACHMENT_OVERRIDES.items():
-        existing = known.get(str(eid)) or []
-        urls = {a["url"] for a in existing}
-        for url, filename in overrides:
-            if url not in urls:
-                existing.append({"url": url, "fileName": filename, "mimeType": "text/link"})
-        known[str(eid)] = existing
+    def add_overrides(overrides, mime_type):
+        for eid, values in overrides.items():
+            if event_ids and int(eid) not in event_ids:
+                continue
+            existing = known.get(str(eid)) or []
+            incoming = [
+                {"url": url, "fileName": filename, "mimeType": mime_type}
+                for url, filename in values
+            ]
+            merged, added = merge_attachment_index(existing, incoming)
+            known[str(eid)] = merged
+            additions.extend({"eventId": int(eid), "index": index, **item}
+                             for index, item in added)
 
-    for eid, overrides in MANUAL_PDF_OVERRIDES.items():
-        existing = known.get(str(eid)) or []
-        urls = {a["url"] for a in existing}
-        for url, filename in overrides:
-            if url not in urls:
-                existing.append({"url": url, "fileName": filename, "mimeType": "application/pdf"})
-        known[str(eid)] = existing
-
-    for eid, overrides in MANUAL_HTML_OVERRIDES.items():
-        existing = known.get(str(eid)) or []
-        urls = {a["url"] for a in existing}
-        for url, filename in overrides:
-            if url not in urls:
-                existing.append({"url": url, "fileName": filename, "mimeType": "text/html"})
-        known[str(eid)] = existing
+    add_overrides(MANUAL_ATTACHMENT_OVERRIDES, "text/link")
+    add_overrides(MANUAL_PDF_OVERRIDES, "application/pdf")
+    add_overrides(MANUAL_HTML_OVERRIDES, "text/html")
 
     (RAW / "attachments.json").write_text(json.dumps(known, ensure_ascii=False))
+    additions.sort(key=lambda item: (item["eventId"], item["index"]))
+    return additions
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--force", action="store_true", help="re-fetch everything")
+    ap.add_argument("--event-id", type=int, action="append",
+                    help="refresh only this historic event (repeatable)")
+    ap.add_argument("--delta-file", type=Path,
+                    help="write newly discovered attachment keys for incremental parsers")
     args = ap.parse_args()
 
     (RAW / "results").mkdir(parents=True, exist_ok=True)
@@ -190,7 +231,14 @@ def main():
     today = date.today().isoformat()
     past = [e for e in events if (e.get("dateFrom") or "9999")[:10] <= today]
 
-    with_results = [e for e in past
+    selected_ids = set(args.event_id or [])
+    selected = [e for e in past if not selected_ids or int(e["id"]) in selected_ids]
+    if selected_ids:
+        missing = selected_ids - {int(e["id"]) for e in selected}
+        if missing:
+            ap.error(f"unknown or future event-id(s): {', '.join(map(str, sorted(missing)))}")
+
+    with_results = [e for e in selected
                     if e.get("hasOfficialResults") or e.get("hasUnofficialResults")]
     print(f"past events: {len(past)}, with structured results: {len(with_results)}")
 
@@ -207,7 +255,17 @@ def main():
 
     att_path = RAW / "attachments.json"
     known = json.loads(att_path.read_text()) if att_path.exists() else {}
-    sync_attachments(events, known, force=args.force)
+    additions = sync_attachments(
+        selected if selected_ids else events,
+        known,
+        force=args.force,
+        refresh_cutoff=refresh_cutoff,
+        event_ids=selected_ids,
+    )
+    print(f"new attachments discovered: {len(additions)}")
+    if args.delta_file:
+        args.delta_file.parent.mkdir(parents=True, exist_ok=True)
+        args.delta_file.write_text(json.dumps({"attachments": additions}, ensure_ascii=False))
     print("done")
 
 

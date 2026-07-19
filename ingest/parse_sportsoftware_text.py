@@ -40,6 +40,7 @@ from sportsoftware_common import (
     parse_status, parse_time, parse_time_loose, number_team_results,
     team_results_from_pairs,
 )
+from sync_selection import select_jobs
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw" / "anne"
@@ -349,8 +350,8 @@ def parse_text(text):
     return parsed
 
 
-def fetch(url, dest):
-    if dest.exists():
+def fetch(url, dest, force=False):
+    if dest.exists() and not force:
         return dest.read_bytes()
     safe_url = urllib.parse.quote(url, safe=":/?&=%#")
     data = urllib.request.urlopen(
@@ -388,13 +389,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--event-id", type=int, help="only process one ANNE event")
+    ap.add_argument("--attachment-manifest", type=Path,
+                    help="only process attachments listed by the current incremental sync")
+    ap.add_argument("--force-download", action="store_true",
+                    help="re-download selected source files even when cached")
     args = ap.parse_args()
 
     FILES.mkdir(parents=True, exist_ok=True)
     OUT.mkdir(parents=True, exist_ok=True)
     jobs = collect_jobs()
-    if args.event_id is not None:
-        jobs = [job for job in jobs if job[0] == args.event_id]
+    jobs = select_jobs(jobs, args.event_id, args.attachment_manifest)
     if args.limit:
         jobs = jobs[: args.limit]
     print(f"text/link+text/plain files to parse: {len(jobs)}")
@@ -403,7 +407,7 @@ def main():
     for eid, n, f, kind in jobs:
         out_path = OUT / f"{eid}-{n}.json"
         try:
-            data = fetch(f["url"], FILES / f"{eid}-{n}.{kind}")
+            data = fetch(f["url"], FILES / f"{eid}-{n}.{kind}", args.force_download)
             text = extract_pre_blocks(decode(data))
             list_type = detect_list_type(f["fileName"] or f["url"], text)
             if list_type == "overall":

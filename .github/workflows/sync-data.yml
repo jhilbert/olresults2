@@ -4,6 +4,16 @@ on:
   schedule:
     - cron: "20 2 * * *"
   workflow_dispatch:
+    inputs:
+      event_id:
+        description: "Historische ANNE Event-ID gezielt neu parsen (leer = inkrementeller Sync)"
+        required: false
+        type: string
+      refresh_source:
+        description: "Attachment-Dateien dieser Event-ID neu herunterladen"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -37,9 +47,19 @@ jobs:
         run: python3 ingest/identity_state.py pull --required
 
       - name: Sync source data through the ANNE gateway
+        env:
+          EVENT_ID: ${{ inputs.event_id }}
+          REFRESH_SOURCE: ${{ inputs.refresh_source }}
         run: |
           set -o pipefail
-          python3 ingest/run_sync.py 2>&1 | tee "$RUNNER_TEMP/source-sync.log"
+          args=()
+          if [[ -n "${EVENT_ID:-}" ]]; then
+            args+=(--event-id "$EVENT_ID")
+          fi
+          if [[ "${REFRESH_SOURCE:-false}" == "true" ]]; then
+            args+=(--refresh-source)
+          fi
+          python3 ingest/run_sync.py "${args[@]}" 2>&1 | tee "$RUNNER_TEMP/source-sync.log"
 
       - name: Refresh private ANNE identity index when stale
         run: python3 ingest/anne_user_index.py --max-age-hours 168

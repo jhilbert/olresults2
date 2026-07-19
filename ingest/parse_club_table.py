@@ -30,6 +30,7 @@ from sportsoftware_common import (
     CLUB_LINK_ALLOWLIST, is_expected_source_failure, is_junk_name, parse_status,
     parse_time_loose,
 )
+from sync_selection import select_jobs
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw" / "anne"
@@ -87,8 +88,8 @@ def parse_document(html_text):
     return [c for c in categories if c["results"]]
 
 
-def fetch(url, dest):
-    if dest.exists():
+def fetch(url, dest, force=False):
+    if dest.exists() and not force:
         return dest.read_bytes()
     safe_url = urllib.parse.quote(url, safe=":/?&=%#")
     data = urllib.request.urlopen(
@@ -122,11 +123,17 @@ def collect_jobs():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--event-id", type=int, help="only process one ANNE event")
+    ap.add_argument("--attachment-manifest", type=Path,
+                    help="only process attachments listed by the current incremental sync")
+    ap.add_argument("--force-download", action="store_true",
+                    help="re-download selected source files even when cached")
     args = ap.parse_args()
 
     FILES.mkdir(parents=True, exist_ok=True)
     OUT.mkdir(parents=True, exist_ok=True)
     jobs = collect_jobs()
+    jobs = select_jobs(jobs, args.event_id, args.attachment_manifest)
     if args.limit:
         jobs = jobs[: args.limit]
     print(f"club-table candidate links: {len(jobs)}")
@@ -135,7 +142,7 @@ def main():
     for eid, n, f in jobs:
         out_path = OUT / f"{eid}-club{n}.json"
         try:
-            data = fetch(f["url"], FILES / f"{eid}-club{n}.html")
+            data = fetch(f["url"], FILES / f"{eid}-club{n}.html", args.force_download)
             text = decode(data)
             if "(" not in text or " / " not in text:
                 empty += 1  # cheap pre-check before the full table walk

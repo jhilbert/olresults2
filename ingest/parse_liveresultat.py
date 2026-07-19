@@ -10,6 +10,7 @@ liveresultat exposes a small public JSON API
 (https://liveresults.github.io/documentation/api.html); this hits it
 directly rather than scraping the JS-rendered results page.
 """
+import argparse
 import json
 import re
 import sys
@@ -86,11 +87,19 @@ def fetch_comp(comp):
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--event-id", type=int, help="only process one ANNE event")
+    ap.add_argument("--force-download", action="store_true",
+                    help="refresh the selected live-results snapshot")
+    args = ap.parse_args()
+
     OUT.mkdir(parents=True, exist_ok=True)
     ok = empty = failed = 0
     for eid, comps in MANUAL_LIVERESULTAT_COMPS.items():
+        if args.event_id is not None and eid != args.event_id:
+            continue
         out_path = OUT / f"{eid}-0.json"
-        if out_path.exists():
+        if out_path.exists() and not args.force_download:
             continue  # already have results for this event from some source
         categories = []
         try:

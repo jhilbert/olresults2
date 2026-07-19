@@ -40,6 +40,7 @@ from sportsoftware_common import (
     parse_champion_annotation, parse_course_info, parse_flow_row, parse_status, parse_time,
     parse_time_loose, strip_champion_name_prefix,
 )
+from sync_selection import select_jobs
 
 CLUBS = load_clubs()
 CLUB_CANONICAL_KEYS = {club.casefold() for club in CLUBS.values()}
@@ -3492,8 +3493,8 @@ def parse_wintertour_pdf(path):
     return categories
 
 
-def fetch(url, dest):
-    if dest.exists():
+def fetch(url, dest, force=False):
+    if dest.exists() and not force:
         return dest.read_bytes()
     safe_url = urllib.parse.quote(url, safe=":/?&=%")
     data = urllib.request.urlopen(
@@ -3509,7 +3510,13 @@ def main():
     ap.add_argument("--event-id", type=int, help="only process one ANNE event")
     ap.add_argument("--cached", action="store_true",
                     help="reparse already downloaded PDFs without fetching them again")
+    ap.add_argument("--attachment-manifest", type=Path,
+                    help="only process attachments listed by the current incremental sync")
+    ap.add_argument("--force-download", action="store_true",
+                    help="re-download selected source files even when cached")
     args = ap.parse_args()
+    if args.cached and args.force_download:
+        ap.error("--cached and --force-download are mutually exclusive")
 
     FILES.mkdir(parents=True, exist_ok=True)
     OUT.mkdir(parents=True, exist_ok=True)
@@ -3517,8 +3524,6 @@ def main():
 
     jobs = []
     for eid, files in attachments.items():
-        if args.event_id is not None and int(eid) != args.event_id:
-            continue
         # a Zwischenzeiten-titled PDF that's the event's *only* attachment
         # can't be a duplicate of some other results file - safe to parse
         # its inline per-control splits rather than skip it outright
@@ -3526,6 +3531,7 @@ def main():
         for n, f in enumerate(files or []):
             if f["mimeType"] == "application/pdf":
                 jobs.append((int(eid), n, f, sole_attachment))
+    jobs = select_jobs(jobs, args.event_id, args.attachment_manifest)
     if args.limit:
         jobs = jobs[: args.limit]
     print(f"pdf files to parse: {len(jobs)}")
@@ -3539,7 +3545,7 @@ def main():
         pdf_path = FILES / f"{eid}-{n}.pdf"
         try:
             if not (args.cached and pdf_path.exists()):
-                fetch(f["url"], pdf_path)
+                fetch(f["url"], pdf_path, args.force_download)
             cats, head_text = parse_pdf(pdf_path, allow_inline_splits=sole_attachment)
             list_type = detect_list_type(f["fileName"], head_text, sole_attachment)
             if list_type == "overall":
