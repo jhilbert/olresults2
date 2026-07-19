@@ -2,6 +2,7 @@ __pycache__/
 node_modules/
 *.pyc
 .DS_Store
+.env.local
 site/data/results.db
 data/raw/anne/files/
 site/data/results.db.gz

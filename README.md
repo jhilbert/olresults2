@@ -60,6 +60,26 @@ python3 build/build_db.py              # rebuild with any newly-decided eligibil
 python3 site/serve.py                  # local preview + writable result review
 ```
 
+### Lokalen Stand vollständig aktualisieren
+
+Auf macOS genügt ein Doppelklick auf `sync-local.command`. Alternativ:
+
+```bash
+python3 build/sync_local.py
+```
+
+Der Ablauf führt einen sicheren Fast-forward auf `origin/main` durch, holt
+Eligibility-Ledger und privaten ANNE-Personenindex aus Cloudflare R2, baut die
+lokale SQLite-Datenbank und validiert sie. Lokale Entscheidungen aus dem
+Prüftool werden dabei nicht überschrieben, sondern als lokaler Overlay
+beibehalten.
+
+Beim ersten Aufruf wird das Sync-Gateway-Token verdeckt abgefragt und in der
+gitignorierten `.env.local` mit Dateirechten `600` gespeichert. Das Token kann
+aus GitHub oder Cloudflare nicht zurückgelesen werden; falls es nicht mehr
+bekannt ist, muss es einmal neu gesetzt werden. Danach erfordert der lokale
+Sync keine einzelnen Kommandos oder erneute Token-Eingabe.
+
 Open the review URL printed by the server (normally
 `http://127.0.0.1:8643/review.html`) for the optimized list-by-list verification
 workflow. If port 8643 is already in use, the server automatically selects the
