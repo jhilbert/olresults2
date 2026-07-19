@@ -55,6 +55,34 @@ CLUBS.update({
 CLUB_CANONICAL_KEYS = {club.casefold() for club in CLUBS.values()}
 
 
+def looks_like_status_team_label(text):
+    """Distinguish a rankless team label from a member name before a status.
+
+    Historic relay PDFs omit rank and start number for some MP/DNF/DSQ teams.
+    A duplicated club label (``HSV Ried HSV Ried``) or a canonical club plus
+    its squad code (``SU Schöckl Orienteering SUSO``) can superficially pass
+    ``looks_like_person``.  Those lines introduce a team; a genuine member
+    such as ``Josef Hones 54 Fehlst`` must continue to belong to the pending
+    team.
+    """
+    label = re.sub(r"\s+", " ", (text or "").strip()).casefold()
+    if not label:
+        return False
+    tokens = label.split()
+    middle = len(tokens) // 2
+    if len(tokens) >= 2 and len(tokens) % 2 == 0 and tokens[:middle] == tokens[middle:]:
+        return True
+    if re.fullmatch(r"team\s+\d+", label, re.I):
+        return True
+    # Very short canonical codes (ARC, OLC, ...) are too weak as a prefix;
+    # require a recognisable club spelling and an exact token boundary.
+    return any(
+        len(club) >= 5
+        and (label == club or label.startswith(club + " ") or label.startswith(club + "-"))
+        for club in CLUB_CANONICAL_KEYS
+    )
+
+
 def valid_flow(flow):
     """Only trust a text/club-dictionary parse when it's anchored by a known
     club (so title/header lines and school-cup formats don't masquerade as
@@ -2653,6 +2681,15 @@ def parse_flowing_pdf(path):
                     if (not line or DATE_HEADER_RE.search(line)
                             or MEOS_PAGE_HEADER_RE.match(line)):
                         continue
+                    # Championship result lists can put the overall place,
+                    # then the national place (or ``*)`` ineligible marker)
+                    # before the runner: ``2. 1. Name ...`` and
+                    # ``3. *) Name ...``. The first number is the result-list
+                    # rank; the second token is an annotation, not a bib or
+                    # part of the name.
+                    line = re.sub(
+                        r"^(\d{1,3})\.\s+(?:\d{1,3}\.\s+)?(?:\*\)\s*)?",
+                        r"\1 ", line)
                     if line.casefold() == "mannschaftswertung":
                         current = None
                         continue
@@ -2740,6 +2777,13 @@ def parse_flowing_pdf(path):
                     result["timeS"] = seconds
                     result["status"] = "ok"
         repair_rank_order_embedded_time_markers(c.get("results") or [])
+        if "famil" in (c.get("name") or "").casefold():
+            # Family lists can print the same named combination more than
+            # once with different outcomes (event 2675 lists Grozak
+            # Ivan+Anna once MP and once DNS). They are two physical source
+            # starts even though identity handling deliberately collapses
+            # each row to a non-person family result during the DB build.
+            c["sourceUnitCount"] = category_competitor_unit_count(c)
         if c["declaredStarters"] is None:
             unit_keys = []
             for index, result in enumerate(c["results"]):
@@ -3146,6 +3190,8 @@ def parse_meos_relay_pdf(path):
 
     def flush():
         nonlocal pending_team
+        if pending_team and current is not None:
+            current["sourceUnitCount"] = current.get("sourceUnitCount", 0) + 1
         if not pending_team or not pending_team["members"] or current is None:
             pending_team = None
             return
@@ -3627,6 +3673,20 @@ def parse_relay_pdf(path, team_mode=False):
                         line = re.sub(r"\bF\s+ehlst\b", "Fehlst", line, flags=re.I)
                         line = re.sub(r"\bA\s+ufg\b", "Aufg", line, flags=re.I)
                         line = re.sub(r"\bD\s+isqu\b", "Disqu", line, flags=re.I)
+                    # A corrupted embedded font can interleave the team time
+                    # with the final team-name word even when the document's
+                    # own ``Zeit`` header is intact (for example
+                    # ``Beweg2u:0n4g:58``). Reuse the conservative result-row
+                    # repair only for a numeric team row that otherwise has
+                    # neither a readable time nor a status.
+                    numeric_team = re.match(r"^((?:\d+\s+){1,2})(.+)$", line)
+                    if (numeric_team and not TIME_TOKEN_RE.search(line)
+                            and not STATUS_TAIL_RE.search(line)):
+                        repaired_label, repaired_value = repair_result_club_and_value(
+                            numeric_team.group(2), "")
+                        if parse_time_loose(repaired_value) is not None:
+                            line = (numeric_team.group(1) + repaired_label + " "
+                                    + repaired_value)
                     if not line or CONTINUATION_RE.match(line) or DATE_HEADER_RE.search(line):
                         continue
                     if (re.match(r"^Pl(?:atz)?\b.*(?:Staffel|Team|Verein).*(?:Z\s*eit|Zeit|Time)\b", line)
@@ -3766,6 +3826,8 @@ def parse_relay_pdf(path, team_mode=False):
                                 and member_tokens[:split_at] == member_tokens[split_at:])
                             if (time_idx is not None and 1 <= time_idx <= 4
                                     and not duplicated_team_label
+                                    and not looks_like_status_team_label(
+                                        " ".join(member_tokens))
                                     and looks_like_person(" ".join(member_tokens))):
                                 is_leg_member = True
                         if not is_leg_member:
@@ -3853,13 +3915,14 @@ def parse_relay_pdf(path, team_mode=False):
                                    member_flow["names"][0])
                             if member_flow and len(member_flow.get("names") or []) == 1
                             else "")
+                        team_label = re.sub(r"^(?:--|—)\s*", "", line[: sm.start()].strip()) if sm else ""
                         is_status_member = bool(
                             member_candidate and looks_like_person(member_candidate)
+                            and not looks_like_status_team_label(team_label)
                         )
                         if sm and not is_status_member:
                             flush()
                             team_time_text = sm.group(0).strip()
-                            team_label = re.sub(r"^(?:--|—)\s*", "", line[: sm.start()].strip())
                             pending_team = {"name": team_label, "rank": None,
                                              "number": None, "timeText": team_time_text,
                                              "timeS": None,

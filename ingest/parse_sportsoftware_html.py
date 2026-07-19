@@ -190,6 +190,10 @@ def parse_document(html_text):
                         member_values.append(value)
             family_row = "famil" in current["name"].casefold()
             individual_member_layout = "einzel" in current["name"].casefold()
+            team_member_columns = sum(
+                bool(re.fullmatch(r"Name(?:\s*\d+)?", (header or "").strip(), re.I))
+                for header in columns
+            )
 
             if family_row and member_values and (rank_ok or time_text):
                 # The same Name-1/2/3 report layout is also used for Family,
@@ -218,6 +222,12 @@ def parse_document(html_text):
             # team (Mannschaft) tables: members across several columns
             # (Name 1/2/3, Name Läufer2 Läufer3, or repeated 'Name' headers)
             if (rank_ok or time_text) and not individual_member_layout:
+                if team_member_columns >= 2:
+                    # Count the physical team row even when its only member
+                    # text is a non-person placeholder (``Ben, und andere``)
+                    # or all member cells are blank. Such a row is one source
+                    # start, but must not fabricate a person identity.
+                    current["sourceUnitCount"] = current.get("sourceUnitCount", 0) + 1
                 team = team_results_from_pairs(list(zip(columns, row)),
                                                club, rec.get("Pl", ""), time_text)
                 if team is not None:

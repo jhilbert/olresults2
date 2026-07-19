@@ -663,7 +663,9 @@ def load_clubs():
         "orienteering innsbruck": "Orienteering Innsbruck Imst",
         "ola tsv deggendorf": "OLA TSV Deggendorf",
         "orienteering klosterneubur": "Orienteering Klosterneuburg",
+        "ol sektion tv zell am see": "OL Sektion TV Zell am See",
         "naturfreunde villach - ori": "Naturfreunde Villach - Orienteering",
+        "naturfreunde villach - orient": "Naturfreunde Villach - Orienteering",
         "naturfreunde villach-orienteering": "Naturfreunde Villach - Orienteering",
         "naturfreunde villach - orie": "Naturfreunde Villach - Orienteering",
         "naturfreunde villach - oriente": "Naturfreunde Villach - Orienteering",
@@ -706,9 +708,9 @@ def load_clubs():
 
 
 def find_trailing_club(tokens, clubs):
-    """Longest trailing run of tokens (up to 5) matching a known club name.
+    """Longest trailing run of tokens (up to 8) matching a known club name.
     Returns (club_or_None, remaining_leading_tokens)."""
-    for k in range(min(5, len(tokens)), 0, -1):
+    for k in range(min(8, len(tokens)), 0, -1):
         cand = " ".join(tokens[-k:]).lower()
         if cand in clubs:
             return clubs[cand], tokens[:-k]
