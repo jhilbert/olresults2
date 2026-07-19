@@ -1,38 +1,51 @@
 {
   "counts": {
-    "championship_result": 27575,
-    "event": 3929,
-    "person": 28297,
-    "person_alias": 33845,
-    "person_identifier": 2734,
-    "person_redirect": 25867,
-    "result": 229534,
-    "source_document": 1742,
-    "stage": 1553
+    "audit_issue": 6448,
+    "award": 10212,
+    "championship_instance": 4125,
+    "championship_result": 30403,
+    "championship_rule_set": 2,
+    "event": 3986,
+    "person": 29235,
+    "person_alias": 35618,
+    "person_identifier": 3773,
+    "person_redirect": 22592,
+    "person_tombstone": 3275,
+    "result": 250794,
+    "result_list": 26003,
+    "source_document": 1763,
+    "stage": 1587,
+    "verification_assertion": 0
   },
   "eligibility": {
-    "decisions": 1204,
-    "people": 112
+    "decisions": 1564,
+    "people": 132
   },
-  "logical_sha256": "b5f74e914aa725360b9fe89e46b86b93e5674af46e12b1115dd88aa620ad8a72",
+  "logical_sha256": "f93761b1bead9ff41d67e7cba9262b235ed5267a54fde507e6c923888cfb7efa",
   "quality": {
-    "identifier_conflicts": 1,
+    "family_identity_leaks": 0,
+    "identifier_conflicts": 0,
+    "illegal_statuses": 0,
+    "ooc_championship_leaks": 0,
+    "personless_non_family": 0,
     "results_without_identity_basis": 0,
-    "results_without_provenance": 0
+    "results_without_provenance": 0,
+    "results_without_result_list": 0
   },
   "result_by_kind": {
-    "individual": 217770,
-    "pair": 1393,
-    "relay": 8457,
-    "team": 1914
+    "family": 3268,
+    "individual": 229183,
+    "pair": 2046,
+    "relay": 13948,
+    "team": 2349
   },
   "result_by_source": {
-    "anne-api": 35742,
-    "club-table": 204,
-    "liveresultat": 1107,
-    "sportsoftware-html": 103455,
-    "sportsoftware-pdf": 85797,
-    "sportsoftware-text": 3229
+    "anne-api": 35896,
+    "club-table": 206,
+    "liveresultat": 1260,
+    "sportsoftware-html": 110523,
+    "sportsoftware-pdf": 99363,
+    "sportsoftware-text": 3546
   },
-  "schema_version": 1
+  "schema_version": 5
 }
