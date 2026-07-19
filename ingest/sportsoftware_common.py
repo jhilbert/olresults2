@@ -286,6 +286,7 @@ STATUS_MAP = {
     "verletzt": "dnf",
     "fehlst": "mp", "ehlst": "mp", "fehlstempel": "mp",
     "missing punch": "mp", "posten fehlt": "mp", "posten fehlen": "mp",
+    "posten falsch": "mp", "po fehlt": "mp", "po falsch": "mp",
     "ziel fehlt": "mp",
     "dis": "dsq", "disq": "dsq", "disqu": "dsq", "disqualifiziert": "dsq",
     # Czech-localized OE2010 result exports use ``disk``.
@@ -303,7 +304,8 @@ STATUS_MAP = {
     # Children's introductory classes sometimes use a qualitative successful
     # result instead of a time/rank.
     "gut": "ok", "teilg": "ok", "teilgenommen": "ok",
-    "zeitüb": "dsq", "zeitüberschreitung": "dsq",
+    "zeitüb": "dsq", "zeitüberschreitung": "dsq", "maximalzeit": "dsq",
+    "keine zielzeit": "dnf", "keine e-card": "dns",
     "ohne wertung": "ok", "außer konkurrenz": "ok", "ausser konkurrenz": "ok",
     "wertungsfrei": "ok", "ak": "ok",
     "nc": "ok",
@@ -844,8 +846,10 @@ def expand_pair_result(result, category=None):
 
 STATUS_TAIL_RE = re.compile(
     r"(?i)(n\.?\s*ang\.?|n\.?\s*gest\.?|nicht\s+ang\.?|nicht angetreten|"
-    r"nicht gestartet|aufg\.?|not\s+finish(?:ed)?|verletzt|vzdal|"
-    r"fehlst\.?|ehlst\.?|missing\s+punch|\d+\s+posten\s+fehl(?:t|en)|ziel\s+fehlt|"
+    r"nicht gestartet|aufg\.?|aufgegeben|not\s+finish(?:ed)?|verletzt|vzdal|"
+    r"fehlst\.?|ehlst\.?|missing\s+punch|"
+    r"(?:\d+\s+)?(?:po|posten)\s+(?:fehlt|fehlen|falsch)|ziel\s+fehlt|"
+    r"maximalzeit|keine\s+zielzeit|keine\s+e-?card|"
     r"dis\.?|disq(?:u)?\.?|"
     r"disk\.?|"
     r"ohne wertung|außer konkurrenz|ausser konkurrenz|wertungsfrei|AK|NC|"

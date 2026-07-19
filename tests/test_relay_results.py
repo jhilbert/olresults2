@@ -72,6 +72,14 @@ class RelayStructureTests(unittest.TestCase):
                 "Orienteering KlosterneuburgN", "Ang"),
             ("Orienteering Klosterneuburg", "N Ang"))
         self.assertEqual(
+            pdf_parser.repair_interleaved_club_value(
+                "MOM Hegyvidék SE-MOMH", "TUáNjfutó1 S:4z2a:5ko3", True),
+            ("MOM Hegyvidék SE-MOM Tájfutó Szako", "1:42:53"))
+        self.assertEqual(
+            pdf_parser.repair_result_club_and_value(
+                "VBT Veszprémi Bridzs és HTáUjNékozódAáufg", ""),
+            ("VBT Veszprémi Bridzs és HTáUjNékozód", "Aufg"))
+        self.assertEqual(
             repair("BG/BRG Zehnergasse", "Wr. NFeueshtlastd"),
             ("BG/BRG Zehnergasse Wiener Neustadt", "Fehlst"))
         self.assertEqual(
@@ -207,6 +215,42 @@ class RelayStructureTests(unittest.TestCase):
         self.assertEqual(by_name["Eduard Böhm"]["status"], "dsq")
         self.assertEqual(by_name["Bernhard Klingseisen"]["status"], "dns")
         self.assertEqual(by_name["Slávka Cahlová"]["status"], "unknown")
+        self.assertEqual(by_name["Slávka Cahlová"]["timeText"], "???")
+
+    def test_plain_course_and_age_headings_split_shared_pdf_table(self):
+        course_source = ROOT / "data" / "raw" / "anne" / "files" / "1941-0.pdf"
+        self.require_source_fixture(course_source)
+        courses, _ = pdf_parser.parse_pdf(course_source)
+        self.assertEqual(
+            [(category["name"], len(category["results"])) for category in courses],
+            [("Bahn A", 33), ("Bahn B", 29), ("Bahn C", 11), ("Bahn D", 5)])
+
+        age_source = ROOT / "data" / "raw" / "anne" / "files" / "3852-2.pdf"
+        self.require_source_fixture(age_source)
+        ages, _ = pdf_parser.parse_pdf(age_source)
+        self.assertIn("Herren bis 18 Elite", {category["name"] for category in ages})
+        self.assertIn("Damen ab 75", {category["name"] for category in ages})
+        self.assertNotIn("Ergebnis", {category["name"] for category in ages})
+
+        numbered_source = ROOT / "data" / "raw" / "anne" / "files" / "2860-0.pdf"
+        self.require_source_fixture(numbered_source)
+        numbered, _ = pdf_parser.parse_pdf(numbered_source)
+        self.assertEqual(
+            [(category["name"], len(category["results"])) for category in numbered],
+            [("Bahn 1", 35), ("Bahn 2", 22), ("Bahn 3", 3),
+             ("Bahn 4", 16), ("Bahn 5", 5), ("Bahn 6", 19)])
+
+    def test_pdf_shifted_club_time_uses_finish_not_gap(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "3739-1.pdf"
+        self.require_source_fixture(source)
+        categories = pdf_parser.parse_flowing_pdf(source)
+        women = next(category for category in categories if category["name"] == "Damen A")
+        kiara = next(row for row in women["results"] if row["name"] == "Kiara Piskorz")
+        self.assertEqual((kiara["club"], kiara["timeText"], kiara["timeS"]),
+                         ("WAT-OL", "20:43", 1243))
+        marina = next(row for row in women["results"] if row["name"] == "Marina Skern")
+        self.assertEqual((marina["club"], marina["timeText"]),
+                         ("Naturfreunde Wien", "21:48"))
 
     def test_regional_championship_pdf_splits_real_categories(self):
         source = ROOT / "data" / "raw" / "anne" / "files" / "3652-2.pdf"
@@ -512,6 +556,119 @@ class RelayStructureTests(unittest.TestCase):
         pdf_parser.normalize_exact_time_ties(categories)
         self.assertEqual(categories[0]["results"][1]["rank"], 6)
 
+    def test_split_tens_minute_digit_is_recovered_by_rank_order(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "1516-0.pdf"
+        self.require_source_fixture(source)
+        categories, _ = pdf_parser.parse_pdf(source)
+        women = next(c for c in categories if c["name"] == "D15-54 Stmk/D15- B")
+        expected = {
+            "Bauer Julia": ("S KV OLG Deutsch Kaltenbrunn", "16:51", 1011),
+            "Hafner Andrea": ("S KV OLG Deutsch Kaltenbrunn", "23:27", 1407),
+            "Kogelmann Silke": ("S KV OLG Deutsch Kaltenbrunn", "25:29", 1529),
+        }
+        for name, wanted in expected.items():
+            row = next(r for r in women["results"] if r["name"] == name)
+            self.assertEqual((row["club"], row["timeText"], row["timeS"]), wanted)
+
+    def test_interleaved_championship_places_become_overall_ranks(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "686-0.pdf"
+        self.require_source_fixture(source)
+        categories, _ = pdf_parser.parse_pdf(source)
+        boys = next(c for c in categories if c["name"] == "Herren -16 Elite")
+        selected = {r["name"]: r["rank"] for r in boys["results"][:5]}
+        self.assertEqual(selected, {
+            "Mathias Peter": 1,
+            "Edvin Smedberg": 2,
+            "Florian Kurz": 3,
+            "Ágoston Fekete": 4,
+            "Stefan Falk": 5,
+        })
+
+        long_source = ROOT / "data" / "raw" / "anne" / "files" / "1109-0.pdf"
+        self.require_source_fixture(long_source)
+        long_categories, _ = pdf_parser.parse_pdf(long_source)
+        elite = next(c for c in long_categories if c["name"] == "Herren 21- Elite")
+        winner = next(r for r in elite["results"] if r["name"] == "Haselsberger Kevin")
+        self.assertEqual((winner["rank"], winner.get("championship")), (1, "ÖSTM"))
+
+    def test_digits_in_real_club_codes_are_not_moved_into_time(self):
+        mtbo = ROOT / "data" / "raw" / "anne" / "files" / "4477-0.pdf"
+        university = ROOT / "data" / "raw" / "anne" / "files" / "1440-0.pdf"
+        self.require_source_fixture(mtbo)
+        self.require_source_fixture(university)
+        mtbo_categories, _ = pdf_parser.parse_pdf(mtbo)
+        short = next(c for c in mtbo_categories if c["name"] == "WB/Short")
+        dora = next(r for r in short["results"] if r["name"] == "Dora Trabert")
+        self.assertEqual((dora["club"], dora["timeText"], dora["timeS"]),
+                         ("Hungary X2S Team", "52:25", 3145))
+        university_categories, _ = pdf_parser.parse_pdf(university)
+        tu = next(c for c in university_categories if c["name"] == "TU-Wertung")
+        bosina = next(r for r in tu["results"] if r["name"] == "Bosina Joachim")
+        self.assertEqual((bosina["club"], bosina["timeText"], bosina["timeS"]),
+                         ("E141 Atominstitut", "5:52", 352))
+
+    def test_stage_rank_is_not_used_as_total_time_hour(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "3038-0.pdf"
+        self.require_source_fixture(source)
+        categories, _ = pdf_parser.parse_pdf(source)
+        elite = next(c for c in categories if c["name"] == "Damen 21- Elite")
+        lena = next(r for r in elite["results"] if r["name"] == "Lena Ennemoser")
+        lisa = next(r for r in elite["results"] if r["name"] == "Lisa Ennemoser")
+        self.assertEqual((lena["timeText"], lena["timeS"]), ("35:27", 2127))
+        self.assertEqual((lisa["timeText"], lisa["timeS"]), ("37:29", 2249))
+
+    def test_plain_report_sections_do_not_merge_into_prior_category(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "3852-2.pdf"
+        self.require_source_fixture(source)
+        categories, _ = pdf_parser.parse_pdf(source)
+        by_name = {c["name"]: c for c in categories}
+        self.assertIn("Damen ab 21 Kurz", by_name)
+        self.assertIn("Neulinge", by_name)
+        self.assertIn("Familie", by_name)
+        self.assertEqual([r["name"] for r in by_name["Damen ab 21 Kurz"]["results"]],
+                         ["Oswald Katharina"])
+        self.assertEqual([r["name"] for r in by_name["Neulinge"]["results"]],
+                         ["Danklmaier Vera"])
+
+        vienna = ROOT / "data" / "raw" / "anne" / "files" / "2040-0.pdf"
+        self.require_source_fixture(vienna)
+        vienna_categories, _ = pdf_parser.parse_pdf(vienna)
+        women = next(c for c in vienna_categories if c["name"] == "Damen 55- Wien")
+        self.assertNotIn("SIEGERT Reinhard", {r["name"] for r in women["results"]})
+
+    def test_leading_hour_and_club_suffix_digit_are_rank_repaired(self):
+        long_source = ROOT / "data" / "raw" / "anne" / "files" / "4948-0.pdf"
+        club_source = ROOT / "data" / "raw" / "anne" / "files" / "1433-0.pdf"
+        self.require_source_fixture(long_source)
+        self.require_source_fixture(club_source)
+        long_categories, _ = pdf_parser.parse_pdf(long_source)
+        women = next(c for c in long_categories if c["name"] == "D 19 -")
+        unegg = next(r for r in women["results"] if r["name"] == "Unegg Marlene")
+        self.assertEqual((unegg["club"], unegg["timeText"], unegg["timeS"]),
+                         ("SU Klagenfurt", "1:22:25", 4945))
+        club_categories, _ = pdf_parser.parse_pdf(club_source)
+        short = next(c for c in club_categories if c["name"] == "Offen Kurz")
+        petra = next(r for r in short["results"] if r["name"] == "Schinnerer Petra")
+        self.assertEqual((petra["club"], petra["timeText"], petra["timeS"]),
+                         ("Wr. Gehörlosen Sportclub 1901", "47:59", 2879))
+
+    def test_consecutive_woven_hour_markers_use_outer_rank_bounds(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "1109-0.pdf"
+        self.require_source_fixture(source)
+        categories, _ = pdf_parser.parse_pdf(source)
+        women = next(c for c in categories if c["name"] == "Damen 21- Elite")
+        reiner = next(r for r in women["results"] if r["name"] == "Reiner Marina")
+        pirker = next(r for r in women["results"] if r["name"] == "Pirker Lisa")
+        self.assertEqual((reiner["timeText"], reiner["timeS"]), ("2:02:07", 7327))
+        self.assertEqual((pirker["timeText"], pirker["timeS"]), ("2:10:08", 7808))
+
+        mtbo = ROOT / "data" / "raw" / "anne" / "files" / "2765-0.pdf"
+        self.require_source_fixture(mtbo)
+        mtbo_categories, _ = pdf_parser.parse_pdf(mtbo)
+        youth = next(c for c in mtbo_categories if c["name"] == "NYK")
+        livia = next(r for r in youth["results"] if r["name"] == "Fuchs Lívia")
+        self.assertEqual((livia["timeText"], livia["timeS"]), ("1:28:52", 5332))
+
     def test_champion_wording_in_rank_cell_keeps_first_place(self):
         source = ROOT / "data" / "raw" / "anne" / "files" / "3325-1.pdf"
         self.require_source_fixture(source)
@@ -712,6 +869,14 @@ class RelayStructureTests(unittest.TestCase):
         self.assertEqual(
             (tobias["club"], tobias["timeS"], tobias["status"]),
             ("", 1207, "ok"))
+        shifted = ROOT / "data" / "raw" / "anne" / "files" / "5038-0.html"
+        self.require_source_fixture(shifted)
+        shifted_categories = html_parser.parse_bracket_html(
+            html_parser.decode(shifted.read_bytes()))
+        men_a = next(c for c in shifted_categories if c["name"] == "Herren A")
+        griff = next(r for r in men_a["results"] if r["name"] == "Griff Daniel")
+        self.assertEqual((griff["club"], griff["timeText"], griff["timeS"]),
+                         ("", "19:46", 1186))
 
     def test_legacy_ak_prefix_and_omt_are_normalized(self):
         parsed = parse_flow_row(
@@ -721,11 +886,177 @@ class RelayStructureTests(unittest.TestCase):
         self.assertTrue(parsed["outOfCompetition"])
         self.assertEqual(parse_status("OMT"), "dns")
 
+    def test_swiss_status_phrases_preserve_every_source_entry(self):
+        for text, status in {
+            "1 Po fehlt": "mp",
+            "1 Po falsch": "mp",
+            "Posten fehlen": "mp",
+            "aufgegeben": "dnf",
+            "Maximalzeit": "dsq",
+            "keine Zielzeit": "dnf",
+            "keine e-Card": "dns",
+        }.items():
+            self.assertEqual(parse_status(text), status)
+        source = ROOT / "data" / "raw" / "anne" / "files" / "2474-0.pdf"
+        self.require_source_fixture(source)
+        categories = pdf_parser.parse_flowing_pdf(source)
+        self.assertTrue(categories)
+        for category in categories:
+            starter_units = []
+            for index, result in enumerate(category["results"]):
+                if result.get("resultKind") == "pair":
+                    starter_units.append((
+                        "pair", result.get("rank"), result.get("status"),
+                        result.get("timeS"), result.get("club")))
+                else:
+                    starter_units.append(("row", index))
+            self.assertEqual(len(set(starter_units)), category["declaredStarters"],
+                             category["name"])
+
         mp = parse_flow_row(
             "AK 725 Belzik Karl vereinslos Fehlst", {"vereinslos": "vereinslos"})
         [mp_result] = pdf_parser.flow_results(mp)
         self.assertTrue(mp_result["outOfCompetition"])
         self.assertEqual(mp_result["status"], "mp")
+
+    def test_labyrinth_matrix_uses_total_and_separate_gender_categories(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "1372-0.pdf"
+        self.require_source_fixture(source)
+        categories = pdf_parser.parse_labyrinth_challenge_pdf(source)
+        self.assertEqual([category["name"] for category in categories],
+                         ["Damen", "Herren"])
+        self.assertEqual([category["declaredStarters"] for category in categories],
+                         [21, 30])
+        women = categories[0]["results"]
+        maya = next(result for result in women if result["name"] == "Kastner Maya")
+        self.assertEqual((maya["rank"], maya["timeS"], maya["timeText"]),
+                         (1, 71, "1:11"))
+        lisa = next(result for result in women if result["name"] == "Kirchberger Lisa")
+        self.assertEqual((lisa.get("rank"), lisa["status"]), (None, "dnf"))
+        harald = next(result for result in categories[1]["results"]
+                      if result["name"] == "Lipphart-Kirchmeir Harald")
+        self.assertEqual((harald.get("rank"), harald["status"]), (None, "mp"))
+
+    def test_wintertour_uses_penalized_total_and_keeps_late_categories(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "3924-0.pdf"
+        self.require_source_fixture(source)
+        categories = pdf_parser.parse_wintertour_pdf(source)
+        self.assertEqual(
+            [category["name"] for category in categories[-4:]],
+            ["Kurz Anspruchsvoll Damen", "Kurz Anspruchsvoll Herren",
+             "Lang Anspruchsvoll Damen", "Lang Anspruchsvoll Herren"])
+        women = next(category for category in categories
+                     if category["name"] == "Kurz Anspruchsvoll Damen")
+        corinna = next(result for result in women["results"]
+                       if result["name"] == "Biel Corinna")
+        self.assertEqual((corinna["rank"], corinna["timeText"], corinna["timeS"]),
+                         (6, "00:28:18", 1698))
+        long_men = next(category for category in categories
+                        if category["name"] == "Lang Anspruchsvoll Herren")
+        self.assertEqual(len(long_men["results"]), 22)
+        plohn = next(result for result in long_men["results"]
+                     if result["name"] == "Plohn Markus")
+        self.assertEqual((plohn["rank"], plohn["timeText"]), (2, "00:24:54"))
+
+    def test_meos_column_rounding_does_not_shift_club_or_finish_time(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "3739-1.pdf"
+        self.require_source_fixture(source)
+        categories = pdf_parser.parse_meos_individual_pdf(source)
+        self.assertTrue(categories)
+        for category in categories:
+            units = {
+                ("pair", result.get("teamNumber"))
+                if result.get("resultKind") == "pair" else ("row", index)
+                for index, result in enumerate(category["results"])
+            }
+            self.assertEqual(len(units), category["declaredStarters"], category["name"])
+        women_a = next(category for category in categories
+                       if category["name"] == "Damen A")
+        kiara = next(result for result in women_a["results"]
+                     if result["name"] == "Kiara Piskorz")
+        self.assertEqual((kiara["club"], kiara["timeText"], kiara["timeS"]),
+                         ("WAT-OL", "20:43", 1243))
+        women_c = next(category for category in categories
+                       if category["name"] == "Damen C")
+        self.assertEqual(
+            {result["name"] for result in women_c["results"]
+             if result.get("resultKind") == "pair"},
+            {"Emilia Hohenecker", "Lea Hohnold", "Golsamin Harandi", "Emma Huszar"})
+
+    def test_school_text_columns_are_separate_team_members(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "5175-0.pdf"
+        self.require_source_fixture(source)
+        categories, _ = pdf_parser.parse_pdf(source)
+        self.assertTrue(categories)
+        for category in categories:
+            units = {
+                ("team", result.get("teamNumber"))
+                if result.get("resultKind") in {"pair", "team"}
+                else ("row", index)
+                for index, result in enumerate(category["results"])
+            }
+            self.assertEqual(len(units), category["declaredStarters"], category["name"])
+        men_2 = next(category for category in categories
+                     if category["name"] == "Herren 2")
+        timo = next(result for result in men_2["results"]
+                    if result["name"] == "MORAWEC Timo")
+        self.assertEqual((timo["club"], timo["timeText"], timo["timeS"]),
+                         ("GRG 19 Billrothstr", "17:32", 1052))
+        self.assertIn("HONECK Konstantin", {result["name"] for result in men_2["results"]})
+        beginners = next(category for category in categories
+                         if category["name"] == "Damen Neulinge")
+        first_team = {result["name"] for result in beginners["results"]
+                      if result.get("rank") == 1}
+        self.assertEqual(first_team, {"MIRTH Mariella", "STOHL Annika"})
+
+    def test_relay_source_count_includes_dns_teams_without_member_names(self):
+        html_source = ROOT / "data" / "raw" / "anne" / "files" / "1618-1.html"
+        self.require_source_fixture(html_source)
+        html_categories = html_parser.parse_relay_document(
+            html_parser.decode(html_source.read_bytes()))
+        for category in html_categories:
+            self.assertEqual(category.get("sourceUnitCount"),
+                             category["declaredStarters"], category["name"])
+
+        pdf_source = ROOT / "data" / "raw" / "anne" / "files" / "3633-1.pdf"
+        self.require_source_fixture(pdf_source)
+        pdf_categories = pdf_parser.parse_relay_pdf(pdf_source)
+        for category in pdf_categories:
+            self.assertEqual(category.get("sourceUnitCount"),
+                             category["declaredStarters"], category["name"])
+
+        duplicated_label_source = (ROOT / "data" / "raw" / "anne" / "files" /
+                                   "3824-3.pdf")
+        self.require_source_fixture(duplicated_label_source)
+        duplicated_categories = pdf_parser.parse_relay_pdf(duplicated_label_source)
+        women_120 = next(category for category in duplicated_categories
+                         if category["name"] == "Damen 120")
+        self.assertEqual(women_120.get("sourceUnitCount"),
+                         women_120["declaredStarters"])
+        self.assertEqual(
+            {result["name"] for result in women_120["results"]
+             if result.get("teamName") == "HSV Ried HSV Ried"},
+            {"Karoline Fischerleitner", "Doris Gittmaier", "Ingrid Gattringer"})
+
+    def test_interleaved_hungarian_hours_and_statuses_survive(self):
+        first_source = ROOT / "data" / "raw" / "anne" / "files" / "2765-0.pdf"
+        dnf_source = ROOT / "data" / "raw" / "anne" / "files" / "2765-6.pdf"
+        self.require_source_fixture(first_source)
+        self.require_source_fixture(dnf_source)
+        first_categories, _ = pdf_parser.parse_pdf(first_source)
+        nyt = next(category for category in first_categories if category["name"] == "NYT")
+        abigel = next(result for result in nyt["results"]
+                      if result["name"] == "Soltész Abigél")
+        self.assertEqual((abigel["rank"], abigel["timeText"], abigel["timeS"]),
+                         (5, "1:42:53", 6173))
+
+        dnf_categories, _ = pdf_parser.parse_pdf(dnf_source)
+        nyk = next(category for category in dnf_categories if category["name"] == "NYK")
+        self.assertEqual(len(nyk["results"]), nyk["declaredStarters"])
+        self.assertEqual(
+            {result["name"]: result["status"] for result in nyk["results"]
+             if result["name"] in {"Fuchs Lívia", "Hites Gergõ"}},
+            {"Fuchs Lívia": "dnf", "Hites Gergõ": "dnf"})
 
     def test_fixed_width_ak_is_orthogonal_to_status(self):
         source = ROOT / "data" / "raw" / "anne" / "files" / "842-0.html"

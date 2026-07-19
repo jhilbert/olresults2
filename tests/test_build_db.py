@@ -27,8 +27,10 @@ class AnneIdentityTests(unittest.TestCase):
         self.assertEqual(build_db.normalize_status("unknown", "Not Finish"), ("dnf", 0))
         self.assertEqual(build_db.normalize_status("unknown", "dis."), ("dsq", 0))
         self.assertEqual(build_db.ANNE_STATUS["overTime"], "dsq")
-        self.assertEqual(build_db.normalize_status("nc", "nc"), ("unknown", 0))
+        self.assertEqual(build_db.normalize_status("nc", "nc"), ("ok", 1))
         self.assertEqual(build_db.normalize_status("dnf", "DNF", True), ("dnf", 1))
+        self.assertFalse(build_db.is_active_anne_result({"classification": "inactive"}))
+        self.assertTrue(build_db.is_active_anne_result({"classification": "classified"}))
         self.assertTrue(build_db.is_vienna_championship_candidate("Wr/NÖ MS Mittel"))
         self.assertTrue(build_db.is_vienna_championship_candidate("Landesmeisterschaften für Wien, NÖ"))
         self.assertFalse(build_db.is_vienna_championship_candidate(
@@ -183,6 +185,17 @@ class AnneIdentityTests(unittest.TestCase):
         self.assertEqual(
             cur.execute("SELECT ranking_basis FROM result_list WHERE id=?", (series,)).fetchone()[0],
             "other")
+
+        for list_id in (score, meos_score, series):
+            for rank, elapsed in ((1, 120), (2, 100)):
+                build_db.insert_result(
+                    cur, stage_id=1, result_list_id=list_id, category="Source",
+                    rank=rank, status="ok", time_s=elapsed,
+                    source="anne-api", observed_name=f"Runner {rank}")
+        build_db.populate_quality_model(cur)
+        self.assertEqual(cur.execute(
+            "SELECT count(*) FROM audit_issue WHERE code='rank_time_inversion'"
+        ).fetchone()[0], 0)
 
     def test_fully_classified_extra_source_row_is_not_a_parser_blocker(self):
         con = sqlite3.connect(":memory:")

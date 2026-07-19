@@ -258,13 +258,15 @@ def classify_family_category(category):
 def normalize_status(status, raw_text=None, out_of_competition=False):
     """Normalize status while keeping OOC as an orthogonal flag.
 
-    Old committed parser output used ``nc`` both for genuine AK/OOC and for
-    an unexplained LiveResult status. Only explicit AK wording proves OOC;
-    an unqualified old ``nc`` therefore becomes ``unknown`` and is audited.
+    Old committed parser output used ``nc`` for the international equivalent
+    of AK/OOC. Keep that source meaning as the orthogonal OOC flag and expose
+    the normalized sporting status as ``ok``.
     """
     raw = str(raw_text if raw_text is not None else status or "").strip()
     ooc = (bool(out_of_competition) or bool(OOC_STATUS_TEXT_RE.fullmatch(raw))
            or bool(OOC_TIME_TEXT_RE.fullmatch(raw)))
+    if str(status or "").casefold() == "nc" or raw.casefold() == "nc":
+        ooc = True
     normalized = status if status in VALID_STATUSES else "unknown"
     # Compatibility for committed parser output created before these source
     # spellings were normalized. This repairs old cached rows at build time
@@ -288,6 +290,16 @@ def normalize_status(status, raw_text=None, out_of_competition=False):
     if ooc and normalized == "unknown":
         normalized = "ok"
     return normalized, int(ooc)
+
+
+def is_active_anne_result(row):
+    """Whether an ANNE row represents a result rather than a removed draft.
+
+    During category changes ANNE can retain an ``inactive`` live row next to
+    the runner's later official result. It is provenance inside ANNE, not a
+    DNS/DNF result and must not become an OLResults competitor entry.
+    """
+    return str(row.get("classification") or "").casefold() != "inactive"
 
 CLUB_JUNK_PREFIX_RE = re.compile(r"^(?:empty|leer|vacant|frei|\.)\s+", re.I)
 
@@ -1867,8 +1879,10 @@ def register_result_list(cur, stage_id, source_document_id, category, category_f
     """Create the stable review unit for one category in one source list."""
     list_id = result_list_id(stage_id, source_document_id, category)
     course = course or {}
+    source_unit_count = course.get("sourceUnitCount")
     fingerprint = hashlib.sha256(json.dumps(
-        rows, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+        {"rows": rows, "sourceUnitCount": source_unit_count},
+        ensure_ascii=False, sort_keys=True, separators=(",", ":"),
         default=str).encode()).hexdigest()
     cur.execute(
         """INSERT OR IGNORE INTO result_list
@@ -1877,7 +1891,8 @@ def register_result_list(cur, stage_id, source_document_id, category, category_f
             course_length_m, course_climb_m, course_controls, input_fingerprint)
            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (list_id, stage_id, source_document_id, category, category_full,
-         declared_starters, normalized_source_unit_count(rows), len(rows or []),
+         declared_starters, (source_unit_count if source_unit_count is not None
+                             else normalized_source_unit_count(rows)), len(rows or []),
          ("other" if (any(row.get("rankingBasis") == "other" for row in (rows or []))
                       # Cup end standings expose one representative stage
                       # time per row, but rank by the accumulated points over
@@ -2054,7 +2069,8 @@ def load_anne_results(cur, events, persons, stage_ids):
                                 (s["id"], eid, s.get("number", 1), s.get("title"),
                                  s.get("dateFrom"), s.get("location")))
                     stage_ids.add(s["id"])
-        rows = json.loads(path.read_text())
+        rows = [row for row in json.loads(path.read_text())
+                if is_active_anne_result(row)]
         # the API can return live and official lists side by side:
         # keep only the most authoritative type per stage+category
         priority = {"official": 0, "unofficial": 1, "live": 2}
@@ -2642,6 +2658,7 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                     "courseLengthM": cat.get("courseLengthM"),
                     "courseClimbM": cat.get("courseClimbM"),
                     "courseControls": cat.get("courseControls"),
+                    "sourceUnitCount": cat.get("sourceUnitCount"),
                 })
             if classify_family_category(cat["name"]) == "family":
                 grouped = []
@@ -3043,6 +3060,19 @@ def populate_quality_model(cur):
                     f"Zeit {observed_time!r} ist in der Quelle vorhanden, wurde aber nicht als Zeit gelesen.",
                     result_id, auto_resolvable=True)
                 continue
+            if ((observed_status or "").strip().casefold() in ("", "unknown")
+                    and not (observed_time or "").strip()):
+                # The parser retained the named source row correctly, but
+                # the source itself leaves its result cell blank (confirmed
+                # in qualitative ``Gut`` children/family classes). There is
+                # no parser repair to perform and no defensible automatic
+                # DNS/MP inference; present it as source clarification work
+                # rather than a hard parser blocker.
+                add_audit_issue(
+                    cur, list_id, "source_value_missing", "warning",
+                    "Die Quelle führt den Eintrag an, lässt Rang, Zeit und Status aber leer.",
+                    result_id)
+                continue
             add_audit_issue(
                 cur, list_id, "unknown_status", "blocker",
                 f"Status {observed_status or '(leer)'} ist nicht eindeutig normalisiert.",
@@ -3088,7 +3118,12 @@ def populate_quality_model(cur):
         # Score/points races are intentionally ranked by points, often with a
         # time-limit penalty.  A faster elapsed time can therefore have a
         # worse rank and is not evidence of a parser inversion.
-        best_so_far = None if ranking_basis == "time" else False
+        # ANNE's rank is source-native authoritative data rather than a
+        # parser interpretation.  Special series and team scoring can rank
+        # by rules not exposed in the result payload, so a time inversion is
+        # not an actionable parser finding there.
+        best_so_far = (None if ranking_basis == "time" and source_type != "anne-api"
+                       else False)
         for rank, time_s in ranked:
             if best_so_far is False:
                 break

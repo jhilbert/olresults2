@@ -391,13 +391,16 @@ def parse_bracket_html(html_text):
             # isn't reliably at a fixed position - scan for whichever of the
             # two it actually is, preferring a real time over a status word
             values = [c.strip().lstrip("+") for c in cells[2:]]
-            value_in_club_column = (not values and
-                                    (parse_status(club) is not None
-                                     or parse_time_loose(club) is not None))
+            value_in_club_column = (
+                parse_status(club) is not None
+                or parse_time_loose(club) is not None)
             if value_in_club_column:
                 # Club-less MeOS result tables collapse an unranked status or
                 # a ranked time into the second remaining cell (the nominal
-                # club slot).
+                # club slot). This also happens when later cells still hold
+                # ``Behind``/``Time lost`` values: the first time is the real
+                # finish, never a time-shaped club name (events 2440, 2633,
+                # 5038 and seven more saved bracket exports).
                 # DNS rows are printed below the ``(started / entered)``
                 # count and therefore remain visible but are not part of the
                 # declared competitor count.
@@ -490,6 +493,8 @@ def parse_relay_document(html_text):
 
     def flush():
         nonlocal pending_team
+        if pending_team and current is not None:
+            current["sourceUnitCount"] = current.get("sourceUnitCount", 0) + 1
         if not pending_team or not pending_team["members"]:
             pending_team = None
             return
@@ -694,11 +699,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0, help="only process N files (0 = all)")
     ap.add_argument("--event-id", type=int, help="only process one ANNE event")
+    ap.add_argument("--cached", action="store_true",
+                    help="reparse only already downloaded HTML files; never fetch")
     ap.add_argument("--attachment-manifest", type=Path,
                     help="only process attachments listed by the current incremental sync")
     ap.add_argument("--force-download", action="store_true",
                     help="re-download selected source files even when cached")
     args = ap.parse_args()
+    if args.cached and args.force_download:
+        ap.error("--cached and --force-download are mutually exclusive")
 
     FILES.mkdir(parents=True, exist_ok=True)
     OUT.mkdir(parents=True, exist_ok=True)
@@ -721,8 +730,12 @@ def main():
             empty += 1
             continue
         out_path = OUT / f"{eid}-{n}.json"
+        html_path = FILES / f"{eid}-{n}.html"
         try:
-            data = fetch(f["url"], FILES / f"{eid}-{n}.html", args.force_download)
+            if args.cached and not html_path.exists():
+                empty += 1
+                continue
+            data = fetch(f["url"], html_path, args.force_download)
             text = decode(data)
             list_type = detect_list_type(f["fileName"], text, sole_attachment)
             if list_type == "overall":
