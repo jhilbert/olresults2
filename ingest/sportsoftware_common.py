@@ -270,17 +270,29 @@ JUNK_NAME_PATTERNS = (
     # the same PDF y-coordinate.  Column assignment then leaves only this
     # venue/title fragment in the nominal Name field.
     re.compile(r"^Etappe\s+\d+\b", re.I),
+    # International MTBO exports repeat a footer such as
+    # ``Results (stage 1 - Sprint) | Page 2`` on every page.  In narrow PDF
+    # columns that footer has exactly the same x positions as a result row;
+    # the title fragment consequently landed in Name and ``Page N`` in Zeit.
+    re.compile(r"^Results\s*\(\s*stage\b", re.I),
 )
 
 # German status strings SportSoftware prints in the time column
 STATUS_MAP = {
-    "aufg": "dnf", "aufgegeben": "dnf",
+    "aufg": "dnf", "aufgegeben": "dnf", "not finish": "dnf",
+    "verletzt": "dnf",
     "fehlst": "mp", "fehlstempel": "mp",
-    "disq": "dsq", "disqu": "dsq", "disqualifiziert": "dsq",
+    "missing punch": "mp", "posten fehlt": "mp", "posten fehlen": "mp",
+    "ziel fehlt": "mp",
+    "dis": "dsq", "disq": "dsq", "disqu": "dsq", "disqualifiziert": "dsq",
     # Czech-localized OE2010 result exports use ``disk``.
     "disk": "dsq",
     "n. angetr.": "dns", "n.angetr.": "dns", "nicht angetreten": "dns",
     "n ang": "dns", "n.ang": "dns", "nicht ang": "dns",
+    # A narrow PDF time column can clip the leading ``N `` and leave the
+    # otherwise standalone status token ``Ang``. Token-boundary matching in
+    # parse_status keeps this from matching ordinary words.
+    "ang": "dns",
     "n.gest": "dns", "nicht gestartet": "dns",
     # OE2010's old HTML export uses OMT ("omitted") for a listed runner
     # who did not start.  It is equivalent to DNS for result purposes.
@@ -649,6 +661,8 @@ def load_clubs():
         "naturfreunde villach-orienteering": "Naturfreunde Villach - Orienteering",
         "naturfreunde villach - orie": "Naturfreunde Villach - Orienteering",
         "naturfreunde villach": "Naturfreunde Villach - Orienteering",
+        "naturfreunde bad vöslau": "Naturfreunde Bad Vöslau",
+        "sv mölten raiffeisen amateursportverein": "SV Mölten Raiffeisen ASV",
         "lk kompass innsbruck-imst": "Laufklub Kompass Innsbruck Imst",
         "askö olc ebental": "ASKÖ OLC Ebental",
         "oc c. budejovice": "OC C. Budejovice",
@@ -669,6 +683,11 @@ def load_clubs():
         "bg freistadt": "BG Freistadt",
         "europagym auhof": "Europagym Auhof",
         "brg solar city linz": "BRG Solar City Linz",
+        # The school name is printed in full in result PDFs, but the current
+        # club/school snapshots often contain only the WN abbreviation.  The
+        # full spelling is required as a parsing boundary when it overflows
+        # into the adjacent time/score columns.
+        "bg/brg zehnergasse wiener neustadt": "BG/BRG Zehnergasse Wiener Neustadt",
         "mms freistadt": "MMS Freistadt",
         "tnms stadl-paura": "TNMS Stadl-Paura",
         "ms schwertberg": "MS Schwertberg",
@@ -817,11 +836,12 @@ def expand_pair_result(result, category=None):
 
 STATUS_TAIL_RE = re.compile(
     r"(?i)(n\.?\s*ang\.?|n\.?\s*gest\.?|nicht\s+ang\.?|nicht angetreten|"
-    r"nicht gestartet|aufg\.?|fehlst\.?|"
-    r"disq(?:u)?\.?|"
+    r"nicht gestartet|aufg\.?|not\s+finish(?:ed)?|verletzt|"
+    r"fehlst\.?|missing\s+punch|\d+\s+posten\s+fehl(?:t|en)|ziel\s+fehlt|"
+    r"dis\.?|disq(?:u)?\.?|"
     r"disk\.?|"
     r"ohne wertung|außer konkurrenz|ausser konkurrenz|wertungsfrei|AK|NC|"
-    r"dnf|dns|dsq|mp|omt|gut|zeitüb\.?|zeitüberschreitung)\s*$")
+    r"dnf|dns|dsq|mp|omt|gut|teilgenommen|zeitüb\.?|zeitüberschreitung)\s*$")
 
 
 def parse_flow_row(text, clubs):

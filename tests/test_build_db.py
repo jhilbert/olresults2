@@ -21,6 +21,12 @@ class AnneIdentityTests(unittest.TestCase):
         self.assertEqual(build_db.normalize_status("nc", "AK"), ("ok", 1))
         self.assertEqual(build_db.normalize_status("ok", "(39:58)"), ("ok", 1))
         self.assertEqual(build_db.normalize_status("unknown", "OMT"), ("dns", 0))
+        self.assertEqual(build_db.normalize_status("unknown", "n. Ang."), ("dns", 0))
+        self.assertEqual(build_db.normalize_status("unknown", "Missing Punch"), ("mp", 0))
+        self.assertEqual(build_db.normalize_status("unknown", "2 Posten fehlen"), ("mp", 0))
+        self.assertEqual(build_db.normalize_status("unknown", "Not Finish"), ("dnf", 0))
+        self.assertEqual(build_db.normalize_status("unknown", "dis."), ("dsq", 0))
+        self.assertEqual(build_db.ANNE_STATUS["overTime"], "dsq")
         self.assertEqual(build_db.normalize_status("nc", "nc"), ("unknown", 0))
         self.assertEqual(build_db.normalize_status("dnf", "DNF", True), ("dnf", 1))
         self.assertTrue(build_db.is_vienna_championship_candidate("Wr/NÖ MS Mittel"))
@@ -89,6 +95,56 @@ class AnneIdentityTests(unittest.TestCase):
         self.assertEqual(cur.execute(
             "SELECT count(*) FROM audit_issue WHERE code = 'missing_ranking'"
         ).fetchone()[0], 0)
+
+    def test_score_ranking_does_not_raise_time_inversion(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id, title) VALUES (1, 'Score-OL')")
+        cur.execute("INSERT INTO stage (id, event_id, number) VALUES (1, 1, 1)")
+        cur.execute(
+            "INSERT INTO source_document (id,event_id,source_type) VALUES ('doc',1,'sportsoftware-pdf')")
+        rows = [
+            {"name": "Anna Punkte", "rank": 1, "timeS": 2700, "scoreText": "300"},
+            {"name": "Berta Schnell", "rank": 2, "timeS": 2400, "scoreText": "250"},
+        ]
+        list_id = build_db.register_result_list(
+            cur, 1, "doc", "Damen", "Damen", 2, rows)
+        for row in rows:
+            build_db.insert_result(
+                cur, stage_id=1, result_list_id=list_id, category="Damen",
+                rank=row["rank"], status="ok", time_s=row["timeS"],
+                source="sportsoftware-pdf", observed_name=row["name"])
+        build_db.populate_quality_model(cur)
+        self.assertEqual(
+            cur.execute("SELECT ranking_basis FROM result_list").fetchone()[0], "score")
+        self.assertEqual(cur.execute(
+            "SELECT count(*) FROM audit_issue WHERE code='rank_time_inversion'"
+        ).fetchone()[0], 0)
+
+    def test_fully_classified_extra_source_row_is_not_a_parser_blocker(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id, title) VALUES (1, 'Fehlerhafter Quellkopf')")
+        cur.execute("INSERT INTO stage (id, event_id, number) VALUES (1, 1, 1)")
+        cur.execute(
+            "INSERT INTO source_document (id,event_id,source_type) VALUES ('doc',1,'sportsoftware-pdf')")
+        rows = [
+            {"name": "Anna A", "rank": 1, "timeS": 100, "status": "ok"},
+            {"name": "Berta B", "rank": 2, "timeS": 110, "status": "ok"},
+            {"name": "Clara C", "rank": 3, "timeS": 120, "status": "ok"},
+        ]
+        list_id = build_db.register_result_list(cur, 1, "doc", "Damen", "Damen", 2, rows)
+        for row in rows:
+            build_db.insert_result(
+                cur, stage_id=1, result_list_id=list_id, category="Damen",
+                rank=row["rank"], status="ok", time_s=row["timeS"],
+                source="sportsoftware-pdf", observed_name=row["name"])
+        build_db.populate_quality_model(cur)
+        self.assertEqual(cur.execute(
+            "SELECT code || ':' || severity FROM audit_issue"
+        ).fetchone()[0], "source_count_anomaly:warning")
 
     def test_normalized_source_count_groups_expanded_team_members(self):
         rows = [

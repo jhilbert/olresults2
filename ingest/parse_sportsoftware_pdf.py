@@ -582,10 +582,134 @@ def normalize_broken_result_value(value):
     """Repair glyph spacing produced by a few old embedded PDF fonts."""
     value = (value or "").strip()
     value = re.sub(r"^(\d)\s+(\d:\d{2}(?::\d{2})?)$", r"\1\2", value)
+    value = re.sub(r"\b(\d{1,2}):\s+(\d{2}):(\d{2})\b", r"\1:\2:\3", value)
+    value = re.sub(r"\b(\d{1,2}):(\d)\s+(\d):(\d{2})\b", r"\1:\2\3:\4", value)
     value = re.sub(r"\bF\s+ehlst\b", "Fehlst", value, flags=re.I)
     value = re.sub(r"\bA\s+ufg\b", "Aufg", value, flags=re.I)
     value = re.sub(r"\bD\s+isqu\b", "Disqu", value, flags=re.I)
     return value
+
+
+def repair_interleaved_club_value(club, value, force=False):
+    """Recover a long club suffix interleaved with the result value.
+
+    Some embedded PDF fonts place a long Verein value and the adjacent Zeit
+    value at the same x positions, so pdfplumber orders their glyphs like
+    ``INNSBRUCK 3IM8:S2T8`` (``INNSBRUCK IMST`` + ``38:28``) or
+    ``Orienteeri1n2g:13,00`` (``Orienteering`` + ``12:13,00``).  Match the
+    observed club prefix against the committed club dictionary, remove the
+    missing suffix as a character subsequence, and keep the remaining
+    time/status.  Requiring several suffix characters and a parseable result
+    prevents this from changing ordinary free text.
+    """
+    club = re.sub(r"\s+", " ", (club or "")).strip()
+    value = (value or "").strip()
+    if (not club or not value
+            or (not force and (parse_time_loose(value) is not None or parse_status(value)))):
+        return club, value
+
+    def letters(text):
+        folded = (text or "").casefold().replace("ä", "ae").replace("ö", "oe") \
+            .replace("ü", "ue").replace("ß", "ss")
+        return "".join(ch for ch in folded if ch.isalpha())
+
+    club_letters = letters(club)
+    candidates = []
+    for spelling, canonical in CLUBS.items():
+        if re.search(r"(?i)\bempty\b", canonical):
+            continue
+        full_letters = letters(spelling)
+        if not full_letters.startswith(club_letters) or len(full_letters) <= len(club_letters):
+            continue
+        if spelling.casefold().startswith(club.casefold()):
+            suffix = "".join(
+                ch.casefold() for ch in spelling[len(club):] if ch.isalpha())
+        else:
+            suffix = full_letters[len(club_letters):]
+        kept = []
+        at = consumed = 0
+        for char in value:
+            if at < len(suffix) and char.isalpha() and char.casefold() == suffix[at]:
+                at += 1
+                consumed += 1
+            else:
+                kept.append(char)
+        # Truncated PDF columns need not contain the final suffix letters,
+        # but short accidental matches are too weak to be trustworthy.
+        if consumed < (1 if len(club_letters) >= 12 else 5):
+            continue
+        cleaned = re.sub(r"\s+", " ", "".join(kept)).strip()
+        cleaned = re.sub(r"^[\s\-–—]+|[\s\-–—]+$", "", cleaned)
+        cleaned = normalize_broken_result_value(cleaned)
+        status = parse_status(cleaned)
+        # In a handful of embedded fonts the final status character and the
+        # final club-suffix character occupy the exact same glyph position;
+        # pdfplumber returns it only once.  ``Gu`` + suffix ``...t`` and
+        # ``Fehls`` + ``...t`` are therefore still unambiguous.
+        if not status and suffix and parse_status(cleaned + suffix[-1]):
+            cleaned += suffix[-1]
+            status = parse_status(cleaned)
+        time_match = re.search(r"(?<!\d)(\d{1,3}):(\d{2})(?::(\d{2}))?", cleaned)
+        if time_match:
+            repaired = time_match.group(0)
+        elif ":" in cleaned:
+            parts = cleaned.split(":")
+            digit_parts = ["".join(ch for ch in part if ch.isdigit()) for part in parts]
+            if (len(digit_parts) >= 2 and digit_parts[0] and len(digit_parts[1]) >= 2):
+                repaired = f"{digit_parts[0][-3:]}:{digit_parts[1][:2]}"
+                if len(digit_parts) >= 3 and len(digit_parts[2]) >= 2:
+                    repaired += f":{digit_parts[2][:2]}"
+            else:
+                continue
+        elif status:
+            repaired = cleaned
+        else:
+            continue
+        candidates.append((consumed, len(suffix), canonical, repaired))
+
+    if not candidates:
+        return club, value
+    # Prefer the candidate that explains the most overlapping glyphs.  For a
+    # tie, retain the longest canonical spelling: the club dictionary also
+    # contains historically clipped aliases (``... - Oriente``), but this
+    # repair has just proven the corresponding full-name continuation.
+    _consumed, _suffix_len, canonical, repaired = max(
+        candidates, key=lambda item: (item[0], item[1]))
+    return canonical, normalize_broken_result_value(repaired)
+
+
+def repair_result_club_and_value(club, value):
+    """Repair both normal overflow and a value already embedded in Verein."""
+    repaired_club, repaired_value = repair_interleaved_club_value(club, value)
+    if repaired_club != club or repaired_value != value:
+        return repaired_club, repaired_value
+    # A status can start immediately after an otherwise complete club in the
+    # Verein cell while its tail lands in Zeit (``... KlosterneuburgN`` +
+    # ``Ang``).  Prefer the longest exact canonical prefix.
+    exact_prefixes = [
+        canonical for canonical in set(CLUBS.values())
+        if "empty" not in canonical.casefold()
+        and (club or "").casefold().startswith(canonical.casefold())
+        and len(club or "") > len(canonical)
+    ]
+    for canonical in sorted(exact_prefixes, key=len, reverse=True):
+        combined = f"{club[len(canonical):]} {value}".strip()
+        status = parse_status(combined)
+        if status:
+            display = {"dns": "N Ang", "dnf": "Aufg", "mp": "Fehlst",
+                       "dsq": "Disqu", "ok": combined}.get(status, combined)
+            return canonical, display
+    # Sometimes the column boundary falls *inside* the overlapping text, so
+    # the first time digits are already attached to Verein and only the tail
+    # sits in Zeit (``Kaltenbr1u:n0n`` + ``2:33`` -> ``1:02:33``).
+    intrusion = re.search(r"\d", club or "")
+    if not intrusion:
+        return repaired_club, repaired_value
+    prefix = club[:intrusion.start()].rstrip()
+    overflow = club[intrusion.start():]
+    combined = f"{overflow} {value}".strip()
+    fixed_club, fixed_value = repair_interleaved_club_value(prefix, combined, force=True)
+    return (fixed_club, fixed_value) if fixed_club != prefix else (club, value)
 
 
 def parse_mannschaft_prefix(line_words, first_member_x):
@@ -613,6 +737,14 @@ def parse_mannschaft_prefix(line_words, first_member_x):
         # ("N Ang", "Fehlst", "Disqu", ...).
         for width in (1, 2, 3):
             candidate = " ".join(tokens[-width:])
+            # Some clipped result cells contain only ``Ang`` and are valid
+            # DNS aliases.  In a normal Mannschaft row, however, ``N Ang``
+            # is the complete two-token status; do not leave its ``N`` stuck
+            # to the club while trying the shortest suffix first.
+            if (width == 1 and candidate.casefold().rstrip(".") == "ang"
+                    and len(tokens) >= 2
+                    and tokens[-2].casefold().rstrip(".") == "n"):
+                continue
             if candidate and parse_status(candidate):
                 value_at, value_text = len(tokens) - width, candidate
                 break
@@ -1230,6 +1362,7 @@ def parse_pdf(path, allow_inline_splits=False):
 
                     club_text = (school_club if school_club is not None else
                                  (rec.get("Verein") or rec.get("Verein/Schule") or "")).strip()
+                    club_text, time_text = repair_result_club_and_value(club_text, time_text)
                     # In multi-stage totals the first stage column begins
                     # directly after Verein. A long club can overflow into
                     # it (``HSV OL Wiener Neustadt 35:34``); keep the prefix

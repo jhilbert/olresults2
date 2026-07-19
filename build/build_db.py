@@ -95,6 +95,7 @@ CREATE TABLE result_list (
     declared_starters INTEGER,
     parsed_entries INTEGER NOT NULL DEFAULT 0,
     parsed_rows INTEGER NOT NULL DEFAULT 0,
+    ranking_basis TEXT NOT NULL DEFAULT 'time', -- time|score|other
     course_length_m INTEGER,
     course_climb_m INTEGER,
     course_controls INTEGER,
@@ -225,6 +226,10 @@ ANNE_STATUS = {
     "disqualified": "dsq",
     "missingPunch": "mp",
     "didNotStart": "dns",
+    # ANNE/IOF distinguishes exceeding the maximum time from an ordinary
+    # finish. The public model intentionally uses the smaller status set
+    # shared by all sources; its equivalent is the existing time-limit DSQ.
+    "overTime": "dsq",
 }
 
 VALID_STATUSES = {"ok", "dnf", "dsq", "mp", "dns", "unknown"}
@@ -261,10 +266,25 @@ def normalize_status(status, raw_text=None, out_of_competition=False):
     ooc = (bool(out_of_competition) or bool(OOC_STATUS_TEXT_RE.fullmatch(raw))
            or bool(OOC_TIME_TEXT_RE.fullmatch(raw)))
     normalized = status if status in VALID_STATUSES else "unknown"
-    # Compatibility for cached legacy parses made before the SportSoftware
-    # parser learned OE2010's OMT (= omitted / did not start) spelling.
-    if normalized == "unknown" and re.fullmatch(r"omt\.?", raw, re.I):
-        normalized = "dns"
+    # Compatibility for committed parser output created before these source
+    # spellings were normalized. This repairs old cached rows at build time
+    # without requiring an expensive reparse of unrelated PDFs.
+    if normalized == "unknown":
+        legacy_status_patterns = (
+            (r"omt\.?", "dns"),
+            (r"(?:n\.?\s*)?ang\.?", "dns"),
+            (r"missing\s+punch", "mp"),
+            (r"\d+\s+posten\s+fehl(?:t|en)", "mp"),
+            (r"ziel\s+fehlt", "mp"),
+            (r"not\s+finish(?:ed)?", "dnf"),
+            (r"verletzt", "dnf"),
+            (r"dis\.?", "dsq"),
+            (r"teilgenommen", "ok"),
+        )
+        for pattern, mapped in legacy_status_patterns:
+            if re.fullmatch(pattern, raw, re.I):
+                normalized = mapped
+                break
     if ooc and normalized == "unknown":
         normalized = "ok"
     return normalized, int(ooc)
@@ -1853,11 +1873,12 @@ def register_result_list(cur, stage_id, source_document_id, category, category_f
     cur.execute(
         """INSERT OR IGNORE INTO result_list
            (id, stage_id, source_document_id, category, category_full,
-            declared_starters, parsed_entries, parsed_rows,
+            declared_starters, parsed_entries, parsed_rows, ranking_basis,
             course_length_m, course_climb_m, course_controls, input_fingerprint)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (list_id, stage_id, source_document_id, category, category_full,
          declared_starters, normalized_source_unit_count(rows), len(rows or []),
+         "score" if any(row.get("scoreText") not in (None, "") for row in (rows or [])) else "time",
          course.get("length") or course.get("courseLengthM"),
          course.get("climb") or course.get("courseClimbM"),
          course.get("controlCount") or course.get("courseControls"), fingerprint))
@@ -2877,7 +2898,7 @@ def populate_quality_model(cur):
     lists = cur.execute(
         """SELECT rl.id, rl.stage_id, rl.category, rl.category_full,
                   rl.declared_starters, rl.input_fingerprint,
-                  rl.parsed_entries, rl.parsed_rows, sd.source_type
+                  rl.parsed_entries, rl.parsed_rows, sd.source_type, rl.ranking_basis
              FROM result_list rl JOIN source_document sd ON sd.id = rl.source_document_id"""
     ).fetchall()
     # Keep the result rows which survived cross-source deduplication for
@@ -2887,7 +2908,7 @@ def populate_quality_model(cur):
     # persist only a subset (or no rows at all) without being misparsed.
     list_rows = {}
     for (list_id, _stage_id, _category, _category_full, _declared, _fingerprint,
-         _source_entries, _source_rows, _source_type) in lists:
+         _source_entries, _source_rows, _source_type, _ranking_basis) in lists:
         rows = cur.execute(
             """SELECT id, observed_name, result_kind, rank, status, time_s, club, note,
                       team_number, team_name
@@ -2896,7 +2917,7 @@ def populate_quality_model(cur):
         list_rows[list_id] = (rows, persisted_entries)
 
     for (list_id, stage_id, category, category_full, declared, fingerprint,
-         source_entries, source_rows, source_type) in lists:
+         source_entries, source_rows, source_type, ranking_basis) in lists:
         rows, _persisted_entries = list_rows[list_id]
         family_state = classify_family_category(category)
         if family_state == "ambiguous":
@@ -2904,9 +2925,28 @@ def populate_quality_model(cur):
                 cur, list_id, "ambiguous_family_category", "warning",
                 f"Kurzklasse {category!r}: Family-Kategorie oder reguläre Klasse bestätigen.")
         if declared is not None and declared != source_entries:
-            add_audit_issue(
-                cur, list_id, "entry_count_mismatch", "blocker",
-                f"Quelle nennt {declared} Starts, geparst wurden {source_entries} Einträge.")
+            unexplained_extra = cur.execute(
+                """SELECT COUNT(*) FROM result
+                   WHERE result_list_id = ? AND rank IS NULL AND status = 'ok'
+                     AND out_of_competition = 0
+                     AND result_kind IN ('individual', 'family')""",
+                (list_id,)).fetchone()[0]
+            if source_entries > declared and unexplained_extra == 0:
+                # The source itself can print more fully classified rows than
+                # its category header claims (confirmed examples: ``DB-Kurz
+                # (4)`` followed by ranks 1..5, and relay headers omitting an
+                # MP/DNF team).  Keep the contradiction visible, but do not
+                # present correct parsed results as a parser blocker.
+                add_audit_issue(
+                    cur, list_id, "source_count_anomaly", "warning",
+                    f"Klassenkopf nennt {declared} Starts, die Quelle enthält aber "
+                    f"{source_entries} vollständig klassifizierte Ergebnis-Einträge.")
+            else:
+                add_audit_issue(
+                    cur, list_id, "entry_count_mismatch", "blocker",
+                    f"Quelle nennt {declared} Starts, erfasst sind {source_entries} "
+                    "Ergebnis-Einträge. Originalquelle auf nicht angeführte DNS/DNF "
+                    "oder eine Parserlücke prüfen.")
 
         timed_rows, ranked_rows = cur.execute(
             """SELECT SUM(time_s IS NOT NULL), SUM(rank IS NOT NULL)
@@ -2986,8 +3026,13 @@ def populate_quality_model(cur):
                  AND time_s IS NOT NULL AND out_of_competition = 0
                  AND result_kind NOT IN ('relay', 'family')
                GROUP BY rank ORDER BY rank""", (list_id,)).fetchall()
-        best_so_far = None
+        # Score/points races are intentionally ranked by points, often with a
+        # time-limit penalty.  A faster elapsed time can therefore have a
+        # worse rank and is not evidence of a parser inversion.
+        best_so_far = None if ranking_basis == "time" else False
         for rank, time_s in ranked:
+            if best_so_far is False:
+                break
             if best_so_far is not None and time_s < best_so_far:
                 add_audit_issue(
                     cur, list_id, "rank_time_inversion", "warning",
@@ -3002,7 +3047,7 @@ def populate_quality_model(cur):
     fingerprints = {
         list_id: fingerprint
         for (list_id, _stage_id, _cat, _category_full, _declared, fingerprint,
-             _source_entries, _source_rows, _source_type) in lists
+             _source_entries, _source_rows, _source_type, _ranking_basis) in lists
     }
     for assertion in assertions:
         if not isinstance(assertion, dict):

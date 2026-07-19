@@ -37,6 +37,68 @@ class RelayStructureTests(unittest.TestCase):
         self.assertEqual(parse_time("114:08"), 6848)
         self.assertEqual(parse_time("136:54"), 8214)
         self.assertEqual(parse_time("1:54:08"), 6848)
+        self.assertEqual(parse_status("Ang"), "dns")
+        self.assertEqual(parse_status("Missing Punch"), "mp")
+        self.assertEqual(parse_status("2 Posten fehlen"), "mp")
+        self.assertEqual(parse_status("Not Finish"), "dnf")
+        self.assertEqual(parse_status("dis."), "dsq")
+
+    def test_interleaved_club_suffix_recovers_time_and_status(self):
+        repair = pdf_parser.repair_interleaved_club_value
+        self.assertEqual(
+            repair("ORIENTEERING", "INNSBRUCK 3IM8:S2T8"),
+            ("Orienteering Innsbruck Imst", "38:28"))
+        self.assertEqual(
+            repair("ORIENTEERING", "INNSBRUCKF IeMhSlsTt"),
+            ("Orienteering Innsbruck Imst", "Fehlst"))
+        self.assertEqual(
+            repair("Naturfreunde Villach", "- Orie1n3te:37,05"),
+            ("Naturfreunde Villach - Orienteering", "13:37"))
+        self.assertEqual(
+            repair("BG/BRG Zehnergasse", "Wie3n7e:4r0 Neus140"),
+            ("BG/BRG Zehnergasse Wiener Neustadt", "37:40"))
+        self.assertEqual(
+            repair("Naturfreunde Bad", "Vöslau, 2R9e:j3o9i,00"),
+            ("Naturfreunde Bad Vöslau", "29:39"))
+        self.assertEqual(
+            repair("SV MÖLTEN RAIFFEISEN", "AM1A:3T0E:5U9RSP"),
+            ("SV Mölten Raiffeisen ASV", "1:30:59"))
+        self.assertEqual(
+            pdf_parser.repair_result_club_and_value(
+                "SKV OLG Deutsch Kaltenbr1u:n0n", "2:33"),
+            ("SKV OLG Deutsch Kaltenbrunn", "1:02:33"))
+        self.assertEqual(
+            pdf_parser.repair_result_club_and_value(
+                "Orienteering KlosterneuburgN", "Ang"),
+            ("Orienteering Klosterneuburg", "N Ang"))
+
+    def test_pdf_overflow_repairs_real_rows_and_drops_stage_footers(self):
+        fixtures = {
+            "1692-1.pdf": ("Maximilian Egger", "dnf", None,
+                           "Laufklub Kompass Innsbruck Imst"),
+            "3999-0.pdf": ("Reiner Matthias", "ok", 817,
+                           "Naturfreunde Villach - Orienteering"),
+            "4626-4.pdf": ("Malea Fritsch", "ok", 2308,
+                           "Orienteering Innsbruck Imst"),
+        }
+        for file_name, expected in fixtures.items():
+            with self.subTest(source=file_name):
+                source = ROOT / "data" / "raw" / "anne" / "files" / file_name
+                self.require_source_fixture(source)
+                categories, _ = pdf_parser.parse_pdf(source)
+                result = next(
+                    row for category in categories for row in category["results"]
+                    if row["name"] == expected[0])
+                self.assertEqual(
+                    (result["status"], result.get("timeS"), result["club"]),
+                    expected[1:])
+
+        footer_source = ROOT / "data" / "raw" / "anne" / "files" / "2075-0.pdf"
+        self.require_source_fixture(footer_source)
+        categories, _ = pdf_parser.parse_pdf(footer_source)
+        self.assertFalse(any(
+            row["name"].startswith("Results (stage")
+            for category in categories for row in category["results"]))
 
     @classmethod
     def setUpClass(cls):
