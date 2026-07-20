@@ -24,6 +24,18 @@ const isBahn = (cat) => /^bahn/i.test((cat || "").trim());
 // viertelfinale|halbfinale|b-finale part of EXCLUDE_CAT_RE in build_db.py.
 const isKoHeat = (cat) => /viertelfinale|halbfinale|b-finale/i.test((cat || "").trim());
 
+// A "family" result_kind row never has a person_id (see fetchPodiums), but
+// some family/group entries still slip through as result_kind='individual'
+// with a person record whose "name" is really the group label ("Familie
+// Raffeiner", "Fam. Kubanek", "Benjamin+Samuel Pauser+Rausböck", "Nina + Leo
+// Madl", "... + Begleitung ..."), so they resolve to a real person_id and
+// would otherwise appear as an individual club member. Filters these out of
+// any "real runners" listing (club roster, member counts) by name pattern -
+// a display-layer heuristic, not a fix for the underlying identity data.
+const isFamilyPlaceholderName = (name) => /^fam(ilie|\.|illie|ille)?\b|\+|begleit| und /i.test(name || "");
+const NOT_FAMILY_PLACEHOLDER_SQL =
+  `p.name NOT LIKE 'Fam%' AND p.name NOT LIKE '%+%' AND p.name NOT LIKE '%Begleit%' AND p.name NOT LIKE '% und %'`;
+
 // Rough age-group read of a category name, for the event page's ÖM/ÖSTM
 // "Jugend"/"Senioren" badge only - a display hint, not authoritative
 // (the real eligibility computation lives in build_db.py and is already
@@ -550,7 +562,13 @@ function renderRunnerResultsTable(rows) {
 // such toggle, so it just concatenates both halves back together.
 // withChangeButton mirrors clubDetailHtml: only the nav page has a picker
 // to return to.
-function runnerDetailHtml(id, year, { withChangeButton } = {}) {
+// Just the identifying part - name, "Läufer:in ändern", club/birth subtitle
+// - independent of any year/Ansicht filter, so it renders byte-identical
+// whether the Läufer:innen page is showing "Ergebnisse" or "Medaillenspiegel
+// (Einzeln)". Both runnerDetailHtml (below) and viewRunnersPage's medals
+// branch build their header through this one function so the two can never
+// drift apart again.
+function runnerHeaderHtml(id, { withChangeButton } = {}) {
   let [p] = query("SELECT * FROM person WHERE id = ?", [id]);
   if (!p) {
     const [redirect] = query("SELECT new_id FROM person_redirect WHERE old_id = ?", [id]);
@@ -560,6 +578,21 @@ function runnerDetailHtml(id, year, { withChangeButton } = {}) {
 
   const dw = disciplineWhere("e.sport_type");
   const allRows = fetchRunnerRows(p.id, dw);
+  const clubs = [...new Set(allRows.map((r) => r.club).filter(Boolean))].slice(0, 3);
+
+  const html = `
+    <div class="cat-head">
+      <h1>${esc(p.name)}</h1>
+      ${withChangeButton ? `<button class="change-link" data-clear="runner">Läufer:in ändern</button>` : ""}
+    </div>
+    <p class="sub">${clubs.map(esc).join(" · ")}${p.year_of_birth ? ` · Jg. ${p.year_of_birth}` : ""}</p>`;
+  return { p, dw, allRows, html };
+}
+
+function runnerDetailHtml(id, year, { withChangeButton } = {}) {
+  const h = runnerHeaderHtml(id, { withChangeButton });
+  if (!h) return null;
+  const { p, allRows } = h;
 
   const years = [...new Set(allRows.map((r) => seasonYear(r.stage_date || r.date_from, r.sport_type)).filter(Boolean))]
     .sort((a, b) => b - a);
@@ -569,17 +602,10 @@ function runnerDetailHtml(id, year, { withChangeButton } = {}) {
   const finished = countable.filter((r) => r.status === "ok" && r.rank != null && !isKoHeat(r.category));
   const wins = finished.filter((r) => r.rank === 1).length;
   const podiums = finished.filter((r) => r.rank <= 3).length;
-  const clubs = [...new Set(allRows.map((r) => r.club).filter(Boolean))].slice(0, 3);
 
   const chip = (val, label) => `<a class="chip ${(!year && !val) || year === val ? "active" : ""}"
       href="#/runner/${p.id}${val ? "/" + val : ""}">${label}</a>`;
 
-  const header = `
-    <div class="cat-head">
-      <h1>${esc(p.name)}</h1>
-      ${withChangeButton ? `<button class="change-link" data-clear="runner">Läufer:in ändern</button>` : ""}
-    </div>
-    <p class="sub">${clubs.map(esc).join(" · ")}${p.year_of_birth ? ` · Jg. ${p.year_of_birth}` : ""}</p>`;
   const body = `
     <div class="chips">
       ${chip(null, "Alle")}
@@ -591,7 +617,7 @@ function runnerDetailHtml(id, year, { withChangeButton } = {}) {
       <div class="stat"><b>${podiums}</b><span>Podestplätze</span></div>
     </div>
     ${renderRunnerResultsTable(rows)}`;
-  return { header, body };
+  return { header: h.html, body };
 }
 
 function viewRunner(id, year) {
@@ -599,20 +625,19 @@ function viewRunner(id, year) {
   app.innerHTML = r ? r.header + r.body : "<h1>Nicht gefunden</h1>";
 }
 
-// Läufer:innen nav page: with a runner picked, the h1 in runnerDetailHtml's
-// own header doubles as "currently selected" (with "Läufer:in ändern" right
-// next to it - no separate picked-chip display). Without one, an inline
-// search box. Either way, an Ansicht toggle between "Ergebnisse" (that
-// runner's own results) and "Medaillenspiegel (Einzeln)" (the national
-// individual ranking, narrowed to just that runner when picked - collapsing
-// to their own one-row total across every club they've represented, since
-// the table ranks by person, not by club). Deliberately independent of
-// whatever happens to be picked on the Vereine page - the three nav pages
-// never filter each other.
-function viewRunnersPage(year, ansicht) {
+// Läufer:innen nav page: with a runner picked, the h1 doubles as "currently
+// selected" (with "Läufer:in ändern" right next to it - no separate
+// picked-chip display); without one, an inline search box. Either way, an
+// Ansicht toggle between "Ergebnisse" (that runner's own results) and
+// "Medaillenspiegel (Einzeln)" (the national individual ranking, narrowed to
+// just that runner when picked - collapsing to their own one-row total
+// across every club they've represented, since the table ranks by person,
+// not by club). Deliberately independent of whatever happens to be picked
+// on the Vereine page - the three nav pages never filter each other.
+function viewRunnersPage(year, omGroup, ansicht) {
   const runner = resolveRunner(identity.runnerId);
   const ansichtChip = (val, label) => `<a class="chip ${ansicht === val ? "active" : ""}"
-      href="#/runners${val === "medals" ? "/medals" : ""}">${label}</a>`;
+      href="#/runners${year ? "/" + year : ""}${omGroup ? "/om" : ""}${val === "medals" ? "/medals" : ""}">${label}</a>`;
   const ansichtRow = `<div class="chips">
     ${ansichtChip("results", "Ergebnisse")}
     ${ansichtChip("medals", "Medaillenspiegel (Einzeln)")}
@@ -622,20 +647,38 @@ function viewRunnersPage(year, ansicht) {
     const dw = disciplineWhere("e.sport_type");
     const { years } = competitionYearCounts(dw);
     const podiumsAll = fetchPodiums({ personId: runner ? runner.person_id : null, dw });
-    const typeFiltered = podiumsAll.filter((r) => r.championship && r.national_rank <= 3);
+    // Unlike Vereine, "Medaillenspiegel (Einzeln)" here is a real 3-way
+    // Gruppe choice, not locked to ÖM/ÖSTM - a runner's own full "Alle"
+    // podium tally is a reasonable thing to want to see for themselves.
+    const typeFiltered = omGroup
+      ? podiumsAll.filter((r) => r.championship && r.national_rank <= 3)
+      : podiumsAll.filter((r) => r.rank <= 3 && !isKoHeat(r.category));
     const podiums = year ? typeFiltered.filter((r) => seasonYear(r.date, r.sport_type) === year) : typeFiltered;
     const yearChip = (val, label) => `<a class="chip ${(!year && !val) || year === val ? "active" : ""}"
-        href="#/runners${val ? "/" + val : ""}/medals">${label}</a>`;
+        href="#/runners${val ? "/" + val : ""}${omGroup ? "/om" : ""}/medals">${label}</a>`;
+    const groupHref = (om2) => `#/runners${year ? "/" + year : ""}${om2 ? "/om" : ""}/medals`;
+    // Landes-Meisterschaften would need their own per-Bundesland rank
+    // (analogous to national_rank) AND a Verein→Bundesland mapping to pick
+    // the right one automatically - neither exists in the data yet (only
+    // Wien has any championship_instance rows at all, and those are
+    // state=candidate with no placement info), so this stays a disabled
+    // placeholder rather than a guess that could crown the wrong "Meister".
+    const groupRow = `<div class="chips">
+      <a class="badge champ-badge champ-toggle ${!omGroup ? "active" : ""}" href="${groupHref(false)}">${!omGroup ? "✓ " : ""}Alle</a>
+      <a class="badge champ-badge champ-toggle ${omGroup ? "active" : ""}" href="${groupHref(true)}">${omGroup ? "✓ " : ""}ÖM/ÖSTM</a>
+      <span class="badge champ-badge disabled" title="Landes-Meisterschaften brauchen einen eigenen Landes-Rang je Bundesland (analog national_rank) sowie eine Zuordnung Verein → Bundesland, um automatisch die passende auszuwählen - beides fehlt in den Daten noch. Daten-/Build-Abstimmung nötig.">Landes MS</span>
+    </div>`;
+
     const head = runner
-      ? `<div class="cat-head"><h1>${esc(runner.name)}</h1>
-           <button class="change-link" data-clear="runner">Läufer:in ändern</button></div>`
+      ? runnerHeaderHtml(runner.person_id, { withChangeButton: true }).html
       : `<h1>Läufer:innen</h1>${runnerSearchHtml()}`;
+
     app.innerHTML = `
       ${head}
       ${ansichtRow}
+      ${groupRow}
       <div class="chips">${yearChip(null, "Alle")}${years.map(([yr]) => yearChip(yr, yr)).join("")}</div>
-      ${medalGroupRow()}
-      ${renderRankedMedalTable(podiums, { showClub: true, isOm: true, capOutput: 500 })}`;
+      ${renderRankedMedalTable(podiums, { showClub: true, isOm: omGroup, capOutput: 500 })}`;
   } else if (runner) {
     const r = runnerDetailHtml(runner.person_id, year, { withChangeButton: true });
     app.innerHTML = r.header + ansichtRow + r.body;
@@ -1138,16 +1181,64 @@ function renderClubMedalTable(podiums, { isOm }) {
 // withChangeButton adds a "Verein ändern" link next to the h1 - only from
 // the Vereine nav page, which is the only context with somewhere to change
 // it back to (the direct #/club/:name link has no picker to return to).
-function clubDetailHtml(name, year, medalType, { withChangeButton } = {}) {
+// hrefBase lets the internal toggle/year/roster links stay on whichever
+// route rendered this (the direct #/club/:name link, or the Vereine nav
+// page at #/clubs) instead of always hardcoding #/club/:name - previously
+// every internal link jumped straight to the direct-link route, which has
+// no picker to return to, so navigating those toggles from the Vereine page
+// silently dropped the "Verein ändern" action. withChangeButton mirrors
+// that: only the nav page has somewhere to change the pick back to. view
+// switches between the medal spiegel (default) and a plain roster of every
+// club member, toggled via the info line itself ("N Läufer:innen" /
+// "N Ergebnisse") rather than a separate control.
+function clubDetailHtml(name, year, medalType, { withChangeButton, hrefBase, view } = {}) {
   const info = query(`
-    SELECT COUNT(*) AS n, COUNT(DISTINCT person_id) AS runners
-    FROM result WHERE official_club = ?`, [name])[0];
+    SELECT COUNT(*) AS n, (
+      SELECT COUNT(DISTINCT r2.person_id) FROM result r2 JOIN person p ON p.id = r2.person_id
+      WHERE r2.official_club = ? AND r2.result_kind != 'team' AND ${NOT_FAMILY_PLACEHOLDER_SQL}
+    ) AS runners
+    FROM result WHERE official_club = ?`, [name, name])[0];
   if (!info || !info.n) return null;
 
-  const dw = disciplineWhere("e.sport_type");
-  const allPodiums = fetchPodiums({ club: name, dw });
-
+  const base = hrefBase || `#/club/${encodeURIComponent(name)}`;
   const isOm = medalType === "om";
+  const dw = disciplineWhere("e.sport_type");
+
+  const membersHref = `${base}${year ? "/" + year : ""}${isOm ? "/om" : ""}/members`;
+  const resultsHref = `${base}${year ? "/" + year : ""}${isOm ? "/om" : ""}`;
+  const header = `
+    <div class="cat-head">
+      <h1>${esc(name)}</h1>
+      ${withChangeButton ? `<button class="change-link" data-clear="club">Verein ändern</button>` : ""}
+      <a class="chip" href="#/club/${encodeURIComponent(name)}/dns">Nicht angetreten</a>
+    </div>
+    <p class="sub">
+      <a href="${membersHref}">${info.runners.toLocaleString("de-AT")} Läufer:innen</a> ·
+      <a href="${resultsHref}">${info.n.toLocaleString("de-AT")} Ergebnisse</a> insgesamt.
+    </p>`;
+
+  if (view === "members") {
+    const roster = query(`
+      SELECT p.id, p.name, p.year_of_birth, COUNT(*) AS n
+      FROM result r
+      JOIN stage s ON s.id = r.stage_id JOIN event e ON e.id = s.event_id
+      JOIN person p ON p.id = r.person_id
+      WHERE r.official_club = ? AND r.result_kind != 'team' AND ${NOT_FAMILY_PLACEHOLDER_SQL}${dw.sql}
+      GROUP BY p.id ORDER BY p.name COLLATE NOCASE`, [name, ...dw.params]);
+    return header + `
+      <table>
+        <thead><tr><th>Name</th><th class="num">Jg</th><th class="num">Starts</th></tr></thead>
+        <tbody>${roster.map((r) => `
+          <tr>
+            <td><a href="#/runner/${r.id}">${esc(r.name)}</a></td>
+            <td class="num dim">${r.year_of_birth || ""}</td>
+            <td class="num">${r.n}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>`;
+  }
+
+  const allPodiums = fetchPodiums({ club: name, dw });
   const years = [...new Set(allPodiums.map((r) => seasonYear(r.date, r.sport_type)))].sort((a, b) => b - a);
   const typeFiltered = isOm
     ? allPodiums.filter((r) => r.championship && r.national_rank <= 3)
@@ -1159,21 +1250,15 @@ function clubDetailHtml(name, year, medalType, { withChangeButton } = {}) {
   const bronze = podiums.filter((r) => medalRank(r) === 3).length;
 
   const yearChip = (val, label) => `<a class="chip ${(!year && !val) || year === val ? "active" : ""}"
-      href="#/club/${encodeURIComponent(name)}${val ? "/" + val : ""}${isOm ? "/om" : ""}">${label}</a>`;
+      href="${base}${val ? "/" + val : ""}${isOm ? "/om" : ""}">${label}</a>`;
   const typeChip = (val, label) => `<a class="chip ${isOm === val ? "active" : ""}"
-      href="#/club/${encodeURIComponent(name)}${year ? "/" + year : ""}${val ? "/om" : ""}">${label}</a>`;
+      href="${base}${year ? "/" + year : ""}${val ? "/om" : ""}">${label}</a>`;
 
   const tableHtml = isOm
     ? renderRankedMedalTable(podiums, { showClub: false, isOm: true })
     : renderChronoMedalTable(podiums, { showClub: false });
 
-  return `
-    <div class="cat-head">
-      <h1>${esc(name)}</h1>
-      ${withChangeButton ? `<button class="change-link" data-clear="club">Verein ändern</button>` : ""}
-      <a class="chip" href="#/club/${encodeURIComponent(name)}/dns">Nicht angetreten</a>
-    </div>
-    <p class="sub">${info.runners.toLocaleString("de-AT")} Läufer:innen · ${info.n.toLocaleString("de-AT")} Ergebnisse insgesamt.</p>
+  return header + `
     <div class="chips">
       ${typeChip(false, "Alle Medaillen")}
       ${typeChip(true, "ÖM / ÖSTM")}
@@ -1202,23 +1287,25 @@ function wireExpandableMedalRows() {
   });
 }
 
-function viewClub(name, year, medalType) {
-  const html = clubDetailHtml(name, year, medalType);
+function viewClub(name, year, medalType, view) {
+  const html = clubDetailHtml(name, year, medalType, { view });
   app.innerHTML = html || "<h1>Nicht gefunden</h1>";
   wireExpandableMedalRows();
 }
 
 // Vereine nav page: with a club picked, shows exactly that club's own page
-// (clubDetailHtml, unchanged from the direct #/club/:name link - the h1
-// there doubles as "currently selected", with its own "Verein ändern" link
-// right next to it, so there's no separate picked-chip display duplicating
-// the same name). With none picked, an inline search box plus the national
-// club ranking as a sensible default. Deliberately independent of whatever
-// happens to be picked on the Läufer:innen page - the three nav pages never
-// filter each other.
-function viewClubsPage(year) {
+// (clubDetailHtml - the h1 there doubles as "currently selected", with its
+// own "Verein ändern" link right next to it, so there's no separate
+// picked-chip display duplicating the same name). hrefBase: "#/clubs" keeps
+// every internal toggle/year/roster link on this nav page instead of
+// jumping to the direct #/club/:name link, which would silently drop the
+// "Verein ändern" action. With none picked, an inline search box plus the
+// national club ranking as a sensible default. Deliberately independent of
+// whatever happens to be picked on the Läufer:innen page - the three nav
+// pages never filter each other.
+function viewClubsPage(year, medalType, view) {
   if (identity.club) {
-    const html = clubDetailHtml(identity.club, year, null, { withChangeButton: true });
+    const html = clubDetailHtml(identity.club, year, medalType, { withChangeButton: true, hrefBase: "#/clubs", view });
     app.innerHTML = html || `<h1>Vereine</h1><p class="sub dim">Kein Verein mit diesem Namen gefunden.</p>`;
   } else {
     const dw = disciplineWhere("e.sport_type");
@@ -1352,12 +1439,14 @@ function route() {
   else if ((m = hash.match(/^#\/club\/([^/]+)\/dns(?:\/(\d{4}|alle))?(?:\/(event|runner))?/))) {
     viewClubDns(decodeURIComponent(m[1]), m[2], m[3]); setActiveNav();
   }
-  else if ((m = hash.match(/^#\/club\/([^/]+)(?:\/(\d{4}))?(?:\/(om))?/))) {
-    viewClub(decodeURIComponent(m[1]), m[2], m[3]); setActiveNav();
+  else if ((m = hash.match(/^#\/club\/([^/]+)(?:\/(\d{4}))?(?:\/(om))?(?:\/(members))?/))) {
+    viewClub(decodeURIComponent(m[1]), m[2], m[3], m[4]); setActiveNav();
   }
-  else if ((m = hash.match(/^#\/clubs(?:\/(\d{4}))?/))) { viewClubsPage(m[1]); setActiveNav("clubs"); }
-  else if ((m = hash.match(/^#\/runners(?:\/(\d{4}))?(?:\/(medals))?/))) {
-    viewRunnersPage(m[1], m[2] === "medals" ? "medals" : "results"); setActiveNav("runners");
+  else if ((m = hash.match(/^#\/clubs(?:\/(\d{4}))?(?:\/(om))?(?:\/(members))?/))) {
+    viewClubsPage(m[1], m[2], m[3]); setActiveNav("clubs");
+  }
+  else if ((m = hash.match(/^#\/runners(?:\/(\d{4}))?(?:\/(om))?(?:\/(medals))?/))) {
+    viewRunnersPage(m[1], m[2] === "om", m[3] === "medals" ? "medals" : "results"); setActiveNav("runners");
   }
   else if ((m = hash.match(/^#\/events(?:\/(\d{4}))?(?:\/(om))?(?:\/(top3))?/))) {
     viewEvents(m[1], m[2] === "om", m[3] === "top3"); setActiveNav("events");
