@@ -13,20 +13,10 @@
     <a class="brand" href="#/">OL<span>Results</span></a>
     <nav class="nav">
       <a href="#/events" data-nav="events">Wettkämpfe</a>
-      <a href="#/runners" data-nav="runners">Läufer:innen</a>
       <a href="#/clubs" data-nav="clubs">Vereine</a>
+      <a href="#/runners" data-nav="runners">Läufer:innen</a>
     </nav>
-    <div class="search">
-      <input id="search" type="search" placeholder="Läufer:in suchen …" autocomplete="off">
-      <div id="search-results" class="search-dropdown" hidden></div>
-    </div>
-    <div class="discipline-filter">
-      <button id="discipline-filter-btn" class="icon-btn" title="Nach Disziplin filtern" aria-label="Nach Disziplin filtern">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round"><polygon points="4 4 20 4 14 12 14 19 10 21 10 12 4 4"/></svg>
-      </button>
-      <div id="discipline-overlay" class="discipline-overlay" hidden></div>
-    </div>
+    <div class="lens" id="lens"></div>
     <button id="refresh" class="refresh" title="Daten neu laden" aria-label="Daten neu laden">↻</button>
   </div>
 </header>
