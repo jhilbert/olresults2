@@ -4,6 +4,11 @@ from ingest.anne_user_index import normalise_user
 
 
 class AnneUserIndexTests(unittest.TestCase):
+    def test_treats_anne_placeholder_birth_years_as_unknown(self):
+        self.assertIsNone(normalise_user({"id": 17, "yearOfBirth": 1900})["year_of_birth"])
+        self.assertIsNone(normalise_user({"id": 18, "yearOfBirth": 1901})["year_of_birth"])
+        self.assertEqual(normalise_user({"id": 19, "yearOfBirth": 1941})["year_of_birth"], 1941)
+
     def test_preserves_explicit_championship_eligibility(self):
         user = normalise_user({"id": 17, "championshipEligibility": True})
         ineligible = normalise_user({"id": 18, "championshipEligibility": False})

@@ -22,6 +22,7 @@ FINGERPRINT_ORDER = {
     "stage": "id",
     "person": "id",
     "person_identifier": "scheme, identifier, person_id",
+    "person_club_membership": "person_id, club, sport_type, valid_from, source",
     "person_alias": "person_id, name, source",
     "person_redirect": "old_id",
     "person_tombstone": "old_id",
@@ -84,7 +85,7 @@ def collect(db_path, eligibility_path):
             raise RuntimeError(f"SQLite foreign_key_check found {len(fk_errors)} errors")
         counts = {table: scalar(con, f"SELECT COUNT(*) FROM {table}") for table in CORE_COUNTS}
         for table in ("source_document", "championship_source_entry",
-                      "person_identifier", "person_alias", "person_redirect",
+                      "person_identifier", "person_club_membership", "person_alias", "person_redirect",
                       "person_tombstone", "result_list", "audit_issue", "verification_assertion"):
             counts[table] = scalar(con, f"SELECT COUNT(*) FROM {table}")
         for table in ("championship_rule_set", "championship_jurisdiction",
@@ -212,6 +213,18 @@ def collect(db_path, eligibility_path):
                    SELECT scheme, identifier FROM person_identifier
                    GROUP BY scheme, identifier HAVING COUNT(DISTINCT person_id) > 1
                )""")
+        memberships_without_registry = scalar(
+            con,
+            """SELECT COUNT(*) FROM person_club_membership pcm
+               WHERE NOT EXISTS (
+                   SELECT 1 FROM person_identifier pi
+                   WHERE pi.person_id = pcm.person_id
+                     AND pi.scheme = 'oefol_id'
+                     AND pi.source = 'anne-user-registry'
+               )""")
+        if memberships_without_registry:
+            raise RuntimeError(
+                f"{memberships_without_registry} club memberships lack an ANNE /user identity")
         by_source = dict(con.execute(
             "SELECT source, COUNT(*) FROM result GROUP BY source ORDER BY source"))
         by_kind = dict(con.execute(
@@ -242,6 +255,7 @@ def collect(db_path, eligibility_path):
                 "duplicate_individual_results": duplicate_individual_results,
                 "awards_without_positive_eligibility": awards_without_positive_eligibility,
                 "identifier_conflicts": identifier_conflicts,
+                "memberships_without_registry": memberships_without_registry,
             },
         }
     finally:

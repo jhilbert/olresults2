@@ -63,7 +63,11 @@ def clean_year(value):
         value = int(value)
     except (TypeError, ValueError):
         return None
-    return value if 1800 <= value <= 2100 else None
+    # ANNE uses 1900/1901 extensively for accounts whose birth year is not
+    # known (guest, family, office and old club accounts). They are not real
+    # identity evidence and must not split an otherwise matching person from
+    # a verified profile carrying a genuine year of birth.
+    return value if 1800 <= value <= 2100 and value not in (1900, 1901) else None
 
 
 def normalise_club(value):

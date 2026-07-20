@@ -306,8 +306,22 @@ class AnneIdentityTests(unittest.TestCase):
         )
         index = build_db.AnneProfileIndex([{
             "oefol_id": 3289, "first_name": "Gregor", "last_name": "SchÃ¼tz",
+            "active_memberships": [{
+                "club": {"name": "HSV OL Wiener Neustadt"},
+                "sport_type": "footOrienteering",
+                "date_from": "2020-01-01T00:00:00Z",
+                "date_to": None,
+                "active": True,
+            }],
         }])
         self.assertEqual(index.by_id[3289]["name"], "Gregor Schütz")
+        self.assertEqual(index.by_id[3289]["active_memberships"], ({
+            "club": "HSV OL Wiener Neustadt",
+            "sport_type": "footOrienteering",
+            "valid_from": "2020-01-01T00:00:00Z",
+            "valid_to": None,
+            "active": True,
+        },))
         self.assertEqual(build_db.KNOWN_NAME_TYPOS[(1583, "Jánošková Ta�jana")],
                          "Taťjana Jánošková")
         self.assertEqual(build_db.KNOWN_NAME_TYPOS[(4482, "Uwe Waldh?tter")],
@@ -989,6 +1003,31 @@ class AnneIdentityTests(unittest.TestCase):
 
         self.assertEqual(merges, {3000: 5000})
 
+    def test_real_birth_year_profile_wins_over_anne_1901_placeholder(self):
+        profiles = build_db.AnneProfileIndex([
+            {"oefol_id": 8137, "first_name": "Herwig", "last_name": "Hierzegger",
+             "year_of_birth": 1901, "anne_is_verified": False},
+            {"oefol_id": 275, "first_name": "Herwig", "last_name": "Hierzegger",
+             "year_of_birth": 1941, "anne_is_verified": True},
+        ])
+        persons = build_db.PersonRegistry(profiles)
+        for profile in profiles.by_id.values():
+            persons.from_anne(profile["oefol_id"], profile["name"],
+                              profile["year_of_birth"], profile["nationality"])
+
+        merges = build_db.duplicate_identity_merge_edges(persons)
+
+        self.assertIsNone(profiles.by_id[8137]["year_of_birth"])
+        self.assertEqual(merges, {8137: 275})
+
+    def test_legacy_placeholder_birth_year_is_unknown(self):
+        persons = build_db.PersonRegistry()
+
+        pid, _basis, _confidence, _state = persons.from_legacy(
+            "Karin Fritz", 1901, "Naturfreunde Wien")
+
+        self.assertIsNone(persons.by_id[pid][2])
+
     def test_disjoint_roster_name_repairs_only_the_crossed_source_row(self):
         con = sqlite3.connect(":memory:")
         con.executescript(build_db.SCHEMA)
@@ -1017,6 +1056,126 @@ class AnneIdentityTests(unittest.TestCase):
         self.assertNotIn(8520, merges)
         self.assertNotIn(10344, merges)
         self.assertEqual(corrections[0]["assigned_person_id"], 8520)
+
+    def test_crossed_external_anne_id_repairs_only_the_matching_member_row(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        profiles = build_db.AnneProfileIndex([
+            {"oefol_id": 1285, "first_name": "Thomas", "last_name": "Hnilica",
+             "year_of_birth": 1968,
+             "active_memberships": [{"club": {"name": "OLT Transdanubien"},
+                                      "sport_type": "footOrienteering"}]},
+            {"oefol_id": 1711, "first_name": "Thomas", "last_name": "Hlosta",
+             "year_of_birth": 1967,
+             "active_memberships": [{"club": {"name": "Naturfreunde Wien"},
+                                      "sport_type": "footOrienteering"}]},
+        ])
+        persons = build_db.PersonRegistry(profiles)
+        hnilica = persons.from_anne(1285, "Thomas Hnilica", 1968, "AUT")
+        persons.record(hnilica, "Thomas Hnilica", authoritative=True)
+        build_db.insert_result(
+            con.cursor(), stage_id=1, person_id=hnilica, category="H40", status="ok",
+            source="anne-api", observed_name="Thomas Hnilica",
+            observed_club="OLT Transdanubien", official_club="OLT Transdanubien",
+            observed_user_id="1285", identity_basis="source-oefol-id",
+            identity_confidence=1.0,
+        )
+        # Historic ANNE row: the name and club are Hlosta's, but the source
+        # accidentally stamped Hnilica's otherwise-valid ÖFOL-ID onto it.
+        persons.record(hnilica, "Thomas Hlosta", authoritative=True)
+        build_db.insert_result(
+            con.cursor(), stage_id=1, person_id=hnilica, category="H40", status="ok",
+            source="anne-api", observed_name="Thomas Hlosta",
+            observed_club="NF Wien", official_club="Naturfreunde Wien",
+            observed_user_id="1285", identity_basis="source-oefol-id",
+            identity_confidence=1.0,
+        )
+        persons.from_anne(1711, "Thomas Hlosta", 1967, "AUT")
+        members = [{
+            "ofol_id": 1711, "name": "Thomas Hlosta",
+            "name_key": build_db.name_key("Thomas Hlosta"), "yob": 1967,
+            "club": "Naturfreunde Wien",
+        }]
+
+        corrections = build_db.prepare_verified_member_identities(
+            con.cursor(), persons, members)
+
+        self.assertEqual(
+            con.execute("SELECT observed_name, person_id FROM result ORDER BY id").fetchall(),
+            [("Thomas Hnilica", 1285), ("Thomas Hlosta", 1711)],
+        )
+        self.assertEqual(len(corrections), 1)
+        self.assertEqual(corrections[0]["assigned_person_id"], 1711)
+
+    def test_disjoint_crossed_id_without_registry_target_becomes_fallback(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        profiles = build_db.AnneProfileIndex([{
+            "oefol_id": 1487, "first_name": "Joachim", "last_name": "Friessnig",
+            "year_of_birth": 1958,
+        }])
+        persons = build_db.PersonRegistry(profiles)
+        source_id = persons.from_anne(1487, "Joachim Friessnig", 1958, "AUT")
+        persons.record(source_id, "Thomas Krejci", authoritative=True)
+        build_db.insert_result(
+            con.cursor(), stage_id=1, person_id=source_id, category="H21", status="ok",
+            source="anne-api", observed_name="Thomas Krejci",
+            observed_club="TV Fürstenfeld", official_club="OC Fürstenfeld",
+            observed_user_id="1487", identity_basis="source-oefol-id",
+            identity_confidence=1.0,
+        )
+
+        corrections = build_db.prepare_verified_member_identities(
+            con.cursor(), persons, [])
+        row = con.execute(
+            "SELECT person_id, identity_basis, identity_state FROM result").fetchone()
+
+        self.assertLess(row[0], 0)
+        self.assertEqual(row[1:], ("legacy-name", "candidate"))
+        self.assertEqual(corrections[0]["observed_user_id"], 1487)
+
+    def test_crossed_source_id_reconciliation_never_assigns_family_rows(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        profiles = build_db.AnneProfileIndex([{
+            "oefol_id": 3887, "first_name": "Nicole", "last_name": "Winkler",
+            "year_of_birth": 1990,
+        }])
+        persons = build_db.PersonRegistry(profiles)
+        build_db.insert_result(
+            con.cursor(), stage_id=1, person_id=None, category="Family", status="ok",
+            result_kind="family", source="anne-api", observed_name="Nicole Winkler",
+            observed_user_id="3887", identity_basis="not-applicable-family",
+            identity_confidence=1.0,
+        )
+
+        corrections = build_db.prepare_verified_member_identities(
+            con.cursor(), persons, [])
+
+        self.assertEqual(corrections, [])
+        self.assertIsNone(con.execute("SELECT person_id FROM result").fetchone()[0])
+
+    def test_incompatible_registry_ids_on_one_person_are_rejected(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        con.execute("INSERT INTO person VALUES (?,?,?,?,?)",
+                    (1711, "Thomas Hlosta", "hlosta thomas", 1967, "AUT"))
+        for identifier in (1285, 1711):
+            con.execute("INSERT INTO person_identifier VALUES (?,?,?,?,?,?)",
+                        ("oefol_id", str(identifier), 1711, "authoritative",
+                         "anne-user-registry", None))
+        profiles = build_db.AnneProfileIndex([
+            {"oefol_id": 1285, "first_name": "Thomas", "last_name": "Hnilica",
+             "year_of_birth": 1968},
+            {"oefol_id": 1711, "first_name": "Thomas", "last_name": "Hlosta",
+             "year_of_birth": 1967},
+        ])
+
+        conflicts = build_db.registry_identifier_merge_conflicts(
+            con.cursor(), profiles)
+
+        self.assertEqual(len(conflicts), 1)
+        self.assertEqual(conflicts[0]["identifiers"], [1285, 1711])
 
 
 if __name__ == "__main__":

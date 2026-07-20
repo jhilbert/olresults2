@@ -682,7 +682,7 @@
  {
   "ofol_id": 7336,
   "name": "Karin Fritz",
-  "yob": 1901
+  "yob": null
  },
  {
   "ofol_id": 7364,
@@ -1263,11 +1263,6 @@
   "ofol_id": 10576,
   "name": "Linda Spitzl",
   "yob": 1978
- },
- {
-  "ofol_id": 10593,
-  "name": "Grete Johanna Korb",
-  "yob": 1900
  },
  {
   "ofol_id": 10653,

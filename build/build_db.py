@@ -81,6 +81,17 @@ CREATE TABLE person_identifier (
     observed_at TEXT,
     PRIMARY KEY (scheme, identifier, person_id, source)
 );
+CREATE TABLE person_club_membership (
+    person_id INTEGER NOT NULL REFERENCES person(id),
+    club TEXT NOT NULL,
+    sport_type TEXT NOT NULL,
+    valid_from TEXT NOT NULL DEFAULT '',
+    valid_to TEXT,
+    active INTEGER NOT NULL DEFAULT 1,
+    source TEXT NOT NULL,             -- anne-user-registry
+    observed_at TEXT,
+    PRIMARY KEY (person_id, club, sport_type, valid_from, source)
+);
 CREATE TABLE person_alias (
     person_id INTEGER NOT NULL REFERENCES person(id),
     name TEXT NOT NULL,
@@ -310,6 +321,7 @@ CREATE INDEX idx_championship_entry_result ON championship_entry_result(result_i
 CREATE INDEX idx_award_instance ON award(championship_instance_id);
 CREATE INDEX idx_person_alias_key ON person_alias(name_key);
 CREATE INDEX idx_person_identifier_value ON person_identifier(scheme, identifier);
+CREATE INDEX idx_person_membership_club ON person_club_membership(club, sport_type, active);
 CREATE VIEW category_stats AS
 SELECT stage_id, category,
        COUNT(*)                                       AS starters,
@@ -1068,7 +1080,8 @@ def load_member_registry():
     if not MEMBER_CSV_PATH.exists():
         if MEMBER_INDEX_PATH.exists():
             return [{"ofol_id": e["ofol_id"], "name": e["name"],
-                     "name_key": name_key(e["name"]), "yob": e.get("yob"),
+                     "name_key": name_key(e["name"]),
+                     "yob": None if e.get("yob") in (1900, 1901) else e.get("yob"),
                      "club": MEMBER_CLUB_NAME}
                     for e in json.loads(MEMBER_INDEX_PATH.read_text())]
         return []
@@ -1082,9 +1095,11 @@ def load_member_registry():
                 continue
             name = f"{first} {last}".strip()
             yob = (row.get("Geburtsdatum") or "").strip()[:4]
+            yob = int(yob) if yob.isdigit() else None
             members.append({
                 "ofol_id": int(oid), "name": name, "name_key": name_key(name),
-                "yob": int(yob) if yob.isdigit() else None, "club": MEMBER_CLUB_NAME})
+                "yob": None if yob in (1900, 1901) else yob,
+                "club": MEMBER_CLUB_NAME})
     return members
 
 
@@ -1115,31 +1130,26 @@ def load_member_mapping():
     return d
 
 
-def prepare_verified_member_identities(cur, persons, members):
-    """Apply the club's verified identity evidence before name reconciliation.
+def prepare_verified_member_identities(cur, persons, members, confirmed_aliases=None):
+    """Repair crossed ANNE source IDs before global name reconciliation.
 
-    ANNE occasionally attaches one member's userId to a row carrying another
-    member's full name.  A global userId merge cannot safely repair that: it
+    ANNE occasionally attaches one person's userId to a row carrying another
+    person's full name.  A global userId merge cannot safely repair that: it
     would merge both people and rewrite all of their otherwise-correct rows.
-    Canonicalise known member ids first, then repair only source rows where the
-    observed name uniquely and exactly identifies a *different* verified
-    member or an independently established ANNE identity.  The conflicting
+    Canonicalise known club-member ids first, then repair only non-Family
+    source rows where the observed name independently identifies a
+    *different* verified member, a unique /user profile, or (for completely
+    disjoint names) a name/club fallback person. Family rows are excluded
+    because their labels need not identify one person. The conflicting
     observed_user_id deliberately remains on the result as provenance.
 
     Returns audit records for the private conflict report.
     """
+    confirmed_aliases = confirmed_aliases or {}
     member_by_id = {m["ofol_id"]: m for m in members}
     members_by_name = defaultdict(list)
     for m in members:
         members_by_name[m["name_key"]].append(m)
-    # Snapshot the first ANNE identity name before roster canonicalisation.
-    # It is useful as independent evidence for repairing one crossed source
-    # row (including when the correctly named target is not in our club).
-    anne_ids_by_name = defaultdict(list)
-    for pid, (_name, nk, _yob, _nat) in persons.by_id.items():
-        if pid > 0:
-            anne_ids_by_name[nk].append(pid)
-
     # The book of record fixes the canonical identity before duplicate-account
     # reconciliation groups people by name.  Otherwise the first bad ANNE row
     # can give a verified id another member's name and cause both ids to merge.
@@ -1158,52 +1168,105 @@ def prepare_verified_member_identities(cur, persons, members):
 
     corrections = []
     rows = cur.execute(
-        """SELECT id, person_id, observed_name, observed_user_id
+        """SELECT id, person_id, observed_name, observed_user_id,
+                  observed_club, official_club
            FROM result
            WHERE source = 'anne-api' AND observed_user_id IS NOT NULL
+             AND result_kind != 'family'
            ORDER BY id""").fetchall()
-    for result_id, person_id, observed_name, observed_user_id in rows:
+    for (result_id, person_id, observed_name, observed_user_id,
+         observed_club, observed_official_club) in rows:
         try:
             source_id = int(observed_user_id)
         except (TypeError, ValueError):
             continue
         source_member = member_by_id.get(source_id)
-        if source_member is None:
+        source_profile = persons.anne_profiles.by_id.get(source_id)
+        source_identity = source_member or source_profile
+        if source_identity is None:
             continue
         observed_key = name_key(clean_name(observed_name or ""))
-        source_tokens = set(source_member["name_key"].split())
-        if source_tokens & set(observed_key.split()):
+        source_key = source_identity["name_key"]
+        if observed_key == source_key:
             continue
 
-        verified_targets = [m for m in members_by_name.get(observed_key, [])
-                            if m["ofol_id"] != source_id]
-        if len(verified_targets) == 1:
-            target_member = verified_targets[0]
+        verified_target_ids = {
+            m["ofol_id"] for m in members_by_name.get(observed_key, [])
+            if m["ofol_id"] != source_id
+        }
+        alias_target = confirmed_aliases.get(observed_key)
+        if alias_target in member_by_id and alias_target != source_id:
+            verified_target_ids.add(alias_target)
+        if len(verified_target_ids) == 1:
+            registry_proves_target = False
+            target_member = member_by_id[next(iter(verified_target_ids))]
             target_id = target_member["ofol_id"]
             target_name = target_member["name"]
+            target_basis = "club-book-of-record"
+            target_confidence = 1.0
+            target_state = "resolved"
         else:
-            anne_targets = [pid for pid in anne_ids_by_name.get(observed_key, [])
-                            if pid != source_id]
-            if len(verified_targets) > 1 or len(anne_targets) != 1:
-                continue
             target_member = None
-            target_id = anne_targets[0]
-            target_name = persons.by_id[target_id][0]
+            profile_matches, _profile_basis = persons.anne_profiles.match(
+                clean_name(observed_name or ""), None,
+                observed_official_club or observed_club)
+            profile_matches = [profile for profile in profile_matches
+                               if profile["oefol_id"] != source_id]
+            if len(profile_matches) == 1:
+                registry_proves_target = True
+                profile = profile_matches[0]
+                target_id = persons.from_anne(
+                    profile["oefol_id"], profile["name"],
+                    profile["year_of_birth"], profile["nationality"])
+                target_name = profile["name"]
+                target_basis = "anne-registry-name-club"
+                target_confidence = 0.95
+                target_state = "resolved"
+            elif not (set(source_key.split()) & set(observed_key.split())):
+                registry_proves_target = False
+                # Completely disjoint authoritative and observed names are a
+                # crossed source ID even when the real runner has no /user
+                # profile. Preserve the source ID as provenance, but attach
+                # only this row to a name/club fallback identity.
+                target_id, target_basis, target_confidence, target_state = \
+                    persons.from_legacy(clean_name(observed_name or ""), None,
+                                        observed_official_club or observed_club)
+                target_name = persons.by_id[target_id][0]
+                if target_id == source_id:
+                    continue
+            else:
+                continue
+
+        # A shared token can be an ordinary spelling/name change, so it needs
+        # a second independent proof before overriding a source-supplied ID.
+        # Exact book-of-record aliases are already reviewed proof. Otherwise
+        # require the row's official club to agree with the exact target
+        # member. This catches crossed IDs such as Thomas Hnilica/Hlosta and
+        # Herwig/Ute Hierzegger without treating a surname overlap as enough.
+        source_tokens = set(source_key.split())
+        if source_tokens & set(observed_key.split()):
+            alias_proves_target = confirmed_aliases.get(observed_key) == target_id
+            target_club = (canonicalize_official_club(
+                target_member.get("club"), OFFICIAL_CLUBS)
+                if target_member else None)
+            if not registry_proves_target and not alias_proves_target and (
+                    target_club is None or observed_official_club != target_club):
+                continue
 
         existing = persons.by_id.get(target_id)
         if existing is None:
             persons.by_id[target_id] = (
                 target_member["name"], target_member["name_key"],
-                target_member["yob"], None, None,
+                target_member["yob"], None,
             )
             persons._link(target_id, target_member["name"], target_member["yob"])
 
         cur.execute(
             """UPDATE result
-               SET person_id = ?, identity_basis = 'club-book-of-record',
-                   identity_confidence = 1.0, identity_state = 'resolved'
+               SET person_id = ?, identity_basis = ?,
+                   identity_confidence = ?, identity_state = ?
                WHERE id = ?""",
-            (target_id, result_id),
+            (target_id, target_basis, target_confidence, target_state, result_id),
         )
 
         cleaned = clean_name(observed_name or "")
@@ -1219,7 +1282,7 @@ def prepare_verified_member_identities(cur, persons, members):
             "result_id": result_id,
             "observed_user_id": source_id,
             "observed_name": observed_name,
-            "source_identity": source_member["name"],
+            "source_identity": source_identity["name"],
             "assigned_person_id": target_id,
             "assigned_identity": target_name,
         })
@@ -1251,7 +1314,21 @@ def duplicate_identity_merge_edges(persons, verified_member_ids=()):
                          if persons.by_id[a][2] is not None}
         protected = [a for a in anne_ids if a in verified_member_ids]
         if len(distinct_yobs) <= 1 and len(protected) <= 1:
-            target = protected[0] if protected else min(anne_ids)
+            # Prefer the club book of record, then a registry profile carrying
+            # a genuine birth year, then ANNE's verification bit. A lower
+            # numeric ID is only the final deterministic tie-break. This is
+            # crucial for duplicate accounts whose placeholder year 1900/1901
+            # has been normalised to unknown: the valid higher ID must not be
+            # redirected into the placeholder profile.
+            def target_quality(anne_id):
+                profile = persons.anne_profiles.by_id.get(anne_id, {})
+                return (
+                    anne_id in verified_member_ids,
+                    persons.by_id[anne_id][2] is not None,
+                    bool(profile.get("anne_is_verified")),
+                    -anne_id,
+                )
+            target = protected[0] if protected else max(anne_ids, key=target_quality)
             for anne_id in anne_ids:
                 if anne_id != target:
                     merge_map[anne_id] = target
@@ -1274,6 +1351,37 @@ def duplicate_identity_merge_edges(persons, verified_member_ids=()):
                 if synth_yob is not None and matches and len(matches) == 1:
                     merge_map[synth_id] = matches[0]
     return merge_map
+
+
+def registry_identifier_merge_conflicts(cur, profile_index):
+    """Return incompatible authoritative /user IDs sharing one person.
+
+    Exact duplicate ANNE accounts can legitimately collapse when their current
+    registry name and every known birth year agree. Different names or two
+    different known birth years are independent people and must never share a
+    canonical person merely because one historic result carried a crossed ID.
+    """
+    conflicts = []
+    groups = cur.execute(
+        """SELECT person_id, GROUP_CONCAT(DISTINCT identifier)
+           FROM person_identifier
+           WHERE scheme = 'oefol_id' AND source = 'anne-user-registry'
+           GROUP BY person_id HAVING COUNT(DISTINCT identifier) > 1""").fetchall()
+    for person_id, identifiers in groups:
+        profiles = [profile_index.by_id.get(int(value))
+                    for value in identifiers.split(",")]
+        profiles = [profile for profile in profiles if profile]
+        names = {profile["name_key"] for profile in profiles}
+        years = {profile["year_of_birth"] for profile in profiles
+                 if profile["year_of_birth"] is not None}
+        if len(names) > 1 or len(years) > 1:
+            conflicts.append({
+                "person_id": person_id,
+                "identifiers": sorted(profile["oefol_id"] for profile in profiles),
+                "names": sorted(profile["name"] for profile in profiles),
+                "years": sorted(years),
+            })
+    return conflicts
 
 
 def strip_age_overlap_categories(cur):
@@ -1938,7 +2046,9 @@ class AnneProfileIndex:
             if oefol_id <= 0 or not is_valid_name(name):
                 continue
             yob = profile.get("year_of_birth")
-            yob = yob if isinstance(yob, int) else None
+            # Defensive compatibility with snapshots created before the
+            # importer normalised ANNE's 1900/1901 placeholder years to null.
+            yob = yob if isinstance(yob, int) and yob not in (1900, 1901) else None
             normalised = {
                 "oefol_id": oefol_id,
                 "name": name,
@@ -1958,6 +2068,25 @@ class AnneProfileIndex:
                     and isinstance((m.get("club") or {}).get("name"), str)
                     and (m.get("club") or {}).get("name").strip()
                 )),
+                # Preserve only the active-membership fields needed by the
+                # public club roster.  The complete /user snapshot remains a
+                # private build input; later we publish these rows only for
+                # profiles that already occur in the result database.
+                "active_memberships": tuple(
+                    {
+                        "club": (m.get("club") or {}).get("name").strip(),
+                        "sport_type": (m.get("sport_type") or "").strip(),
+                        "valid_from": (m.get("date_from") or "").strip(),
+                        "valid_to": (m.get("date_to") or "").strip() or None,
+                        "active": m.get("active") is not False,
+                    }
+                    for m in profile.get("active_memberships", [])
+                    if isinstance(m, dict) and isinstance(m.get("club"), dict)
+                    and isinstance((m.get("club") or {}).get("name"), str)
+                    and (m.get("club") or {}).get("name").strip()
+                    and isinstance(m.get("sport_type"), str)
+                    and m.get("sport_type").strip()
+                ),
             }
             self.by_id[oefol_id] = normalised
             self.by_name[normalised["name_key"]].append(normalised)
@@ -2086,6 +2215,7 @@ class PersonRegistry:
             self.name_auth[pid][name] += 1
 
     def _new(self, name, yob, nationality=None, pid=None):
+        yob = self._identity_year(yob)
         if pid is None:
             salt = 0
             pid = stable_synthetic_id(name, yob, salt)
@@ -2096,6 +2226,14 @@ class PersonRegistry:
         self._link(pid, name, yob)
         return pid
 
+    @staticmethod
+    def _identity_year(value):
+        try:
+            value = int(value) if value is not None else None
+        except (TypeError, ValueError):
+            return None
+        return None if value in (1900, 1901) else value
+
     def _link(self, pid, name, yob):
         nk = name_key(name)
         self.by_key[(nk, yob)] = pid
@@ -2104,6 +2242,7 @@ class PersonRegistry:
             lst.append(pid)
 
     def from_anne(self, user_id, name, yob, nationality=None):
+        yob = self._identity_year(yob)
         profile = self.anne_profiles.by_id.get(user_id)
         if profile:
             name = profile["name"] or name
@@ -2124,6 +2263,7 @@ class PersonRegistry:
         return pid
 
     def from_legacy(self, name, yob, club=None):
+        yob = self._identity_year(yob)
         nk = name_key(name)
         profile_matches, profile_basis = self.anne_profiles.match(name, yob, club)
         if len(profile_matches) == 1:
@@ -4867,8 +5007,12 @@ def main():
     # This ordering is a correctness boundary: a bad source row must not get
     # the chance to rename and merge two independently verified people first.
     members = load_member_registry()
+    member_ledger = load_member_mapping() if members else {
+        "aliases": {}, "not_member": [], "internal_member": {},
+        "club_override": {}, "split_override": {},
+    }
     source_identity_corrections = prepare_verified_member_identities(
-        cur, persons, members) if members else []
+        cur, persons, members, member_ledger["aliases"]) if members else []
 
     # Some API results have no userId (old events) or field-order quirks;
     # they're matched via from_legacy and can mint a synthetic identity
@@ -4905,7 +5049,7 @@ def main():
     pending_review, conflicts = [], list(source_identity_corrections)
     split_override = {}
     if members:
-        ledger = load_member_mapping()
+        ledger = member_ledger
         split_override = ledger["split_override"]
         not_member = set(ledger["not_member"])
         member_by_nk = defaultdict(list)         # exact-roster index (ÖFOL only)
@@ -4991,6 +5135,14 @@ def main():
             return None
 
         for sid, (nfw_rows, _tot) in assoc.items():
+            # A current /user profile is already an authoritative person. A
+            # stray result name may move that ONE source row above, but must
+            # never remap the profile and all of its otherwise-correct history
+            # onto a club member. Verified NFW profiles still canonicalise in
+            # place through id_meta; other official profiles remain separate.
+            if (sid > 0 and sid in persons.anne_profiles.by_id
+                    and sid not in id_meta):
+                continue
             # a person who already holds their own ÖFOL-ID IS that member - never
             # remap them onto a different one just because a stray mis-tagged
             # name spelling of theirs happens to match another member's name
@@ -5114,14 +5266,46 @@ def main():
     # not a competing identifier scheme. Internal club IDs and IOF IDs are
     # intentionally excluded from this public model.
     surviving_people = {pid for (pid,) in cur.execute("SELECT id FROM person")}
-    for anne_id in sorted(persons.anne_ids):
+
+    # A profile present in the private paginated /user snapshot is stronger
+    # evidence than a userId merely observed on one result.  Publish that
+    # distinction for every surviving result person found in the registry,
+    # including a person introduced through the verified club roster rather
+    # than a structured ANNE result.
+    for anne_id, profile in sorted(persons.anne_profiles.by_id.items()):
         target = resolve(anne_id)
         if target in surviving_people:
-            source = "anne-user-registry" if anne_id in persons.anne_profiles.by_id else "result-observation"
             cur.execute(
                 "INSERT OR REPLACE INTO person_identifier VALUES (?,?,?,?,?,?)",
-                ("oefol_id", str(anne_id), target, "authoritative", source,
-                 persons.anne_profiles.fetched_at if anne_id in persons.anne_profiles.by_id else None))
+                ("oefol_id", str(anne_id), target, "authoritative",
+                 "anne-user-registry", persons.anne_profiles.fetched_at))
+            # Keep every duplicate ID as identity provenance, but publish
+            # current memberships only from the canonical surviving profile.
+            # Otherwise an unverified 1900/1901 placeholder account would make
+            # one real person appear as an active member of two clubs.
+            if anne_id != target:
+                continue
+            for membership in profile.get("active_memberships", ()):
+                raw_club = re.sub(r"\s+", " ", membership["club"]).strip()
+                club = canonicalize_official_club(raw_club, OFFICIAL_CLUBS) or raw_club
+                cur.execute(
+                    """INSERT OR REPLACE INTO person_club_membership
+                       VALUES (?,?,?,?,?,?,?,?)""",
+                    (target, club, membership["sport_type"],
+                     membership["valid_from"], membership["valid_to"],
+                     1 if membership["active"] else 0,
+                     "anne-user-registry", persons.anne_profiles.fetched_at))
+
+    # Keep source-supplied positive IDs that are absent from today's /user
+    # snapshot as result observations, but do not let them into the official
+    # runner/member directory.
+    for anne_id in sorted(persons.anne_ids - persons.anne_profiles.by_id.keys()):
+        target = resolve(anne_id)
+        if target in surviving_people:
+            cur.execute(
+                "INSERT OR REPLACE INTO person_identifier VALUES (?,?,?,?,?,?)",
+                ("oefol_id", str(anne_id), target, "authoritative",
+                 "result-observation", None))
     for member in members:
         target = resolve(member["ofol_id"])
         if target in surviving_people:
@@ -5129,6 +5313,17 @@ def main():
                 "INSERT OR REPLACE INTO person_identifier VALUES (?,?,?,?,?,?)",
                 ("oefol_id", str(member["ofol_id"]), target,
                  "independently_confirmed", "naturfreunde-wien-book-of-record", None))
+
+    registry_merge_conflicts = registry_identifier_merge_conflicts(
+        cur, persons.anne_profiles)
+    if registry_merge_conflicts:
+        examples = "; ".join(
+            f"person {item['person_id']}: IDs {item['identifiers']} "
+            f"({item['names']}, years {item['years']})"
+            for item in registry_merge_conflicts[:5])
+        raise RuntimeError(
+            f"{len(registry_merge_conflicts)} incompatible ANNE /user identity merges: "
+            + examples)
 
     for pid, counts in final_names.items():
         if pid not in surviving_people:
@@ -5145,6 +5340,16 @@ def main():
                 "INSERT OR REPLACE INTO person_alias VALUES (?,?,?,?,?,?)",
                 (pid, canonical_name, name_key(canonical_name),
                  "naturfreunde-wien-book-of-record", 1, 1))
+
+    # A merged positive ID may still live in old bookmarks or API links. Keep
+    # it as identifier provenance above, and also make it an explicit route
+    # redirect to the surviving canonical person.
+    for old_id in sorted(merge_map):
+        new_id = resolve(old_id)
+        if old_id > 0 and old_id != new_id and new_id in surviving_people:
+            cur.execute(
+                "INSERT OR REPLACE INTO person_redirect VALUES (?, ?)",
+                (old_id, new_id))
 
     if PERSON_REDIRECT_PATH.exists():
         redirects = json.loads(PERSON_REDIRECT_PATH.read_text())
@@ -5479,9 +5684,9 @@ def main():
     populate_championship_model(cur)
     populate_quality_model(cur)
 
-    cur.execute("PRAGMA user_version = 8")
+    cur.execute("PRAGMA user_version = 9")
     con.commit()
-    for table in ("event", "stage", "person", "person_identifier", "person_alias",
+    for table in ("event", "stage", "person", "person_identifier", "person_club_membership", "person_alias",
                   "person_redirect", "person_tombstone", "source_document", "result_list", "result",
                   "championship_source_entry",
                   "audit_issue", "verification_assertion", "championship_rule_set",
