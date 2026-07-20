@@ -4,5 +4,11 @@
     "status": "historic",
     "valid_until": "2025",
     "note": "Historischer ÖFOL-Verein. 2025 als Orienteering Imst Oberland neu ausgerichtet; kein Alias des Nachfolgevereins oder von Laufklub Kompass Innsbruck."
+  },
+  {
+    "code": "SOLV",
+    "name": "SOLV Salzburg",
+    "status": "historic",
+    "note": "Historischer Salzburger Verein in der offiziellen OÖ/SBG-Staffelergebnisliste 2014."
   }
 ]

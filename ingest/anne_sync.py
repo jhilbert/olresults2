@@ -39,6 +39,17 @@ RAW = ROOT / "data" / "raw" / "anne"
 REFRESH_DAYS = 30
 WORKERS = 6
 SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+NATIONAL_CHAMPIONSHIP_RE = re.compile(
+    r"(?i)(?<![A-Za-zÄÖÜäöü])(?:Ö|OE)[–-]?(?:ST)?M(?![A-Za-zÄÖÜäöü])|"
+    r"\b(?:österreich\w*\s+)?staatsmeister|\bösterreich\w*\s+meisterschaft")
+CHAMPIONSHIP_RANKING_ATTACHMENT_RE = re.compile(
+    r"(?i)meisterschafts[-_ ]?wertung")
+RESULT_NAMED_ATTACHMENT_RE = re.compile(
+    r"(?i)(?:ergebnis(?:se|liste)?|results?|gesamtwertung|"
+    r"(?:^|[-_ ])(?:oe|o|ö)(?:st)?m[-_ ].*[-_ ]erg(?:ebnis)?(?:[-_. ]|$))")
+NON_RESULT_ATTACHMENT_RE = re.compile(
+    r"(?i)(?:split|zwischenzeit|bahndat|meldung|startlist|startzeit|"
+    r"einladung|ausschreibung|l[aä]uferinfo|wettkampfinfo|bulletin|protokoll)")
 
 
 def get(url, retries=3):
@@ -133,6 +144,35 @@ def merge_attachment_index(existing, fetched):
     return merged, added
 
 
+def has_national_championship_signal(event):
+    text = " ".join(str(event.get(key) or "")
+                    for key in ("shortTitle", "title", "slug"))
+    return bool(NATIONAL_CHAMPIONSHIP_RE.search(text))
+
+
+def is_championship_ranking_attachment(attachment):
+    """Accept an explicitly named national ranking even when ANNE labels it
+    ``other``.  Do not broaden this to every filename containing ÖM/ÖSTM:
+    invitations, split times and jury documents use the same event title."""
+    text = f"{attachment.get('fileName') or ''} {attachment.get('url') or ''}"
+    return bool(CHAMPIONSHIP_RANKING_ATTACHMENT_RE.search(text)
+                and not NON_RESULT_ATTACHMENT_RE.search(text))
+
+
+def is_result_named_attachment(attachment):
+    """Recover result files that ANNE classified as ``other``/``splittimes``.
+
+    The attachment type is not reliable in the historic catalog.  A positive
+    result filename plus a conservative negative filter is safer than either
+    accepting every ``other`` file from a championship event or silently
+    missing an official result list.  The downstream parser still classifies
+    true cumulative/split reports as non-race data.
+    """
+    text = f"{attachment.get('fileName') or ''} {attachment.get('url') or ''}"
+    return bool(RESULT_NAMED_ATTACHMENT_RE.search(text)
+                and not NON_RESULT_ATTACHMENT_RE.search(text))
+
+
 def sync_attachments(events, known, force=False, refresh_cutoff=None, event_ids=None):
     """Refresh only new/recent/selected attachment indexes and return additions.
 
@@ -150,6 +190,7 @@ def sync_attachments(events, known, force=False, refresh_cutoff=None, event_ids=
             not (e.get("hasOfficialResults") or e.get("hasUnofficialResults"))
             or has_unusable_structured_results(eid)
         )
+        has_championship_need = has_national_championship_signal(e)
         needs_index = (
             force
             or str(eid) not in known
@@ -159,7 +200,7 @@ def sync_attachments(events, known, force=False, refresh_cutoff=None, event_ids=
         return (
             (e.get("dateFrom") or "9999")[:10] <= today
             and needs_index
-            and (is_selected or has_legacy_need)
+            and (is_selected or has_legacy_need or has_championship_need)
         )
 
     todo = [e for e in events
@@ -176,7 +217,10 @@ def sync_attachments(events, known, force=False, refresh_cutoff=None, event_ids=
         # ANNE sometimes mislabels the actual results page on a club-allowlisted
         # domain (e.g. type "splittimes" for a page that's really the results),
         # so accept any attachment there regardless of its assigned type
-        res = [a for a in d if a.get("type") == "results" or is_club_allowlisted(a.get("url", ""))]
+        res = [a for a in d if (a.get("type") == "results"
+                                or is_championship_ranking_attachment(a)
+                                or is_result_named_attachment(a)
+                                or is_club_allowlisted(a.get("url", "")))]
         return str(e["id"]), [
             {"url": a["url"], "fileName": a["fileName"], "mimeType": a["mimeType"]}
             for a in res
@@ -219,6 +263,10 @@ def main():
     ap.add_argument("--force", action="store_true", help="re-fetch everything")
     ap.add_argument("--event-id", type=int, action="append",
                     help="refresh only this historic event (repeatable)")
+    ap.add_argument("--championship-attachments", action="store_true",
+                    help="refresh attachment indexes for every past ÖM/ÖSTM event")
+    ap.add_argument("--attachments-only", action="store_true",
+                    help="skip structured result/stage snapshots")
     ap.add_argument("--delta-file", type=Path,
                     help="write newly discovered attachment keys for incremental parsers")
     args = ap.parse_args()
@@ -238,19 +286,24 @@ def main():
         if missing:
             ap.error(f"unknown or future event-id(s): {', '.join(map(str, sorted(missing)))}")
 
+    if args.championship_attachments:
+        selected = [e for e in past if has_national_championship_signal(e)]
+        selected_ids = {int(e["id"]) for e in selected}
+
     with_results = [e for e in selected
                     if e.get("hasOfficialResults") or e.get("hasUnofficialResults")]
     print(f"past events: {len(past)}, with structured results: {len(with_results)}")
 
     fetched = 0
-    with ThreadPoolExecutor(max_workers=WORKERS) as ex:
-        futs = [ex.submit(sync_event, e, args.force, refresh_cutoff) for e in with_results]
-        for fut in as_completed(futs):
-            eid, what = fut.result()
-            if what:
-                fetched += 1
-                if fetched % 50 == 0:
-                    print(f"  fetched {fetched}", flush=True)
+    if not args.attachments_only:
+        with ThreadPoolExecutor(max_workers=WORKERS) as ex:
+            futs = [ex.submit(sync_event, e, args.force, refresh_cutoff) for e in with_results]
+            for fut in as_completed(futs):
+                eid, what = fut.result()
+                if what:
+                    fetched += 1
+                    if fetched % 50 == 0:
+                        print(f"  fetched {fetched}", flush=True)
     print(f"result snapshots fetched/updated: {fetched}")
 
     att_path = RAW / "attachments.json"

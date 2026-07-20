@@ -17,6 +17,7 @@ from collections import defaultdict
 import html as html_mod
 import json
 import re
+import ssl
 import sys
 import time
 import urllib.parse
@@ -24,10 +25,13 @@ import urllib.request
 from html.parser import HTMLParser
 from pathlib import Path
 
+import certifi
+
 from sportsoftware_common import (
     CAT_LINE_RE, COLUMN_ALIASES, COURSE_RE, MANUAL_ATTACHMENT_SKIP, MANUAL_CATEGORY_SKIP,
     MANUAL_DOC_DATE_OVERRIDES,
-    TIME_TOKEN_RE, category_starter_count, classify_championship_text, detect_list_type,
+    STATUS_TAIL_RE, TIME_TOKEN_RE, category_starter_count, classify_championship_text,
+    detect_list_type,
     expand_pair_result, extract_html_title,
     aggregate_team_status, guess_doc_date, is_junk_name, is_ooc_status, is_ooc_time,
     parse_champion_annotation, parse_course_info, parse_status, parse_time,
@@ -40,6 +44,7 @@ ANNOT_RANK_RE = re.compile(r"(?i)meister|sieger")
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw" / "anne"
 FILES = RAW / "files"
+SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 OUT = ROOT / "data" / "normalized"
 
 # A descriptive bot UA is polite, but some organizer sites (e.g.
@@ -171,14 +176,16 @@ def parse_document(html_text):
             # data row: align cells to columns
             rec = dict(zip([c or f"col{i}" for i, c in enumerate(columns)], row))
             time_text = (rec.get("Zeit") or rec.get("Gesamt") or "").strip()
-            if time_text and parse_time_loose(time_text) is None and not parse_status(time_text):
+            if parse_time_loose(time_text) is None and not parse_status(time_text):
                 # Colspan-heavy international exports can shift Country into
-                # the nominal Zeit cell on unranked rows. Recover the actual
-                # trailing DNS/MP/DSQ value from the row instead of accepting
-                # a country (notably "Slovakia") as a time/status.
-                time_text = next((cell.strip() for cell in reversed(row)
+                # the nominal Zeit cell on unranked rows. Older OE tables can
+                # also leave that cell empty and put N Ang/Disqu into a later
+                # column. Recover the actual trailing value in both cases.
+                recovered = next((cell.strip() for cell in reversed(row)
                                   if parse_time_loose(cell.strip()) is not None
                                   or parse_status(cell.strip())), "")
+                if recovered:
+                    time_text = recovered
             rank_ok = rec.get("Pl", "").strip().isdigit()
             club = (rec.get("Verein") or rec.get("Verein/Schule") or "").strip()
 
@@ -195,11 +202,13 @@ def parse_document(html_text):
                 for header in columns
             )
 
-            if family_row and member_values and (rank_ok or time_text):
+            if family_row and member_values:
                 # The same Name-1/2/3 report layout is also used for Family,
                 # but these arbitrary combinations must not create person
                 # identities. Keep exactly one result unit and its displayed
                 # source names; build_db intentionally leaves it personless.
+                # A named row with a blank result cell is still present in
+                # the source and must count toward completeness.
                 family = {
                     "name": " + ".join(member_values),
                     "club": club,
@@ -242,15 +251,48 @@ def parse_document(html_text):
                     pending_rank = pending_championship = None
                     current["results"].extend(numbered)
                     continue
+                if team_member_columns >= 2:
+                    # Team-only rows can contain no usable people at all
+                    # (blank Name columns or placeholders such as ``Ben, und
+                    # andere``). The team/rank/time is nevertheless a real
+                    # result unit and must stay visible without creating a
+                    # fake person from the placeholder text.
+                    team_counts[club] += 1
+                    team_name = f"{club} {team_counts[club]}" if club else (
+                        f"Mannschaft {team_counts[club]}")
+                    rank_text = rec.get("Pl", "").strip()
+                    seconds = parse_time_loose(time_text)
+                    status = "ok" if seconds is not None else (
+                        parse_status(time_text) or "unknown")
+                    result = {
+                        "name": "", "club": club, "timeText": time_text,
+                        "resultKind": "team", "memberlessTeam": True,
+                        "note": f"Mannschaft: {team_name} · keine vollständigen Teilnehmernamen in der Quelle",
+                        "status": status, "individualStatus": None,
+                        "teamStatus": status,
+                        "teamNumber": (rec.get("Stnr") or rec.get("Stno") or "").strip() or None,
+                        "teamName": team_name, "teamTimeText": time_text,
+                    }
+                    if rank_text.isdigit():
+                        result["rank"] = int(rank_text)
+                    if seconds is not None:
+                        result["timeS"] = seconds
+                        result["teamTimeS"] = seconds
+                    if is_ooc_status(rank_text) or is_ooc_time(time_text):
+                        result["outOfCompetition"] = True
+                    current["results"].append(result)
+                    continue
 
             name = rec.get("Name", "").strip()
             if not name and individual_member_layout and member_values:
                 name = member_values[0]
             if is_junk_name(name):
                 continue
-            # club/spacer rows in split-time lists carry neither rank nor time
-            if not rank_ok and not time_text:
-                continue
+            # A valid Name cell in an active result table is itself enough to
+            # preserve the source row. Some exports explicitly list a runner
+            # while leaving rank/time/status blank. Keeping it as unknown is
+            # preferable to turning a visible source entry into a false
+            # completeness gap; the audit model reports the blank value.
             result = {
                 "name": name,
                 "club": (rec.get("Verein") or rec.get("Verein/Schule") or "").strip(),
@@ -401,9 +443,17 @@ def parse_bracket_html(html_text):
             # isn't reliably at a fixed position - scan for whichever of the
             # two it actually is, preferring a real time over a status word
             values = [c.strip().lstrip("+") for c in cells[2:]]
+            # ``parse_status`` deliberately recognizes status tokens inside
+            # decorated report text, so it also sees the standalone word OK
+            # in perfectly real club names such as ``OK Jihlava``, ``Rold
+            # Skov OK`` and ``OK Älgen``.  Only a complete status cell may
+            # prove that the nominal club column actually contains the result
+            # value.  Otherwise dozens of international rows lose both their
+            # club and the real elapsed time that follows in a later column.
             value_in_club_column = (
-                parse_status(club) is not None
-                or parse_time_loose(club) is not None)
+                parse_time_loose(club) is not None
+                or (parse_status(club) is not None
+                    and STATUS_TAIL_RE.fullmatch(club) is not None))
             if value_in_club_column:
                 # Club-less MeOS result tables collapse an unranked status or
                 # a ranked time into the second remaining cell (the nominal
@@ -433,8 +483,6 @@ def parse_bracket_html(html_text):
                 result["status"] = "ok"
             else:
                 result["status"] = parse_status(status_text or "") or "unknown"
-            if value_in_club_column and result["status"] == "dns":
-                result["excludedFromDeclaredCount"] = True
             if out_of_competition or is_ooc_status(status_text) or is_ooc_time(time_text):
                 result["outOfCompetition"] = True
             current["results"].append(result)
@@ -505,7 +553,35 @@ def parse_relay_document(html_text):
         nonlocal pending_team
         if pending_team and current is not None:
             current["sourceUnitCount"] = current.get("sourceUnitCount", 0) + 1
-        if not pending_team or not pending_team["members"]:
+        if not pending_team:
+            pending_team = None
+            return
+        if not pending_team["members"]:
+            # A relay entry can be printed as only one team header, most
+            # commonly ``74 HSV OL Wiener Neustadt 3 N Ang``.  It is still a
+            # real result-list unit even though the source supplies no people
+            # to attach to it.  Keep a deliberately personless team row so it
+            # remains visible without inventing a runner or a leg.
+            team_status = pending_team.get("status") or "unknown"
+            if team_status != "unknown" or pending_team.get("rank") is not None:
+                result = {
+                    "name": "", "club": pending_team["name"],
+                    "timeText": pending_team.get("timeText") or "",
+                    "resultKind": "relay", "memberlessTeam": True,
+                    "note": f"Staffel: {pending_team['name']} · keine Teilnehmernamen in der Quelle",
+                    "status": team_status, "individualStatus": None,
+                    "teamStatus": team_status,
+                    "teamNumber": pending_team.get("number"),
+                    "teamName": pending_team["name"],
+                    "teamTimeText": pending_team.get("timeText") or "",
+                }
+                if pending_team.get("timeS") is not None:
+                    result["teamTimeS"] = pending_team["timeS"]
+                if pending_team.get("outOfCompetition"):
+                    result["outOfCompetition"] = True
+                if pending_team.get("rank") is not None:
+                    result["rank"] = pending_team["rank"]
+                current["results"].append(result)
             pending_team = None
             return
         names = [m["name"] for m in pending_team["members"]]
@@ -689,7 +765,8 @@ def fetch(url, dest, force=False):
         return dest.read_bytes()
     safe_url = urllib.parse.quote(url, safe=":/?&=%")
     data = urllib.request.urlopen(
-        urllib.request.Request(safe_url, headers=HEADERS), timeout=30).read()
+        urllib.request.Request(safe_url, headers=HEADERS), timeout=30,
+        context=SSL_CONTEXT).read()
     dest.write_bytes(data)
     time.sleep(0.15)
     return data

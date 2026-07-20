@@ -13,11 +13,14 @@ directly rather than scraping the JS-rendered results page.
 import argparse
 import json
 import re
+import ssl
 import sys
 import time
 import urllib.parse
 import urllib.request
 from pathlib import Path
+
+import certifi
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from sportsoftware_common import MANUAL_LIVERESULTAT_COMPS  # noqa: E402
@@ -27,6 +30,7 @@ RAW = ROOT / "data" / "raw" / "anne"
 OUT = ROOT / "data" / "normalized"
 API = "https://liveresultat.orientering.se/api.php"
 HEADERS = {"User-Agent": "olresults-sync/0.1 (+https://github.com/josefhilbert/olresults)"}
+SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
 # liveresultat's numeric status code -> our vocabulary (matches the IOF/MeOS
 # convention this and similar Nordic live-timing services follow)
@@ -43,7 +47,7 @@ STATUS_MAP = {
 
 def get(url):
     req = urllib.request.Request(url, headers=HEADERS)
-    with urllib.request.urlopen(req, timeout=30) as resp:
+    with urllib.request.urlopen(req, timeout=30, context=SSL_CONTEXT) as resp:
         return json.load(resp)
 
 

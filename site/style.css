@@ -276,9 +276,11 @@ footer a { color: var(--accent-dark); text-decoration: none; }
 .review-queue { border-right: 1px solid var(--line); min-height: 0; display: flex; flex-direction: column; background: var(--card); }
 .review-filters { padding: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 7px; border-bottom: 1px solid var(--line); }
 .review-filters select, .review-filters input { min-width: 0; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; background: white; }
-.review-filters input { grid-column: 1 / -1; }
+.review-filters #queue-search, .review-filters #event-select { grid-column: 1 / -1; }
+.review-filters #event-select { font-weight: 650; color: var(--ink); }
 .review-progress { padding: 8px 13px; font-size: 12px; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
 .review-blocker { color: #b42318; }
+.queue-source { padding: 9px 13px 5px; border-top: 1px solid var(--line); color: var(--ink-faint); font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
 .queue-list { overflow: auto; min-height: 0; }
 .queue-item { width: 100%; border: 0; border-bottom: 1px solid var(--line); background: white; display: grid; grid-template-columns: 24px minmax(0, 1fr) 24px; gap: 5px; text-align: left; padding: 9px 10px; cursor: pointer; color: var(--ink); }
 .queue-item:hover, .queue-item.active { background: #fff7f2; }
@@ -302,6 +304,10 @@ footer a { color: var(--accent-dark); text-decoration: none; }
 .review-issue { padding: 6px 9px; margin: 4px 0; border-radius: 5px; font-size: 12px; }
 .review-issue.blocker { background: #fff0ee; color: #8f1d14; }
 .review-issue.warning { background: #fff8e7; color: #805300; }
+.review-issue.info { background: #eef8f9; color: #285f68; }
+.regional-decision { display: flex; gap: 6px; margin-top: 7px; }
+.regional-decision button { padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; cursor: pointer; }
+.regional-decision button:first-child { border-color: var(--accent); color: var(--accent); }
 .review-clean { color: #15753a; background: #effbf3; padding: 7px 10px; border-radius: 5px; margin: 10px 0; font-size: 13px; }
 .review-dimensions { display: flex; gap: 6px; flex-wrap: wrap; }
 .dimension { padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink-faint); font-size: 11px; }

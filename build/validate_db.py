@@ -26,12 +26,18 @@ FINGERPRINT_ORDER = {
     "person_redirect": "old_id",
     "person_tombstone": "old_id",
     "source_document": "id",
+    "championship_source_entry": "id",
     "result_list": "id",
     "result": "id",
     "audit_issue": "id",
     "verification_assertion": "scope_type, scope_key, dimension",
     "championship_rule_set": "id",
+    "championship_jurisdiction": "code",
+    "club_jurisdiction": "club",
     "championship_instance": "id",
+    "regional_category_mapping": "id",
+    "championship_entry": "id",
+    "championship_entry_result": "championship_entry_id, result_id",
     "award": "id",
 }
 
@@ -77,10 +83,14 @@ def collect(db_path, eligibility_path):
         if fk_errors:
             raise RuntimeError(f"SQLite foreign_key_check found {len(fk_errors)} errors")
         counts = {table: scalar(con, f"SELECT COUNT(*) FROM {table}") for table in CORE_COUNTS}
-        for table in ("source_document", "person_identifier", "person_alias", "person_redirect",
+        for table in ("source_document", "championship_source_entry",
+                      "person_identifier", "person_alias", "person_redirect",
                       "person_tombstone", "result_list", "audit_issue", "verification_assertion"):
             counts[table] = scalar(con, f"SELECT COUNT(*) FROM {table}")
-        for table in ("championship_rule_set", "championship_instance", "award"):
+        for table in ("championship_rule_set", "championship_jurisdiction",
+                      "club_jurisdiction", "championship_instance",
+                      "regional_category_mapping", "championship_entry",
+                      "championship_entry_result", "award"):
             counts[table] = scalar(con, f"SELECT COUNT(*) FROM {table}")
         missing_provenance = scalar(
             con, "SELECT COUNT(*) FROM result WHERE source_document_id IS NULL")
@@ -98,6 +108,21 @@ def collect(db_path, eligibility_path):
                     WHERE status NOT IN ('ok','dns','dnf','mp','dsq','unknown')""")
         if illegal_status:
             raise RuntimeError(f"{illegal_status} results use a non-normalized status")
+        illegal_eligibility = scalar(
+            con, """SELECT COUNT(*) FROM result
+                    WHERE championship_eligibility_state NOT IN
+                          ('eligible','ineligible','provisional','unknown')""")
+        if illegal_eligibility:
+            raise RuntimeError(
+                f"{illegal_eligibility} results use an invalid eligibility state")
+        unmatched_explicit_championship = scalar(
+            con, """SELECT COUNT(*) FROM championship_source_entry
+                    WHERE evidence_kind = 'official_championship_inclusion'
+                      AND result_id IS NULL""")
+        if unmatched_explicit_championship:
+            raise RuntimeError(
+                f"{unmatched_explicit_championship} official championship ranking rows "
+                "did not match a result")
         family_identity = scalar(
             con, """SELECT COUNT(*) FROM result WHERE result_kind = 'family'
                     AND (person_id IS NOT NULL OR identity_state != 'not_applicable'
@@ -105,13 +130,82 @@ def collect(db_path, eligibility_path):
         if family_identity:
             raise RuntimeError(f"{family_identity} Family results leak into person/championship data")
         personless_ordinary = scalar(
-            con, "SELECT COUNT(*) FROM result WHERE person_id IS NULL AND result_kind != 'family'")
+            con, """SELECT COUNT(*) FROM result
+                    WHERE person_id IS NULL AND result_kind != 'family'
+                      AND NOT (result_kind IN ('pair','relay','team')
+                               AND identity_state = 'not_applicable'
+                               AND identity_basis IN (
+                                   'not-applicable-memberless-team',
+                                   'not-applicable-relay-placeholder')
+                               AND team_name IS NOT NULL
+                               AND championship IS NULL)""")
         if personless_ordinary:
-            raise RuntimeError(f"{personless_ordinary} non-Family results have no person mapping")
+            raise RuntimeError(
+                f"{personless_ordinary} ordinary results have no person mapping")
         ooc_championship = scalar(
             con, "SELECT COUNT(*) FROM result WHERE out_of_competition = 1 AND championship IS NOT NULL")
         if ooc_championship:
             raise RuntimeError(f"{ooc_championship} OOC results still carry championship eligibility")
+        duplicate_relay_awards = scalar(
+            con,
+            """SELECT COUNT(*) FROM (
+                   SELECT a.championship_instance_id, r.person_id,
+                          COALESCE('n:' || r.team_number,
+                                   't:' || r.team_name, 'c:' || r.club) AS team_key
+                   FROM award a JOIN result r ON r.id = a.result_id
+                   WHERE r.result_kind = 'relay'
+                   GROUP BY a.championship_instance_id, r.person_id, team_key
+                   HAVING COUNT(*) > 1)""")
+        if duplicate_relay_awards:
+            raise RuntimeError(
+                f"{duplicate_relay_awards} relay medal groups count one person more than once")
+        regional_double_assignment = scalar(
+            con,
+            """SELECT COUNT(*) FROM (
+                   SELECT ce.stage_id, ce.competitor_key
+                     FROM championship_entry ce
+                     JOIN championship_instance ci ON ci.id = ce.championship_instance_id
+                    WHERE ci.championship_type = 'LMS'
+                    GROUP BY ce.stage_id, ce.competitor_key
+                   HAVING COUNT(DISTINCT ci.jurisdiction) > 1)""")
+        if regional_double_assignment:
+            raise RuntimeError(
+                f"{regional_double_assignment} performances belong to multiple state championships")
+        regional_entries_without_results = scalar(
+            con,
+            """SELECT COUNT(*) FROM championship_entry ce
+                WHERE NOT EXISTS (SELECT 1 FROM championship_entry_result cer
+                                   WHERE cer.championship_entry_id = ce.id)""")
+        if regional_entries_without_results:
+            raise RuntimeError(
+                f"{regional_entries_without_results} regional entries have no source results")
+        regional_family_leaks = scalar(
+            con,
+            """SELECT COUNT(*) FROM championship_entry_result cer
+                 JOIN result r ON r.id = cer.result_id WHERE r.result_kind = 'family'""")
+        if regional_family_leaks:
+            raise RuntimeError(
+                f"{regional_family_leaks} Family rows leak into regional championships")
+        duplicate_individual_results = scalar(
+            con,
+            """SELECT COUNT(*) FROM (
+                   SELECT result_list_id, person_id, observed_name, observed_club,
+                          observed_rank, observed_status, observed_time
+                   FROM result
+                   WHERE result_kind = 'individual'
+                   GROUP BY result_list_id, person_id, observed_name, observed_club,
+                            observed_rank, observed_status, observed_time
+                   HAVING COUNT(*) > 1)""")
+        if duplicate_individual_results:
+            raise RuntimeError(
+                f"{duplicate_individual_results} exact individual result groups are duplicated")
+        awards_without_positive_eligibility = scalar(
+            con,
+            """SELECT COUNT(*) FROM award a JOIN result r ON r.id = a.result_id
+               WHERE r.championship_eligibility_state NOT IN ('eligible', 'provisional')""")
+        if awards_without_positive_eligibility:
+            raise RuntimeError(
+                f"{awards_without_positive_eligibility} medals lack positive eligibility evidence")
         identifier_conflicts = scalar(
             con,
             """SELECT COUNT(*) FROM (
@@ -136,9 +230,17 @@ def collect(db_path, eligibility_path):
                 "results_without_identity_basis": missing_identity_basis,
                 "results_without_result_list": missing_list,
                 "illegal_statuses": illegal_status,
+                "illegal_eligibility_states": illegal_eligibility,
+                "unmatched_explicit_championship_rows": unmatched_explicit_championship,
                 "family_identity_leaks": family_identity,
                 "personless_non_family": personless_ordinary,
                 "ooc_championship_leaks": ooc_championship,
+                "duplicate_relay_awards": duplicate_relay_awards,
+                "regional_double_assignments": regional_double_assignment,
+                "regional_entries_without_results": regional_entries_without_results,
+                "regional_family_leaks": regional_family_leaks,
+                "duplicate_individual_results": duplicate_individual_results,
+                "awards_without_positive_eligibility": awards_without_positive_eligibility,
                 "identifier_conflicts": identifier_conflicts,
             },
         }

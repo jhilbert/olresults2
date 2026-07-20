@@ -13,13 +13,14 @@ import errno
 import sqlite3
 import sys
 import urllib.parse
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 SITE = Path(__file__).resolve().parent
 ROOT = SITE.parent
 DB = SITE / "data" / "results.db"
 DECISIONS = ROOT / "data" / "review" / "verification.json"
+CHAMPIONSHIP_CATALOG = ROOT / "data" / "review" / "championship_catalog.json"
 os.chdir(SITE)
 
 
@@ -36,6 +37,10 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
         parsed = urllib.parse.urlparse(self.path)
         if parsed.path == "/api/review":
             value = json.loads(DECISIONS.read_text()) if DECISIONS.exists() else {"assertions": []}
+            return self._json(value)
+        if parsed.path == "/api/championship":
+            value = (json.loads(CHAMPIONSHIP_CATALOG.read_text())
+                     if CHAMPIONSHIP_CATALOG.exists() else {"instances": []})
             return self._json(value)
         if parsed.path == "/review-source":
             list_id = urllib.parse.parse_qs(parsed.query).get("id", [""])[0]
@@ -60,11 +65,33 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
         return super().do_GET()
 
     def do_POST(self):
-        if urllib.parse.urlparse(self.path).path != "/api/review":
+        endpoint = urllib.parse.urlparse(self.path).path
+        if endpoint not in {"/api/review", "/api/championship"}:
             return self.send_error(404)
         try:
             size = int(self.headers.get("Content-Length", "0"))
             assertion = json.loads(self.rfile.read(size))
+            if endpoint == "/api/championship":
+                if assertion.get("state") not in {"candidate", "confirmed", "rejected"}:
+                    raise ValueError("Ungültiger Meisterschaftsstatus")
+                instance_id = assertion.get("id")
+                with sqlite3.connect(DB) as con:
+                    row = con.execute(
+                        "SELECT input_fingerprint FROM championship_instance WHERE id = ?",
+                        (instance_id,)).fetchone()
+                if not row or row[0] != assertion.get("input_fingerprint"):
+                    raise ValueError("Meisterschaftsinstanz oder Fingerprint ist nicht aktuell")
+                payload = (json.loads(CHAMPIONSHIP_CATALOG.read_text())
+                           if CHAMPIONSHIP_CATALOG.exists() else {"instances": []})
+                instances = payload.setdefault("instances", [])
+                instances[:] = [item for item in instances if item.get("id") != instance_id]
+                instances.append(assertion)
+                instances.sort(key=lambda item: item.get("id", ""))
+                CHAMPIONSHIP_CATALOG.parent.mkdir(parents=True, exist_ok=True)
+                temp = CHAMPIONSHIP_CATALOG.with_suffix(".json.tmp")
+                temp.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+                temp.replace(CHAMPIONSHIP_CATALOG)
+                return self._json({"ok": True, "instance": assertion})
             if assertion.get("dimension") not in {
                     "completeness", "parsing", "identity", "ranking", "rules"}:
                 raise ValueError("Ungültige Prüfdimension")
@@ -104,7 +131,10 @@ if __name__ == "__main__":
     server = None
     for port in ports:
         try:
-            server = HTTPServer(("127.0.0.1", port), NoCacheHandler)
+            # results.db is large and browsers may keep its download open for a
+            # while.  A single-threaded HTTPServer would then block every other
+            # asset and make the whole preview appear unavailable.
+            server = ThreadingHTTPServer(("127.0.0.1", port), NoCacheHandler)
             break
         except OSError as exc:
             if exc.errno != errno.EADDRINUSE:

@@ -25,6 +25,30 @@ NORM = ROOT / "data" / "normalized"
 DB_PATH = ROOT / "site" / "data" / "results.db"
 REVIEW_DECISIONS_PATH = ROOT / "data" / "review" / "verification.json"
 CHAMPIONSHIP_CATALOG_PATH = ROOT / "data" / "review" / "championship_catalog.json"
+CLUB_JURISDICTIONS_PATH = ROOT / "data" / "club_jurisdictions.json"
+
+# Dedicated national result sources discovered in ANNE's attachment catalog.
+# ``supplemental`` means the document is a real stage missing from ANNE's
+# structured result snapshot; ``evidence`` means it overlaps existing rows and
+# is retained only as provenance/verification, never duplicated publicly.
+CHAMPIONSHIP_SOURCE_CONFIG = {
+    "4315-2": {"mode": "evidence", "championship": "ÖM",
+               "scope": "medal_places_only", "explicit_eligibility": True},
+    "5203-1": {"mode": "supplemental", "championship": "ÖSTM",
+               "scope": "full_field", "explicit_eligibility": True},
+    "5396-2": {"mode": "supplemental", "championship": "ÖM",
+               "scope": "full_field", "explicit_eligibility": True,
+               "stage_title": r"Verfolgung"},
+    "5396-3": {"mode": "supplemental", "championship": "ÖM",
+               "scope": "full_field", "explicit_eligibility": False,
+               "stage_title": r"Verfolgung"},
+    "5437-0": {"mode": "evidence", "championship": "ÖSTM",
+               "scope": "full_field", "explicit_eligibility": False,
+               "stage_title": r"ÖSTM\s+Sprint$"},
+    "5437-2": {"mode": "evidence", "championship": "ÖSTM",
+               "scope": "full_field", "explicit_eligibility": False,
+               "stage_title": r"Knock\s*Out"},
+}
 
 SCHEMA = """
 CREATE TABLE event (
@@ -142,12 +166,34 @@ CREATE TABLE result (
     identity_state TEXT NOT NULL DEFAULT 'provisional',
     championship TEXT,               -- ÖM|ÖSTM, when this (stage, category)
                                       -- is a genuine Austrian championship
+    championship_eligibility_state TEXT NOT NULL DEFAULT 'unknown',
+                                      -- eligible|ineligible|provisional|unknown
+    championship_eligibility_basis TEXT NOT NULL DEFAULT 'none',
+                                      -- event-time evidence used for this row
+    championship_source_scope TEXT NOT NULL DEFAULT 'inferred',
+                                      -- full_field|medal_places_only|winner_only|inferred
     national_rank INTEGER            -- placement among ONLY championship-
                                       -- eligible (Austrian) finishers, which
                                       -- can differ from the overall race
                                       -- `rank` when a foreign/ineligible
                                       -- competitor placed ahead - see the
                                       -- national-rank computation in main()
+);
+CREATE TABLE championship_source_entry (
+    id TEXT PRIMARY KEY,
+    stage_id INTEGER NOT NULL REFERENCES stage(id),
+    source_document_id TEXT NOT NULL REFERENCES source_document(id),
+    category TEXT NOT NULL,
+    category_key TEXT NOT NULL,
+    observed_name TEXT NOT NULL,
+    observed_name_key TEXT NOT NULL,
+    observed_club TEXT,
+    observed_rank INTEGER,
+    observed_status TEXT,
+    result_id INTEGER REFERENCES result(id),
+    championship_type TEXT NOT NULL, -- ÖM|ÖSTM
+    evidence_kind TEXT NOT NULL,     -- official_championship_inclusion|official_championship_field
+    source_scope TEXT NOT NULL       -- full_field|medal_places_only
 );
 CREATE TABLE verification_assertion (
     scope_type TEXT NOT NULL,        -- result_list|championship
@@ -177,17 +223,65 @@ CREATE TABLE championship_rule_set (
     status TEXT NOT NULL,            -- active|draft
     description TEXT
 );
+CREATE TABLE championship_jurisdiction (
+    code TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    short_name TEXT NOT NULL,
+    level TEXT NOT NULL              -- national|regional
+);
+CREATE TABLE club_jurisdiction (
+    club TEXT PRIMARY KEY,
+    jurisdiction TEXT NOT NULL REFERENCES championship_jurisdiction(code),
+    valid_from TEXT,
+    valid_to TEXT,
+    evidence TEXT NOT NULL
+);
 CREATE TABLE championship_instance (
     id TEXT PRIMARY KEY,
-    jurisdiction TEXT NOT NULL,      -- AUT|WIEN
+    jurisdiction TEXT NOT NULL REFERENCES championship_jurisdiction(code),
     stage_id INTEGER NOT NULL REFERENCES stage(id),
     category TEXT NOT NULL,
+    category_key TEXT NOT NULL,
     championship_type TEXT NOT NULL,
     rule_set_id TEXT NOT NULL REFERENCES championship_rule_set(id),
     state TEXT NOT NULL,             -- confirmed|candidate|rejected
     detection_basis TEXT NOT NULL,
     input_fingerprint TEXT NOT NULL,
-    UNIQUE (jurisdiction, stage_id, category, championship_type)
+    UNIQUE (jurisdiction, stage_id, category_key, championship_type)
+);
+CREATE TABLE regional_category_mapping (
+    id TEXT PRIMARY KEY,
+    result_list_id TEXT NOT NULL REFERENCES result_list(id),
+    jurisdiction TEXT NOT NULL REFERENCES championship_jurisdiction(code),
+    source_category TEXT NOT NULL,
+    canonical_category TEXT NOT NULL,
+    category_key TEXT NOT NULL,
+    state TEXT NOT NULL,             -- confirmed|candidate|rejected
+    evidence_kind TEXT NOT NULL,     -- category|document|event_title
+    evidence_text TEXT NOT NULL,
+    confidence REAL NOT NULL,
+    partition_required INTEGER NOT NULL DEFAULT 1,
+    input_fingerprint TEXT NOT NULL,
+    UNIQUE (result_list_id, jurisdiction, category_key)
+);
+CREATE TABLE championship_entry (
+    id TEXT PRIMARY KEY,
+    championship_instance_id TEXT NOT NULL REFERENCES championship_instance(id),
+    stage_id INTEGER NOT NULL REFERENCES stage(id),
+    competitor_key TEXT NOT NULL,
+    regional_rank INTEGER,
+    eligibility_state TEXT NOT NULL, -- eligible|provisional|unknown|ineligible
+    eligibility_basis TEXT NOT NULL,
+    state TEXT NOT NULL,             -- derived|provisional|verified
+    source_result_list_id TEXT NOT NULL REFERENCES result_list(id),
+    input_fingerprint TEXT NOT NULL,
+    UNIQUE (championship_instance_id, competitor_key)
+);
+CREATE TABLE championship_entry_result (
+    championship_entry_id TEXT NOT NULL REFERENCES championship_entry(id),
+    result_id INTEGER NOT NULL REFERENCES result(id),
+    PRIMARY KEY (championship_entry_id, result_id),
+    UNIQUE (result_id)
 );
 CREATE TABLE award (
     id TEXT PRIMARY KEY,
@@ -195,7 +289,7 @@ CREATE TABLE award (
     result_id INTEGER NOT NULL REFERENCES result(id),
     medal TEXT NOT NULL,              -- gold|silver|bronze
     award_rank INTEGER NOT NULL,
-    state TEXT NOT NULL,              -- derived|verified
+    state TEXT NOT NULL,              -- derived|provisional|verified
     UNIQUE (championship_instance_id, result_id)
 );
 CREATE INDEX idx_result_person ON result(person_id);
@@ -204,8 +298,15 @@ CREATE INDEX idx_result_official_club ON result(official_club);
 CREATE INDEX idx_person_name ON person(name_key);
 CREATE INDEX idx_result_source_document ON result(source_document_id);
 CREATE INDEX idx_result_list ON result(result_list_id);
+CREATE INDEX idx_champ_source_stage ON championship_source_entry(stage_id, category_key);
+CREATE INDEX idx_champ_source_result ON championship_source_entry(result_id);
 CREATE INDEX idx_audit_list ON audit_issue(result_list_id, severity);
 CREATE INDEX idx_championship_stage ON championship_instance(stage_id, category);
+CREATE INDEX idx_regional_mapping_list ON regional_category_mapping(result_list_id);
+CREATE INDEX idx_regional_mapping_jurisdiction ON regional_category_mapping(jurisdiction, state);
+CREATE INDEX idx_championship_entry_instance ON championship_entry(championship_instance_id);
+CREATE INDEX idx_championship_entry_stage ON championship_entry(stage_id, competitor_key);
+CREATE INDEX idx_championship_entry_result ON championship_entry_result(result_id);
 CREATE INDEX idx_award_instance ON award(championship_instance_id);
 CREATE INDEX idx_person_alias_key ON person_alias(name_key);
 CREATE INDEX idx_person_identifier_value ON person_identifier(scheme, identifier);
@@ -217,6 +318,28 @@ SELECT stage_id, category,
 FROM result
 WHERE status != 'dns' AND result_kind NOT IN ('relay', 'family')
 GROUP BY stage_id, category;
+
+-- Source-faithful relay rows stay in result: one row per leg.  Person- and
+-- club-level consumers need one participation per person and team instead.
+-- The earliest leg is a stable representative; different teams in the same
+-- list remain separate even if the runner appears in both.
+CREATE VIEW person_result AS
+SELECT r.* FROM result r
+WHERE r.person_id IS NOT NULL
+  AND (r.result_kind != 'relay'
+       OR COALESCE(r.team_number, r.team_name, r.club) IS NULL
+       OR NOT EXISTS (
+           SELECT 1 FROM result prior
+           WHERE prior.id < r.id
+             AND prior.result_kind = 'relay'
+             AND prior.person_id = r.person_id
+             AND prior.result_list_id = r.result_list_id
+             AND COALESCE('n:' || prior.team_number,
+                          't:' || prior.team_name,
+                          'c:' || prior.club) =
+                 COALESCE('n:' || r.team_number,
+                          't:' || r.team_name,
+                          'c:' || r.club)));
 """
 
 ANNE_STATUS = {
@@ -241,8 +364,23 @@ FAMILY_CATEGORY_RE = re.compile(
     r"(?:\bfam(?:ilie|ily|iliy|iliy|iliy)?\b|familien|rahmenbewerb\s+familie)", re.I)
 AMBIGUOUS_FAMILY_CATEGORY_RE = re.compile(r"^(?:AT-)?F$", re.I)
 
+# These historic result documents use only the one-letter class ``F`` and do
+# not expose ANNE's long category title. Inspection of the complete source
+# lists confirms that F is the Family class, not a female/course label.
+KNOWN_LEGACY_FAMILY_CATEGORIES = {
+    (4220, "f"),
+    (4245, "f"),
+    (4254, "f"),
+}
+# The same one-letter spelling can also be an ordinary open/course class.
+# Event 4248's complete source has 19 separately ranked individual runners
+# (men and women), so it is definitively not a Family result.
+KNOWN_LEGACY_ORDINARY_CATEGORIES = {
+    (4248, "f"),
+}
 
-def classify_family_category(category):
+
+def classify_family_category(category, category_full=None, event_id=None):
     """Return ``family``, ``ambiguous`` or ``ordinary``.
 
     Full words and common misspellings are safe to classify automatically.
@@ -250,6 +388,15 @@ def classify_family_category(category):
     depending on the event they can mean Family, female, or a course label.
     """
     value = re.sub(r"\s+", " ", (category or "").strip())
+    full_value = re.sub(r"\s+", " ", (category_full or "").strip())
+    if FAMILY_CATEGORY_RE.search(full_value):
+        return "family"
+    if (event_id is not None and
+            (int(event_id), value.casefold()) in KNOWN_LEGACY_ORDINARY_CATEGORIES):
+        return "ordinary"
+    if (event_id is not None and
+            (int(event_id), value.casefold()) in KNOWN_LEGACY_FAMILY_CATEGORIES):
+        return "family"
     if AMBIGUOUS_FAMILY_CATEGORY_RE.fullmatch(value):
         return "ambiguous"
     return "family" if FAMILY_CATEGORY_RE.search(value) else "ordinary"
@@ -299,7 +446,57 @@ def is_active_anne_result(row):
     the runner's later official result. It is provenance inside ANNE, not a
     DNS/DNF result and must not become an OLResults competitor entry.
     """
-    return str(row.get("classification") or "").casefold() != "inactive"
+    if str(row.get("classification") or "").casefold() == "inactive":
+        return False
+    # One migrated Tirol-Cup payload contains a second, corrupt copy of every
+    # genuine result.  In those copies category is literally ``empty``, all
+    # rows are labelled disqualified, and the club column contains a rendered
+    # elapsed value such as ``27:16:00 0``.  The proper rows coexist in their
+    # real categories with the real club and classification.  This signature
+    # occurs nowhere else in the complete snapshot and is data transport
+    # debris, not a legitimate DSQ observation.
+    corrupt_club = re.fullmatch(
+        r"\d{1,3}:\d{2}:\d{2}\s+\d+", str(row.get("clubName") or "").strip())
+    if ((row.get("categoryShortTitle") or "").strip().casefold() == "empty"
+            and str(row.get("classification") or "").casefold() == "disqualified"
+            and corrupt_club):
+        return False
+    return True
+
+
+def deduplicate_anne_rows(rows):
+    """Remove byte-semantic duplicates returned under different ANNE ids.
+
+    Some migrated events contain a second copy of every result.  Only the
+    transport metadata differs (``id`` and occasionally ``updatedAt``); all
+    competition fields are identical.  Confirmed real: events 448 and 3438.
+    Comparing the complete remaining payload is deliberately stricter than a
+    name/time heuristic and therefore retains distinct starts, stages, teams,
+    bib numbers, championship annotations, and classifications.
+    """
+    seen = set()
+    unique = []
+    for row in rows:
+        payload = {key: value for key, value in row.items()
+                   if key not in ("id", "updatedAt")}
+        key = json.dumps(payload, ensure_ascii=False, sort_keys=True,
+                         separators=(",", ":"), default=str)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(row)
+    return unique
+
+
+def repair_mojibake(value):
+    """Repair the common UTF-8-decoded-as-Latin-1 source corruption."""
+    if not value or not any(marker in value for marker in ("Ã", "Â")):
+        return value
+    try:
+        repaired = value.encode("latin-1").decode("utf-8")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return value
+    return repaired
 
 CLUB_JUNK_PREFIX_RE = re.compile(r"^(?:empty|leer|vacant|frei|\.)\s+", re.I)
 
@@ -311,7 +508,7 @@ def clean_club(name):
     clubName in the raw API response, not something our own parsing adds."""
     if not name:
         return name
-    return CLUB_JUNK_PREFIX_RE.sub("", name).strip()
+    return CLUB_JUNK_PREFIX_RE.sub("", repair_mojibake(name)).strip()
 
 
 # ANNE's structured API tags every result row with its own 'championship'
@@ -440,7 +637,8 @@ CAT_AGE_NUM_RE = re.compile(r"(?<!\d)(\d{1,3})(?!\d)")  # isolated 1-3 digit
 # numbers only, so a bare \d{1,3} scan doesn't fragment a 4-digit year
 # ("2025" -> "202"+"5") into a bogus, wildly-too-young age match
 EXCLUDE_CAT_RE = re.compile(
-    r"(?i)\bbahn\b|neuling|familie|ultimate|hobby|schnupper|mannschaft|"
+    r"(?i)^cz-|\(cze\)|"
+    r"\bbahn\b|neuling|familie|ultimate|hobby|schnupper|mannschaft|"
     r"\bak\b|gesamt(?!alter)|anf[aä]nger|\bdirekt\b|ohne\s*wertung|training|"
     r"einsteiger|jedermann|fun\b|\bkurz\b|\boffen\b|"
     # knock-out sprint qualification/consolation rounds ("H21-E -
@@ -659,6 +857,15 @@ KNOWN_INELIGIBLE_RESULTS = {
     (4315, "Yelyzaveta Yevtushenko"),
 }
 
+# Joint foreign-host events can publish one combined field without ANNE's
+# per-person championshipEligibility having been fetched yet.  In that
+# situation a national medal still requires an identifiable ÖFOL club; an
+# unrecognised foreign club must not inherit an Austrian rank merely because
+# the event title contains "ÖM".  Event 5280 is the 2026 ÖM Mittel embedded
+# in the Pannon MTBO race in Márkó (HUN), whose source has generic M/W classes
+# shared by Austrian and Hungarian competitors rather than AT/HU prefixes.
+FOREIGN_HOST_REQUIRE_OFFICIAL_CLUB_EVENTS = {5280}
+
 # Single-row spelling typos confirmed present in the SOURCE document itself
 # (not a parsing artifact - the raw PDF/HTML text literally has the wrong
 # spelling), keyed the same way as KNOWN_INELIGIBLE_RESULTS. Left uncorrected,
@@ -676,6 +883,39 @@ KNOWN_NAME_TYPOS = {
     # separate synthetic person.
     (3851, "Buschek Mathilda"): "Buschek Matilda",
     (4690, "Mathilda Buschek"): "Matilda Buschek",
+    # The PDF embeds Á through a broken CID mapping. The ANNE user registry
+    # confirms the exact spelling and ÖFOL identity (8661).
+    (4477, "Ã(cid:129)gnes Vajda-Kovács"): "Ágnes Vajda-Kovács",
+    # The 2014 Krems text export contains irrecoverable replacement bytes,
+    # but the intact surrounding letters and the ANNE surname spelling make
+    # these two repairs unambiguous.
+    (1110, "Ams�üss Birgit"): "Amsüss Birgit",
+    # Both Austrian event sources lost the same character. The Slovak
+    # federation runner register (RBA6051) confirms the spelling.
+    (1583, "Ta�jana Jánošková"): "Taťjana Jánošková",
+    (1584, "Ta�jana Jánošková"): "Taťjana Jánošková",
+    (1583, "Jánošková Ta�jana"): "Taťjana Jánošková",
+    (1584, "Jánošková Ta�jana"): "Taťjana Jánošková",
+    # Event 4482's otherwise valid Tirol-Cup rows carry a literal question
+    # mark for ü. Intact ANNE results for the same people confirm all three
+    # spellings (Uwe and Sabine also have stable ÖFOL identities).
+    (4482, "Maya Eichm?ller"): "Maya Eichmüller",
+    (4482, "Uwe Waldh?tter"): "Uwe Waldhütter",
+    (4482, "Sabine Scholl-B?rgi"): "Sabine Scholl-Bürgi",
+}
+
+# Quellenspezifische Vereinszellen, die im offiziellen Resultat sichtbar auf
+# ein mehrdeutiges erstes Wort abgeschnitten sind.  Die Personenidentität und
+# ihre vollständigen Vereinsangaben in unmittelbar benachbarten 2022-Quellen
+# wurden gegengeprüft.  ``observed_club`` behält unten weiterhin den rohen
+# Wert; nur die normalisierte sportliche Zuordnung wird berichtigt.
+KNOWN_RESULT_CLUB_OVERRIDES = {
+    (3847, "Thomas Radon"): "Naturfreunde Wien",
+    (3847, "Nikolaus Euler-Rolle"): "Naturfreunde Wien",
+    (3847, "Michael Grill"): "Naturfreunde Wien",
+    (3847, "Thomas Neuhold"): "Orienteering Klosterneuburg",
+    (3847, "Barbara Kastner"): "Naturfreunde Wien",
+    (3847, "Natalia Machold"): "Naturfreunde Wien",
 }
 
 # Unambiguous non-Austrian club-name keywords (case-insensitive substring
@@ -1082,12 +1322,66 @@ def apply_championship_eligibility_overrides(cur):
         for eid, eligibility in by_event.items():
             if eligibility is True or eligibility == "error":
                 continue  # eligible, or a transient fetch failure - not evidence either way
-            cur.execute("""UPDATE result SET championship = NULL
+            cur.execute("""UPDATE result
+                            SET championship = NULL,
+                                championship_eligibility_state = 'ineligible',
+                                championship_eligibility_basis = 'anne_foreign_no_override'
                             WHERE championship IS NOT NULL AND person_id = ?
+                              AND championship_eligibility_basis != 'official_championship_ranking'
                               AND stage_id IN (SELECT id FROM stage WHERE event_id = ?)""",
                         (int(uid), int(eid)))
             n += cur.rowcount
     return n
+
+
+def apply_championship_eligibility_evidence(cur):
+    """Resolve the best event-time eligibility evidence available per row.
+
+    ANNE nationality is authoritative only when an ÖFOL identity exists:
+    AUT is eligible without consulting the foreign-nationality override.
+    Non-AUT decisions are frozen per event in USER_ELIGIBILITY_PATH and are
+    applied by apply_championship_eligibility_overrides (negative) or here
+    (positive).  An explicit championship row/annotation keeps the eligible
+    state assigned at insertion.  Everything else can only become a
+    provisional club inference; club membership is useful evidence but is not
+    equivalent to nationality/residency eligibility.
+    """
+    cur.execute("""
+        UPDATE result
+        SET championship_eligibility_state = 'eligible',
+            championship_eligibility_basis = 'anne_aut_nationality'
+        WHERE championship IS NOT NULL AND person_id > 0
+          AND championship_eligibility_basis != 'official_championship_ranking'
+          AND person_id IN (SELECT id FROM person WHERE nationality = 'AUT')
+    """)
+    if USER_ELIGIBILITY_PATH.exists():
+        cache = json.loads(USER_ELIGIBILITY_PATH.read_text())
+        for uid, by_event in cache.items():
+            for eid, eligibility in by_event.items():
+                if eligibility is not True:
+                    continue
+                cur.execute("""
+                    UPDATE result
+                    SET championship_eligibility_state = 'eligible',
+                        championship_eligibility_basis = 'anne_foreign_override'
+                    WHERE championship IS NOT NULL AND person_id = ?
+                      AND championship_eligibility_basis != 'official_championship_ranking'
+                      AND stage_id IN (SELECT id FROM stage WHERE event_id = ?)
+                """, (int(uid), int(eid)))
+    cur.execute("""
+        UPDATE result
+        SET championship_eligibility_state = 'provisional',
+            championship_eligibility_basis = 'oefol_club_inference'
+        WHERE championship IS NOT NULL AND official_club IS NOT NULL
+          AND championship_eligibility_state IN ('unknown', 'provisional')
+    """)
+    cur.execute("""
+        UPDATE result
+        SET championship_eligibility_state = 'unknown',
+            championship_eligibility_basis = 'no_verified_eligibility_evidence'
+        WHERE championship IS NOT NULL AND official_club IS NULL
+          AND championship_eligibility_state = 'provisional'
+    """)
 
 
 def apply_title_championship_fallback(cur):
@@ -1146,7 +1440,8 @@ def apply_title_championship_fallback(cur):
         SELECT DISTINCT s.id, r.category, e.title, e.id, e.slug, r.result_kind, e.sport_type FROM result r
         JOIN stage s ON s.id = r.stage_id
         JOIN event e ON e.id = s.event_id
-        WHERE r.status = 'ok' AND r.result_kind IN ('individual', 'relay', 'pair', 'team')
+        WHERE r.status = 'ok' AND r.person_id IS NOT NULL
+          AND r.result_kind IN ('individual', 'relay', 'pair', 'team')
           AND NOT EXISTS (SELECT 1 FROM result r2
                             WHERE r2.stage_id = s.id AND r2.category = r.category
                               AND r2.championship IS NOT NULL)
@@ -1248,9 +1543,13 @@ def apply_title_championship_fallback(cur):
         # at all, because a teammate on another leg mispunched - the whole
         # team is unplaced then, and none of its members should carry a
         # championship tag regardless of their own leg's status.
-        cur.execute("""UPDATE result SET championship = ?
+        cur.execute("""UPDATE result
+                        SET championship = ?,
+                            championship_eligibility_state = 'provisional',
+                            championship_eligibility_basis = 'title_category_inference',
+                            championship_source_scope = 'inferred'
                         WHERE stage_id = ? AND category = ? AND status = 'ok'
-                          AND rank IS NOT NULL
+                          AND rank IS NOT NULL AND person_id IS NOT NULL
                           AND result_kind IN ('individual', 'relay', 'pair', 'team')""", (champ, sid, category))
         n += cur.rowcount
     return n
@@ -1282,9 +1581,43 @@ NF_ABBREV_RE = re.compile(r"^NF\s*(.+)$")
 CLUB_SOURCE_ALIASES = {
     # Historic/source spellings versus ANNE's current official registry.
     "FUN-OL NÖ": "FUN.O NOe",
+    "FUN-OL NÖe": "FUN.O NOe",
     "FUN-OL NOE": "FUN.O NOe",
+    "OLG DKB": "SKV OLG Deutsch Kaltenbrunn",
+    "WAT": "WAT-OL",
+    "WAT.OL": "WAT-OL",
+    "WAT OL": "WAT-OL",
+    "WAT-OL WAT-OL": "WAT-OL",
+    "GO Harzberg": "GO_Harzberg/Bad_Voeslau",
+    "HSV Villach": "HSV OL Villach",
+    "HSV OL Wr. Neustadt": "HSV OL Wiener Neustadt",
+    "HSV OL Wr.Neustadt": "HSV OL Wiener Neustadt",
+    "HSV Wr. Neustadt": "HSV OL Wiener Neustadt",
+    "HSV Wiener Neustadt": "HSV OL Wiener Neustadt",
+    "LK Innsbruck": "Laufklub Kompass Innsbruck",
+    "NF Villach Orienteering": "Naturfreunde Villach - Orienteering",
+    "NF Villach": "Naturfreunde Villach - Orienteering",
+    "ASKÖ– Henndorf": "ASKÖ Henndorf Orienteering",
+    "ASKÖ- Henndorf": "ASKÖ Henndorf Orienteering",
+    "HSV Absam": "HSV Absam OL",
+    "Leibnitzer AC Orientierungslau": "Leibnitzer AC OLG",
+    "LAC Leibnitz": "Leibnitzer AC OLG",
+    "Leibnitzer Athletik Club-OLGem": "Leibnitzer AC OLG",
+    "Leibnitzer Athletik Club - Ori": "Leibnitzer AC OLG",
+    "Leibnitzer Athletik Club": "Leibnitzer AC OLG",
+    # Literal replacement character in old ANNE migrations.
+    "Naturfreunde Kitzb?hel": "Naturfreunde Kitzbühel",
+    # Historical name of today's Fürstenfeld club in old STOLV exports.
+    "TV Fürstenfeld": "OC Fürstenfeld",
+    "TV Fuerstenfeld": "OC Fürstenfeld",
     # Name used by the Klosterneuburg club in older result lists.
     "OK Gittis Klosterneuburg": "Orienteering Klosterneuburg",
+    "OK Klosterneuburg": "Orienteering Klosterneuburg",
+    # A paired night-result row starts the extracted club cell inside the
+    # preceding runner name. The surviving suffix is still unique and was
+    # checked against the source's full club label.
+    "ner  OK gittis Klosterneubu": "Orienteering Klosterneuburg",
+    "GOs Harzberg": "GO_Harzberg/Bad_Voeslau",
 }
 
 
@@ -1344,6 +1677,18 @@ def canonicalize_official_club(name, official):
                 cur = f"Naturfreunde {m.group(1).strip()}"
                 changed = True
         if not changed:
+            # Some team exports concatenate a short/source label and the
+            # full official club ("NF Wien Naturfreunde Wien", "SUSO SU
+            # Schöckl Orienteering").  Accept this only if exactly one full
+            # official name occurs inside the field; combined-club relay
+            # labels consequently remain ambiguous and are not collapsed.
+            embedded_matches = [candidate for candidate in official
+                                if len(candidate) >= 8
+                                and candidate.casefold() in cur.casefold()]
+            if len(embedded_matches) == 1:
+                cur = embedded_matches[0]
+                changed = True
+        if not changed:
             # Fixed-width PDF columns truncate long club names. Accept only a
             # sufficiently long prefix that identifies exactly one official
             # club; this repairs "ASKÖ Henndorf Orientee" and "HSV OL Wiener
@@ -1389,7 +1734,8 @@ def clean_name(name):
     same runner isn't fragmented into separate identities per race. Handles
     Excel '#NAME?' import errors and a leading rank that some result layouts
     glue onto the name, with ('8 Robert') or without ('1Löwenstein') a space."""
-    name = re.sub(r"^#NAME\?\s*", "", name.strip())
+    name = repair_mojibake(name.strip())
+    name = re.sub(r"^#NAME\?\s*", "", name)
     name = re.sub(r"^A\.?\s?K\.?\s+", "", name)  # 'A.K.' = außer Konkurrenz marker
     name = re.sub(r"^\([^)]*\)\s*", "", name)   # leading note, e.g. "(Csala) Judit Resch"
     m = re.match(r"^\d{1,3}\s+(\D.*)$", name) or re.match(r"^\d{1,3}([A-Za-zÀ-ÿ].*)$", name)
@@ -1398,6 +1744,17 @@ def clean_name(name):
     # PDF extraction sometimes splits the first letter off ("A lexander Grill")
     name = re.sub(r"^([A-ZÀ-Þ]) ([a-zà-ÿ])", r"\1\2", name)
     return name
+
+
+def clean_result_name(event_id, observed_name):
+    """Clean a source name and then apply narrowly verified event repairs.
+
+    Applying the repair here, before name validation, is important: a literal
+    question mark from a broken legacy character encoding would otherwise make
+    an otherwise valid ANNE result disappear before it can be corrected.
+    """
+    name = clean_name(observed_name)
+    return KNOWN_NAME_TYPOS.get((event_id, name), name)
 
 
 # SportSoftware appends championship/title notes ("... und Österreichischer
@@ -1498,7 +1855,16 @@ def is_valid_name(name):
         return False
     if ANNOTATION_RE.search(name):
         return False
+    if re.fullmatch(r"(?i)(?:vakant|vacant|n\.?\s*n\.?)", name.strip()):
+        return False
     return True
+
+
+def is_relay_placeholder_name(name):
+    """True for explicit empty relay slots, never for a real person."""
+    compact = re.sub(r"\s+", " ", (name or "").strip())
+    return bool(re.fullmatch(
+        r"(?i)n\.?\s*n\.?(?:\s+(?:n\.?\s*n\.?|n\s*ang))?", compact))
 
 
 def club_match_key(name):
@@ -1508,6 +1874,39 @@ def club_match_key(name):
     value = unicodedata.normalize("NFKD", name or "")
     value = "".join(c for c in value if not unicodedata.combining(c))
     return re.sub(r"[^a-z0-9]", "", value.casefold())
+
+
+def relay_club_match_key(name):
+    """Comparison key for abbreviated clubs inside a mixed relay label.
+
+    This is intentionally narrower than general club canonicalisation.  It
+    is only used as supporting evidence for an already exact, unique ANNE
+    name match, and handles abbreviations actually printed in relay sources
+    (``NF Kitzb.``, ``HSV Wr. Neust.``, ``LK Innsbruck``).
+    """
+    value = unicodedata.normalize("NFKD", name or "")
+    value = "".join(c for c in value if not unicodedata.combining(c)).casefold()
+    value = re.sub(r"\bnaturfreunde\b", "nf", value)
+    value = re.sub(r"\blaufklub\s+kompass\b", "lk", value)
+    value = re.sub(r"\basko\s+henndorf\s+orienteering\b", "ahdo", value)
+    value = re.sub(r"\bwiener\b", "wr", value)
+    value = re.sub(r"\bneustadt\b", "neust", value)
+    value = re.sub(r"\bkitzbuhl\b", "kitzbuhel", value)
+    value = re.sub(r"\borienteering\b|\boriente\b", "", value)
+    value = re.sub(r"\bol\b", "", value)
+    value = re.sub(r"\boc\s+furstenfeld\b", "ocff", value)
+    return re.sub(r"[^a-z0-9]", "", value)
+
+
+def relay_club_component_matches(component, membership):
+    component_key = relay_club_match_key(component)
+    membership_key = relay_club_match_key(membership)
+    if not component_key or not membership_key:
+        return False
+    if component_key == membership_key:
+        return True
+    shorter, longer = sorted((component_key, membership_key), key=len)
+    return len(shorter) >= 5 and longer.startswith(shorter)
 
 
 class AnneProfileIndex:
@@ -1529,9 +1928,13 @@ class AnneProfileIndex:
                 oefol_id = int(profile["oefol_id"])
             except (KeyError, TypeError, ValueError):
                 continue
-            first = (profile.get("first_name") or "").strip()
-            last = (profile.get("last_name") or "").strip()
-            name = f"{first} {last}".strip()
+            # The private snapshot has occasionally contained UTF-8 names
+            # decoded as Latin-1 (``SchÃ¼tz``).  Result names already pass
+            # through clean_name(); do the same for the authoritative ANNE
+            # profile or a direct ÖFOL-ID would publish the damaged spelling.
+            first = repair_mojibake((profile.get("first_name") or "").strip())
+            last = repair_mojibake((profile.get("last_name") or "").strip())
+            name = clean_name(f"{first} {last}".strip())
             if oefol_id <= 0 or not is_valid_name(name):
                 continue
             yob = profile.get("year_of_birth")
@@ -1548,6 +1951,13 @@ class AnneProfileIndex:
                     for m in profile.get("active_memberships", [])
                     if isinstance(m, dict) and isinstance(m.get("club"), dict)
                 ),
+                "membership_names": tuple(dict.fromkeys(
+                    (m.get("club") or {}).get("name").strip()
+                    for m in profile.get("active_memberships", [])
+                    if isinstance(m, dict) and isinstance(m.get("club"), dict)
+                    and isinstance((m.get("club") or {}).get("name"), str)
+                    and (m.get("club") or {}).get("name").strip()
+                )),
             }
             self.by_id[oefol_id] = normalised
             self.by_name[normalised["name_key"]].append(normalised)
@@ -1562,13 +1972,41 @@ class AnneProfileIndex:
         nk = name_key(name)
         if yob is not None:
             matches = self.by_name_yob.get((nk, yob), [])
-            return matches, "name-yob"
-        club_key = club_match_key(club)
+            if matches:
+                return matches, "name-yob"
+            # Result feeds occasionally contain a wrong year of birth even
+            # when the printed name and club are correct (notably structured
+            # ANNE relay members).  A failed year match must not suppress the
+            # independent, exact name+club proof below.  It is still promoted
+            # only when that combination identifies exactly one profile.
+        canonical_club = canonicalize_official_club(club, OFFICIAL_CLUBS)
+        club_key = club_match_key(canonical_club or club)
         if club_key:
             matches = [profile for profile in self.by_name.get(nk, [])
                        if club_key in profile["memberships"]]
             return matches, "name-club"
         return [], None
+
+    def relay_member_club(self, name, team_label):
+        """Resolve one member's club from a slash-separated relay label.
+
+        The source observes only a combined team label.  A club is returned
+        only when exact ANNE name + printed component select exactly one
+        profile membership.  Thus two people with the same name but distinct
+        clubs can still be disambiguated safely.
+        """
+        if "/" not in (team_label or ""):
+            return None
+        profiles = self.by_name.get(name_key(name), [])
+        components = [part.strip() for part in team_label.split("/") if part.strip()]
+        matches = {
+            (profile["oefol_id"], membership)
+            for profile in profiles
+            for membership in profile.get("membership_names", ())
+            if any(relay_club_component_matches(component, membership)
+                   for component in components)
+        }
+        return next(iter(matches))[1] if len(matches) == 1 else None
 
 
 def load_anne_profile_index():
@@ -1833,6 +2271,158 @@ def register_legacy_document(cur, doc):
     return document_id
 
 
+def championship_category_key(category):
+    """Normalize ANNE codes and spelled-out PDF classes to one join key."""
+    text = unicodedata.normalize("NFKD", category or "")
+    text = "".join(ch for ch in text if not unicodedata.combining(ch)).casefold()
+    text = re.sub(r"\s+", " ", text).strip()
+    gender = ("d" if re.match(r"^(?:d(?:amen)?)(?:\b|[-\d])", text) else
+              "h" if re.match(r"^(?:h(?:erren)?)(?:\b|[-\d])", text) else None)
+    if gender:
+        elite = bool(re.search(r"\belite\b|21\s*-?\s*e\b", text))
+        age_match = (re.search(r"\bbis\s*(\d{1,3})\b", text)
+                     or re.search(r"\bab\s*(\d{1,3})\b", text)
+                     or re.search(r"^[dh]\s*-?\s*(\d{1,3})", text))
+        if age_match:
+            age = int(age_match.group(1))
+            return f"{gender}{age}{'e' if elite else ''}"
+        if elite or text in {"damen", "herren"}:
+            return f"{gender}21e"
+    return re.sub(r"[^a-z0-9]+", "", text)
+
+
+def configured_championship_stage(cur, event, stage_ids, config):
+    pattern = config.get("stage_title")
+    stages = cur.execute(
+        "SELECT id, title FROM stage WHERE event_id = ? ORDER BY number, id",
+        (event["id"],)).fetchall()
+    if pattern:
+        matches = [sid for sid, title in stages
+                   if re.search(pattern, title or "", re.I)]
+        if len(matches) == 1:
+            return matches[0]
+    if len(stages) == 1:
+        return stages[0][0]
+    return default_stage(cur, event, stage_ids)
+
+
+def register_championship_source_entries(cur, doc, stage_id, source_document_id,
+                                         config):
+    """Persist source observations without duplicating overlapping results."""
+    stem = Path(doc["_normalizedPath"]).stem
+    evidence_kind = ("official_championship_inclusion"
+                     if config.get("explicit_eligibility")
+                     else "official_championship_field")
+    inserted = 0
+    for category in doc.get("categories") or []:
+        category_name = category.get("name") or ""
+        category_key = championship_category_key(category_name)
+        for index, row in enumerate(category.get("results") or []):
+            observed_name = (row.get("name") or "").strip()
+            cleaned = clean_name(observed_name)
+            if not is_valid_name(cleaned):
+                continue
+            entry_id = "champ-source:" + hashlib.sha256(
+                f"{stem}\0{category_name}\0{index}\0{name_key(cleaned)}".encode()
+            ).hexdigest()[:24]
+            cur.execute(
+                """INSERT OR REPLACE INTO championship_source_entry
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (entry_id, stage_id, source_document_id, category_name,
+                 category_key, observed_name, name_key(cleaned), row.get("club"),
+                 row.get("rank"), row.get("status"), None,
+                 config["championship"], evidence_kind, config["scope"]))
+            inserted += 1
+    return inserted
+
+
+def apply_championship_source_entries(cur):
+    """Join official attachment observations onto canonical result rows.
+
+    A specifically filtered ``Meisterschaftswertung`` is direct event-time
+    eligibility evidence. A general result sheet headed ÖM/ÖSTM confirms the
+    championship category and its source coverage, but does not by itself
+    prove that every foreign/clubless guest was eligible.
+    """
+    candidates = defaultdict(list)
+    ranked_candidates = defaultdict(list)
+    for row in cur.execute(
+            """SELECT r.id, r.stage_id, r.category, p.name_key, r.observed_name,
+                      r.observed_club, r.championship, r.rank
+               FROM result r LEFT JOIN person p ON p.id = r.person_id""").fetchall():
+        (rid, stage_id, category, person_key, observed_name, observed_club,
+         championship, rank) = row
+        keys = {key for key in (person_key,
+                                name_key(clean_name(observed_name)) if observed_name else None)
+                if key}
+        for key in keys:
+            candidates[(stage_id, championship_category_key(category), key)].append(
+                (rid, category, observed_club, championship, rank))
+        if rank is not None:
+            ranked_candidates[(stage_id, championship_category_key(category), rank)].append(
+                (rid, category, observed_club, championship, rank))
+
+    matched = 0
+    entries = cur.execute(
+        """SELECT id, stage_id, category_key, observed_name_key, observed_club,
+                  observed_rank, championship_type, evidence_kind, source_scope
+           FROM championship_source_entry""").fetchall()
+    for (entry_id, stage_id, category_key, observed_name_key, observed_club,
+         observed_rank, championship_type, evidence_kind, source_scope) in entries:
+        options = candidates.get((stage_id, category_key, observed_name_key), [])
+        # Pair-only medal sheets sometimes compress two names into one token
+        # (``Nora-Sophia Tandl-Asseg``).  The official rank + category + club
+        # identifies the source unit and intentionally maps to both member
+        # rows in the full result list.
+        if (not options and evidence_kind == "official_championship_inclusion"
+                and observed_rank is not None):
+            options = ranked_candidates.get(
+                (stage_id, category_key, observed_rank), [])
+        if not options:
+            continue
+        if observed_club:
+            clean_observed_club = re.sub(
+                r"(?i)^x\s*\d+\s+", "", observed_club).strip()
+            club_key = canonicalize_official_club(
+                clean_observed_club, OFFICIAL_CLUBS)
+            club_matches = [option for option in options
+                            if canonicalize_official_club(option[2], OFFICIAL_CLUBS) == club_key]
+            if club_matches:
+                options = club_matches
+        rid, result_category, _club, existing_championship, _rank = options[0]
+        cur.execute(
+            "UPDATE championship_source_entry SET result_id = ? WHERE id = ?",
+            (rid, entry_id))
+        eligible_category = (
+            is_ostm_eligible_category(result_category)
+            if championship_type == "ÖSTM" else is_om_eligible_category(result_category))
+        if evidence_kind == "official_championship_inclusion":
+            eligible_category = True  # the filtered source itself is authoritative
+            cur.executemany(
+                """UPDATE result
+                   SET championship = ?, championship_eligibility_state = 'eligible',
+                       championship_eligibility_basis = 'official_championship_ranking',
+                       championship_source_scope = ?
+                   WHERE id = ?""",
+                [(championship_type, source_scope, option[0]) for option in options])
+        elif existing_championship is not None or eligible_category:
+            cur.execute(
+                """UPDATE result
+                   SET championship = COALESCE(championship, ?),
+                       championship_eligibility_state = CASE
+                         WHEN championship_eligibility_state = 'unknown'
+                         THEN 'provisional' ELSE championship_eligibility_state END,
+                       championship_eligibility_basis = CASE
+                         WHEN championship_eligibility_basis = 'none'
+                         THEN 'official_championship_field'
+                         ELSE championship_eligibility_basis END,
+                       championship_source_scope = ?
+                   WHERE id = ?""",
+                (championship_type, source_scope, rid))
+        matched += 1
+    return matched
+
+
 def result_list_id(stage_id, source_document_id, category):
     raw = f"{stage_id}\0{source_document_id}\0{category}".encode()
     return "list:" + hashlib.sha256(raw).hexdigest()[:24]
@@ -1915,6 +2505,23 @@ def register_result_list(cur, stage_id, source_document_id, category, category_f
     return list_id
 
 
+def normalize_qualitative_result_ranks(categories):
+    """Qualitative U10 results (``gut``/participated) are never ranked.
+
+    One historic PDF contains a stray ``1`` in the placement column for a
+    single child while every row in both U10 classes is intentionally reported
+    only as ``gut``. Preserve the participation status but do not invent a
+    winner from that isolated source artifact (event 657).
+    """
+    for category in categories or []:
+        for row in category.get("results") or []:
+            if re.search(
+                    r"(?i)(?:(?:sehr\s+)?gut|teilg|(?:erfolgreich\s+)?teilgenommen)\s*$",
+                    row.get("timeText") or ""):
+                row.pop("rank", None)
+    return categories
+
+
 RESULT_COLS = ("stage_id", "person_id", "result_list_id", "category", "category_full", "club", "official_club",
                "rank", "status", "time_s", "time_behind_s", "out_of_competition",
                "course_length_m", "course_climb_m", "course_controls",
@@ -1923,7 +2530,9 @@ RESULT_COLS = ("stage_id", "person_id", "result_list_id", "category", "category_
                "source", "source_document_id",
                "observed_name", "observed_club", "observed_user_id", "observed_category",
                "observed_rank", "observed_status", "observed_time",
-               "identity_basis", "identity_confidence", "identity_state", "championship")
+               "identity_basis", "identity_confidence", "identity_state", "championship",
+               "championship_eligibility_state", "championship_eligibility_basis",
+               "championship_source_scope")
 
 
 def insert_result(cur, **kw):
@@ -1942,6 +2551,18 @@ def insert_result(cur, **kw):
         kw["status"] = "ok"
     kw.setdefault("identity_state", "resolved" if kw.get("identity_confidence", 0) >= 1.0
                   else ("candidate" if kw.get("person_id") is not None else "unresolved"))
+    kw.setdefault("championship_eligibility_state", "unknown")
+    kw.setdefault("championship_eligibility_basis", "none")
+    kw.setdefault("championship_source_scope", "inferred")
+    if kw.get("championship") is not None and kw["championship_eligibility_state"] == "unknown":
+        if kw.get("source") == "anne-api":
+            kw["championship_eligibility_state"] = "eligible"
+            kw["championship_eligibility_basis"] = "official_anne_championship"
+            kw["championship_source_scope"] = "full_field"
+        else:
+            kw["championship_eligibility_state"] = "eligible"
+            kw["championship_eligibility_basis"] = "official_champion_annotation"
+            kw["championship_source_scope"] = "winner_only"
     vals = [kw.get(c) for c in RESULT_COLS]
     cur.execute(f"INSERT INTO result ({','.join(RESULT_COLS)}) "
                 f"VALUES ({','.join('?' * len(RESULT_COLS))})", vals)
@@ -1961,7 +2582,7 @@ def aggregate_team_status(declared_status, member_statuses):
 
 def relay_metadata(row, kind):
     """Read explicit relay fields, with notes as a compatibility fallback."""
-    if kind not in ("relay", "team"):
+    if kind not in ("relay", "team", "pair"):
         return {}
     note = row.get("note") or ""
     team_name = row.get("teamName")
@@ -2044,6 +2665,14 @@ def anne_mapped_stage(cur, event, stage_ids, info):
     the precise per-stage championship signal apply_title_championship_
     fallback needs."""
     num = info["number"]
+    # When structured results exist, load_anne_results() has already created
+    # ANNE's real stage row.  A supplemental attachment for an otherwise empty
+    # stage must reuse that id instead of minting a parallel synthetic stage.
+    existing = cur.execute(
+        "SELECT id FROM stage WHERE event_id = ? AND number = ? ORDER BY id LIMIT 1",
+        (event["id"], num)).fetchone()
+    if existing:
+        return existing[0]
     sid = 30_000_000 + event["id"] * 100 + num
     if sid not in stage_ids:
         cur.execute("INSERT INTO stage VALUES (?,?,?,?,?,?)",
@@ -2069,8 +2698,29 @@ def load_anne_results(cur, events, persons, stage_ids):
                                 (s["id"], eid, s.get("number", 1), s.get("title"),
                                  s.get("dateFrom"), s.get("location")))
                     stage_ids.add(s["id"])
-        rows = [row for row in json.loads(path.read_text())
-                if is_active_anne_result(row)]
+        rows = deduplicate_anne_rows([
+            row for row in json.loads(path.read_text())
+            if is_active_anne_result(row)
+        ])
+        # A small family of old ANNE migrations stores elapsed time as a
+        # whole number of *minutes* (for example 42 for an exact 42:41 in the
+        # attached official result list), while the current API contract and
+        # every normal result use seconds.  They are also conspicuous at the
+        # document level: a substantial completed event, no source rank at
+        # all, and no elapsed value reaching five minutes.  Scale those values
+        # for display/calculation, but retain the source integer separately
+        # and mark the loss of precision for the audit model.  Inferring ranks
+        # from row order would be unsafe because minute ties are not real ties.
+        if anne_results_have_minute_precision(rows):
+            converted = []
+            for source_row in rows:
+                row = dict(source_row)
+                row["_observedMinuteTime"] = row.get("time")
+                if isinstance(row.get("time"), (int, float)):
+                    row["time"] = round(row["time"] * 60)
+                row["_timePrecisionNote"] = "ANNE-Altimport: Zeit nur minutengenau"
+                converted.append(row)
+            rows = converted
         # the API can return live and official lists side by side:
         # keep only the most authoritative type per stage+category
         priority = {"official": 0, "unofficial": 1, "live": 2}
@@ -2097,7 +2747,8 @@ def load_anne_results(cur, events, persons, stage_ids):
             sid = r.get("eventStageId") or default_stage(cur, event, stage_ids)
             cat = r.get("categoryShortTitle") or r.get("categoryTitle")
             list_id = list_ids[(sid, cat)]
-            family_state = classify_family_category(cat)
+            family_state = classify_family_category(
+                cat, r.get("categoryTitle"), event.get("id"))
             if family_state == "family":
                 members = r.get("teamMembers") or []
                 member_names = [
@@ -2120,13 +2771,17 @@ def load_anne_results(cur, events, persons, stage_ids):
                     time_behind_s=r.get("timeBehind"), out_of_competition=ooc,
                     course_length_m=course.get("length"), course_climb_m=course.get("climb"),
                     course_controls=course.get("controlCount"), result_kind="family",
-                    note="Family-Ergebnis ohne Personenzuordnung", source="anne-api",
+                    note=" · ".join(filter(None, [
+                        "Family-Ergebnis ohne Personenzuordnung",
+                        r.get("_timePrecisionNote")
+                    ])), source="anne-api",
                     source_document_id=source_document_id, observed_name=observed_name,
                     observed_club=r.get("clubName"), observed_user_id=str(r.get("userId"))
                     if r.get("userId") not in (None, "") else None,
                     observed_category=cat, observed_rank=str(r.get("rank"))
                     if r.get("rank") is not None else None,
-                    observed_status=raw_status, observed_time=str(r.get("time"))
+                    observed_status=raw_status,
+                    observed_time=str(r.get("_observedMinuteTime", r.get("time")))
                     if r.get("time") is not None else None,
                     identity_basis="not-applicable-family", identity_confidence=1.0,
                     identity_state="not_applicable", championship=None)
@@ -2136,7 +2791,7 @@ def load_anne_results(cur, events, persons, stage_ids):
                 n += insert_anne_relay(cur, persons, sid, cat, r, source_document_id, list_id)
                 continue
             observed_name = f"{r.get('firstName') or ''} {r.get('lastName') or ''}".strip()
-            name = clean_name(observed_name)
+            name = clean_result_name(eid, observed_name)
             # some old imports carry bib/SI numbers or 'empty' placeholders
             if not is_valid_name(name) or "empty" in name.lower():
                 continue
@@ -2169,19 +2824,42 @@ def load_anne_results(cur, events, persons, stage_ids):
                           course_length_m=course.get("length"),
                           course_climb_m=course.get("climb"),
                           course_controls=course.get("controlCount"),
-                          source="anne-api", source_document_id=source_document_id,
+                          note=r.get("_timePrecisionNote"), source="anne-api",
+                          source_document_id=source_document_id,
                           observed_name=observed_name, observed_club=r.get("clubName"),
                           observed_user_id=str(uid) if uid is not None else None,
                           observed_category=cat,
                           observed_rank=str(r.get("rank")) if r.get("rank") is not None else None,
                           observed_status=raw_status,
-                          observed_time=str(r.get("time")) if r.get("time") is not None else None,
+                          observed_time=str(r.get("_observedMinuteTime", r.get("time")))
+                          if r.get("time") is not None else None,
                           identity_basis=identity_basis,
                           identity_confidence=identity_confidence,
                           identity_state=identity_state,
                           championship=anne_championship(r))
             n += 1
     return n
+
+
+def anne_results_have_minute_precision(rows):
+    """Identify ANNE legacy payloads whose elapsed unit is whole minutes.
+
+    The threshold is deliberately document-wide and conservative.  A single
+    very short category must never trigger it; the source must contain at
+    least twenty timed classified rows, no ranks anywhere, and every positive
+    elapsed value must be below five minutes.  Real sprint events still have
+    finishers above that bound, whereas the confirmed migrations contain
+    hundreds of values such as 17, 42 and 84.
+    """
+    timed = [
+        row.get("time") for row in rows or []
+        if row.get("classification") == "classified"
+        and isinstance(row.get("time"), (int, float))
+        and row.get("time") > 0
+    ]
+    return (len(timed) >= 20
+            and not any(row.get("rank") is not None for row in rows or [])
+            and max(timed, default=300) < 300)
 
 
 def insert_anne_relay(cur, persons, sid, cat, team, source_document_id=None,
@@ -2302,11 +2980,13 @@ AC_ROUND_RE = re.compile(r"(\d+)[\s.-]*ac\b", re.I)
 # real one, leaving the real results stranded on a phantom stage.
 LEGACY_FILENAME_DATE_RE = re.compile(r"(\d{1,2})[.-](\d{1,2})[.-](\d{4})")
 # Some multi-race festivals number their result files by stage
-# ("...-e1.pdf"/"...-e2.pdf"/"...-e3.pdf" for Etappe 1/2/3), which lines up
+# ("...-e1.pdf", "RESULT2.html", or "Ergebnisse_1Etappe.html"), which lines up
 # directly with ANNE's own ordered stages - see map_docs_to_anne_stages,
 # which uses this to give each file its true stage identity (date AND title)
 # from ANNE even when two races share a day, which a date-only split can't.
-ETAPPE_FILENAME_RE = re.compile(r"(?<![a-z])e[\s.-]*(\d{1,2})(?![0-9])", re.I)
+ETAPPE_FILENAME_RE = re.compile(
+    r"(?:\b(?:results?|ergebnisse?)[\s._-]*|(?<![a-z])e[\s.-]*)(\d{1,2})(?![0-9])",
+    re.I)
 # Split (Zwischenzeiten) files and cumulative "standings so far" files are
 # never a race's own result list - a split file has no rank/club/team of its
 # own (see the relay/leg-times dedup-priority comment above), and a
@@ -2318,6 +2998,8 @@ ETAPPE_FILENAME_RE = re.compile(r"(?<![a-z])e[\s.-]*(\d{1,2})(?![0-9])", re.I)
 # it. Confirmed real: event 4626 ("O-Festival 2025") - "over-all-results-
 # after-e02.pdf" mapping onto Etappe 2 alongside the real "results-e02.pdf".
 JUNK_DOC_FILENAME_RE = re.compile(r"-split\.|results-after-e\d+", re.I)
+COURSE_VIEW_FILENAME_RE = re.compile(
+    r"(?:nach[\s._-]*bahnen|by[\s._-]*courses?)", re.I)
 
 
 def map_docs_to_anne_stages(docs):
@@ -2409,6 +3091,25 @@ def map_docs_to_anne_stages(docs):
                 m = AC_ROUND_RE.search(derive_stage_title(d.get("docTitle")) or "")
             if m and int(m.group(1)) in anne_round:
                 return anne_round[int(m.group(1))]
+            # A dedicated championship attachment often omits the AC round
+            # but names the discipline (for example event 2541's
+            # ``...oestm...ski-lang...pdf``).  When exactly one ANNE stage
+            # carries the same discipline, that is an unambiguous mapping.
+            source_text = " ".join(filter(None, (
+                d.get("fileName"), derive_stage_title(d.get("docTitle")))))
+            discipline_matches = []
+            for discipline in ("sprint", "lang", "mittel", "nacht", "staffel",
+                               "verfolgung", "knock out", "ko-sprint"):
+                if re.search(rf"\b{re.escape(discipline)}\b", source_text, re.I):
+                    matching_stages = [
+                        i for i, stage in enumerate(stages)
+                        if re.search(rf"\b{re.escape(discipline)}\b",
+                                     stage.get("title") or "", re.I)
+                    ]
+                    if len(matching_stages) == 1:
+                        discipline_matches.extend(matching_stages)
+            if len(set(discipline_matches)) == 1:
+                return discipline_matches[0]
             same = anne_date.get(d.get("docDate") or "")
             return same[0] if same and len(same) == 1 else None
 
@@ -2420,6 +3121,43 @@ def map_docs_to_anne_stages(docs):
                 elif d.get("listType") in ("race", "relay"):
                     d["_skip"] = True
     return docs
+
+
+def drop_redundant_course_views(docs):
+    """Drop a second, course-grouped view of the same stage's results.
+
+    SportSoftware often publishes both ``Ergebnis nach Kategorien`` and
+    ``Ergebnis nach Bahnen``.  They contain the same starts grouped
+    differently, so importing both duplicates every runner and also creates
+    artificial ``Bahn N`` result lists.  Keep the course view when it is the
+    only available source; discard it only when a normal race/relay result
+    document exists for the exact same event and mapped stage/date.
+
+    Confirmed real: events 5129 (Herbst Cup) and 5245 (Sommer Cup).  This is
+    deliberately stage-aware: a category file for Etappe 1 must never suppress
+    the only available course file for Etappe 2.
+    """
+    def stage_key(doc):
+        mapped = doc.get("_anneStage") or {}
+        if mapped:
+            return (doc["eventId"], mapped.get("number"), mapped.get("date"))
+        return (doc["eventId"], None, doc.get("docDate"))
+
+    preferred = {
+        stage_key(doc)
+        for doc in docs
+        if doc.get("listType") in ("race", "relay")
+        and not doc.get("_skip")
+        and not COURSE_VIEW_FILENAME_RE.search(doc.get("fileName") or "")
+    }
+    return [
+        doc for doc in docs
+        if not (
+            doc.get("listType") in ("race", "relay")
+            and COURSE_VIEW_FILENAME_RE.search(doc.get("fileName") or "")
+            and stage_key(doc) in preferred
+        )
+    ]
 
 
 def correct_legacy_stage_dates(docs, events):
@@ -2547,6 +3285,66 @@ def derive_stage_title(doc_title):
     return m.group("suffix").strip() or m.group("prefix").strip() or None
 
 
+def legacy_document_quality(doc):
+    """Return row, rank and exact-time coverage for one attachment."""
+    rows = [
+        row for category in doc.get("categories") or []
+        for row in category.get("results") or []
+        if not row.get("excludedFromDeclaredCount")
+    ]
+    times = [
+        row.get("timeS") for row in rows
+        if isinstance(row.get("timeS"), (int, float))
+    ]
+    return {
+        "rows": len(rows),
+        "ranked": sum(row.get("rank") is not None for row in rows),
+        "max_time": max(times, default=None),
+    }
+
+
+def replace_minute_precision_anne_with_legacy(cur, stage_id, doc):
+    """Prefer a complete exact official attachment over a lossy ANNE import.
+
+    This is intentionally stricter than a generic HTML-over-API preference.
+    It applies only when every persisted API row is explicitly marked as the
+    confirmed minute-precision migration, ANNE provides no ranks, and the
+    attachment covers at least 90% as many rows with both real ranks and
+    second-resolution elapsed values. Narrow championship extracts can
+    therefore never erase a complete API field.
+    """
+    api_rows, minute_rows, api_ranked = cur.execute(
+        """SELECT COUNT(*),
+                  SUM(COALESCE(note, '') LIKE '%ANNE-Altimport: Zeit nur minutengenau%'),
+                  SUM(rank IS NOT NULL)
+             FROM result
+            WHERE stage_id = ? AND source = 'anne-api'""",
+        (stage_id,)).fetchone()
+    api_rows = api_rows or 0
+    minute_rows = minute_rows or 0
+    api_ranked = api_ranked or 0
+    quality = legacy_document_quality(doc)
+    if not (api_rows >= 20 and minute_rows == api_rows and api_ranked == 0
+            and quality["rows"] >= max(20, int(api_rows * 0.9))
+            and quality["ranked"] >= 5
+            and (quality["max_time"] or 0) >= 300):
+        return False
+
+    api_lists = [row[0] for row in cur.execute(
+        """SELECT rl.id
+             FROM result_list rl
+             JOIN source_document sd ON sd.id = rl.source_document_id
+            WHERE rl.stage_id = ? AND sd.source_type = 'anne-api'""",
+        (stage_id,)).fetchall()]
+    cur.execute(
+        "DELETE FROM result WHERE stage_id = ? AND source = 'anne-api'",
+        (stage_id,))
+    if api_lists:
+        cur.executemany("DELETE FROM result_list WHERE id = ?",
+                        [(list_id,) for list_id in api_lists])
+    return True
+
+
 def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
     n = 0
     # Each legacy file's own SportSoftware <title> names the specific race it
@@ -2564,12 +3362,14 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
         if not canonical.match(path.name):
             continue
         doc = json.loads(path.read_text())
+        normalize_qualitative_result_ranks(doc.get("categories"))
         doc["_normalizedPath"] = repo_path(path)
         docs.append(doc)
     docs = [d for d in docs if not JUNK_DOC_FILENAME_RE.search(d.get("fileName") or "")]
     docs, _n_dropped = drop_cross_event_duplicate_docs(docs)
     correct_legacy_stage_dates(docs, events)
     map_docs_to_anne_stages(docs)
+    docs = drop_redundant_course_views(docs)
     # plain result lists before split-time lists, so duplicates resolve
     # in favour of the cleaner source. Also prefer a dedicated relay
     # ("Staffel") export over a same-event 'race'-listType file covering
@@ -2614,13 +3414,22 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
     for doc in docs:
         eid = doc["eventId"]
         event = events.get(eid)
+        source_config = CHAMPIONSHIP_SOURCE_CONFIG.get(
+            Path(doc["_normalizedPath"]).stem)
         if not event or doc.get("listType") not in ("race", "relay"):
             continue
-        if doc.get("_skip"):
+        if doc.get("_skip") and not source_config:
             continue  # redundant cumulative standing - see map_docs_to_anne_stages
-        if eid in anne_event_ids:
-            continue  # structured API data wins over legacy files
-        source_document_id = register_legacy_document(cur, doc)
+        source_document_id = None
+        configured_sid = None
+        if source_config:
+            source_document_id = register_legacy_document(cur, doc)
+            configured_sid = configured_championship_stage(
+                cur, event, stage_ids, source_config)
+            register_championship_source_entries(
+                cur, doc, configured_sid, source_document_id, source_config)
+            if source_config["mode"] == "evidence":
+                continue
         # team (Mannschaft) result lists give only member surnames + a club +
         # a single team time — no first names, so members can't be resolved to
         # individual runners (a surname+club match linked only ~17%). Keep them
@@ -2640,13 +3449,33 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
         # 'individual' with the team name misread as a person).
         doc_is_team_only = is_team and "team" in (doc.get("fileName") or "").lower()
         event_dates = sorted(dates_by_event.get(eid) or [])
-        if doc.get("_anneStage"):
+        if configured_sid is not None:
+            sid = configured_sid
+        elif doc.get("_anneStage"):
             sid = anne_mapped_stage(cur, event, stage_ids, doc["_anneStage"])
+        elif eid in anne_event_ids:
+            # With structured data, an unmapped legacy document is safe only
+            # for an unambiguous one-stage event.  In a multi-stage event it
+            # could be a duplicate, cumulative standing, or belong to any
+            # stage, so never guess.  Number/date/round mapping above must
+            # identify it first.
+            existing_stages = cur.execute(
+                "SELECT id FROM stage WHERE event_id = ? ORDER BY number, id",
+                (eid,)).fetchall()
+            if len(existing_stages) != 1:
+                continue
+            sid = existing_stages[0][0]
         elif len(event_dates) > 1 and doc.get("docDate") in event_dates:
             sid = dated_stage(cur, event, stage_ids, doc["docDate"],
                                event_dates.index(doc["docDate"]) + 1)
         else:
             sid = default_stage(cur, event, stage_ids)
+        if eid in anne_event_ids and not source_config and cur.execute(
+                "SELECT 1 FROM result WHERE stage_id = ? AND source = 'anne-api' LIMIT 1",
+                (sid,)).fetchone():
+            if not replace_minute_precision_anne_with_legacy(cur, sid, doc):
+                continue  # structured API data normally wins within the same stage
+        source_document_id = source_document_id or register_legacy_document(cur, doc)
         if doc.get("docTitle") and doc["docTitle"] not in stage_doc_titles[sid]:
             stage_doc_titles[sid].append(doc["docTitle"])
         flip_doc = detect_lastname_firstname_doc(doc["categories"], persons.first_names)
@@ -2660,7 +3489,8 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                     "courseControls": cat.get("courseControls"),
                     "sourceUnitCount": cat.get("sourceUnitCount"),
                 })
-            if classify_family_category(cat["name"]) == "family":
+            if classify_family_category(
+                    cat["name"], cat.get("sourceCategory"), eid) == "family":
                 grouped = []
                 group_index = {}
                 for idx, row in enumerate(cat["results"]):
@@ -2711,9 +3541,96 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                 # a parsed row may carry several runners (a pair): the parser
                 # emits one entry per runner already, each with its own name
                 # and a note; treat them uniformly here
+                parser_kind = r.get("resultKind")
+                if r.get("memberlessTeam") and parser_kind in ("relay", "team", "pair"):
+                    # A DNS team can exist in the official result list without
+                    # any participant/leg rows. Persist the team observation,
+                    # but deliberately create no person identity.
+                    kind, note = parser_kind, r.get("note")
+                    metadata = relay_metadata(r, kind)
+                    unit_identity = legacy_result_unit_identity(r, kind, metadata)
+                    key = (sid, cat["name"], "", kind, unit_identity)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    club_value = source_club_for_team(
+                        r.get("club"), metadata.get("team_name"), kind)
+                    raw_status = r.get("status", "unknown")
+                    status, ooc = normalize_status(
+                        raw_status, r.get("timeText") or raw_status,
+                        r.get("outOfCompetition"))
+                    metadata["individual_status"] = None
+                    metadata["team_status"] = status
+                    insert_result(
+                        cur, stage_id=sid, person_id=None, result_list_id=list_id,
+                        category=cat["name"], category_full=cat["name"],
+                        club=club_value,
+                        official_club=canonicalize_official_club(
+                            club_value, OFFICIAL_CLUBS),
+                        rank=r.get("rank"), status=status, time_s=None,
+                        out_of_competition=ooc,
+                        course_length_m=cat.get("courseLengthM"),
+                        course_climb_m=cat.get("courseClimbM"),
+                        course_controls=cat.get("courseControls"),
+                        result_kind=kind, note=note, source=doc["source"],
+                        source_document_id=source_document_id,
+                        observed_name=None, observed_club=r.get("club"),
+                        observed_category=cat["name"],
+                        observed_rank=str(r.get("rank"))
+                        if r.get("rank") is not None else None,
+                        observed_status=raw_status,
+                        observed_time=r.get("timeText"),
+                        identity_basis="not-applicable-memberless-team",
+                        identity_confidence=1.0, identity_state="not_applicable",
+                        championship=None, **metadata)
+                    n += 1
+                    continue
                 observed_name = r["name"]
-                name = clean_name(observed_name)
-                name = KNOWN_NAME_TYPOS.get((eid, name), name)
+                name = clean_result_name(eid, observed_name)
+                if parser_kind == "relay" and is_relay_placeholder_name(name):
+                    metadata = relay_metadata(r, "relay")
+                    unit_identity = legacy_result_unit_identity(
+                        r, "relay", metadata,
+                        preserve_repeated_relay_leg=bool(
+                            r.get("preserveRepeatedRelayLeg")))
+                    key = (sid, cat["name"], "relay-placeholder", "relay", unit_identity)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    club_value = source_club_for_team(
+                        r.get("club"), metadata.get("team_name"), "relay")
+                    raw_status = r.get("status", "unknown")
+                    status, ooc = normalize_status(
+                        raw_status, r.get("timeText") or raw_status,
+                        r.get("outOfCompetition"))
+                    individual_raw = metadata.get("individual_status")
+                    metadata["individual_status"] = normalize_status(
+                        individual_raw or "unknown",
+                        r.get("timeText") or individual_raw or "unknown")[0]
+                    metadata["team_status"] = status
+                    insert_result(
+                        cur, stage_id=sid, person_id=None, result_list_id=list_id,
+                        category=cat["name"], category_full=cat["name"],
+                        club=club_value,
+                        official_club=canonicalize_official_club(
+                            club_value, OFFICIAL_CLUBS),
+                        rank=r.get("rank"), status=status, time_s=r.get("timeS"),
+                        out_of_competition=ooc,
+                        course_length_m=cat.get("courseLengthM"),
+                        course_climb_m=cat.get("courseClimbM"),
+                        course_controls=cat.get("courseControls"),
+                        result_kind="relay", note=r.get("note"),
+                        source=doc["source"], source_document_id=source_document_id,
+                        observed_name=observed_name, observed_club=r.get("club"),
+                        observed_category=cat["name"],
+                        observed_rank=str(r.get("rank"))
+                        if r.get("rank") is not None else None,
+                        observed_status=raw_status, observed_time=r.get("timeText"),
+                        identity_basis="not-applicable-relay-placeholder",
+                        identity_confidence=1.0, identity_state="not_applicable",
+                        championship=None, **metadata)
+                    n += 1
+                    continue
                 if not is_valid_name(name):
                     continue
                 if flip_doc:
@@ -2725,7 +3642,6 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                 # only roster format, a roster row is a run of >=3 surnames;
                 # 2-token "Lastname Firstname" rows are the individual (Einzel)
                 # categories these events also contain.
-                parser_kind = r.get("resultKind")
                 if parser_kind:
                     kind, note = parser_kind, r.get("note")
                 elif (doc_is_team_only
@@ -2756,6 +3672,16 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                 seen.add(key)
                 club_value = source_club_for_team(
                     r.get("club"), metadata.get("team_name") if metadata else None, kind)
+                if kind == "relay" and metadata:
+                    # Mixed SkiO relays print one combined team label (for
+                    # example ``NF Kitzb./HSV Wr. Neust.``), not a club on
+                    # each leg.  Keep that original label in observed_club
+                    # and team_name, but use an unambiguous exact ANNE name +
+                    # matching label component for the person's own club.
+                    club_value = (persons.anne_profiles.relay_member_club(
+                        name, metadata.get("team_name")) or club_value)
+                club_value = KNOWN_RESULT_CLUB_OVERRIDES.get(
+                    (eid, name), club_value)
                 pid, identity_basis, identity_confidence, identity_state = persons.from_legacy(
                     name, r.get("yearOfBirth"), club_value)
                 persons.record(pid, name)
@@ -2835,6 +3761,24 @@ def add_audit_issue(cur, list_id, code, severity, message, result_id=None,
         "INSERT OR IGNORE INTO audit_issue VALUES (?,?,?,?,?,?,?)",
         (_issue_id(list_id, result_id, code, message), list_id, result_id,
          code, severity, message, int(auto_resolvable)))
+
+
+def stale_verification_requires_review(cur, list_id, assertion_state):
+    """Whether an old manual assertion still needs to block the clean queue.
+
+    A confirmed category whose row fingerprint changed but still passes every
+    deterministic blocker/warning gate is covered by the UI's reproducible
+    automatic confirmation.  Keeping a synthetic stale blocker there would
+    contradict that model and force a no-op click.  Manual flags and lists
+    with any current finding remain open for an explicit re-check.
+    """
+    if assertion_state == "flagged":
+        return True
+    return bool(cur.execute(
+        """SELECT 1 FROM audit_issue
+            WHERE result_list_id = ? AND severity IN ('blocker', 'warning')
+              AND code != 'provisional_championship_identity'
+            LIMIT 1""", (list_id,)).fetchone())
 
 
 def normalize_tied_individual_ranks(cur):
@@ -2967,6 +3911,19 @@ def competitor_unit_key(row):
 
 
 OBSERVED_TIME_RE = re.compile(r"^\d{1,3}:\d{2}(?::\d{2})?$")
+KNOWN_SOURCE_VALUE_CORRUPTIONS = {
+    # Excel's print export lets the long runner name overwrite the adjacent
+    # cell. These fragments are visibly all that remains in the official PDF;
+    # there is no hidden exact leg time for the parser to recover.
+    (5204, "er 11"),
+    (5204, "ht 95"),
+}
+
+
+def source_value_is_unreadable(event_id, value):
+    value = (value or "").strip()
+    return bool(re.fullmatch(r"\?+", value) or
+                (event_id, value) in KNOWN_SOURCE_VALUE_CORRUPTIONS)
 
 
 def populate_quality_model(cur):
@@ -2974,8 +3931,11 @@ def populate_quality_model(cur):
     lists = cur.execute(
         """SELECT rl.id, rl.stage_id, rl.category, rl.category_full,
                   rl.declared_starters, rl.input_fingerprint,
-                  rl.parsed_entries, rl.parsed_rows, sd.source_type, rl.ranking_basis
-             FROM result_list rl JOIN source_document sd ON sd.id = rl.source_document_id"""
+                  rl.parsed_entries, rl.parsed_rows, sd.source_type, rl.ranking_basis,
+                  s.event_id
+             FROM result_list rl
+             JOIN source_document sd ON sd.id = rl.source_document_id
+             JOIN stage s ON s.id = rl.stage_id"""
     ).fetchall()
     # Keep the result rows which survived cross-source deduplication for
     # row-level audits.  Entry completeness, however, must use the counts
@@ -2984,7 +3944,8 @@ def populate_quality_model(cur):
     # persist only a subset (or no rows at all) without being misparsed.
     list_rows = {}
     for (list_id, _stage_id, _category, _category_full, _declared, _fingerprint,
-         _source_entries, _source_rows, _source_type, _ranking_basis) in lists:
+         _source_entries, _source_rows, _source_type, _ranking_basis,
+         _event_id) in lists:
         rows = cur.execute(
             """SELECT id, observed_name, result_kind, rank, status, time_s, club, note,
                       team_number, team_name
@@ -2993,13 +3954,19 @@ def populate_quality_model(cur):
         list_rows[list_id] = (rows, persisted_entries)
 
     for (list_id, stage_id, category, category_full, declared, fingerprint,
-         source_entries, source_rows, source_type, ranking_basis) in lists:
-        rows, _persisted_entries = list_rows[list_id]
-        family_state = classify_family_category(category)
+         source_entries, source_rows, source_type, ranking_basis, event_id) in lists:
+        rows, persisted_entries = list_rows[list_id]
+        family_state = classify_family_category(category, category_full, event_id)
         if family_state == "ambiguous":
             add_audit_issue(
                 cur, list_id, "ambiguous_family_category", "warning",
                 f"Kurzklasse {category!r}: Family-Kategorie oder reguläre Klasse bestätigen.")
+        if (persisted_entries > 0
+                and (category or "").strip().casefold() in ("", "empty", "unknown")):
+            add_audit_issue(
+                cur, list_id, "anne_missing_category", "warning",
+                "Die Quelle enthält Ergebniszeilen, aber keine verwertbare "
+                "Klassenbezeichnung; eine Kategoriezuordnung ist nicht ableitbar.")
         if declared is not None and declared != source_entries:
             unexplained_extra = cur.execute(
                 """SELECT COUNT(*) FROM result
@@ -3007,7 +3974,21 @@ def populate_quality_model(cur):
                      AND out_of_competition = 0
                      AND result_kind IN ('individual', 'family')""",
                 (list_id,)).fetchone()[0]
-            if source_entries > declared and unexplained_extra == 0:
+            if source_entries < declared:
+                # SportSoftware's number in parentheses is often the number
+                # of registrations, while its result section omits entrants
+                # who never started and have no DNS row.  That source-level
+                # omission remains important context, but it is not evidence
+                # that a visible result row failed to parse.  Parser failures
+                # stay blocking through the row/value/ranking checks below.
+                difference = declared - source_entries
+                add_audit_issue(
+                    cur, list_id, "source_declared_omission", "warning",
+                    f"Klassenkopf nennt {declared} Meldungen, der Ergebnisbereich "
+                    f"enthält {source_entries} sichtbare Einträge; {difference} "
+                    f"gemeldete {'Person wird' if difference == 1 else 'Personen werden'} "
+                    "in dieser Quelle nicht als Ergebniszeile angeführt.")
+            elif source_entries > declared and unexplained_extra == 0:
                 # The source itself can print more fully classified rows than
                 # its category header claims (confirmed examples: ``DB-Kurz
                 # (4)`` followed by ranks 1..5, and relay headers omitting an
@@ -3045,11 +4026,30 @@ def populate_quality_model(cur):
                 cur, list_id, "missing_ranking", "blocker",
                 "Quelle enthält Zeiten, aber keine einzige Platzierung wurde gelesen.")
 
+        minute_precision_rows = cur.execute(
+            """SELECT COUNT(*) FROM result
+               WHERE result_list_id = ?
+                 AND COALESCE(note, '') LIKE
+                     '%ANNE-Altimport: Zeit nur minutengenau%'""",
+            (list_id,)).fetchone()[0]
+        if minute_precision_rows:
+            add_audit_issue(
+                cur, list_id, "anne_minute_precision", "warning",
+                "ANNE-Altimport enthält nur minutengenaue Zeiten und keine "
+                "Quellränge; Zeitwerte sind als ungefähre volle Minuten dargestellt.")
+
         unknown = cur.execute(
             """SELECT id, observed_status, observed_time FROM result
                WHERE result_list_id = ? AND status = 'unknown'""",
             (list_id,)).fetchall()
         for result_id, observed_status, observed_time in unknown:
+            if source_value_is_unreadable(event_id, observed_time):
+                add_audit_issue(
+                    cur, list_id, "source_value_unreadable", "warning",
+                    f"Die Quelle zeigt für diesen Ergebniswert nur "
+                    f"{(observed_time or '').strip()!r}; ein genauer Status "
+                    "oder Zeitwert ist nicht rekonstruierbar.", result_id)
+                continue
             # This is a parser failure, not an ambiguous sporting status: a
             # source time such as 114:08 exists but never became seconds.
             # Surface it separately so the review queue points at the parser
@@ -3078,6 +4078,36 @@ def populate_quality_model(cur):
                 f"Status {observed_status or '(leer)'} ist nicht eindeutig normalisiert.",
                 result_id)
 
+        # A parser can occasionally mark a row as OK even though its source
+        # result cell is neither a time nor a known qualitative result. This
+        # was previously invisible (for example broken PDF glyphs such as
+        # ``er 11``). Keep it in the review queue rather than silently showing
+        # a ranked result with an empty time.
+        if source_type != "anne-api" and ranking_basis == "time":
+            for result_id, observed_time in cur.execute(
+                    """SELECT id, observed_time FROM result
+                       WHERE result_list_id = ? AND status = 'ok'
+                         AND time_s IS NULL
+                         AND TRIM(COALESCE(observed_time, '')) != ''""",
+                    (list_id,)).fetchall():
+                value = (observed_time or "").strip()
+                if source_value_is_unreadable(event_id, value):
+                    add_audit_issue(
+                        cur, list_id, "source_value_unreadable", "warning",
+                        f"Die Quelle zeigt für diesen Ergebniswert nur "
+                        f"{value!r}; ein genauer Leg-Zeitwert ist nicht "
+                        "rekonstruierbar.", result_id)
+                    continue
+                if (OBSERVED_TIME_RE.fullmatch(value)
+                        or re.search(
+                            r"(?i)(?:(?:sehr\s+)?gut|ok|teilg\.?|"
+                            r"(?:erfolgreich\s+)?teilgenommen)\s*$", value)):
+                    continue
+                add_audit_issue(
+                    cur, list_id, "result_value_unparsed", "blocker",
+                    f"Ergebniswert {value!r} wurde weder als Zeit noch als Status gelesen.",
+                    result_id, auto_resolvable=True)
+
         # A mixed category with some ranked finishers and many timed but
         # unranked ordinary entries is rarely intentional.  It is not a hard
         # blocker (AK/foreign classifications do exist), but it is exactly
@@ -3092,7 +4122,8 @@ def populate_quality_model(cur):
                WHERE result_list_id = ? AND out_of_competition = 0
                  AND result_kind = 'individual'""", (list_id,)).fetchone()
         ranked_count, timed_count = ranked_count or 0, timed_count or 0
-        if (timed_count >= 3 and ranked_count > 0 and ranked_count < timed_count
+        if (source_type != "anne-api"
+                and timed_count >= 3 and ranked_count > 0 and ranked_count < timed_count
                 and not course_only_list and not ranking_not_applicable):
             add_audit_issue(
                 cur, list_id, "partial_ranking_coverage", "warning",
@@ -3141,7 +4172,8 @@ def populate_quality_model(cur):
     fingerprints = {
         list_id: fingerprint
         for (list_id, _stage_id, _cat, _category_full, _declared, fingerprint,
-             _source_entries, _source_rows, _source_type, _ranking_basis) in lists
+             _source_entries, _source_rows, _source_type, _ranking_basis,
+             _event_id) in lists
     }
     for assertion in assertions:
         if not isinstance(assertion, dict):
@@ -3151,7 +4183,8 @@ def populate_quality_model(cur):
         expected = fingerprints.get(scope_key) if scope_type == "result_list" else None
         supplied = assertion.get("input_fingerprint")
         if scope_type == "result_list" and expected != supplied:
-            if scope_key in fingerprints:
+            if (scope_key in fingerprints and stale_verification_requires_review(
+                    cur, scope_key, assertion.get("state"))):
                 add_audit_issue(
                     cur, scope_key, "stale_verification", "blocker",
                     "Die Quelle oder Parserlogik hat sich seit der Bestätigung geändert.")
@@ -3165,20 +4198,281 @@ def populate_quality_model(cur):
              assertion.get("note")))
 
 
-VIENNA_CHAMPIONSHIP_RE = re.compile(
-    r"(?:\bwr\.?\b|\bwien(?:er)?\b|\bw\s*\+|\bn\.?ö\.?\s*(?:&|/|u\.?nd?)\s*w\b)"
-    r".*(?:\bms\b|meister|landes)", re.I)
-VIENNA_CHAMPIONSHIP_REVERSE = re.compile(
-    r"(?:\bms\b|meister|landes).*"
-    r"(?:\bwr\.?\b|\bwien(?:er)?\b|\bw\s*\+|\bn\.?ö\.?\s*(?:&|/|u\.?nd?)\s*w\b)", re.I)
+REGIONAL_JURISDICTIONS = {
+    "WIEN": ("Wien", "Wiener MS"),
+    "NOE": ("Niederösterreich", "NÖ MS"),
+    "BGLD": ("Burgenland", "Bgld. MS"),
+    "STMK": ("Steiermark", "Stmk. MS"),
+    "OOE": ("Oberösterreich", "OÖ MS"),
+    "SBG": ("Salzburg", "Sbg. MS"),
+    "TIR": ("Tirol", "Tiroler MS"),
+    "KTN": ("Kärnten", "Kärntner MS"),
+    "VBG": ("Vorarlberg", "Vbg. MS"),
+}
+
+REGIONAL_LONG_PATTERNS = {
+    "WIEN": r"\b(?:wien(?:er|erinnen)?|wr\.?)\b",
+    "NOE": r"\b(?:n(?:ö|oe)\.?|niederösterreich(?:isch(?:e[rsn]?)?)?)\b",
+    "BGLD": r"\b(?:bgld\.?|burgenländ(?:isch(?:e[rsn]?)?)?|burgenland)\b",
+    "STMK": r"\b(?:stmk\.?|steir(?:isch(?:e[rsn]?)?)?|steiermark)\b",
+    "OOE": r"\b(?:o(?:ö|oe)\.?|oberösterreich(?:isch(?:e[rsn]?)?)?)\b",
+    "SBG": r"\b(?:sbg\.?|salzburg(?:er|isch(?:e[rsn]?)?)?)\b",
+    "TIR": r"\b(?:tirol(?:er|erisch(?:e[rsn]?)?)?)\b",
+    "KTN": r"\b(?:ktn\.?|kärnt(?:en|ner|nerisch(?:e[rsn]?)?))\b",
+    "VBG": r"\b(?:vbg\.?|vorarlberg(?:er|isch(?:e[rsn]?)?)?)\b",
+}
+
+REGIONAL_FRAME_RE = re.compile(
+    r"(?:rahmen(?:bewerb)?|gäste?|offen|neu(?:ling(?:e)?)?|fam(?:il(?:ie|ien|y)|iliy)?|kids?|kinderfähnchen|bahn|lyceum)",
+    re.I)
+REGIONAL_CHAMPIONSHIP_RE = re.compile(
+    r"(?:\b(?:lm|lms|ms|km)\b|meisterschaft|landesmeister|landes[- ]?ms)", re.I)
+REGIONAL_FOREIGN_CATEGORY_RE = re.compile(
+    r"(?:^|[-_/()\s])(?:SLO|SVN|CZE|CZ|SVK|HUN|GER|DEU|ITA|FIN|POL|"
+    r"CRO|HRV|SUI|CHE)(?:$|[-_/()\s])", re.I)
+REGIONAL_NON_STATE_CATEGORY_RE = re.compile(
+    # International M/W gender classes in joint foreign events. A real
+    # compact state prefix is followed by an explicit Austrian D/H class.
+    r"^\s*[MW]\s*-?\s*\d|"
+    # Common novice/open categories from ANNE's AT-prefixed Ski-O exports.
+    r"^\s*N\s*$|^\s*AT-(?:N|F|OFF(?:-L)?)\s*$", re.I)
+
+REGIONAL_COMPACT_CODES = {
+    "W": "WIEN", "N": "NOE", "B": "BGLD", "ST": "STMK",
+    "O": "OOE", "S": "SBG", "T": "TIR", "K": "KTN", "V": "VBG",
+}
+
+
+def extract_regional_jurisdictions(text, compact=False):
+    """Return unambiguous state associations named in source text.
+
+    Single-letter codes are accepted only for category fragments in a known
+    regional context.  That prevents an ordinary ``D``/``H`` category or the
+    city in ``Wiener Neustadt`` from becoming a championship assignment.
+    """
+    value = text or ""
+    safe = re.sub(r"Wiener\s+Neust(?:adt|ädter)", "", value, flags=re.I)
+    # National title abbreviations are not compact state codes: the O/ST in
+    # ``Ö(ST)M`` means Österreichische (Staats-)Meisterschaft, not OÖ/Stmk.
+    safe = re.sub(
+        r"\b(?:Ö|OE)\s*\(\s*ST\s*\)\s*M\b|"
+        r"\b(?:Ö|OE)\s*ST\s*M\b|\b(?:Ö|OE)\s*M\b",
+        "", safe, flags=re.I)
+    # The discipline suffix in Ski-O/MTB-O is just "orienteering". Without
+    # this guard its detached O would look exactly like the historical OÖ
+    # shorthand. State names in a separate comparison-match clause likewise
+    # do not define the championship advertised elsewhere in the title.
+    safe = re.sub(r"\b(?:Ski|MTB)\s*[- ]\s*O\b", "", safe, flags=re.I)
+    safe = re.sub(r"\bLänder(?:vergleich|kampf)\b[^,/;]*", "", safe, flags=re.I)
+    # Historical PDFs often print state abbreviations with an inner dot.
+    # Collapse that dot before the compact-token pass so N.Ö. cannot become
+    # the two unrelated codes N and O.
+    safe = re.sub(r"\bN\s*\.\s*Ö\b", "NÖ", safe, flags=re.I)
+    safe = re.sub(r"\bO\s*\.\s*Ö\b", "OÖ", safe, flags=re.I)
+    found = {code for code, pattern in REGIONAL_LONG_PATTERNS.items()
+             if re.search(pattern, safe, re.I)}
+    if compact:
+        folded = unicodedata.normalize("NFKD", safe)
+        folded = "".join(ch for ch in folded if not unicodedata.combining(ch)).upper()
+        tokens = {token.upper() for token in re.findall(
+            r"(?<![A-Za-z])(?:W|N|ST|O|S|T|K|V)(?![A-Za-z])|(?<![A-Za-z0-9])B(?![A-Za-z])",
+            folded)}
+        found.update(REGIONAL_COMPACT_CODES[token] for token in tokens)
+    return found
+
+
+def extract_regional_category_compact_states(segment):
+    """Return only compact codes that occur in a state-like category slot.
+
+    A generic token scan is too broad for result classes: ``W -14`` is the
+    international Women category, a lone ``N`` is commonly Neulinge, and
+    ``AT-N`` is an Austrian open/novice class. Real state codes occur before
+    an explicit D/H category, after a D/H age class, or inside the state-list
+    parentheses of a shared course.
+    """
+    value = segment or ""
+    folded = unicodedata.normalize("NFKD", value)
+    folded = "".join(ch for ch in folded if not unicodedata.combining(ch)).upper()
+    code_pattern = r"(?:ST|W|N|B|O|S|T|K|V)"
+    tokens = []
+    # ``N D-12`` / ``W H45``: state prefix followed by an actual gender.
+    prefix = re.match(
+        rf"^\s*({code_pattern})\s+(?=(?:D(?:AMEN)?|H(?:ERREN)?)(?:\b|[-\d]))",
+        folded)
+    if prefix:
+        tokens.append(prefix.group(1))
+    # ``D45-W``, ``H19 N`` and compact concatenations such as ``D19ST``.
+    suffix = re.search(
+        rf"(?:D(?:AMEN)?|H(?:ERREN)?)\s*-?\s*\d[^/]*?[-, ]\s*({code_pattern})\s*$",
+        folded)
+    if suffix:
+        tokens.append(suffix.group(1))
+    concatenated = re.search(
+        rf"(?:D(?:AMEN)?|H(?:ERREN)?)\s*-?\s*\d+\s*({code_pattern})\s*$",
+        folded)
+    if concatenated:
+        tokens.append(concatenated.group(1))
+    # Shared courses put their state list in parentheses: H35(W,NÖ).
+    for inner in re.findall(r"\(([^)]*)\)", folded):
+        tokens.extend(re.findall(
+            rf"(?<![A-Z0-9])({code_pattern})(?![A-Z])", inner))
+    return {REGIONAL_COMPACT_CODES[token] for token in tokens}
 
 
 def is_vienna_championship_candidate(title, stage_title=None):
+    """Backward-compatible title predicate used by older callers/tests."""
     text = f"{title or ''} {stage_title or ''}"
-    if re.search(r"Wiener\s+Neust(?:adt|ädter)|Schul", text, re.I):
+    if re.search(r"Wiener\s+Neust(?:adt|ädter)|Schul|Vereinsmeister", text, re.I):
         return False
-    return bool(VIENNA_CHAMPIONSHIP_RE.search(text) or
-                VIENNA_CHAMPIONSHIP_REVERSE.search(text))
+    return ("WIEN" in extract_regional_jurisdictions(text)
+            and bool(REGIONAL_CHAMPIONSHIP_RE.search(text)))
+
+
+def _regional_segments(category):
+    """Split only where a slash starts a new gender/age category.
+
+    ``D19-Bgld/NÖ`` is one shared class, while
+    ``D40-(St,B)/D45-(NÖ,W)`` contains two canonical age classes.
+    """
+    return [part.strip() for part in re.split(
+        r"/(?=\s*(?:D(?:amen)?|H(?:erren)?)\s*-?\s*\d)", category or "") if part.strip()]
+
+
+def _canonical_regional_category(segment, explicit_states=None,
+                                 compact_states=None):
+    value = segment or ""
+    explicit_states = set(explicit_states or ())
+    compact_states = set(compact_states or ())
+
+    # Parentheses in joint championships normally contain only jurisdiction
+    # codes. Remove them only when every code was actually accepted in the
+    # event context; otherwise a class marker such as ``(B)`` must survive.
+    def strip_state_parenthesis(match):
+        inner = match.group(1)
+        states = extract_regional_jurisdictions(inner, compact=True)
+        return "" if states and states.issubset(explicit_states) else match.group(0)
+
+    value = re.sub(r"\(([^)]*)\)", strip_state_parenthesis, value)
+    for state in explicit_states:
+        pattern = REGIONAL_LONG_PATTERNS.get(state)
+        if pattern:
+            value = re.sub(pattern, "", value, flags=re.I)
+
+    accepted_codes = [code for code, state in REGIONAL_COMPACT_CODES.items()
+                      if state in compact_states]
+    if accepted_codes:
+        code_pattern = "|".join(sorted(accepted_codes, key=len, reverse=True))
+        value = re.sub(
+            rf"^\s*(?:{code_pattern})\s+(?=(?:D(?:amen)?|H(?:erren)?)(?:\b|[-\d]))",
+            "", value, flags=re.I)
+        value = re.sub(
+            rf"(?<![A-Za-z0-9])(?:{code_pattern})(?![A-Za-z])",
+            "", value, flags=re.I)
+        value = re.sub(
+            rf"(?<=\d)\s*-?\s*(?:{code_pattern})\s*$", "", value, flags=re.I)
+    value = re.sub(r"\s*[,/]+\s*$", "", value)
+    value = re.sub(r"\s+", " ", value).strip(" -/,()")
+    value = re.sub(r"^(?:Damen\s*\+?&?\s*Herren|Herren\s*\+?&?\s*Damen)\b",
+                   "DH", value, flags=re.I)
+    value = re.sub(r"^Damen(?=[\s\d-])", "D", value, flags=re.I)
+    value = re.sub(r"^Herren(?=[\s\d-])", "H", value, flags=re.I)
+    value = re.sub(r"^(?:D\s*\+\s*H|H\s*\+\s*D)\b", "DH", value, flags=re.I)
+    return value or (segment or "").strip()
+
+
+def regional_category_key(category):
+    key = championship_category_key(category)
+    division = re.search(r"\d\s*-?\s*([AB])(?:\s*-|\s*$)", category or "", re.I)
+    return f"{key}{division.group(1).lower()}" if division and key else key
+
+
+def regional_mappings_for_list(category, event_title="", stage_title="", file_name=""):
+    """Detect regional championship scopes with source-level provenance.
+
+    A mapping may fan one shared source category out to several jurisdictions;
+    the later entry builder partitions the actual competitors by their club's
+    state association.  A single-state category/document is authoritative and
+    does not need that partition.
+    """
+    category = (category or "").strip()
+    title_context = f"{event_title or ''} {stage_title or ''}"
+    full_context = f"{title_context} {file_name or ''}"
+    if (not category or REGIONAL_FRAME_RE.search(category)
+            or REGIONAL_FOREIGN_CATEGORY_RE.search(category)
+            or REGIONAL_NON_STATE_CATEGORY_RE.search(category)
+            or re.match(r"^\s*R(?:\s|[-_])", category, re.I)):
+        return []
+    if re.search(r"Schul|Vereinsmeister", full_context, re.I):
+        return []
+
+    # Compact codes are ambiguous in categories (K=Kurz/Kärnten,
+    # B=B-Klasse/Burgenland, W=Women/Wien). They are therefore accepted only
+    # when the championship title establishes the same state context.
+    title_states = extract_regional_jurisdictions(title_context, compact=True)
+    if re.search(r"\bLM\s+Nacht\s+Ost\b", title_context, re.I):
+        title_states.update({"WIEN", "NOE", "BGLD", "STMK"})
+    document_states = set()
+    document_text = file_name or ""
+    if re.search(r"wien(?:er)?[-_ ]?wertung|wr[-_ ]?wertung", document_text, re.I):
+        document_states.add("WIEN")
+    if re.search(r"n(?:ö|oe)[-_ ]?wertung|niederösterreich[-_ ]?wertung", document_text, re.I):
+        document_states.add("NOE")
+    if re.search(r"bgld[-_ ]?wertung|burgenland[-_ ]?wertung", document_text, re.I):
+        document_states.add("BGLD")
+
+    regional_context = (bool(REGIONAL_CHAMPIONSHIP_RE.search(full_context))
+                        or bool(document_states))
+    if not regional_context:
+        return []
+
+    mappings = []
+    segments = _regional_segments(category)
+    for segment in segments:
+        long_explicit = extract_regional_jurisdictions(segment, compact=False)
+        compact_explicit = extract_regional_category_compact_states(segment)
+        compact_explicit &= (title_states | document_states)
+        explicit = long_explicit | compact_explicit
+        # R means Rahmen in the compact W/N/R source convention.
+        if not explicit and re.search(r"(?<=\d)\s*-?\s*R\s*$", segment, re.I):
+            continue
+        canonical = _canonical_regional_category(
+            segment, explicit_states=explicit, compact_states=compact_explicit)
+        category_key = regional_category_key(canonical)
+        if not category_key:
+            continue
+        if document_states and not explicit:
+            states, basis, state, confidence = document_states, "document", "confirmed", 1.0
+        elif explicit:
+            states, basis, state, confidence = explicit, "category", "confirmed", 1.0
+        elif title_states:
+            states, basis, state, confidence = title_states, "event_title", "candidate", 0.55
+        else:
+            continue
+        # A category label is a scope signal, not sufficient proof that every
+        # row in it is medal-eligible: historical exports frequently retain
+        # guests in the same printed ranking. Only a dedicated official state
+        # ranking document is authoritative for row inclusion on its own.
+        partition_required = basis != "document"
+        for jurisdiction in sorted(states):
+            mappings.append({
+                "jurisdiction": jurisdiction,
+                "canonical_category": canonical,
+                "category_key": category_key,
+                "state": state,
+                "evidence_kind": basis,
+                "evidence_text": (segment if basis == "category" else
+                                  document_text if basis == "document" else title_context.strip()),
+                "confidence": confidence,
+                "partition_required": partition_required,
+            })
+    # A slash can assign different canonical age classes to different state
+    # associations while all rows still live in one physical source list.
+    # Even a segment naming only one state (``H40 B`` in
+    # ``H40 B/H45 NÖ,W``) must therefore be partitioned by competitor club.
+    if len(segments) > 1 or len({m["jurisdiction"] for m in mappings}) > 1:
+        for mapping in mappings:
+            mapping["partition_required"] = True
+    return mappings
 
 
 def _championship_id(jurisdiction, stage_id, category, championship_type):
@@ -3186,21 +4480,309 @@ def _championship_id(jurisdiction, stage_id, category, championship_type):
     return "champ:" + hashlib.sha256(raw).hexdigest()[:24]
 
 
-def populate_championship_model(cur):
-    """Publish national awards and a reviewable Wiener-MS candidate catalog.
+def _regional_mapping_id(list_id, jurisdiction, category_key):
+    raw = f"{list_id}\0{jurisdiction}\0{category_key}".encode()
+    return "regional-map:" + hashlib.sha256(raw).hexdigest()[:24]
 
-    National awards reuse the established eligibility/rank computation.
-    Wiener rules remain draft: candidates are intentionally not turned into
-    medals until a versioned rule set and catalog decision confirm them.
+
+def _regional_entry_id(instance_id, competitor_key):
+    raw = f"{instance_id}\0{competitor_key}".encode()
+    return "regional-entry:" + hashlib.sha256(raw).hexdigest()[:24]
+
+
+def load_club_jurisdictions(cur):
+    if not CLUB_JURISDICTIONS_PATH.exists():
+        return {}
+    payload = json.loads(CLUB_JURISDICTIONS_PATH.read_text())
+    result = {}
+    for item in payload.get("clubs", []):
+        club, jurisdiction = item.get("club"), item.get("jurisdiction")
+        if not club or jurisdiction not in REGIONAL_JURISDICTIONS:
+            continue
+        result[club] = jurisdiction
+        cur.execute(
+            "INSERT INTO club_jurisdiction VALUES (?,?,?,?,?)",
+            (club, jurisdiction, item.get("valid_from"), item.get("valid_to"),
+             item.get("evidence", "curated-oefol-club-catalog")))
+    return result
+
+
+def _regional_unit_key(row):
+    """Stable competitor key within one physical stage and result source."""
+    (rid, person_id, kind, team_number, team_name, club, _official_club,
+     rank, _status, time_s, _ooc) = row
+    if kind in {"relay", "team", "pair"}:
+        if team_number:
+            label = f"n:{str(team_number).strip()}:t:{name_key(team_name or club or '')}"
+        else:
+            label = f"t:{name_key(team_name or club or '')}:r:{rank}:time:{time_s}"
+        return f"{kind}:{label}"
+    return f"person:{person_id}" if person_id is not None else f"result:{rid}"
+
+
+def _regional_club_states(unit_rows, club_jurisdictions):
+    states = set()
+    for row in unit_rows:
+        # Prefer the already canonical club, but retry the observed team/club
+        # strings here: older relay exports can carry an official club inside
+        # a longer team label that the base result deliberately preserves.
+        for candidate in (row[6], row[5], row[4]):
+            canonical = (candidate if candidate in club_jurisdictions else
+                         canonicalize_official_club(candidate, OFFICIAL_CLUBS))
+            jurisdiction = club_jurisdictions.get(canonical)
+            if jurisdiction:
+                states.add(jurisdiction)
+                break
+    return states
+
+
+def _regional_unit_has_unresolved_club(unit_rows, club_jurisdictions):
+    """Whether a unit carries a plausible club that still needs mapping.
+
+    Clubless starters are known to be ineligible for a state ranking; they
+    are not an unresolved historical membership. The same applies once any
+    candidate string resolves to a known state. Unknown non-empty Austrian-
+    looking labels remain reviewable rather than being guessed.
     """
+    if _regional_club_states(unit_rows, club_jurisdictions):
+        return False
+    candidates = {
+        str(candidate).strip()
+        for row in unit_rows for candidate in (row[6], row[5], row[4])
+        if candidate and str(candidate).strip()
+    }
+    if not candidates:
+        return False
+    meaningful = []
+    for candidate in candidates:
+        if CLUBLESS_CLUB_RE.search(candidate):
+            continue
+        folded = candidate.casefold()
+        if any(keyword in folded for keyword in FOREIGN_CLUB_KEYWORDS):
+            continue
+        meaningful.append(candidate)
+    return bool(meaningful)
+
+
+def populate_regional_championships(cur, catalog, club_jurisdictions):
+    """Build nationwide regional mappings, instances and competitor entries."""
+    lists = cur.execute(
+        """SELECT rl.id, rl.stage_id, rl.category, rl.input_fingerprint,
+                  e.title, s.title, sd.file_name
+           FROM result_list rl JOIN stage s ON s.id = rl.stage_id
+           JOIN event e ON e.id = s.event_id
+           JOIN source_document sd ON sd.id = rl.source_document_id""").fetchall()
+    detected = []
+    for list_id, stage_id, category, fingerprint, event_title, stage_title, file_name in lists:
+        for mapping in regional_mappings_for_list(
+                category, event_title, stage_title, file_name):
+            mapping_id = _regional_mapping_id(
+                list_id, mapping["jurisdiction"], mapping["category_key"])
+            cur.execute(
+                """INSERT OR REPLACE INTO regional_category_mapping
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (mapping_id, list_id, mapping["jurisdiction"], category,
+                 mapping["canonical_category"], mapping["category_key"],
+                 mapping["state"], mapping["evidence_kind"], mapping["evidence_text"],
+                 mapping["confidence"], int(mapping["partition_required"]), fingerprint))
+            detected.append((stage_id, mapping, fingerprint))
+
+    # A physical class can have several source documents.  Promote an
+    # instance to confirmed as soon as one explicit category/document proves
+    # it; a title-only candidate never overrides that stronger evidence.
+    grouped = defaultdict(list)
+    for stage_id, mapping, fingerprint in detected:
+        grouped[(mapping["jurisdiction"], stage_id,
+                 mapping["category_key"])].append((mapping, fingerprint))
+    for (jurisdiction, stage_id, category_key), observations in grouped.items():
+        observations.sort(key=lambda item: (
+            item[0]["state"] == "confirmed",
+            {"document": 3, "category": 2, "event_title": 1}[item[0]["evidence_kind"]]),
+            reverse=True)
+        best = observations[0][0]
+        instance_id = _championship_id(jurisdiction, stage_id, category_key, "LMS")
+        digest = hashlib.sha256("\0".join(sorted(
+            fingerprint for _mapping, fingerprint in observations)).encode()).hexdigest()
+        decision = catalog.get(instance_id, {})
+        decision_is_current = decision.get("input_fingerprint") == digest
+        state = decision.get("state", best["state"]) if decision_is_current else best["state"]
+        if state not in {"candidate", "confirmed", "rejected"}:
+            state = best["state"]
+        cur.execute(
+            """INSERT INTO championship_instance
+               VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (instance_id, jurisdiction, stage_id, best["canonical_category"], category_key,
+             "LMS", f"{jurisdiction.lower()}-regional-v1", state,
+             best["evidence_kind"], digest))
+
+    mapping_rows = cur.execute(
+        """SELECT m.result_list_id, m.jurisdiction, m.category_key, m.state,
+                  m.evidence_kind, m.partition_required, m.input_fingerprint,
+                  rl.stage_id, ci.id, ci.state
+           FROM regional_category_mapping m
+           JOIN result_list rl ON rl.id = m.result_list_id
+           JOIN championship_instance ci
+             ON ci.jurisdiction = m.jurisdiction AND ci.stage_id = rl.stage_id
+            AND ci.category_key = m.category_key AND ci.championship_type = 'LMS'
+           WHERE m.state != 'rejected' AND ci.state != 'rejected'
+           ORDER BY (ci.state = 'confirmed') DESC,
+                    CASE m.evidence_kind WHEN 'document' THEN 3
+                         WHEN 'category' THEN 2 ELSE 1 END DESC""").fetchall()
+    claimed = {}
+    claimed_results = {}
+    unresolved_mappings = {}
+    for (list_id, jurisdiction, category_key, mapping_state, evidence_kind,
+         partition_required, fingerprint, stage_id, instance_id, instance_state) in mapping_rows:
+        rows = cur.execute(
+            """SELECT id, person_id, result_kind, team_number, team_name, club,
+                      official_club, rank, status, time_s, out_of_competition
+               FROM result WHERE result_list_id = ? ORDER BY id""", (list_id,)).fetchall()
+        units = defaultdict(list)
+        for row in rows:
+            if row[2] == "family":
+                continue
+            units[_regional_unit_key(row)].append(row)
+        for unit_key, unit_rows in units.items():
+            if any(row[10] for row in unit_rows):
+                continue
+            club_states = _regional_club_states(unit_rows, club_jurisdictions)
+            if partition_required:
+                if club_states != {jurisdiction}:
+                    if (not club_states
+                            and _regional_unit_has_unresolved_club(
+                                unit_rows, club_jurisdictions)):
+                        issue_key = (list_id, mapping_state, jurisdiction, instance_id)
+                        unresolved_mappings[issue_key] = (
+                            unresolved_mappings.get(issue_key, False)
+                            or any(row[8] == "ok" for row in unit_rows))
+                    continue
+                eligibility_basis = "event-time-club-jurisdiction"
+            else:
+                eligibility_basis = f"explicit-regional-{evidence_kind}"
+            claim_key = (stage_id, unit_key)
+            previous = claimed.get(claim_key)
+            if previous and previous != jurisdiction:
+                # The same person can be present in an overlapping dedicated
+                # state-ranking document and in the general result document.
+                # Those are duplicate observations, not two performances.
+                # Flag only when the exact same source row is claimed twice.
+                if any(claimed_results.get(row[0]) not in {None, jurisdiction}
+                       for row in unit_rows):
+                    add_audit_issue(
+                        cur, list_id, "regional_double_assignment", "blocker",
+                        f"Eine Quellleistung würde zugleich {previous} und {jurisdiction} zugeordnet.")
+                continue
+            if previous:
+                continue
+            claimed[claim_key] = jurisdiction
+            claimed_results.update({row[0]: jurisdiction for row in unit_rows})
+            entry_id = _regional_entry_id(instance_id, unit_key)
+            eligibility_state = "eligible" if instance_state == "confirmed" else "provisional"
+            entry_state = "derived" if instance_state == "confirmed" else "provisional"
+            cur.execute(
+                """INSERT OR IGNORE INTO championship_entry
+                   VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                (entry_id, instance_id, stage_id, unit_key, None, eligibility_state,
+                 eligibility_basis, entry_state, list_id, fingerprint))
+            cur.executemany(
+                "INSERT OR IGNORE INTO championship_entry_result VALUES (?,?)",
+                [(entry_id, row[0]) for row in unit_rows])
+
+    for (list_id, mapping_state, jurisdiction, instance_id), has_ok_result \
+            in unresolved_mappings.items():
+        assigned = cur.execute(
+            "SELECT COUNT(*) FROM championship_entry WHERE championship_instance_id = ?",
+            (instance_id,)).fetchone()[0]
+        add_audit_issue(
+            cur, list_id, "regional_membership_unresolved",
+            "warning" if (mapping_state == "confirmed" and not assigned
+                           and has_ok_result) else "info",
+            (f"{jurisdiction}: " + ("Keine Leistung" if not assigned else "Mindestens eine Leistung")
+             + " kann ohne historische Vereinszugehörigkeit nicht sicher getrennt werden."))
+
+    # Regional ranks are ranks among the assigned competitor units, not the
+    # shared source rank. Exact source-rank ties retain a shared placement.
+    for (instance_id,) in cur.execute(
+            "SELECT id FROM championship_instance WHERE championship_type = 'LMS'").fetchall():
+        entries = cur.execute(
+            """SELECT ce.id, MIN(r.rank), MIN(r.time_s)
+               FROM championship_entry ce
+               JOIN championship_entry_result cer ON cer.championship_entry_id = ce.id
+               JOIN result r ON r.id = cer.result_id
+               WHERE ce.championship_instance_id = ? AND r.status = 'ok'
+               GROUP BY ce.id ORDER BY MIN(r.rank) IS NULL, MIN(r.rank), MIN(r.time_s), ce.id""",
+            (instance_id,)).fetchall()
+        position = 0
+        previous_order = None
+        previous_rank = None
+        for entry_id, source_rank, time_s in entries:
+            position += 1
+            order = (source_rank, time_s)
+            regional_rank = previous_rank if previous_order == order else position
+            cur.execute("UPDATE championship_entry SET regional_rank = ? WHERE id = ?",
+                        (regional_rank, entry_id))
+            previous_order, previous_rank = order, regional_rank
+
+
+def compute_national_ranks(cur):
+    """Rank only competitors with positive championship evidence.
+
+    ``unknown`` is deliberately excluded: being ranked in the general race
+    is not evidence that a foreign or otherwise unidentified competitor is
+    entitled to an Austrian championship medal.  ``provisional`` remains in
+    the calculation because it is the explicit, reviewable ÖFOL-club fallback
+    for historical rows without stronger person evidence.
+    """
+    cur.execute("UPDATE result SET national_rank = NULL")
+    cur.execute("CREATE TEMP TABLE pair_unit (result_id INTEGER PRIMARY KEY, unit_key TEXT)")
+    cur.execute("SELECT r.id, p.name, r.note FROM result r JOIN person p ON p.id = r.person_id "
+                "WHERE r.result_kind = 'pair'")
+    pair_units = []
+    for rid, name, note in cur.fetchall():
+        partners = note[len("Partner: "):].split(", ") if note and note.startswith("Partner: ") else []
+        key = "|".join(sorted(name_key(n) for n in [name, *partners])) if partners else f"solo-{rid}"
+        pair_units.append((rid, key))
+    cur.executemany("INSERT INTO pair_unit VALUES (?, ?)", pair_units)
+
+    cur.execute("""
+        UPDATE result SET national_rank = (
+            SELECT COUNT(CASE WHEN r2.result_kind = 'individual' THEN 1 END)
+                 + COUNT(DISTINCT CASE WHEN r2.result_kind = 'pair' THEN pu2.unit_key END)
+                 + COUNT(DISTINCT CASE WHEN r2.result_kind IN ('relay', 'team')
+                                        THEN COALESCE('n:' || r2.team_number,
+                                                      't:' || r2.team_name,
+                                                      'c:' || r2.club) END)
+                 + 1
+            FROM result r2
+            LEFT JOIN pair_unit pu2 ON pu2.result_id = r2.id
+            WHERE r2.stage_id = result.stage_id AND r2.category = result.category
+              AND r2.status = 'ok' AND r2.championship IS NOT NULL
+              AND r2.championship_eligibility_state IN ('eligible', 'provisional')
+              AND r2.rank IS NOT NULL AND r2.rank < result.rank)
+        WHERE championship IS NOT NULL AND status = 'ok' AND rank IS NOT NULL
+          AND championship_eligibility_state IN ('eligible', 'provisional')
+    """)
+    cur.execute("DROP TABLE pair_unit")
+
+
+def populate_championship_model(cur):
+    """Publish national awards and all nine regional championship layers."""
+    cur.execute("INSERT INTO championship_jurisdiction VALUES (?,?,?,?)",
+                ("AUT", "Österreich", "ÖM/ÖSTM", "national"))
+    cur.executemany(
+        "INSERT INTO championship_jurisdiction VALUES (?,?,?,?)",
+        [(code, name, short_name, "regional")
+         for code, (name, short_name) in REGIONAL_JURISDICTIONS.items()])
+    cur.execute(
+        "INSERT INTO championship_rule_set VALUES (?,?,?,?,?,?)",
+        ("aut-national-v1", "AUT", 1, "ÖM/ÖSTM Bestandslogik", "active",
+         "Eligibility, Mindeststarter und nationale Rangberechnung des Bestandsmodells."))
     cur.executemany(
         "INSERT INTO championship_rule_set VALUES (?,?,?,?,?,?)",
-        [
-            ("aut-national-v1", "AUT", 1, "ÖM/ÖSTM Bestandslogik", "active",
-             "Eligibility, Mindeststarter und nationale Rangberechnung des Bestandsmodells."),
-            ("wien-draft-v1", "WIEN", 1, "Wiener Meisterschaften – Entwurf", "draft",
-             "Kandidatenkatalog; Kategorien, Vereins-/Teilnahmeberechtigung und Sonderregeln sind zu bestätigen."),
-        ])
+        [(f"{code.lower()}-regional-v1", code, 1,
+          f"{name} Landesmeisterschaft – Quellenmodell", "draft",
+          "Explizite Landeswertungen werden übernommen; Titel- und historische Vereinsableitungen bleiben prüfbar.")
+         for code, (name, _short_name) in REGIONAL_JURISDICTIONS.items()])
 
     national = cur.execute(
         """SELECT r.stage_id, r.category, r.championship,
@@ -3209,47 +4791,34 @@ def populate_championship_model(cur):
            WHERE r.championship IS NOT NULL
            GROUP BY r.stage_id, r.category, r.championship""").fetchall()
     for stage_id, category, champ_type, fingerprints in national:
-        instance_id = _championship_id("AUT", stage_id, category, champ_type)
+        category_key = championship_category_key(category)
+        instance_id = _championship_id("AUT", stage_id, category_key, champ_type)
         digest = hashlib.sha256((fingerprints or "").encode()).hexdigest()
         cur.execute(
-            "INSERT INTO championship_instance VALUES (?,?,?,?,?,?,?,?,?)",
-            (instance_id, "AUT", stage_id, category, champ_type, "aut-national-v1",
+            "INSERT OR IGNORE INTO championship_instance VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (instance_id, "AUT", stage_id, category, category_key,
+             champ_type, "aut-national-v1",
              "confirmed", "result-championship", digest))
-        for result_id, rank in cur.execute(
-                """SELECT id, national_rank FROM result
+        for result_id, rank, eligibility_state in cur.execute(
+                """SELECT id, national_rank, championship_eligibility_state
+                   FROM person_result
                    WHERE stage_id = ? AND category = ? AND championship = ?
                      AND national_rank BETWEEN 1 AND 3 AND status = 'ok'
-                     AND out_of_competition = 0""",
+                     AND out_of_competition = 0
+                     AND championship_eligibility_state IN ('eligible', 'provisional')""",
                 (stage_id, category, champ_type)).fetchall():
             medal = {1: "gold", 2: "silver", 3: "bronze"}[rank]
             award_id = "award:" + hashlib.sha256(
                 f"{instance_id}\0{result_id}".encode()).hexdigest()[:24]
             cur.execute("INSERT INTO award VALUES (?,?,?,?,?,?)",
-                        (award_id, instance_id, result_id, medal, rank, "derived"))
+                        (award_id, instance_id, result_id, medal, rank,
+                         "derived" if eligibility_state == "eligible" else "provisional"))
 
     catalog = {item.get("id"): item for item in json.loads(
         CHAMPIONSHIP_CATALOG_PATH.read_text()).get("instances", [])
         if isinstance(item, dict)} if CHAMPIONSHIP_CATALOG_PATH.exists() else {}
-    stages = cur.execute(
-        """SELECT s.id, e.title, s.title FROM stage s JOIN event e ON e.id = s.event_id
-           WHERE EXISTS (SELECT 1 FROM result r WHERE r.stage_id = s.id)""").fetchall()
-    for stage_id, event_title, stage_title in stages:
-        if not is_vienna_championship_candidate(event_title, stage_title):
-            continue
-        for category, fingerprints in cur.execute(
-                """SELECT r.category, GROUP_CONCAT(DISTINCT rl.input_fingerprint)
-                   FROM result r LEFT JOIN result_list rl ON rl.id = r.result_list_id
-                   WHERE r.stage_id = ? GROUP BY r.category""", (stage_id,)).fetchall():
-            instance_id = _championship_id("WIEN", stage_id, category, "WMS")
-            decision = catalog.get(instance_id, {})
-            state = decision.get("state", "candidate")
-            if state not in {"candidate", "confirmed", "rejected"}:
-                state = "candidate"
-            digest = hashlib.sha256((fingerprints or "").encode()).hexdigest()
-            cur.execute(
-                "INSERT INTO championship_instance VALUES (?,?,?,?,?,?,?,?,?)",
-                (instance_id, "WIEN", stage_id, category, "WMS", "wien-draft-v1",
-                 state, "title-candidate", digest))
+    club_jurisdictions = load_club_jurisdictions(cur)
+    populate_regional_championships(cur, catalog, club_jurisdictions)
 
 
 def main():
@@ -3523,7 +5092,9 @@ def main():
                   "observed_team_time, source, "
                   "source_document_id, observed_name, observed_club, observed_user_id, "
                   "observed_category, observed_rank, observed_status, observed_time, "
-                  "identity_basis, identity_confidence, identity_state, championship")
+                  "identity_basis, identity_confidence, identity_state, championship, "
+                  "championship_eligibility_state, championship_eligibility_basis, "
+                  "championship_source_scope")
     for gnk, targets in split_override.items():
         tids = [t["id"] for t in targets]
         if len(tids) < 2:
@@ -3627,11 +5198,16 @@ def main():
     # the champion's own rank once any one of them has it - a no-op for
     # ANNE categories, which are already fully tagged.
     cur.execute("""
-        UPDATE result SET championship = (
-            SELECT r2.championship FROM result r2
-            WHERE r2.stage_id = result.stage_id AND r2.category = result.category
-              AND r2.championship IS NOT NULL LIMIT 1)
+        UPDATE result SET
+          championship = (
+              SELECT r2.championship FROM result r2
+              WHERE r2.stage_id = result.stage_id AND r2.category = result.category
+                AND r2.championship IS NOT NULL LIMIT 1),
+          championship_eligibility_state = 'provisional',
+          championship_eligibility_basis = 'champion_boundary_inference',
+          championship_source_scope = 'winner_only'
         WHERE status = 'ok' AND championship IS NULL
+          AND person_id IS NOT NULL
           AND rank >= COALESCE((SELECT champ_rank FROM champion_rank cr
                                  WHERE cr.stage_id = result.stage_id AND cr.category = result.category), 1)
           AND EXISTS (
@@ -3646,7 +5222,10 @@ def main():
 
     strip_age_overlap_categories(cur)
 
+    n_championship_source_matches = apply_championship_source_entries(cur)
+
     n_eligibility = apply_championship_eligibility_overrides(cur)
+    apply_championship_eligibility_evidence(cur)
 
     # OOC/AK is independent of finish status but never participates in a
     # championship ranking or medal award.
@@ -3660,6 +5239,15 @@ def main():
     # championship tag to strip in the first place, so it needs checking
     # against this table directly, not just already-tagged rows.
     cur.execute("CREATE TEMP TABLE ineligible_starter (event_id INTEGER, person_id INTEGER)")
+
+    for eid in FOREIGN_HOST_REQUIRE_OFFICIAL_CLUB_EVENTS:
+        cur.execute("""
+            INSERT INTO ineligible_starter (event_id, person_id)
+            SELECT DISTINCT s.event_id, r.person_id
+            FROM result r JOIN stage s ON s.id = r.stage_id
+            WHERE s.event_id = ? AND r.person_id IS NOT NULL
+              AND r.official_club IS NULL
+        """, (eid,))
 
     # KNOWN_INELIGIBLE_RESULTS: cases the API can't cover - someone with no
     # ANNE account at all (a genuinely one-off foreign guest, e.g. Milja
@@ -3675,8 +5263,15 @@ def main():
             for eid, eligibility in by_event.items():
                 if eligibility is True or eligibility == "error":
                     continue
-                cur.execute("INSERT INTO ineligible_starter (event_id, person_id) VALUES (?, ?)",
-                            (int(eid), int(uid)))
+                if not cur.execute(
+                        """SELECT 1 FROM result r JOIN stage s ON s.id = r.stage_id
+                           WHERE s.event_id = ? AND r.person_id = ?
+                             AND r.championship_eligibility_basis =
+                                 'official_championship_ranking'
+                           LIMIT 1""", (int(eid), int(uid))).fetchone():
+                    cur.execute(
+                        "INSERT INTO ineligible_starter (event_id, person_id) VALUES (?, ?)",
+                        (int(eid), int(uid)))
 
     # Foreign guest-team club codes with an unambiguous, non-Austrian naming
     # convention - confirmed real: event 4434, an ÖM round hosted jointly
@@ -3871,42 +5466,7 @@ def main():
     # false in SQL, so it silently drops out of the COUNT rather than
     # erroring - a bare championship-tagged, unranked row would otherwise
     # get national_rank = 1, "beating" everyone, since COUNT(...) = 0 + 1).
-    cur.execute("CREATE TEMP TABLE pair_unit (result_id INTEGER PRIMARY KEY, unit_key TEXT)")
-    cur.execute("SELECT r.id, p.name, r.note FROM result r JOIN person p ON p.id = r.person_id "
-                "WHERE r.result_kind = 'pair'")
-    pair_units = []
-    for rid, name, note in cur.fetchall():
-        partners = note[len("Partner: "):].split(", ") if note and note.startswith("Partner: ") else []
-        # name_key(), not the raw strings: `note`'s partner names are frozen
-        # in whatever raw order the source printed them ("Eichmüller Maya"),
-        # while `person.name` gets reordered to "Firstname Lastname" during
-        # identity resolution ("Emma Frey") - comparing the raw strings for
-        # the SAME two people never matches, silently splitting one pair
-        # into two fake half-units (confirmed real: event 4048, doubled
-        # every pair's own count and wrecked every national_rank downstream
-        # of it). name_key() is already this codebase's order/case/accent-
-        # insensitive identity key for exactly this kind of comparison.
-        key = "|".join(sorted(name_key(n) for n in [name, *partners])) if partners else f"solo-{rid}"
-        pair_units.append((rid, key))
-    cur.executemany("INSERT INTO pair_unit VALUES (?, ?)", pair_units)
-
-    cur.execute("""
-        UPDATE result SET national_rank = (
-            SELECT COUNT(CASE WHEN r2.result_kind = 'individual' THEN 1 END)
-                 + COUNT(DISTINCT CASE WHEN r2.result_kind = 'pair' THEN pu2.unit_key END)
-                 + COUNT(DISTINCT CASE WHEN r2.result_kind IN ('relay', 'team')
-                                        THEN COALESCE('n:' || r2.team_number,
-                                                      't:' || r2.team_name,
-                                                      'c:' || r2.club) END)
-                 + 1
-            FROM result r2
-            LEFT JOIN pair_unit pu2 ON pu2.result_id = r2.id
-            WHERE r2.stage_id = result.stage_id AND r2.category = result.category
-              AND r2.status = 'ok' AND r2.championship IS NOT NULL
-              AND r2.rank IS NOT NULL AND r2.rank < result.rank)
-        WHERE championship IS NOT NULL AND status = 'ok' AND rank IS NOT NULL
-    """)
-    cur.execute("DROP TABLE pair_unit")
+    compute_national_ranks(cur)
 
     # compute time_behind for legacy rows from winner time per category
     cur.execute("""
@@ -3919,15 +5479,17 @@ def main():
     populate_championship_model(cur)
     populate_quality_model(cur)
 
-    cur.execute("PRAGMA user_version = 5")
+    cur.execute("PRAGMA user_version = 8")
     con.commit()
     for table in ("event", "stage", "person", "person_identifier", "person_alias",
                   "person_redirect", "person_tombstone", "source_document", "result_list", "result",
+                  "championship_source_entry",
                   "audit_issue", "verification_assertion", "championship_rule_set",
                   "championship_instance", "award"):
         print(table, cur.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
     print(f"api results: {n_api}, legacy results: {n_legacy}, "
           f"championship rows from title fallback: {n_title_fallback}, "
+          f"official championship source matches: {n_championship_source_matches}, "
           f"championship rows stripped by eligibility check: {n_eligibility}")
 
     # Member-mapping build byproducts (private files, regenerated each run).

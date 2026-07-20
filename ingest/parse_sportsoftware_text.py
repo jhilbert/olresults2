@@ -61,6 +61,59 @@ COURSE_CAT_LINE_RE = re.compile(
     r"^(?P<name>(?!\d).+?)\s+\d+(?:[.,]\d+)?\s*km\b", re.I)
 
 
+# The 2014 Krems school championship stored some two-person starts in one
+# fixed-width Name cell without any separator.  The source column truncates
+# a handful of second given names, so this deliberately remains a
+# source-specific transcription instead of a risky global four-token rule.
+# Spellings completed below are corroborated by the following year's result.
+KREMS_2014_SCHOOL_PAIRS = {
+    "Kirchberger Lisa Schöller Luis": ("Kirchberger Lisa", "Schöller Luis"),
+    "Koller Luise Preyser Salome": ("Koller Luise", "Preyser Salome"),
+    "Jascha Denise Dullinger Andrea": ("Jascha Denise", "Dullinger Andrea"),
+    "Schabasser Stephanie Kretz Lau": ("Schabasser Stephanie", "Kretz Lau"),
+    "Sladek Nina Kuderna Johanna": ("Sladek Nina", "Kuderna Johanna"),
+    "Schmid Jasmina Ecker Theresa": ("Schmid Jasmina", "Ecker Theresa"),
+    "Studeregger Sophie Fischer Ann": ("Studeregger Sophie", "Fischer Anna"),
+    "Wagner Christiane Trü�mml Nico": ("Wagner Christiane", "Trümml Nico"),
+    "Latzenhofer Johannes Mörx Morr": ("Latzenhofer Johannes", "Mörx Morr"),
+    "Dietl Alexander Winkler Armin": ("Dietl Alexander", "Winkler Armin"),
+    "Aufreiter Stefan Schiegl Phili": ("Aufreiter Stefan", "Schiegl Philipp"),
+    "Bauer Immanuel Hirsch Jakob": ("Bauer Immanuel", "Hirsch Jakob"),
+    "Ruhofer Christoph Rudischer B.": ("Ruhofer Christoph", "Rudischer B."),
+    "Fuchs Tobias Seitl Stefan": ("Fuchs Tobias", "Seitl Stefan"),
+    "Ganic Manuel Hofer Alexander": ("Ganic Manuel", "Hofer Alexander"),
+    "Unger Elias Eilmberger Ph.": ("Unger Elias", "Eilmberger Ph."),
+    "Posch Jakob Mü�ller Martin": ("Posch Jakob", "Müller Martin"),
+    "Dörr David Preisinger N.": ("Dörr David", "Preisinger N."),
+    "Hofmann Manuel Schiefer Fabian": ("Hofmann Manuel", "Schiefer Fabian"),
+    "Klein Michael Mueayprom Piya": ("Klein Michael", "Mueayprom Piya"),
+    "Danniel Paleskic Sebastian Him": ("Danniel Paleskic", "Sebastian Him"),
+}
+
+
+def repair_krems_2014_school_pairs(categories):
+    """Expand the source's delimiter-less pair starts into two people."""
+    for category in categories or []:
+        expanded = []
+        for source_index, result in enumerate(category.get("results") or [], 1):
+            members = KREMS_2014_SCHOOL_PAIRS.get(result.get("name"))
+            if not members:
+                expanded.append(result)
+                continue
+            team_number = f"school-pair-{source_index}"
+            for member in members:
+                row = dict(result)
+                row.update({
+                    "name": member,
+                    "resultKind": "pair",
+                    "teamNumber": team_number,
+                    "note": "Partner: " + next(m for m in members if m != member),
+                })
+                expanded.append(row)
+        category["results"] = expanded
+    return categories
+
+
 def extract_pre_blocks(text):
     """Return SportSoftware fixed-width text from a document: the raw text
     itself, or the concatenation of any <pre> blocks it contains."""
@@ -415,6 +468,8 @@ def main():
                 out_path.unlink(missing_ok=True)
                 continue
             cats = parse_text(text)
+            if eid == 1110 and n == 1:
+                cats = repair_krems_2014_school_pairs(cats)
             if not cats:
                 empty += 1
                 out_path.unlink(missing_ok=True)  # stale output from an earlier, buggier run

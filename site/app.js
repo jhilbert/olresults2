@@ -229,7 +229,7 @@ function viewRunner(id, year) {
            cs.starters, cs.classified, cs.winner_time_s,
            (SELECT COUNT(*) FROM result r2
             WHERE r2.stage_id = r.stage_id AND r2.category NOT LIKE 'bahn%') AS non_bahn_count
-    FROM result r
+    FROM person_result r
     JOIN stage s ON s.id = r.stage_id
     JOIN event e ON e.id = s.event_id
     LEFT JOIN category_stats cs ON cs.stage_id = r.stage_id AND cs.category = r.category
@@ -288,7 +288,7 @@ function viewRunner(id, year) {
           <td class="hide-sm dim">${esc(r.location || "")}</td>
           <td>${esc(r.category_full || r.category)}${r.result_kind && r.result_kind !== "individual" ? ` <span class="badge">${{ relay: "Staffel", pair: "Paar", team: "Mannschaft" }[r.result_kind] || r.result_kind}</span>` : ""}</td>
           <td class="num">${rankCell(r)}</td>
-          <td class="num">${fmtTime(r.time_s)}</td>
+          <td class="num">${fmtTime(r.result_kind === "relay" && r.team_time_s != null ? r.team_time_s : r.time_s)}</td>
           <td class="num dim">${r.time_behind_s ? "+" + fmtTime(r.time_behind_s) : ""}</td>
           <td class="num">${r.status === "ok" ? fmtPct(r.time_behind_s ?? 0, r.winner_time_s) : ""}</td>
           <td class="hide-sm dim note-cell">${r.note ? esc(r.note) : ""}</td>
@@ -331,7 +331,7 @@ function reorderTeamMembers(results) {
   return results;
 }
 
-function viewEvent(id, medalsOnly, stageNum) {
+function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
   const [e] = query("SELECT * FROM event WHERE id = ?", [id]);
   if (!e) { app.innerHTML = "<h1>Nicht gefunden</h1>"; return; }
 
@@ -347,6 +347,20 @@ function viewEvent(id, medalsOnly, stageNum) {
     ? allStages.filter((s) => s.number === stageNum) : allStages;
   const onStage = stages.length === 1 && multiStage ? stages[0] : null;
   const stageParam = onStage ? `/stage/${onStage.number}` : "";
+  const regionalViews = query(
+    `SELECT DISTINCT ci.jurisdiction, cj.short_name
+       FROM championship_instance ci
+       JOIN championship_jurisdiction cj ON cj.code = ci.jurisdiction
+       JOIN stage s ON s.id = ci.stage_id
+      WHERE s.event_id = ? AND ci.championship_type = 'LMS'
+        AND ci.state = 'confirmed'
+        AND EXISTS (SELECT 1 FROM championship_entry ce
+                     WHERE ce.championship_instance_id = ci.id)
+        ${onStage ? "AND s.number = ?" : ""}
+      ORDER BY cj.name`, onStage ? [id, onStage.number] : [id]);
+  if (regionalCode && !regionalViews.some((view) => view.jurisdiction === regionalCode)) {
+    regionalCode = null;
+  }
 
   // Event-level ÖM/ÖSTM badge, with a "Jugend"/"Senioren" qualifier when
   // every championship-tagged category at this event falls cleanly on
@@ -386,10 +400,24 @@ function viewEvent(id, medalsOnly, stageNum) {
       ${e.url ? `· <a href="${esc(e.url)}" target="_blank" rel="noopener">ANNE ↗</a>` : ""}</p>
     ${stageLabel ? `<p class="sub"><b>${esc(stageLabel)}</b> · <a href="#/event/${id}">alle Etappen (${allStages.length})</a></p>` : ""}
     ${champBadges ? `<p class="sub">${champBadges}</p>` : ""}
+    ${regionalViews.length ? `<div class="chips championship-views">
+      <a class="chip ${!regionalCode ? "active" : ""}" href="#/event/${id}${stageParam}">Gesamtergebnis</a>
+      ${regionalViews.map((view) => `<a class="chip ${regionalCode === view.jurisdiction ? "active" : ""}"
+        href="#/event/${id}${stageParam}/lm/${view.jurisdiction}">${esc(view.short_name)}</a>`).join("")}
+    </div>` : ""}
+    ${regionalCode ? `<p class="sub dim">Getrennte Landesmeisterschaftswertung desselben Laufs; die Gesamtleistung wird nicht dupliziert.</p>` : ""}
     ${medalsOnly && hasChamp ? `<p class="sub dim">Kompaktübersicht: nur ÖM/ÖSTM-Altersklassen, nur Medaillenränge.</p>` : ""}`;
 
   for (const st of stages) {
-    const cats = query(`
+    const cats = regionalCode ? query(`
+      SELECT ci.id AS regional_instance_id, ci.category, ci.category AS category_full,
+             COUNT(DISTINCT ce.id) AS entries, NULL AS starters, NULL AS classified,
+             NULL AS winner_time_s, NULL AS len, NULL AS climb, NULL AS ctrls
+        FROM championship_instance ci
+        JOIN championship_entry ce ON ce.championship_instance_id = ci.id
+       WHERE ci.stage_id = ? AND ci.jurisdiction = ? AND ci.championship_type = 'LMS'
+         AND ci.state = 'confirmed'
+       GROUP BY ci.id, ci.category ORDER BY ci.category`, [st.id, regionalCode]) : query(`
       SELECT r.category, MAX(r.category_full) AS category_full,
              cs.starters, cs.classified, cs.winner_time_s,
              COUNT(DISTINCT CASE WHEN r.result_kind = 'pair'
@@ -417,7 +445,17 @@ function viewEvent(id, medalsOnly, stageNum) {
     }
     const stageHasOfficial = cats.some((c) => !isBahn(c.category));
     for (const c of cats) {
-      const results = reorderTeamMembers(query(`
+      const results = reorderTeamMembers(regionalCode ? query(`
+        SELECT r.*, COALESCE(p.name, r.observed_name) AS person_name,
+               ce.regional_rank
+          FROM championship_entry ce
+          JOIN championship_entry_result cer ON cer.championship_entry_id = ce.id
+          JOIN result r ON r.id = cer.result_id
+          LEFT JOIN person p ON p.id = r.person_id
+         WHERE ce.championship_instance_id = ?
+         ORDER BY ce.regional_rank IS NULL, ce.regional_rank,
+                  COALESCE(r.team_number, r.team_name, r.club), r.leg_number, r.time_s`,
+        [c.regional_instance_id]) : query(`
         SELECT r.*, COALESCE(p.name, r.observed_name) AS person_name FROM result r
         LEFT JOIN person p ON p.id = r.person_id
         WHERE r.stage_id = ? AND r.category = ?
@@ -431,7 +469,10 @@ function viewEvent(id, medalsOnly, stageNum) {
         c.climb ? c.climb + " Hm" : null,
         c.ctrls ? c.ctrls + " Posten" : null,
       ].filter(Boolean).join(" · ");
-      const catChamp = [...new Set(results.map((r) => r.championship).filter(Boolean))];
+      const regionalLabel = regionalCode
+        ? regionalViews.find((view) => view.jurisdiction === regionalCode)?.short_name : null;
+      const catChamp = regionalLabel ? [regionalLabel]
+        : [...new Set(results.map((r) => r.championship).filter(Boolean))];
       const medalTier = { 1: "gold", 2: "silver", 3: "bronze" };
       const medalName = { 1: "Gold", 2: "Silber", 3: "Bronze" };
       const units = [];
@@ -452,7 +493,9 @@ function viewEvent(id, medalsOnly, stageNum) {
       // Mannschaft) instead of the competitor units actually shown below.
       const hasTeamUnits = units.some((unit) => unit.team);
       const displayedEntries = hasTeamUnits ? units.length : (c.starters ?? c.entries);
-      const placementCell = (r, tier) => tier
+      const placementCell = (r, tier) => regionalCode
+        ? rankCell({ ...r, rank: r.regional_rank, starters: null })
+        : tier
         ? `<span class="rank-medal rank-medal-${tier}" title="${medalName[r.national_rank]} (ÖM/ÖSTM)">${r.rank ?? ""}</span>`
         : rankCell({ ...r, starters: null });
       const individualTime = (r) => r.individual_status && r.individual_status !== "ok"
@@ -469,7 +512,7 @@ function viewEvent(id, medalsOnly, stageNum) {
               <th class="num">Zeit</th><th class="num">Diff</th></tr></thead>
             <tbody>${units.map((unit) => {
               if (!unit.team) {
-                const r = unit.rows[0], tier = medalTier[r.national_rank];
+                const r = unit.rows[0], tier = regionalCode ? null : medalTier[r.national_rank];
                 return `<tr class="${isBahn(c.category) && stageHasOfficial ? "bahn-row" : ""} ${tier ? `medal-row-${tier}` : ""}">
                   <td class="num">${placementCell(r, tier)}</td>
                   <td>${r.person_id == null
@@ -481,7 +524,7 @@ function viewEvent(id, medalsOnly, stageNum) {
                   <td class="num dim">${r.status === "ok" && r.time_behind_s ? "+" + fmtTime(r.time_behind_s) : ""}</td>
                 </tr>`;
               }
-              const team = unit.rows[0], tier = medalTier[team.national_rank];
+              const team = unit.rows[0], tier = regionalCode ? null : medalTier[team.national_rank];
               const teamLabel = team.result_kind === "pair"
                 ? unit.rows.map((r) => r.person_name).join(" + ")
                 : `${team.team_number ? `#${team.team_number} ` : ""}${team.team_name || team.club || "Team"}`;
@@ -493,7 +536,7 @@ function viewEvent(id, medalsOnly, stageNum) {
                   <td class="hide-sm dim">${esc(team.official_club || team.club || "")}</td>
                   <td class="num">${teamTime}</td>
                   <td class="num dim">${team.status === "ok" && team.time_behind_s ? "+" + fmtTime(team.time_behind_s) : ""}</td>
-                </tr>${team.result_kind === "pair" ? "" : unit.rows.map((r) => `<tr class="team-member">
+                </tr>${team.result_kind === "pair" ? "" : unit.rows.filter((r) => r.person_id != null).map((r) => `<tr class="team-member">
                   <td class="num dim"></td>
                   <td><a href="#/runner/${r.person_id}">${esc(r.person_name)}</a>${r.result_kind === "relay" ? `<span class="leg-label">Leg ${r.leg_number || "?"}/${r.leg_count || unit.rows.length}</span>` : ""}</td>
                   <td class="hide-sm dim"></td><td class="num">${r.result_kind === "relay" ? individualTime(r) : ""}</td><td></td>
@@ -524,7 +567,7 @@ function setupSearch() {
       // list/year filter to find a specific event instead
       const persons = query(
         `SELECT p.id, p.name, p.year_of_birth,
-                (SELECT COUNT(*) FROM result r WHERE r.person_id = p.id) AS n
+                (SELECT COUNT(*) FROM person_result r WHERE r.person_id = p.id) AS n
          FROM person p WHERE p.name LIKE ? ORDER BY n DESC LIMIT 10`, [`%${q}%`]);
       dropdown.innerHTML = persons.length
         ? persons.map((p) => `<a href="#/runner/${p.id}">${esc(p.name)}
@@ -624,7 +667,7 @@ function viewEvents(year, omOnly, meister) {
   const champsByStage = new Map();
   for (const r of query(`
       SELECT r.stage_id, r.category, r.championship, p.name AS person_name, r.club
-      FROM result r JOIN person p ON p.id = r.person_id
+      FROM person_result r JOIN person p ON p.id = r.person_id
       WHERE r.championship IS NOT NULL AND r.national_rank = 1 AND r.status = 'ok'
       ORDER BY r.stage_id, r.category`)) {
     if (!champsByStage.has(r.stage_id)) champsByStage.set(r.stage_id, new Map());
@@ -690,7 +733,7 @@ function viewRunners(letter) {
     const dw = disciplineWhere("e.sport_type");
     runnersCache = query(`
       SELECT p.id, p.name, p.year_of_birth, COUNT(r.id) AS n
-      FROM person p JOIN result r ON r.person_id = p.id
+      FROM person p JOIN person_result r ON r.person_id = p.id
       JOIN stage s ON s.id = r.stage_id JOIN event e ON e.id = s.event_id
       WHERE r.result_kind != 'team'${dw.sql}   -- team rosters aren't individual runners
       GROUP BY p.id ORDER BY p.name COLLATE NOCASE`, dw.params);
@@ -740,7 +783,7 @@ function viewClubs() {
     const dw = disciplineWhere("e.sport_type");
     clubsCache = query(`
       SELECT r.official_club AS name, COUNT(*) AS n, COUNT(DISTINCT r.person_id) AS runners
-      FROM result r JOIN stage s ON s.id = r.stage_id JOIN event e ON e.id = s.event_id
+      FROM person_result r JOIN stage s ON s.id = r.stage_id JOIN event e ON e.id = s.event_id
       WHERE r.official_club IS NOT NULL${dw.sql}
       GROUP BY r.official_club ORDER BY r.official_club COLLATE NOCASE`, dw.params);
   }
@@ -774,7 +817,7 @@ function viewClubs() {
 function viewClub(name, year, medalType) {
   const info = query(`
     SELECT COUNT(*) AS n, COUNT(DISTINCT person_id) AS runners
-    FROM result WHERE official_club = ?`, [name])[0];
+    FROM person_result WHERE official_club = ?`, [name])[0];
   if (!info || !info.n) { app.innerHTML = "<h1>Nicht gefunden</h1>"; return; }
 
   // national_rank is placement among only championship-eligible (Austrian)
@@ -787,7 +830,7 @@ function viewClub(name, year, medalType) {
            e.id AS event_id, e.title AS event_title, e.sport_type, s.title AS stage_title,
            s.id AS stage_id, s.number AS stage_number,
            COALESCE(s.date, e.date_from) AS date, p.id AS person_id, p.name AS person_name
-    FROM result r
+    FROM person_result r
     JOIN stage s ON s.id = r.stage_id
     JOIN event e ON e.id = s.event_id
     JOIN person p ON p.id = r.person_id
@@ -1060,8 +1103,8 @@ function route() {
   const hash = location.hash || "#/";
   let m;
   if ((m = hash.match(/^#\/runner\/(-?\d+)(?:\/(\d{4}))?/))) { viewRunner(Number(m[1]), m[2]); setActiveNav(); }
-  else if ((m = hash.match(/^#\/event\/(\d+)(?:\/stage\/(\d+))?(?:\/(om))?/))) {
-    viewEvent(Number(m[1]), m[3] === "om", m[2] != null ? Number(m[2]) : null); setActiveNav();
+  else if ((m = hash.match(/^#\/event\/(\d+)(?:\/stage\/(\d+))?(?:(?:\/(om))|(?:\/lm\/(WIEN|NOE|BGLD|STMK|OOE|SBG|TIR|KTN|VBG)))?/))) {
+    viewEvent(Number(m[1]), m[3] === "om", m[2] != null ? Number(m[2]) : null, m[4] || null); setActiveNav();
   }
   else if ((m = hash.match(/^#\/events(?:\/(\d{4}))?(?:\/(om))?(?:\/(meister))?/))) {
     viewEvents(m[1], m[2] === "om", m[3] === "meister"); setActiveNav("events");

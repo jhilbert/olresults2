@@ -304,7 +304,12 @@ STATUS_MAP = {
     # Children's introductory classes sometimes use a qualitative successful
     # result instead of a time/rank.
     "gut": "ok", "teilg": "ok", "teilgenommen": "ok",
-    "zeitüb": "dsq", "zeitüberschreitung": "dsq", "maximalzeit": "dsq",
+    # A few legacy files contain UTF-8's replacement character where the
+    # original Windows-1252 Ü was already lost (``Zeit�b``).  Preserve the
+    # only plausible OE2010 status instead of surfacing it as unknown.
+    "zeitüb": "dsq", "zeit�b": "dsq", "zeitï¿½b": "dsq",
+    "zeitüberschreitung": "dsq",
+    "maximalzeit": "dsq",
     "keine zielzeit": "dnf", "keine e-card": "dns",
     "ohne wertung": "ok", "außer konkurrenz": "ok", "ausser konkurrenz": "ok",
     "wertungsfrei": "ok", "ak": "ok",
@@ -539,6 +544,14 @@ def detect_list_type(file_name, doc_text, is_sole_attachment=False):
         # A regional championship subranking is still a result list for this
         # race, not a cumulative series ``Wertung``. It can coexist with the
         # full field and must remain available for the Vienna medal review.
+        return "race"
+    if re.search(
+            r"meisterschafts[-_ ]?wertung|(?:Ö|OE)[-_ ]?(?:ST)?M\b|"
+            r"österreich\w*\s+(?:staats)?meister",
+            file_name, re.I):
+        # A dedicated national result/ranking file is a race-level source,
+        # even when its document heading contains the otherwise ambiguous
+        # word ``Wertung``. Split-time files have already returned above.
         return "race"
     if re.search(r"staffel|relay", file_name, re.I):
         return "relay"
@@ -923,16 +936,30 @@ def split_pair_names(name_text):
     Binder/Egger' -> ['Jannis Binder', 'Marie Egger']. Unambiguous versus the
     convention above because that one never has a '/' in its first
     whitespace-separated group."""
-    separator = "+" if "+" in name_text else "/"
+    separator = next((candidate for candidate in ("+", "/", "&")
+                      if candidate in name_text), "/")
     groups = name_text.split()
     if len(groups) == 2 and groups[0].count(separator) == 1 and groups[1].count(separator) == 1:
         firsts = groups[0].split(separator)
         lasts = groups[1].split(separator)
         return [f"{f} {l}" for f, l in zip(firsts, lasts)]
-    parts = [p.strip() for p in re.split(r"\s*[+/]\s*", name_text) if p.strip()]
+    parts = [p.strip() for p in re.split(r"\s*[+/&]\s*", name_text) if p.strip()]
     if len(parts) <= 1:
         return parts
-    surname = parts[0].split()[0] if parts[0].split() else ""
+    # Keep non-person companion labels literal.  Otherwise the shared-
+    # surname fallback turns ``Benjamin Reiner / Begleitung`` into the fake
+    # person ``Benjamin Begleitung`` before the caller can discard it.
+    if any(re.fullmatch(
+            r"(?i)(?:begleitung|begl\.?|und andere|and others)\**", part)
+           for part in parts):
+        return parts
+    # Firstname-first exports abbreviate a shared surname as ``Leo + Max
+    # Maurer`` or ``Anna + Selina Skern``. The last token of the complete
+    # second name is the unambiguous shared surname.
+    if len(parts) == 2 and len(parts[0].split()) == 1 and len(parts[1].split()) == 2:
+        return [f"{parts[0]} {parts[1].split()[-1]}", parts[1]]
+    first_tokens = parts[0].split()
+    surname = first_tokens[0] if len(first_tokens) >= 2 else ""
     out = [parts[0]]
     for p in parts[1:]:
         out.append(f"{surname} {p}" if (len(p.split()) == 1 and surname) else p)

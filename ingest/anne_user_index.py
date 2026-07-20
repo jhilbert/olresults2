@@ -2,10 +2,11 @@
 """Synchronise ANNE's paginated /user registry into one private snapshot.
 
 The snapshot deliberately contains only identity-resolution data: ÖFOL-ID,
-name, birth year, ANNE's raw verification bit, nationality, gender and the
-currently reported memberships.  It is ignored by Git and is never copied to
-the public Pages database wholesale.  The database builder consumes it only
-when a person actually occurs in an imported result.
+name, birth year, ANNE's raw verification bit, nationality, gender,
+championship eligibility and the currently reported memberships.  It is
+ignored by Git and is never copied to the public Pages database wholesale. The
+database builder consumes it only when a person actually occurs in an imported
+result.
 
 Unlike championship eligibility, this is a registry snapshot rather than an
 event decision.  A fresh snapshot may change names or current memberships, so
@@ -101,6 +102,9 @@ def normalise_user(row):
         return None
     if oefol_id <= 0:
         return None
+    eligibility = row.get("championshipEligibility")
+    if eligibility not in (True, False, None):
+        eligibility = None
     return {
         "oefol_id": oefol_id,
         "first_name": clean_text(row.get("firstName")),
@@ -109,6 +113,11 @@ def normalise_user(row):
         "gender": clean_text(row.get("gender")),
         "nationality": clean_text(row.get("nationality")),
         "anne_is_verified": bool(row.get("isVerified")),
+        # Keep "field omitted" distinct from an explicit JSON null. This is
+        # essential for determining whether the paginated /user endpoint
+        # exposes eligibility or whether only /user/:id does.
+        "championship_eligibility": eligibility,
+        "championship_eligibility_reported": "championshipEligibility" in row,
         "active_memberships": normalise_memberships(row.get("activeMemberships")),
     }
 

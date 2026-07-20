@@ -25,12 +25,15 @@ import bisect
 from collections import defaultdict
 import json
 import re
+import ssl
 import sys
 import time
 import urllib.parse
 import urllib.request
 import warnings
 from pathlib import Path
+
+import certifi
 
 from sportsoftware_common import (
     CAT_LINE_RE, KAT_TOKEN_RE, MANUAL_ATTACHMENT_SKIP, MANUAL_DOC_DATE_OVERRIDES, STATUS_TAIL_RE,
@@ -287,6 +290,7 @@ def parse_points_cup_result(text):
 ROOT = Path(__file__).resolve().parent.parent
 RAW = ROOT / "data" / "raw" / "anne"
 FILES = RAW / "files"
+SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 OUT = ROOT / "data" / "normalized"
 
 HEADERS = {"User-Agent": "olresults-sync/0.1 (+https://github.com/josefhilbert/olresults)"}
@@ -367,13 +371,20 @@ PRELIMINARY_CAT_RE = re.compile(
 UNCOUNTED_STATUS_CAT_RE = re.compile(
     r"^(?P<name>(?!\d).+?)\s+\(\s*(?:Stand\s+von|Status)\s*:", re.I)
 MEOS_PAGE_HEADER_RE = re.compile(r"^MeOS\s+\d{4}-\d{2}-\d{2}\b", re.I)
+MEOS_CLASS_HEADER_RE = re.compile(
+    r"^.+?\(\s*\d+\s*/\s*\d+\s*\)\s+(?:Time|Zeit)\s+"
+    r"(?:Behind|R[uü]ckstand)\b", re.I | re.M)
 
 PDF_HEADER_ALIASES = {
     "Místo": "Pl", "Jméno": "Name", "Oddíl": "Verein",
     "Čas": "Zeit", "Ztráta": "Diff",
     "Pos.": "Pl", "Pos": "Pl", "Club": "Verein",
     "Time": "Zeit", "YB": "Jg", "Stno": "Stnr",
-    "Schule": "Verein", "l": "Pl", "Familienname": "Nachname",
+    # ``Ergebnis`` must remain distinct: score races have both ``Zeit`` and
+    # ``Ergebnis`` (final points). Tak-Soft school sheets using Ergebnis as
+    # elapsed time are handled by their dedicated parser before this map.
+    "Schule": "Verein", "Laufzeit": "Zeit",
+    "l": "Pl", "Familienname": "Nachname",
 }
 # The team-row header's own column names vary too much to match literally -
 # confirmed real across the corpus: "Pl Stnr Staffel Zeit" (plain), "Pl
@@ -557,6 +568,17 @@ def normalize_exact_time_ties(categories):
                 # leave exactly one ordinary finisher between consecutive
                 # printed placements without its own rank (5, blank, 7).
                 result["rank"] = previous["rank"] + 1
+    return categories
+
+
+def normalize_qualitative_result_ranks(categories):
+    """A qualitative ``gut`` participation result has no placement."""
+    for category in categories or []:
+        for result in category.get("results") or []:
+            if re.search(
+                    r"(?i)(?:(?:sehr\s+)?gut|teilg|(?:erfolgreich\s+)?teilgenommen)\s*$",
+                    result.get("timeText") or ""):
+                result.pop("rank", None)
     return categories
 
 # A relay team row can carry its champion announcement inline, ahead of the
@@ -757,6 +779,31 @@ def repair_interleaved_club_value(club, value, force=False):
 
 def repair_result_club_and_value(club, value):
     """Repair both normal overflow and a value already embedded in Verein."""
+    # A qualitative result/status can begin only after the missing tail of a
+    # clipped club: ``HSV OL Wiener`` + ``Neustad Gut``.  parse_status(value)
+    # quite correctly recognizes the final Gut, but treating the whole cell
+    # as a status used to leave ``Neustad`` displayed as part of the result.
+    # An uppercase, non-numeric prefix is strong evidence of a club suffix;
+    # use the registry when it proves a full spelling and otherwise preserve
+    # the visible foreign-club continuation verbatim.
+    status_tail = STATUS_TAIL_RE.search((value or "").strip())
+    if status_tail and status_tail.end() == len((value or "").strip()):
+        raw_value = (value or "").strip()
+        displaced = raw_value[:status_tail.start()].strip(" ,;:-")
+        if displaced and re.fullmatch(r"[A-ZÀ-Þ][A-Za-zÀ-ž.'’\-]*", displaced):
+            joined = re.sub(r"\s+", " ", f"{club} {displaced}").strip()
+            canonical = CLUBS.get(joined.casefold())
+            if not canonical:
+                continuations = [
+                    candidate for spelling, candidate in CLUBS.items()
+                    if spelling.startswith(joined.casefold())
+                    and len(spelling) - len(joined.casefold()) <= 4
+                ]
+                canonical = max(continuations, key=len) if continuations else joined
+            return canonical, raw_value[status_tail.start():].strip()
+        if (displaced.casefold() == "(no"
+                and (club or "").casefold() in {"vereinslos", "no club"}):
+            return "vereinslos (no club)", raw_value[status_tail.start():].strip()
     if (not (value or "").strip()
             and re.fullmatch(r"Leibnitzer AC OrientierungslaFuehlst", club or "", re.I)):
         return "Leibnitzer AC - Orienteering", "Fehlst"
@@ -893,6 +940,18 @@ def repair_shifted_name_club_time(result):
     trailing club and at least two person-name tokens remain.
     """
     club = (result.get("club") or "").strip()
+    name = (result.get("name") or "").strip()
+    # A narrow Name column can keep only the surname while the given name
+    # spills into the front of Verein (``Kaltenbacher | Pierre HSV OL Wiener
+    # Neustadt``).  A known club at the tail plus exactly one leading token is
+    # strong enough to restore the boundary without guessing.
+    if len(name.split()) == 1 and club:
+        repaired_club, leading_tokens = find_trailing_club(club.split(), CLUBS)
+        if (repaired_club and len(leading_tokens) == 1
+                and re.fullmatch(r"[A-Za-zÀ-ž][A-Za-zÀ-ž'’-]+", leading_tokens[0])):
+            result["name"] = f"{name} {leading_tokens[0]}"
+            result["club"] = repaired_club
+            club = repaired_club
     match = CLUB_TIME_SUFFIX_RE.search(club)
     if not match:
         return result
@@ -925,6 +984,66 @@ def repair_rank_order_embedded_time_markers(results):
     worse ranks.  That independent ranking constraint keeps ordinary digits
     in school/team names untouched.
     """
+    stable_ranked = [row for row in results
+                     if isinstance(row.get("rank"), int)
+                     and isinstance(row.get("timeS"), int)
+                     and not row.get("outOfCompetition")]
+
+    # When both neighbouring columns overlap completely, the extracted value
+    # may no longer look like a time at all: ``...Gymnasium3`` + ``8S:a20``
+    # is visually ``...Gymnasium`` + ``38:20``.  Recover such rows only when
+    # the digits/colons form one exact time and that time fits the independent
+    # ordering constraints supplied by unaffected ranked rows.  Consecutive
+    # damaged rows additionally constrain one another, which repairs a run
+    # without making guesses from the garbled glyphs alone.
+    unparsed_candidates = []
+    for row in results:
+        if (not isinstance(row.get("rank"), int)
+                or isinstance(row.get("timeS"), int)
+                or row.get("outOfCompetition")):
+            continue
+        club = row.get("club") or ""
+        value = row.get("timeText") or ""
+        if ":" not in value or not re.search(r"[A-Za-z]", value):
+            continue
+        intrusion = re.search(r"\d", club)
+        if intrusion:
+            prefix, suffix = club[:intrusion.start()], club[intrusion.start():]
+            candidate_text = (re.sub(r"[^0-9:]", "", suffix)
+                              + re.sub(r"[^0-9:]", "", value))
+            repaired_club = re.sub(
+                r"\s+", " ", prefix + re.sub(r"[0-9:]", "", suffix)).strip()
+        else:
+            candidate_text = re.sub(r"[^0-9:]", "", value)
+            displaced_club = re.sub(r"[0-9:]", "", value)
+            displaced_club = re.sub(r"\s+", " ", displaced_club).strip()
+            if len(re.sub(r"[^A-Za-z]", "", displaced_club)) < 4:
+                continue
+            repaired_club = f"{club} {displaced_club}".strip()
+        candidate_seconds = parse_time(candidate_text)
+        if candidate_seconds is not None:
+            unparsed_candidates.append(
+                (row, repaired_club, candidate_text, candidate_seconds))
+
+    for row, repaired_club, candidate_text, candidate_seconds in unparsed_candidates:
+        stable_better = [other["timeS"] for other in stable_ranked
+                         if other["rank"] < row["rank"]]
+        stable_worse = [other["timeS"] for other in stable_ranked
+                        if other["rank"] > row["rank"]]
+        peers_before = [seconds for other, _club, _text, seconds in unparsed_candidates
+                        if other["rank"] < row["rank"]]
+        peers_after = [seconds for other, _club, _text, seconds in unparsed_candidates
+                       if other["rank"] > row["rank"]]
+        fits = ((not stable_better or candidate_seconds >= max(stable_better))
+                and (not stable_worse or candidate_seconds <= min(stable_worse))
+                and (not peers_before or candidate_seconds >= max(peers_before))
+                and (not peers_after or candidate_seconds <= min(peers_after)))
+        if fits and (stable_better or stable_worse):
+            row["club"] = repaired_club
+            row["timeText"] = candidate_text
+            row["timeS"] = candidate_seconds
+            row["status"] = "ok"
+
     ranked = [row for row in results
               if isinstance(row.get("rank"), int)
               and isinstance(row.get("timeS"), int)
@@ -1313,8 +1432,18 @@ def parse_two_column_pdf(path):
                             if (family_flow and family_flow.get("club")
                                     and (family_flow.get("timeText")
                                          or family_flow.get("statusText"))):
-                                for family_result in flow_results(family_flow):
+                                family_results = flow_results(family_flow)
+                                if family_results:
+                                    # A Family row is one anonymous result
+                                    # unit even when its label contains ``&``
+                                    # or ``+``.  Never turn those names into
+                                    # independently indexed people.
+                                    family_result = dict(family_results[0])
+                                    family_result["name"] = " + ".join(
+                                        family_flow.get("names") or
+                                        [family_result.get("name") or ""])
                                     family_result["resultKind"] = "family"
+                                    family_result.pop("note", None)
                                     current[side]["results"].append(family_result)
 
     categories = merge_category_continuations(
@@ -1494,6 +1623,472 @@ def prefer_referenced_html_source(categories, head_text):
     return best[1] if best else categories
 
 
+def parse_round_ranking_pdf(pdf):
+    """Parse an official KO-sprint ranking whose last column is a round.
+
+    These sheets intentionally have no elapsed-time column: the placement is
+    the championship result and ``Final``/``Semifinal N`` explains how it was
+    reached.  The generic PDF path used to retain just one damaged row because
+    it requires a time/status anchor.  Champion names are printed on the next
+    visual line, so they are joined explicitly here.
+    """
+    categories = []
+    current = None
+    pending_winner = None
+    category_re = re.compile(
+        r"^(?P<name>[DH]\s*21\s*-?E?)\s*\((?P<count>\d+)\s*/\s*\d+\)\s+Runde$",
+        re.I)
+    round_re = r"(?:Final|Semifinal\s+\d+)"
+    champion_re = re.compile(
+        rf"^1\.?\s+(?:&|und)\s+(?P<title>.+?meister(?:in)?)\s+"
+        rf"(?P<club>.+?)\s+(?P<round>{round_re})$", re.I)
+    row_re = re.compile(
+        rf"^(?P<rank>\d+)\.?\s+(?P<body>.+?)\s+(?P<round>{round_re})$",
+        re.I)
+
+    for page in pdf.pages:
+        lines = group_lines(page.extract_words(
+            use_text_flow=False, keep_blank_chars=False))
+        for line in lines:
+            text = " ".join(word["text"] for word in line).strip()
+            category_match = category_re.match(text)
+            if category_match:
+                name = re.sub(r"\s+", "", category_match.group("name")).upper()
+                current = {
+                    "name": name,
+                    "declaredStarters": int(category_match.group("count")),
+                    "results": [],
+                }
+                categories.append(current)
+                pending_winner = None
+                continue
+            if current is None:
+                continue
+            if pending_winner:
+                if (looks_like_person(text) and not re.search(r"\d", text)
+                        and not is_junk_name(text)):
+                    result = dict(pending_winner)
+                    result["name"] = text
+                    current["results"].append(result)
+                    pending_winner = None
+                    continue
+                pending_winner = None
+            champion_match = champion_re.match(text)
+            if champion_match:
+                pending_winner = {
+                    "club": champion_match.group("club").strip(),
+                    "rank": 1,
+                    "status": "ok",
+                    "timeText": "",
+                    "rankingBasis": "other",
+                    "note": f"Runde: {champion_match.group('round')}",
+                    "championship": classify_championship_text(
+                        champion_match.group("title")),
+                }
+                continue
+            row_match = row_re.match(text)
+            if not row_match:
+                continue
+            club, name_tokens = find_trailing_club(
+                row_match.group("body").split(), CLUBS)
+            name = " ".join(name_tokens).strip()
+            if name.casefold().endswith(" lki") and "laufklub" in (club or "").casefold():
+                name = name[:-4].rstrip()
+            if not club or not looks_like_person(name) or is_junk_name(name):
+                continue
+            current["results"].append({
+                "name": name,
+                "club": club,
+                "rank": int(row_match.group("rank")),
+                "status": "ok",
+                "timeText": "",
+                "rankingBasis": "other",
+                "note": f"Runde: {row_match.group('round')}",
+            })
+    return [category for category in categories if category["results"]]
+
+
+def parse_plain_gender_championship_pdf(pdf):
+    """Parse a small hand-made Damen/Herren championship result sheet."""
+    categories = []
+    current = None
+    for page in pdf.pages:
+        for text in (page.extract_text() or "").splitlines():
+            text = text.strip()
+            if text in {"Damen", "Herren"}:
+                current = {"name": text, "declaredStarters": None, "results": []}
+                categories.append(current)
+                continue
+            if current is None:
+                continue
+            championship = classify_championship_text(text)
+            if championship and current["results"]:
+                current["results"][-1]["championship"] = championship
+                continue
+            result = parse_flow_result_row(text, CLUBS)
+            if result:
+                current["results"].append(result)
+    for category in categories:
+        category["declaredStarters"] = len(category["results"])
+    return [category for category in categories if category["results"]]
+
+
+def parse_compact_pursuit_ranking_pdf(pdf):
+    """Parse the compact 2026 SkiO pursuit championship ranking.
+
+    Its embedded font removes every space between bib/name and birth-year/
+    club.  The two repeated column headers delimit the men's and women's
+    rankings; the official ``Wertung`` contains both finishers and status
+    rows, all without a separate category heading.
+    """
+    categories = []
+    current = None
+    header_count = 0
+    value_re = re.compile(
+        r"(?P<value>\d{1,3}:\d{2}:\d{2}|Fehlst\.?|Aufg\.?|Disqu?\.?)$", re.I)
+    for page in pdf.pages:
+        for text in (page.extract_text() or "").splitlines():
+            text = text.strip()
+            if text.startswith("Pl StnrName"):
+                header_count += 1
+                current = {
+                    "name": "Herren Elite" if header_count == 1 else "Damen Elite",
+                    "declaredStarters": None,
+                    "results": [],
+                }
+                categories.append(current)
+                continue
+            if current is None:
+                continue
+            value_match = value_re.search(text)
+            if not value_match:
+                continue
+            prefix = text[:value_match.start()].strip()
+            lead = re.match(r"^(?:(?P<rank>\d+)\s+)?(?P<bib>\d{2})(?P<body>.+)$", prefix)
+            if not lead:
+                continue
+            body = lead.group("body").strip()
+            split = re.match(r"^(?P<name>.+?)\s+(?P<year>\d{2})(?P<club>.+)$", body)
+            if not split:
+                continue
+            name = split.group("name").strip()
+            raw_club = split.group("club").strip()
+            club = CLUBS.get(raw_club.casefold(), raw_club)
+            if not looks_like_person(name) or is_junk_name(name):
+                continue
+            value = value_match.group("value")
+            seconds = parse_time_loose(value)
+            result = {
+                "name": name,
+                "club": club,
+                "timeText": value,
+                "status": "ok" if seconds is not None else (parse_status(value) or "unknown"),
+                "yearOfBirth": int(split.group("year")) + (
+                    2000 if int(split.group("year")) <= 26 else 1900),
+            }
+            if lead.group("rank"):
+                result["rank"] = int(lead.group("rank"))
+            if seconds is not None:
+                result["timeS"] = seconds
+            current["results"].append(result)
+    for category in categories:
+        category["declaredStarters"] = len(category["results"])
+    return [category for category in categories if category["results"]]
+
+
+def repair_wrapped_champion_names(path, categories):
+    """Restore winner names printed on a line below their title/club/time."""
+    wrapped = []
+    import pdfplumber
+    with pdfplumber.open(path) as pdf:
+        for page in pdf.pages:
+            lines = group_lines(page.extract_words(
+                use_text_flow=False, keep_blank_chars=False))
+            texts = [" ".join(word["text"] for word in line).strip()
+                     for line in lines]
+            for index, text in enumerate(texts[:-1]):
+                if not re.match(r"^1\.?\s+(?:&|und)\s+", text, re.I):
+                    continue
+                championship = classify_championship_text(text)
+                following = texts[index + 1]
+                if (championship and looks_like_person(following)
+                        and not re.search(r"\d", following)
+                        and not is_junk_name(following)):
+                    wrapped.append((following, championship))
+    candidates = [result for category in categories
+                  for result in category.get("results") or []
+                  if re.search(r"meister", result.get("name") or "", re.I)]
+    for result, (name, championship) in zip(candidates, wrapped):
+        result["name"] = name
+        result["championship"] = championship
+        if result.get("resultKind") == "pair" and result.get("note") == "Partner: ":
+            result.pop("resultKind", None)
+            result.pop("teamNumber", None)
+            result.pop("note", None)
+    if wrapped:
+        for category in categories:
+            for result in category.get("results") or []:
+                if result.get("status") == "dns":
+                    result["excludedFromDeclaredCount"] = True
+    return categories
+
+
+def repair_known_pdf_extraction_artifacts(path, categories):
+    """Repair rows whose embedded font destroys otherwise visible glyphs.
+
+    These are deliberately source-file and person specific.  The values were
+    checked against rendered pages; broad OCR guessing would be less safe than
+    retaining an unresolved raw value for every other document.
+    """
+    corrections = {
+        ("4089-1.pdf", "Oberneuwirther"): {
+            "name": "Oberneuwirther Isabel",
+            "club": "Christian-Doppler-Gymnasium",
+            "timeText": "38:20", "timeS": 2300, "status": "ok",
+            "yearOfBirth": 2011,
+        },
+        ("4477-3.pdf", "Libor Filip"): {
+            "club": "SRK SOOB Spartak Rychnov n.Kn.",
+            "timeText": "1:19:24", "timeS": 4764, "status": "ok",
+        },
+        ("4477-3.pdf", "Ivana Filipová"): {
+            "club": "SRK SOOB Spartak Rychnov n.Kn.",
+            "timeText": "1:10:07", "timeS": 4207, "status": "ok",
+        },
+        ("1605-0.pdf", "Bednarik Martin"): {
+            "club": "KOB Cingov Spisska Nova Ves",
+            "timeText": "33:58", "timeS": 2038, "status": "ok",
+        },
+        ("1605-0.pdf", "Bednarikova Tatiana"): {
+            "club": "KOB Cingov Spisska Nova Ves",
+            "timeText": "47:11", "timeS": 2831, "status": "ok",
+        },
+        ("1605-0.pdf", "Ladics Thomas+Stephan"): {
+            "club": "GRG Alterlaa",
+            "timeText": "27:01", "timeS": 1621, "status": "ok",
+        },
+        # Visually verified on page 3: the source keeps rank 14 and elapsed
+        # time but inserts its missing-control note between school and time.
+        # Preserve all three independent facts instead of making the note a
+        # club and the whole prefix a synthetic person.
+        ("1200-0.pdf", "Melissa Egg Pos6 (54)"): {
+            "name": "Melissa", "club": "Egg", "status": "mp",
+            "note": "Posten 6 (54) fehlt",
+        },
+    }
+    file_name = Path(path).name
+    for category in categories:
+        for result in category.get("results") or []:
+            correction = corrections.get((file_name, result.get("name") or ""))
+            if correction:
+                result.update(correction)
+    return categories
+
+
+def parse_taksoft_school_pdf(pdf):
+    """Parse the old ``Platz SI-NR Name Schule Ergebnis`` school layout."""
+    lines = []
+    for page in pdf.pages:
+        lines.extend((page.extract_text(x_tolerance=1, y_tolerance=3) or "").splitlines())
+    categories = []
+    current = None
+    group_number = 0
+    last_group = []
+
+    def set_missing_punch(rows):
+        for result in rows:
+            result.pop("rank", None)
+            result["status"] = "mp"
+            result["individualStatus"] = "mp"
+
+    for index, raw_line in enumerate(lines):
+        line = re.sub(r"\s+", " ", raw_line).strip()
+        category_match = re.match(r"^(?P<name>.+?)\s+Bahn\s*:", line, re.I)
+        if category_match:
+            current = {"name": category_match.group("name").strip(),
+                       "declaredStarters": None, "sourceUnitCount": 0, "results": []}
+            current.update(parse_course_info(line))
+            categories.append(current)
+            last_group = []
+            continue
+        if current is None or not line or line.startswith(("Platz ", "© ")):
+            continue
+        if re.match(r"^Pos\.?\s*\d", line, re.I) and re.search(
+                r"fehl(?:t|en)\b", line, re.I):
+            set_missing_punch(last_group)
+            continue
+        # One long missing-punch description wraps its elapsed time onto the
+        # next physical line (event 993). Join only this exact structural case.
+        if (re.match(r"^\d{5,}\s+", line) and not re.search(
+                r"(?:\d{1,2}:\d{2}:\d{2}|keine Zeit)\s*$", line, re.I)
+                and index + 1 < len(lines)
+                and re.fullmatch(r"\s*\d{1,2}:\d{2}:\d{2}\s*", lines[index + 1])):
+            line += " " + lines[index + 1].strip()
+        match = re.match(
+            r"^(?:(?P<rank>\d+)\s*\.\s*)?(?P<bib>\d{5,})\s+"
+            r"(?P<body>.+?)\s+(?P<value>\d{1,2}:\d{2}:\d{2}|keine Zeit)$",
+            line, re.I)
+        if not match:
+            continue
+        body = match.group("body").strip()
+        missing = re.search(r"\s+Pos\.?[^ ]*(?:\s+bis\s+[^ ]+)?\s*fehl(?:t|en)\s*$",
+                            body, re.I)
+        if missing:
+            body = body[:missing.start()].strip()
+        tokens = body.split()
+        if len(tokens) < 2:
+            continue
+        club = tokens[-1]
+        name = " ".join(tokens[:-1]).strip()
+        value = match.group("value")
+        seconds = parse_time(value)
+        base = {"name": name, "club": club, "timeText": value,
+                "status": "mp" if missing else ("ok" if seconds is not None else "unknown")}
+        if match.group("rank") and not missing:
+            base["rank"] = int(match.group("rank"))
+        if seconds is not None:
+            base["timeS"] = seconds
+        if missing:
+            base["individualStatus"] = "mp"
+        group_number += 1
+        current["sourceUnitCount"] += 1
+        members = [name]
+        if "schnupper" in current["name"].casefold():
+            members = [part.strip(" .") for part in re.split(
+                r"\s+\bund\b\s+|\s*[&+]\s*|,\s*", name, flags=re.I)
+                       if part.strip(" .")]
+        if len(members) > 1:
+            team_number = f"school-group-{group_number}"
+            last_group = []
+            for member in members:
+                result = dict(base, name=member, resultKind="pair", teamNumber=team_number)
+                result["note"] = "Gruppe: " + " + ".join(members)
+                current["results"].append(result)
+                last_group.append(result)
+        else:
+            current["results"].append(base)
+            last_group = [base]
+    for category in categories:
+        category["declaredStarters"] = category.get("sourceUnitCount", 0)
+    return [category for category in categories if category["results"]]
+
+
+def parse_supervised_school_pdf(pdf):
+    """Parse ``Name Kl. Schule Betreuer Laufzeit`` school-team reports."""
+    lines = []
+    for page in pdf.pages:
+        lines.extend((page.extract_text(x_tolerance=1, y_tolerance=3) or "").splitlines())
+    categories = []
+    current = None
+    group_number = 0
+    active_group = []
+
+    def finalize_group():
+        if len(active_group) < 2:
+            return
+        names = [result["name"] for result in active_group]
+        for result in active_group:
+            result["resultKind"] = "pair"
+            result["note"] = "Gruppe: " + " + ".join(names)
+
+    for raw_line in lines:
+        line = re.sub(r"\s+", " ", raw_line).strip()
+        category_match = re.match(
+            r"^(?P<name>(?:Damen|Herren)\s+\d+|Schnupperer)\s*:", line, re.I)
+        if category_match:
+            finalize_group()
+            active_group = []
+            current = {"name": category_match.group("name").strip(),
+                       "declaredStarters": None, "sourceUnitCount": 0, "results": []}
+            current.update(parse_course_info(line))
+            categories.append(current)
+            continue
+        if current is None or not line or line.startswith((
+                "Platz ", "3. Lauf ", "Veranstalter", "Auswertung")):
+            continue
+        match = re.match(
+            r"^(?:(?P<rank>\d+)\s+)?(?P<body>.+?)\s+"
+            r"(?P<value>\d{1,2}:\d{2}:\d{2}|FST)$", line, re.I)
+        if match:
+            body = match.group("body").strip()
+            body_match = re.match(
+                r"^(?P<name>.+?)\s+(?:[DH]\s*\d+|G|S)\s+MS\s+"
+                r"(?P<school>.+?)\s+[A-Z]\.?\s+\S+$", body)
+            if not body_match:
+                continue
+            finalize_group()
+            active_group = []
+            value = match.group("value")
+            seconds = parse_time(value)
+            status = "mp" if value.casefold() == "fst" else "ok"
+            group_number += 1
+            result = {
+                "name": body_match.group("name").strip(),
+                "club": f"MS {body_match.group('school').strip()}",
+                "timeText": value, "status": status,
+                "teamNumber": f"school-group-{group_number}",
+            }
+            if match.group("rank") and status == "ok":
+                result["rank"] = int(match.group("rank"))
+            if seconds is not None:
+                result["timeS"] = seconds
+            if status == "mp":
+                result["individualStatus"] = "mp"
+            current["results"].append(result)
+            current["sourceUnitCount"] += 1
+            active_group.append(result)
+            continue
+        if ("schnupper" in current["name"].casefold()
+                and active_group and re.fullmatch(r"[A-Za-zÀ-ž][A-Za-zÀ-ž .’'\-]+", line)):
+            result = dict(active_group[0], name=line.strip())
+            current["results"].append(result)
+            active_group.append(result)
+    finalize_group()
+    for category in categories:
+        category["declaredStarters"] = category.get("sourceUnitCount", 0)
+    return [category for category in categories if category["results"]]
+
+
+def parse_penalty_results_pdf(pdf):
+    """Parse compact Nettozeit/Zuschlag/Bruttozeit result tables."""
+    categories = {}
+    order = []
+    for page in pdf.pages:
+        for raw_line in (page.extract_text(x_tolerance=1, y_tolerance=3) or "").splitlines():
+            line = re.sub(r"\s+", " ", raw_line).strip()
+            category_match = re.search(r"(?P<category>D/H\s+(?:Kurz|Lang))$", line, re.I)
+            if not category_match:
+                continue
+            category_name = category_match.group("category")
+            if category_name not in categories:
+                categories[category_name] = {
+                    "name": category_name, "declaredStarters": 0, "results": []}
+                order.append(category_name)
+            body = line[:category_match.start()].strip()
+            dns = re.match(
+                r"^(?P<name>.+?)\s+(?P<year>\d{4})\s+[MF]\s+Nicht angetreten$",
+                body, re.I)
+            if dns:
+                result = {"name": dns.group("name"), "club": "",
+                          "timeText": "Nicht angetreten", "status": "dns",
+                          "yearOfBirth": int(dns.group("year"))}
+            else:
+                row = re.match(
+                    r"^(?P<rank>\d+)\s+(?P<name>.+?)\s+(?P<year>\d{4})\s+[MF]\s+"
+                    r"(?P<values>(?:\d{1,2}:\d{2}:\d{2}\s*){2,3})$", body)
+                if not row:
+                    continue
+                values = re.findall(r"\d{1,2}:\d{2}:\d{2}", row.group("values"))
+                value = values[-1]
+                result = {"name": row.group("name"), "club": "",
+                          "timeText": value, "timeS": parse_time(value), "status": "ok",
+                          "rank": int(row.group("rank")),
+                          "yearOfBirth": int(row.group("year"))}
+            categories[category_name]["results"].append(result)
+            categories[category_name]["declaredStarters"] += 1
+    return [categories[name] for name in order if categories[name]["results"]]
+
+
 def parse_pdf(path, allow_inline_splits=False):
     import pdfplumber
 
@@ -1521,6 +2116,14 @@ def parse_pdf(path, allow_inline_splits=False):
         with pdfplumber.open(path) as pdf:
             if pdf.pages:
                 head_text = pdf.pages[0].extract_text() or ""
+            if re.search(r"Platz\s+SI-NR\s+Name\s+Schule\s+Ergebnis", head_text, re.I):
+                categories = parse_taksoft_school_pdf(pdf)
+                return repair_known_pdf_extraction_artifacts(path, categories), head_text
+            if re.search(r"Platz\s+Name\s+Kl\.\s+Schule\s+Betreuer\s+Laufzeit",
+                         head_text, re.I):
+                return parse_supervised_school_pdf(pdf), head_text
+            if re.search(r"Nettozeit\s+Zuschlag\s+\+\s+Bruttozeit", head_text, re.I):
+                return parse_penalty_results_pdf(pdf), head_text
             if ("geschätzte Zeit" in head_text and "echte Zeit" in head_text
                     and "Abweichung gesamt" in head_text):
                 estimated_time = parse_estimated_time_championship_pdf(pdf)
@@ -1532,6 +2135,21 @@ def parse_pdf(path, allow_inline_splits=False):
                 regional = parse_regional_championship_columns_pdf(pdf)
                 if regional is not None:
                     return regional, head_text
+            if (re.search(r"\bRunde\b", head_text)
+                    and re.search(r"\b(?:Ö|OE)STM\s+KO[- ]Sprint\b", head_text, re.I)):
+                round_ranking = parse_round_ranking_pdf(pdf)
+                if round_ranking:
+                    return round_ranking, head_text
+            if (re.search(r"ÖStM\s+Sprint\s+SchiO", head_text, re.I)
+                    and re.search(r"^Damen$", head_text, re.I | re.M)
+                    and re.search(r"^Herren$", head_text, re.I | re.M)):
+                plain_championship = parse_plain_gender_championship_pdf(pdf)
+                if plain_championship:
+                    return plain_championship, head_text
+            if re.search(r"ÖM\s+Verfolgung.*Wertung\s+Herren\s+Elite", head_text, re.I):
+                pursuit_ranking = parse_compact_pursuit_ranking_pdf(pdf)
+                if pursuit_ranking:
+                    return pursuit_ranking, head_text
             # Newspaper-style two-table pages normally expose two ``(N)``
             # category counts on the same extracted line. Use that cheap
             # signal before opening the document a second time for x-splitting;
@@ -1539,7 +2157,7 @@ def parse_pdf(path, allow_inline_splits=False):
             two_column = (parse_two_column_pdf(path)
                           if re.search(r"\(\d+\).{8,}\(\d+\)", head_text) else None)
             if two_column is not None:
-                return two_column, head_text
+                return repair_wrapped_champion_names(path, two_column), head_text
             # Remember the first page's real title/venue/organizer lines above
             # the table header. SportSoftware repeats them on later pages,
             # where the previous category and column coordinates are still
@@ -2313,7 +2931,23 @@ def parse_pdf(path, allow_inline_splits=False):
                         if is_ooc_status(text):
                             result["outOfCompetition"] = True
                     else:
-                        inferred_status = parse_status(time_text) or parse_status(stage_text)
+                        # In a crowded score row a long club/school can spill
+                        # across the nominal Zeit column while the real status
+                        # remains in a later column (event 4106:
+                        # ``... Zehnergasse | Wiener Neus | 0 | Aufg``).
+                        # The full physical line is authoritative for a
+                        # non-OK status; retain the overflow as club text.
+                        line_status = parse_status(text)
+                        inferred_status = (parse_status(time_text)
+                                           or parse_status(stage_text)
+                                           or (line_status if line_status != "ok" else None))
+                        if (inferred_status in {"dnf", "dns", "mp", "dsq"}
+                                and time_text and parse_status(time_text) is None
+                                and re.search(r"[A-Za-zÀ-ž]", time_text)):
+                            result["club"] = f"{result['club']} {time_text}".strip()
+                            result["timeText"] = {
+                                "dns": "DNS", "dnf": "DNF", "mp": "MP", "dsq": "DSQ"
+                            }[inferred_status]
                         result["status"] = (inferred_status or
                                             ("ok" if result.get("rank") is not None
                                              else "unknown"))
@@ -2368,6 +3002,7 @@ def parse_pdf(path, allow_inline_splits=False):
                     else:
                         current["results"].append(result)
 
+    categories = repair_wrapped_champion_names(path, categories)
     categories = normalize_exact_time_ties(
         [c for c in categories if c["results"]])
     course_split = []
@@ -2408,6 +3043,11 @@ def parse_pdf(path, allow_inline_splits=False):
     categories = merge_category_continuations(categories)
     categories = normalize_school_schnupper_pairs(categories)
     categories = prefer_referenced_html_source(categories, head_text)
+    # prefer_referenced_html_source can replace the initially repaired PDF
+    # rows with an independently parsed referenced layout carrying the same
+    # wrapped champion artifact; apply the deterministic repair once more to
+    # the final selected row set.
+    categories = repair_wrapped_champion_names(path, categories)
     # Specialized row paths above (score/course, pair and legacy layouts)
     # do not all pass through the ordinary fixed-column repair call. Apply
     # the same conservative club/time boundary normalization once to every
@@ -2507,6 +3147,7 @@ def parse_pdf(path, allow_inline_splits=False):
                 else:
                     unit_keys.append(("row", index))
             c["declaredStarters"] = len(set(unit_keys))
+    categories = repair_known_pdf_extraction_artifacts(path, categories)
     return categories, head_text
 
 
@@ -3128,15 +3769,18 @@ def parse_meos_individual_pdf(path):
                     value = " ".join(
                         word["text"] for word in row_words
                         if word["x0"] >= time_x - boundary_tolerance).strip()
-                    # MeOS also writes compact child/pair entries as
-                    # ``Diana&Ronja`` (not only ``Anna / Berta``). Preserve
-                    # both clickable identities while counting the shared
-                    # source row as one competitor unit.
-                    pair_names = [part.strip() for part in
-                                  re.split(r"\s*(?:/|&)\s*", name)]
-                    if (not name or is_junk_name(name)
-                            or not all(looks_like_person(part) for part in pair_names)):
-                        continue
+                    # MeOS writes child/pair entries with '/', '&' or '+'. A
+                    # trailing '*' is only a footnote. Keep the real people
+                    # even when the other member is a non-person placeholder
+                    # such as ``Begleitung``.
+                    is_pair = any(separator in name for separator in ("/", "&", "+"))
+                    raw_pair_names = split_pair_names(name) if is_pair else [name]
+                    raw_pair_names = [re.sub(r"\*+$", "", part).strip()
+                                      for part in raw_pair_names]
+                    pair_names = [part for part in raw_pair_names
+                                  if looks_like_person(part)
+                                  and not re.fullmatch(
+                                      r"(?i)begleitung|begl\.?|und andere|and others", part)]
                     time_match = re.search(r"\(?\d{1,3}:\d{2}(?::\d{2})?\)?", value)
                     if time_match:
                         raw_time = time_match.group(0)
@@ -3150,17 +3794,42 @@ def parse_meos_individual_pdf(path):
                         seconds = None
                     if not time_text:
                         continue
-                    if len(pair_names) > 1:
+                    if not name and club and (rank is not None or time_text):
+                        # The source itself can contain a ranked, timed row
+                        # with only a club and no participant names. Preserve
+                        # the result unit without inventing a person.
+                        pair_counter += 1
+                        result = {
+                            "name": "", "club": club, "timeText": time_text,
+                            "status": status, "resultKind": "pair",
+                            "memberlessTeam": True,
+                            "teamNumber": f"pair-{pair_counter}",
+                            "teamName": club,
+                            "note": "Paar ohne Teilnehmernamen in der Quelle",
+                            "teamStatus": status, "teamTimeText": time_text,
+                        }
+                        if rank is not None:
+                            result["rank"] = rank
+                        if seconds is not None:
+                            result["timeS"] = seconds
+                            result["teamTimeS"] = seconds
+                        if out_of_competition or is_ooc_status(value):
+                            result["outOfCompetition"] = True
+                        current["results"].append(result)
+                        continue
+                    if not pair_names or (not is_pair and is_junk_name(name)):
+                        continue
+                    if is_pair:
                         pair_counter += 1
                     for pair_name in pair_names:
                         result = {"name": pair_name, "club": club,
                                   "timeText": time_text, "status": status}
-                        if len(pair_names) > 1:
+                        if is_pair:
                             result.update({
                                 "resultKind": "pair",
                                 "teamNumber": f"pair-{pair_counter}",
                                 "note": "Partner: " + ", ".join(
-                                    other for other in pair_names if other != pair_name),
+                                    other for other in raw_pair_names if other != pair_name),
                             })
                         if rank is not None:
                             result["rank"] = rank
@@ -3192,7 +3861,29 @@ def parse_meos_relay_pdf(path):
         nonlocal pending_team
         if pending_team and current is not None:
             current["sourceUnitCount"] = current.get("sourceUnitCount", 0) + 1
-        if not pending_team or not pending_team["members"] or current is None:
+        if not pending_team or current is None:
+            pending_team = None
+            return
+        if not pending_team["members"]:
+            team_status = pending_team.get("status") or "unknown"
+            if team_status != "unknown" or pending_team.get("rank") is not None:
+                result = {
+                    "name": "", "club": pending_team["club"],
+                    "timeText": pending_team.get("timeText") or "",
+                    "resultKind": "relay", "memberlessTeam": True,
+                    "note": f"Staffel: {pending_team['displayName']} · keine Teilnehmernamen in der Quelle",
+                    "status": team_status, "individualStatus": None,
+                    "teamStatus": team_status, "teamNumber": None,
+                    "teamName": pending_team["displayName"],
+                    "teamTimeText": pending_team.get("timeText") or "",
+                }
+                if pending_team.get("rank") is not None:
+                    result["rank"] = pending_team["rank"]
+                if pending_team.get("timeS") is not None:
+                    result["teamTimeS"] = pending_team["timeS"]
+                if pending_team.get("outOfCompetition"):
+                    result["outOfCompetition"] = True
+                current["results"].append(result)
             pending_team = None
             return
         names = [member["name"] for member in pending_team["members"]]
@@ -3569,10 +4260,21 @@ def parse_relay_member_line(line, numbered_leg=False):
             name_tokens = joined[:status_match.start()].split()
             time_text = status_match.group(0).strip()
         else:
+            # A few SkiO relay PDFs contain a visibly broken ``Fehler NN``
+            # value in the individual-time column.  The embedded font leaves
+            # only fragments such as ``er 11`` or ``ht 95`` behind.  Those
+            # fragments belong to the result cell, not to the athlete's name
+            # (event 5204: Pia Aspalter / Lisa Habenicht).  Preserve the real
+            # person and the raw, unresolved value without inventing a time.
+            broken_value = re.search(r"\s+(?:er|ht)\s+\d+\s*$", joined, re.I)
+            if broken_value:
+                name_tokens = joined[:broken_value.start()].split()
+                time_text = joined[broken_value.start():].strip()
+            else:
             # A team already declared MP/DSQ can leave a later member's own
             # result cell blank. Preserve the named leg instead of silently
             # reducing the roster.
-            name_tokens, time_text = tokens, ""
+                name_tokens, time_text = tokens, ""
     if name_tokens and re.fullmatch(r"\d{2}|\d{4}", name_tokens[-1]):
         name_tokens.pop()
     name = " ".join(name_tokens).strip()
@@ -3597,11 +4299,30 @@ def parse_relay_pdf(path, team_mode=False):
     pending_team_rank = pending_team_championship = None
     relay_team_name_counts = defaultdict(int)
 
+    def full_team_label(raw_line):
+        """Return the complete printed relay label, including ``/`` clubs.
+
+        ``parse_flow_row`` deliberately treats slash-separated text as
+        several participant names.  That is correct for pairs, but not for a
+        relay header such as ``NF Kitzb./HSV Wr. Neust. 29:00``.  Recover the
+        label from the original row before the result value instead.
+        """
+        body = raw_line.strip()
+        diff_match = TEAM_DIFF_SUFFIX_RE.match(body)
+        if diff_match:
+            body = diff_match.group("body").strip()
+        value_match = TIME_TOKEN_RE.search(body) or STATUS_TAIL_RE.search(body)
+        if value_match:
+            body = body[:value_match.start()].strip()
+        body = re.sub(r"^(?:AK|--|—)\s+", "", body, flags=re.I)
+        body = re.sub(r"^(?:\d+\.?\s+){1,2}", "", body).strip()
+        return body
+
     def flush():
         nonlocal pending_team
         if pending_team and current is not None:
             current["sourceUnitCount"] = current.get("sourceUnitCount", 0) + 1
-        if not pending_team or not pending_team["members"]:
+        if not pending_team:
             pending_team = None
             return
         raw_team_name = pending_team["name"]
@@ -3609,13 +4330,56 @@ def parse_relay_pdf(path, team_mode=False):
         display_team_name = (
             raw_team_name if relay_team_name_counts[raw_team_name] == 1
             else f"{raw_team_name} {relay_team_name_counts[raw_team_name]}")
+        if not pending_team["members"]:
+            # Some registered teams never start and consequently have no leg
+            # rows at all. Preserve their one printed team/status line as a
+            # personless result unit; do not fabricate three DNS runners.
+            team_status = pending_team.get("status") or "unknown"
+            if team_status != "unknown" or pending_team.get("rank") is not None:
+                label = "Mannschaft" if team_mode else "Staffel"
+                result = {
+                    "name": "", "club": raw_team_name,
+                    "timeText": pending_team.get("timeText") or "",
+                    "resultKind": "team" if team_mode else "relay",
+                    "memberlessTeam": True,
+                    "note": f"{label}: {display_team_name} · keine Teilnehmernamen in der Quelle",
+                    "status": team_status, "individualStatus": None,
+                    "teamStatus": team_status,
+                    "teamNumber": pending_team.get("number"),
+                    "teamName": display_team_name,
+                    "teamTimeText": pending_team.get("timeText") or "",
+                }
+                if pending_team.get("timeS") is not None:
+                    result["teamTimeS"] = pending_team["timeS"]
+                if pending_team.get("outOfCompetition"):
+                    result["outOfCompetition"] = True
+                if pending_team.get("rank") is not None:
+                    result["rank"] = pending_team["rank"]
+                if pending_team.get("championship"):
+                    result["championship"] = pending_team["championship"]
+                current["results"].append(result)
+            pending_team = None
+            return
         names = [m["name"] for m in pending_team["members"]]
         member_statuses = []
+        member_seconds = []
         for m in pending_team["members"]:
             seconds = parse_time_loose(m["timeText"]) if m["timeText"] else None
+            member_seconds.append(seconds)
             member_statuses.append(
                 "ok" if seconds is not None else
                 (parse_status(m["timeText"] or "") or "unknown"))
+        # This SkiO export's team-time field is only mm:ss wide.  Once the
+        # sum crosses an hour it visibly wraps (61:01 is printed ``01:01``).
+        # Recover the missing whole hour only when every leg is timed and the
+        # printed value is exactly the modulo-hour remainder; this cannot
+        # affect ordinary relay PDFs with a genuine short team time.
+        if (member_seconds and all(seconds is not None for seconds in member_seconds)
+                and pending_team.get("timeS") is not None):
+            summed_time = sum(member_seconds)
+            if (summed_time >= 3600 and pending_team["timeS"] < 3600
+                    and summed_time % 3600 == pending_team["timeS"]):
+                pending_team["timeS"] = summed_time
         team_status = aggregate_team_status(pending_team.get("status"), member_statuses)
         for i, m in enumerate(pending_team["members"]):
             seconds = parse_time_loose(m["timeText"]) if m["timeText"] else None
@@ -3635,7 +4399,11 @@ def parse_relay_pdf(path, team_mode=False):
                       "teamName": display_team_name,
                       "teamTimeText": pending_team.get("timeText") or ""}
             if not team_mode:
-                result.update({"leg": i + 1, "legCount": len(names)})
+                result.update({"leg": i + 1, "legCount": len(names),
+                               # SkiO sprint relays intentionally let the
+                               # same athlete cover several legs.  The build
+                               # dedup key must therefore retain leg identity.
+                               "preserveRepeatedRelayLeg": True})
             if pending_team.get("timeS") is not None:
                 result["teamTimeS"] = pending_team["timeS"]
             if pending_team.get("outOfCompetition"):
@@ -3673,6 +4441,11 @@ def parse_relay_pdf(path, team_mode=False):
                         line = re.sub(r"\bF\s+ehlst\b", "Fehlst", line, flags=re.I)
                         line = re.sub(r"\bA\s+ufg\b", "Aufg", line, flags=re.I)
                         line = re.sub(r"\bD\s+isqu\b", "Disqu", line, flags=re.I)
+                        # The same damaged font splits the repeated member
+                        # header into ``Name Jg Z eit``. Normalize the header
+                        # label before the generic header filter below; it is
+                        # never a relay leg (confirmed visually in event 1123).
+                        line = re.sub(r"\bZ\s+eit\b", "Zeit", line, flags=re.I)
                     # A corrupted embedded font can interleave the team time
                     # with the final team-name word even when the document's
                     # own ``Zeit`` header is intact (for example
@@ -3848,7 +4621,7 @@ def parse_relay_pdf(path, team_mode=False):
                                                   or announced["statusText"] or "")
                                 team_time_s = parse_time_loose(team_time_text)
                                 pending_team = {
-                                    "name": announced["names"][0],
+                                    "name": full_team_label(line) or announced["names"][0],
                                     "rank": pending_team_rank, "number": None,
                                     "timeText": team_time_text, "timeS": team_time_s,
                                     "status": "ok" if team_time_s is not None else
@@ -3884,7 +4657,8 @@ def parse_relay_pdf(path, team_mode=False):
                                 flush()
                                 team_time_text = ak_flow["timeText"] or ak_flow["statusText"] or ""
                                 team_time_s = parse_time_loose(team_time_text)
-                                pending_team = {"name": ak_flow["names"][0], "rank": None,
+                                pending_team = {"name": full_team_label(rest) or ak_flow["names"][0],
+                                                 "rank": None,
                                                  "number": None, "timeText": team_time_text,
                                                  "timeS": team_time_s,
                                                  "status": "ok" if team_time_s is not None else
@@ -3916,11 +4690,13 @@ def parse_relay_pdf(path, team_mode=False):
                             if member_flow and len(member_flow.get("names") or []) == 1
                             else "")
                         team_label = re.sub(r"^(?:--|—)\s*", "", line[: sm.start()].strip()) if sm else ""
+                        artifact_team_label = bool(
+                            team_label and not re.search(r"[A-Za-zÄÖÜäöüß]{2}", team_label))
                         is_status_member = bool(
                             member_candidate and looks_like_person(member_candidate)
                             and not looks_like_status_team_label(team_label)
                         )
-                        if sm and not is_status_member:
+                        if sm and not is_status_member and not artifact_team_label:
                             flush()
                             team_time_text = sm.group(0).strip()
                             pending_team = {"name": team_label, "rank": None,
@@ -3965,7 +4741,8 @@ def parse_relay_pdf(path, team_mode=False):
                         effective_championship = (pending_team_championship
                                                   if pending_team_rank is not None
                                                   else championship)
-                        pending_team = {"name": flow["names"][0], "rank": effective_rank,
+                        pending_team = {"name": full_team_label(line) or flow["names"][0],
+                                         "rank": effective_rank,
                                          "number": team_number, "timeText": time_text,
                                          "timeS": team_time_s,
                                          "status": "ok" if team_time_s is not None else
@@ -4152,7 +4929,8 @@ def fetch(url, dest, force=False):
         return dest.read_bytes()
     safe_url = urllib.parse.quote(url, safe=":/?&=%")
     data = urllib.request.urlopen(
-        urllib.request.Request(safe_url, headers=HEADERS), timeout=30).read()
+        urllib.request.Request(safe_url, headers=HEADERS), timeout=30,
+        context=SSL_CONTEXT).read()
     dest.write_bytes(data)
     time.sleep(0.15)
     return data
@@ -4260,7 +5038,8 @@ def main():
                 cats = parse_meos_relay_pdf(pdf_path)
             elif re.search(r"^RELAY RESULTS\b", head_text, re.I):
                 cats = parse_oribos_relay_pdf(pdf_path)
-            elif MEOS_PAGE_HEADER_RE.match(head_text):
+            elif (MEOS_PAGE_HEADER_RE.match(head_text)
+                  or MEOS_CLASS_HEADER_RE.search(head_text)):
                 cats = parse_meos_individual_pdf(pdf_path)
             elif (re.search(r"Mannschaft", head_text, re.I)
                   and MANNSCHAFT_HEADER_RE.search(head_text)):
@@ -4282,6 +5061,8 @@ def main():
                     cats = parse_wintertour_pdf(pdf_path)
                 else:
                     cats = parse_flowing_pdf(pdf_path)
+            cats = repair_wrapped_champion_names(pdf_path, cats)
+            cats = normalize_qualitative_result_ranks(cats)
             if not cats:
                 empty += 1
                 # a file that used to parse (under an earlier, buggier

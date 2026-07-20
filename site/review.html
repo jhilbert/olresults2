@@ -21,7 +21,16 @@
     <div class="review-filters">
       <select id="campaign" aria-label="Prüfkampagne">
         <option value="national">1 · ÖM / ÖSTM</option>
-        <option value="vienna">2 · Wiener Meisterschaften</option>
+        <option value="regional">2 · Landesmeisterschaften – alle</option>
+        <option value="regional:WIEN">Wiener Meisterschaften</option>
+        <option value="regional:NOE">NÖ Meisterschaften</option>
+        <option value="regional:BGLD">Burgenländische Meisterschaften</option>
+        <option value="regional:STMK">Steirische Meisterschaften</option>
+        <option value="regional:OOE">OÖ Meisterschaften</option>
+        <option value="regional:SBG">Salzburger Meisterschaften</option>
+        <option value="regional:TIR">Tiroler Meisterschaften</option>
+        <option value="regional:KTN">Kärntner Meisterschaften</option>
+        <option value="regional:VBG">Vorarlberger Meisterschaften</option>
         <option value="all">Alle Ergebnislisten</option>
       </select>
       <select id="queue-state" aria-label="Bearbeitungsstand">
@@ -31,7 +40,9 @@
         <option value="confirmed">Bestätigt</option>
         <option value="all">Alle</option>
       </select>
-      <input id="queue-search" type="search" placeholder="Wettkampf oder Klasse …">
+      <input id="queue-date" type="date" aria-label="Wettkampfdatum">
+      <input id="queue-search" type="search" placeholder="Event, ID oder Kategorie …">
+      <select id="event-select" aria-label="Wettkampf auswählen"></select>
     </div>
     <div id="progress" class="review-progress"></div>
     <div id="queue" class="queue-list"><div class="loading"><div class="spinner"></div></div></div>

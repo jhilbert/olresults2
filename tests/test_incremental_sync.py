@@ -63,6 +63,8 @@ class AttachmentInventoryTests(unittest.TestCase):
             {"id": 2, "dateFrom": recent_date},
             {"id": 3, "dateFrom": old_date},
             {"id": 4, "dateFrom": recent_date, "hasOfficialResults": True},
+            {"id": 5, "dateFrom": recent_date, "hasOfficialResults": True,
+             "shortTitle": "ÖSTM Sprint"},
         ]
         known = {
             "1": [{"url": "https://example.test/old.pdf", "fileName": "old.pdf",
@@ -93,13 +95,39 @@ class AttachmentInventoryTests(unittest.TestCase):
                 refresh_cutoff=(date.today() - timedelta(days=30)).isoformat(),
             )
 
-        self.assertEqual(get.call_count, 2)
+        self.assertEqual(get.call_count, 3)
         self.assertEqual(
             {(entry["eventId"], entry["index"]) for entry in additions},
-            {(2, 1), (3, 0)},
+            {(2, 1), (3, 0), (5, 0)},
         )
         self.assertEqual(known["1"][0]["url"], "https://example.test/old.pdf")
         self.assertNotIn("4", known)
+
+    def test_mislabeled_championship_ranking_is_kept_but_splits_are_not(self):
+        ranking = {
+            "type": "other", "fileName": "ÖM Nacht Meisterschaftswertung.pdf",
+            "url": "https://example.test/ranking.pdf",
+        }
+        splits = {
+            "type": "other", "fileName": "ÖSTM Ergebnis SPLIT.pdf",
+            "url": "https://example.test/split.pdf",
+        }
+
+        self.assertTrue(anne_sync.is_championship_ranking_attachment(ranking))
+        self.assertFalse(anne_sync.is_championship_ranking_attachment(splits))
+
+    def test_mislabeled_result_filename_is_kept_but_result_splits_are_not(self):
+        result = {
+            "type": "other", "fileName": "oestm-oem-ski-lang-2019-erg.pdf",
+            "url": "https://example.test/result.pdf",
+        }
+        splits = {
+            "type": "splittimes", "fileName": "Ergebnisse-Zwischenzeiten.pdf",
+            "url": "https://example.test/splits.pdf",
+        }
+
+        self.assertTrue(anne_sync.is_result_named_attachment(result))
+        self.assertFalse(anne_sync.is_result_named_attachment(splits))
 
 
 class SyncCommandTests(unittest.TestCase):
