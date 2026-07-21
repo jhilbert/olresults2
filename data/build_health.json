@@ -1,51 +1,67 @@
 {
   "counts": {
-    "audit_issue": 6318,
-    "award": 10220,
-    "championship_instance": 4130,
-    "championship_result": 30426,
-    "championship_rule_set": 2,
+    "audit_issue": 5293,
+    "award": 10259,
+    "championship_entry": 15455,
+    "championship_entry_result": 16460,
+    "championship_instance": 6681,
+    "championship_jurisdiction": 10,
+    "championship_result": 30875,
+    "championship_rule_set": 10,
+    "championship_source_entry": 324,
+    "club_jurisdiction": 54,
     "event": 3986,
-    "person": 29549,
-    "person_alias": 35953,
-    "person_identifier": 3785,
-    "person_redirect": 22324,
-    "person_tombstone": 3543,
-    "result": 251159,
-    "result_list": 26011,
-    "source_document": 1758,
-    "stage": 1586,
-    "verification_assertion": 0
+    "person": 29450,
+    "person_alias": 35715,
+    "person_club_membership": 11761,
+    "person_identifier": 3888,
+    "person_redirect": 22129,
+    "person_tombstone": 3763,
+    "regional_category_mapping": 4161,
+    "result": 249813,
+    "result_list": 25913,
+    "source_document": 1747,
+    "stage": 1594,
+    "verification_assertion": 430
   },
   "eligibility": {
-    "decisions": 1564,
-    "people": 132
+    "decisions": 1579,
+    "people": 133
   },
-  "logical_sha256": "f4b7bbff90486a50e265f7c3b5b8029ee5bd480780907889984231279089bb7d",
+  "logical_sha256": "e1d7627b7d61f42be6be36d8921f84ce84904865e2a7e468eaf9eb7970d46348",
   "quality": {
+    "awards_without_positive_eligibility": 0,
+    "duplicate_individual_results": 0,
+    "duplicate_relay_awards": 0,
     "family_identity_leaks": 0,
     "identifier_conflicts": 0,
+    "illegal_eligibility_states": 0,
     "illegal_statuses": 0,
+    "memberships_without_registry": 0,
     "ooc_championship_leaks": 0,
     "personless_non_family": 0,
+    "regional_double_assignments": 0,
+    "regional_entries_without_results": 0,
+    "regional_family_leaks": 0,
     "results_without_identity_basis": 0,
     "results_without_provenance": 0,
-    "results_without_result_list": 0
+    "results_without_result_list": 0,
+    "unmatched_explicit_championship_rows": 0
   },
   "result_by_kind": {
-    "family": 3289,
-    "individual": 229292,
-    "pair": 2222,
-    "relay": 13954,
+    "family": 3657,
+    "individual": 227358,
+    "pair": 2283,
+    "relay": 14113,
     "team": 2402
   },
   "result_by_source": {
-    "anne-api": 36007,
+    "anne-api": 35206,
     "club-table": 206,
-    "liveresultat": 1260,
-    "sportsoftware-html": 110532,
-    "sportsoftware-pdf": 99608,
-    "sportsoftware-text": 3546
+    "liveresultat": 1254,
+    "sportsoftware-html": 110127,
+    "sportsoftware-pdf": 99453,
+    "sportsoftware-text": 3567
   },
-  "schema_version": 5
+  "schema_version": 9
 }
