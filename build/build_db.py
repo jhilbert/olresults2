@@ -183,12 +183,14 @@ CREATE TABLE result (
                                       -- event-time evidence used for this row
     championship_source_scope TEXT NOT NULL DEFAULT 'inferred',
                                       -- full_field|medal_places_only|winner_only|inferred
-    national_rank INTEGER            -- placement among ONLY championship-
+    national_rank INTEGER,           -- placement among ONLY championship-
                                       -- eligible (Austrian) finishers, which
                                       -- can differ from the overall race
                                       -- `rank` when a foreign/ineligible
                                       -- competitor placed ahead - see the
                                       -- national-rank computation in main()
+    observed_nation TEXT             -- raw PDF/HTML Nat/Country cell; in a
+                                      -- joint Landes-MS this can be W/NÖ/B/St
 );
 CREATE TABLE championship_source_entry (
     id TEXT PRIMARY KEY,
@@ -2672,7 +2674,7 @@ RESULT_COLS = ("stage_id", "person_id", "result_list_id", "category", "category_
                "observed_rank", "observed_status", "observed_time",
                "identity_basis", "identity_confidence", "identity_state", "championship",
                "championship_eligibility_state", "championship_eligibility_basis",
-               "championship_source_scope")
+               "championship_source_scope", "observed_nation")
 
 
 def insert_result(cur, **kw):
@@ -3673,6 +3675,7 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                         observed_rank=str(first.get("rank"))
                         if first.get("rank") is not None else None,
                         observed_status=raw_status, observed_time=first.get("timeText"),
+                        observed_nation=first.get("sourceNat"),
                         identity_basis="not-applicable-family", identity_confidence=1.0,
                         identity_state="not_applicable", championship=None)
                     n += 1
@@ -3720,6 +3723,7 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                         if r.get("rank") is not None else None,
                         observed_status=raw_status,
                         observed_time=r.get("timeText"),
+                        observed_nation=r.get("sourceNat"),
                         identity_basis="not-applicable-memberless-team",
                         identity_confidence=1.0, identity_state="not_applicable",
                         championship=None, **metadata)
@@ -3766,6 +3770,7 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                         observed_rank=str(r.get("rank"))
                         if r.get("rank") is not None else None,
                         observed_status=raw_status, observed_time=r.get("timeText"),
+                        observed_nation=r.get("sourceNat"),
                         identity_basis="not-applicable-relay-placeholder",
                         identity_confidence=1.0, identity_state="not_applicable",
                         championship=None, **metadata)
@@ -3874,6 +3879,7 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                               if r.get("rank") is not None else None,
                               observed_status=observed_raw_status,
                               observed_time=r.get("timeText"),
+                              observed_nation=r.get("sourceNat"),
                               identity_basis=identity_basis,
                               identity_confidence=identity_confidence,
                               identity_state=identity_state,
@@ -4549,7 +4555,7 @@ def regional_mappings_for_list(category, event_title="", stage_title="", file_na
     # B=B-Klasse/Burgenland, W=Women/Wien). They are therefore accepted only
     # when the championship title establishes the same state context.
     title_states = extract_regional_jurisdictions(title_context, compact=True)
-    if re.search(r"\bLM\s+Nacht\s+Ost\b", title_context, re.I):
+    if re.search(r"\bLM\s+Nacht\s*\(?\s*Ost\s*\)?", title_context, re.I):
         title_states.update({"WIEN", "NOE", "BGLD", "STMK"})
     document_states = set()
     document_text = file_name or ""
@@ -4650,7 +4656,7 @@ def load_club_jurisdictions(cur):
 def _regional_unit_key(row):
     """Stable competitor key within one physical stage and result source."""
     (rid, person_id, kind, team_number, team_name, club, _official_club,
-     rank, _status, time_s, _ooc) = row
+     rank, _status, time_s, _ooc, *_provenance) = row
     if kind in {"relay", "team", "pair"}:
         if team_number:
             label = f"n:{str(team_number).strip()}:t:{name_key(team_name or club or '')}"
@@ -4658,6 +4664,34 @@ def _regional_unit_key(row):
             label = f"t:{name_key(team_name or club or '')}:r:{rank}:time:{time_s}"
         return f"{kind}:{label}"
     return f"person:{person_id}" if person_id is not None else f"result:{rid}"
+
+
+REGIONAL_SOURCE_NAT_CODES = {
+    "w": "WIEN",
+    "nö": "NOE",
+    "noe": "NOE",
+    "b": "BGLD",
+    "st": "STMK",
+}
+
+
+def source_nat_jurisdiction(value):
+    """Map an exact Landes-MS value from a source ``Nat`` column.
+
+    The one-letter codes are intentionally not interpreted globally. Callers
+    use this evidence only after the event/category has independently been
+    detected as a regional championship, so an international Country column
+    or an ordinary Women/B-class marker cannot create a state medal entry.
+    """
+    token = re.sub(r"\s+", "", str(value or "")).casefold().rstrip(".")
+    return REGIONAL_SOURCE_NAT_CODES.get(token)
+
+
+def _regional_source_states(unit_rows):
+    return {
+        state for row in unit_rows
+        if (state := source_nat_jurisdiction(row[11] if len(row) > 11 else None))
+    }
 
 
 def _regional_club_states(unit_rows, club_jurisdictions):
@@ -4716,6 +4750,29 @@ def populate_regional_championships(cur, catalog, club_jurisdictions):
     for list_id, stage_id, category, fingerprint, event_title, stage_title, file_name in lists:
         for mapping in regional_mappings_for_list(
                 category, event_title, stage_title, file_name):
+            # Event title + an exact row-level Nat code is direct source
+            # evidence, not a mere title candidate. Promote only the state
+            # actually printed in this result list; sibling states with no
+            # entrant remain candidates unless category/document evidence
+            # independently confirms them.
+            source_nat_values = [row[0] for row in cur.execute(
+                "SELECT DISTINCT observed_nation FROM result WHERE result_list_id = ?",
+                (list_id,)).fetchall()]
+            source_nat_states = {
+                state for value in source_nat_values
+                if (state := source_nat_jurisdiction(value))
+            }
+            if mapping["jurisdiction"] in source_nat_states:
+                mapping = dict(mapping)
+                mapping.update({
+                    "state": "confirmed",
+                    "evidence_kind": "source_nat",
+                    "evidence_text": "Nat: " + ", ".join(sorted(
+                        str(value) for value in source_nat_values
+                        if source_nat_jurisdiction(value) == mapping["jurisdiction"])),
+                    "confidence": 1.0,
+                    "partition_required": True,
+                })
             mapping_id = _regional_mapping_id(
                 list_id, mapping["jurisdiction"], mapping["category_key"])
             cur.execute(
@@ -4737,7 +4794,8 @@ def populate_regional_championships(cur, catalog, club_jurisdictions):
     for (jurisdiction, stage_id, category_key), observations in grouped.items():
         observations.sort(key=lambda item: (
             item[0]["state"] == "confirmed",
-            {"document": 3, "category": 2, "event_title": 1}[item[0]["evidence_kind"]]),
+            {"source_nat": 4, "document": 3, "category": 2,
+             "event_title": 1}[item[0]["evidence_kind"]]),
             reverse=True)
         best = observations[0][0]
         instance_id = _championship_id(jurisdiction, stage_id, category_key, "LMS")
@@ -4767,6 +4825,7 @@ def populate_regional_championships(cur, catalog, club_jurisdictions):
            WHERE m.state != 'rejected' AND ci.state != 'rejected'
            ORDER BY (ci.state = 'confirmed') DESC,
                     CASE m.evidence_kind WHEN 'document' THEN 3
+                         WHEN 'source_nat' THEN 4
                          WHEN 'category' THEN 2 ELSE 1 END DESC""").fetchall()
     claimed = {}
     claimed_results = {}
@@ -4775,7 +4834,8 @@ def populate_regional_championships(cur, catalog, club_jurisdictions):
          partition_required, fingerprint, stage_id, instance_id, instance_state) in mapping_rows:
         rows = cur.execute(
             """SELECT id, person_id, result_kind, team_number, team_name, club,
-                      official_club, rank, status, time_s, out_of_competition
+                      official_club, rank, status, time_s, out_of_competition,
+                      observed_nation
                FROM result WHERE result_list_id = ? ORDER BY id""", (list_id,)).fetchall()
         units = defaultdict(list)
         for row in rows:
@@ -4785,9 +4845,18 @@ def populate_regional_championships(cur, catalog, club_jurisdictions):
         for unit_key, unit_rows in units.items():
             if any(row[10] for row in unit_rows):
                 continue
+            source_states = _regional_source_states(unit_rows)
             club_states = _regional_club_states(unit_rows, club_jurisdictions)
             if partition_required:
-                if club_states != {jurisdiction}:
+                # A printed Nat column in a joint Landes-MS is direct
+                # event-time evidence and outranks a current/historical club
+                # inference. This is essential when four state rankings share
+                # one physical course and one overall placing column.
+                if source_states:
+                    if source_states != {jurisdiction}:
+                        continue
+                    eligibility_basis = "explicit-source-nat"
+                elif club_states != {jurisdiction}:
                     if (not club_states
                             and _regional_unit_has_unresolved_club(
                                 unit_rows, club_jurisdictions)):
@@ -4796,7 +4865,8 @@ def populate_regional_championships(cur, catalog, club_jurisdictions):
                             unresolved_mappings.get(issue_key, False)
                             or any(row[8] == "ok" for row in unit_rows))
                     continue
-                eligibility_basis = "event-time-club-jurisdiction"
+                else:
+                    eligibility_basis = "event-time-club-jurisdiction"
             else:
                 eligibility_basis = f"explicit-regional-{evidence_kind}"
             claim_key = (stage_id, unit_key)
@@ -5684,7 +5754,7 @@ def main():
     populate_championship_model(cur)
     populate_quality_model(cur)
 
-    cur.execute("PRAGMA user_version = 9")
+    cur.execute("PRAGMA user_version = 10")
     con.commit()
     for table in ("event", "stage", "person", "person_identifier", "person_club_membership", "person_alias",
                   "person_redirect", "person_tombstone", "source_document", "result_list", "result",

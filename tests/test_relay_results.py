@@ -394,6 +394,37 @@ class RelayStructureTests(unittest.TestCase):
             (daniela["club"], daniela["status"], daniela["yearOfBirth"]),
             ("ASKÖ Henndorf Orienteering", "dnf", 1976))
 
+    def test_joint_eastern_state_championship_preserves_nat_column(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "4963-0.pdf"
+        self.require_source_fixture(source)
+        categories, _ = pdf_parser.parse_pdf(source)
+        women_14 = next(category for category in categories
+                        if category["name"] == "D-14")
+        self.assertEqual(
+            [(row["rank"], row["sourceNat"]) for row in women_14["results"]],
+            [(1, "B"), (1, "B"), (2, "St"), (2, "St"),
+             (3, "NÖ"), (3, "NÖ"), (4, "St"), (4, "St"),
+             (5, "NÖ"), (5, "NÖ")])
+        self.assertEqual(women_14["results"][-1]["club"],
+                         "HSV OL Wiener Neustadt")
+        self.assertEqual(
+            [(row["name"], row["resultKind"], row["teamNumber"])
+             for row in women_14["results"][-2:]],
+            [("Stockmayer Lina", "pair", "8"),
+             ("Stockmayer Emma", "pair", "8")])
+        women_45 = next(category for category in categories
+                        if category["name"] == "D40-(B),D45-(NÖ,St,W)")
+        self.assertEqual(
+            [(row["club"], row["sourceNat"]) for row in women_45["results"]
+             if row["name"] in {"Kogelmann Silke", "Tezarek Helga"}],
+            [("SKV OLG Deutsch Kaltenbrunn", "B"),
+             ("Orienteering Klosterneuburg", "NÖ")])
+        men_19 = next(category for category in categories
+                      if category["name"] == "H19-")
+        self.assertEqual(
+            [row["name"] for row in men_19["results"] if "Schmitten" in row["name"]],
+            ["Aus der Schmitten Paul", "Aus der Schmitten Jakob"])
+
     def test_shifted_final_pdf_page_recovers_all_declared_rows_from_flow(self):
         source = ROOT / "data" / "raw" / "anne" / "files" / "3642-0.pdf"
         self.require_source_fixture(source)

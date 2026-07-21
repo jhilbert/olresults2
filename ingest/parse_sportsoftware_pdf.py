@@ -23,6 +23,7 @@ data (e.g. a right-aligned time) sitting left of its header's own x0.
 import argparse
 import bisect
 from collections import defaultdict
+import itertools
 import json
 import re
 import ssl
@@ -655,6 +656,110 @@ def assign_columns(line_words, headers):
         label = headers[idx][0]
         rec[label] = (rec.get(label, "") + " " + w["text"]).strip()
     return rec
+
+
+def repair_interleaved_regional_nat(club, value):
+    """Separate a state code interleaved into a long club suffix.
+
+    PDF text layers can order overlapping glyphs as
+    ``KlosterneubuNrgÖ`` (``Klosterneuburg`` + ``NÖ``) or
+    ``KaltenbBrunn`` (``Kaltenbrunn`` + ``B``). We accept a deinterleaving
+    only when removing the ordered code characters makes the complete club an
+    exact known parsing-boundary name. That keeps the repair deterministic and
+    prevents a random B/W in an international club from becoming a state.
+    """
+    value = (value or "").strip()
+    if not club or not value:
+        return None
+    matches = set()
+    for code, label in (("nö", "NÖ"), ("st", "St"), ("w", "W"), ("b", "B")):
+        for positions in itertools.combinations(range(len(value)), len(code)):
+            if "".join(value[index] for index in positions).casefold() != code:
+                continue
+            remainder = "".join(
+                char for index, char in enumerate(value) if index not in positions)
+            candidate = re.sub(r"\s+", " ", f"{club} {remainder}").strip()
+            canonical = CLUBS.get(candidate.casefold())
+            if canonical:
+                matches.add((canonical, label))
+    return next(iter(matches)) if len(matches) == 1 else None
+
+
+FIXED_CHILD_PAIR_CATEGORY_RE = re.compile(
+    r"^[DH]\s*-?\s*(?:12|14)(?:\b|\()", re.I)
+
+
+def _clean_interleaved_pair_given_names(value, club):
+    """Recover ``Given1/Given2`` plus an interleaved year/HSV fragment."""
+    value = re.sub(r"\d", "", value or "").strip()
+    if "/" not in value:
+        return value
+    first, second = value.split("/", 1)
+    if not (club or "").startswith("HSV "):
+        return f"{first}/{second}"
+    candidates = set()
+    for positions in itertools.combinations(range(len(second)), 3):
+        if "".join(second[index] for index in positions).casefold() != "hsv":
+            continue
+        remainder = "".join(
+            char for index, char in enumerate(second) if index not in positions)
+        if remainder.isalpha():
+            candidates.add(remainder.casefold())
+    if len(candidates) == 1:
+        second = next(iter(candidates)).capitalize()
+    return f"{first}/{second}"
+
+
+def expand_fixed_child_pair_rows(categories):
+    """Split fixed-column D/H-12 and D/H-14 night teams into people.
+
+    In this layout surname pairs live in Name while given names and the year
+    can overflow into Jg. Each emitted person retains one shared team number,
+    rank, time, status and source Nat value, so downstream result and regional
+    views count one performance but keep both people individually clickable.
+    """
+    for category in categories:
+        if not FIXED_CHILD_PAIR_CATEGORY_RE.match(category.get("name") or ""):
+            continue
+        expanded = []
+        for row in category.get("results") or []:
+            raw_name = (row.get("name") or "").strip()
+            leading_bib = re.match(r"^(\d+)\s+(.+)$", raw_name)
+            bib = row.get("sourceBib") or (leading_bib.group(1) if leading_bib else None)
+            name = leading_bib.group(2) if leading_bib else raw_name
+            source_jg = row.get("sourceJg") or ""
+            if (name.count("/") == 1 and len(name.split()) == 1
+                    and "/" in source_jg):
+                given = _clean_interleaved_pair_given_names(
+                    source_jg, row.get("club"))
+                name = f"{name} {given}"
+            names = split_pair_names(name) if "/" in name else [name]
+            if not (len(names) == 2 and all(
+                    len(person.split()) == 2 and looks_like_person(person)
+                    for person in names)):
+                expanded.append(row)
+                continue
+            digits = "".join(re.findall(r"\d", source_jg))
+            year = None
+            if len(digits) in (2, 4):
+                year = int(digits)
+                year = year + (2000 if year <= 26 else 1900) if year < 100 else year
+            for person in names:
+                result = dict(row)
+                result.update({
+                    "name": person,
+                    "resultKind": "pair",
+                    "note": "Partner: " + next(other for other in names if other != person),
+                })
+                if bib:
+                    result["teamNumber"] = str(bib)
+                if year is not None:
+                    result["yearOfBirth"] = year
+                result.pop("sourceBib", None)
+                result.pop("sourceJg", None)
+                expanded.append(result)
+        category["results"] = expanded
+    return categories
 
 
 def normalize_broken_result_value(value):
@@ -2641,6 +2746,7 @@ def parse_pdf(path, allow_inline_splits=False):
 
                     rec = assign_columns(line, headers)
                     name = rec.get("Name", "").strip()
+                    source_jg = (rec.get("Jg") or "").strip()
                     school_club = None
                     if school_row_mode:
                         header_x = {label: x0 for label, x0 in headers}
@@ -2670,6 +2776,16 @@ def parse_pdf(path, allow_inline_splits=False):
                             (rec.get("Nachname") or "").strip(),
                             (rec.get("Vorname") or "").strip(),
                         )))
+                    # A long surname can push the given name into Jg while
+                    # leaving the year at the end (``Aus der Schmitten | Paul
+                    # 03`` or ``Lipphart-Kirchmeir | Harald 67``). Rejoin only
+                    # this explicit alpha+year form; slash-pair Jg cells are
+                    # handled by expand_fixed_child_pair_rows below.
+                    overflow_given = re.fullmatch(
+                        r"(?P<given>[A-Za-zÀ-ž.'’\-]+)\s+(?P<year>\d{2}|\d{4})",
+                        source_jg)
+                    if overflow_given and "/" not in name:
+                        name = f"{name} {overflow_given.group('given')}".strip()
                     # Bib and surname are occasionally glued in compact
                     # English exports (``491Foški Oskar``). In ordinary
                     # fixed columns a narrow Stnr can similarly leak one
@@ -2817,6 +2933,33 @@ def parse_pdf(path, allow_inline_splits=False):
                                  (school_club if school_club is not None else
                                   (rec.get("Verein") or rec.get("Verein/Schule") or ""))).strip()
                     nation_text = (rec.get("Nat") or "").strip()
+                    # In narrow Landes-MS tables a long club can spill into
+                    # Nat and touch its one/two-letter state code without a
+                    # space (``HSV OL Wiener | NeustadtNÖ``). Repair this only
+                    # when the document header independently establishes a
+                    # regional championship; in an international Country
+                    # column a short trailing letter must remain untouched.
+                    if re.search(r"\b(?:LM|Landesmeister)", head_text, re.I):
+                        regional_overflow = re.fullmatch(
+                            r"(?P<club>.*?)(?P<state>NÖ|NOE|St\.?|W|B)",
+                            nation_text, re.I)
+                        if regional_overflow:
+                            overflow_club = regional_overflow.group("club").strip()
+                            if overflow_club:
+                                club_text = f"{club_text} {overflow_club}".strip()
+                            nation_text = regional_overflow.group("state")
+                        # In this paired night layout the final ``HSV`` of
+                        # the club overlaps the preceding Jg/given-name cell.
+                        # Recover it only when both independent fragments are
+                        # present: the surviving unique club suffix and an
+                        # H...S...V glyph sequence in that overflow cell.
+                        if (club_text == "OL Wiener Neustadt"
+                                and re.search(r"h.*s.*v", rec.get("Jg", ""), re.I)):
+                            club_text = "HSV OL Wiener Neustadt"
+                        interleaved = repair_interleaved_regional_nat(
+                            club_text, nation_text)
+                        if interleaved:
+                            club_text, nation_text = interleaved
                     overflow_country = None
                     if (nation_text and recovered_overflow_club is None
                             and not re.fullmatch(r"[A-Z]{3}", nation_text)):
@@ -2860,6 +3003,19 @@ def parse_pdf(path, allow_inline_splits=False):
                         "club": club_text,
                         "timeText": time_text,
                     }
+                    if source_jg:
+                        result["sourceJg"] = source_jg
+                    source_bib = (rec.get("Stnr") or "").strip()
+                    if source_bib.isdigit():
+                        result["sourceBib"] = source_bib
+                    # Preserve the source's Nat column verbatim. In ordinary
+                    # international result lists this is a country code, but
+                    # joint Austrian Landesmeisterschaften also use it as the
+                    # authoritative state-ranking discriminator (W, NÖ, B,
+                    # St). The database builder interprets those short codes
+                    # only inside a confirmed regional-championship context.
+                    if nation_text:
+                        result["sourceNat"] = nation_text
                     if recovered_stage_result:
                         # The visible value is a stage/result component in a
                         # cumulative table; the printed overall rank is not
@@ -2955,9 +3111,9 @@ def parse_pdf(path, allow_inline_splits=False):
                             result["timeText"] = {
                                 "dns": "DNS", "dnf": "DNF", "mp": "MP", "dsq": "DSQ"
                             }.get(inferred_status, inferred_status.upper())
-                    yob = rec.get("Jg", "").strip()
-                    if yob.isdigit():
-                        y = int(yob)
+                    yob_match = re.search(r"(?:^|\s)(\d{2}|\d{4})$", source_jg)
+                    if source_jg.isdigit() or yob_match:
+                        y = int(source_jg if source_jg.isdigit() else yob_match.group(1))
                         result["yearOfBirth"] = y + (2000 if y <= 26 else 1900) if y < 100 else y
                     if rec.get("Pkt"):
                         result["scoreText"] = rec["Pkt"].strip()
@@ -3003,6 +3159,7 @@ def parse_pdf(path, allow_inline_splits=False):
                         current["results"].append(result)
 
     categories = repair_wrapped_champion_names(path, categories)
+    categories = expand_fixed_child_pair_rows(categories)
     categories = normalize_exact_time_ties(
         [c for c in categories if c["results"]])
     course_split = []

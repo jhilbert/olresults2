@@ -146,6 +146,45 @@ class AnneIdentityTests(unittest.TestCase):
         })
         self.assertTrue(all(m["partition_required"] for m in asymmetric))
 
+    def test_parenthesized_eastern_night_title_and_source_nat_codes(self):
+        mappings = build_db.regional_mappings_for_list(
+            "D-14", "LM Nacht (Ost)", "", "event_4963_ergebnis.pdf")
+        self.assertEqual(
+            {mapping["jurisdiction"] for mapping in mappings},
+            {"WIEN", "NOE", "BGLD", "STMK"})
+        self.assertTrue(all(mapping["partition_required"] for mapping in mappings))
+        self.assertEqual(
+            [build_db.source_nat_jurisdiction(value)
+             for value in ("W", "NÖ", "B", "St.", "AUT", "")],
+            ["WIEN", "NOE", "BGLD", "STMK", None, None])
+
+    def test_source_nat_promotes_title_candidate_to_confirmed_entry(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id,title) VALUES (4963,'LM Nacht (Ost)')")
+        cur.execute("INSERT INTO stage (id,event_id,number) VALUES (1,4963,1)")
+        cur.execute(
+            "INSERT INTO source_document (id,event_id,source_type,file_name) "
+            "VALUES ('doc',4963,'sportsoftware-pdf','event_4963_ergebnis.pdf')")
+        cur.execute(
+            """INSERT INTO result_list
+               (id,stage_id,source_document_id,category,parsed_entries,
+                parsed_rows,input_fingerprint)
+               VALUES ('list',1,'doc','D-14',1,1,'fingerprint')""")
+        build_db.insert_result(
+            cur, stage_id=1, result_list_id="list", category="D-14",
+            status="ok", rank=1, time_s=1200, source="sportsoftware-pdf",
+            source_document_id="doc", observed_name="Mona Oswald",
+            observed_nation="B")
+        build_db.populate_regional_championships(cur, {}, {})
+        self.assertEqual(cur.execute(
+            """SELECT ci.jurisdiction,ci.state,ce.eligibility_state,
+                      ce.eligibility_basis
+                 FROM championship_instance ci
+                 JOIN championship_entry ce ON ce.championship_instance_id=ci.id"""
+        ).fetchall(), [("BGLD", "confirmed", "eligible", "explicit-source-nat")])
+
     def test_regional_compact_codes_and_frame_categories(self):
         event = "Wr/NÖ Mitteldistanz MS"
         wien = build_db.regional_mappings_for_list(
