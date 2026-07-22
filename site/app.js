@@ -187,10 +187,29 @@ function setIdentity(patch) {
 function clubHits(q, limit = 12) {
   const dw = disciplineWhere("e.sport_type");
   return query(
-    `SELECT r.official_club AS name, COUNT(*) AS n
-     FROM person_result r JOIN stage s ON s.id = r.stage_id JOIN event e ON e.id = s.event_id
-     WHERE r.official_club IS NOT NULL AND r.official_club LIKE ?${dw.sql}
-     GROUP BY r.official_club ORDER BY n DESC LIMIT ?`, [`%${q}%`, ...dw.params, limit]);
+    `WITH candidates AS MATERIALIZED (
+       SELECT DISTINCT official_club AS name
+       FROM result
+       WHERE official_club IS NOT NULL AND official_club LIKE ?
+     )
+     SELECT c.name,
+            COUNT(DISTINCT CASE
+              WHEN r.result_kind = 'relay'
+               AND COALESCE('n:' || r.team_number,
+                            't:' || r.team_name,
+                            'c:' || r.club) IS NOT NULL
+              THEN 'relay:' || r.person_id || ':' ||
+                   COALESCE(r.result_list_id, '') || ':' ||
+                   COALESCE('n:' || r.team_number,
+                            't:' || r.team_name,
+                            'c:' || r.club)
+              ELSE 'result:' || r.id
+            END) AS n
+     FROM candidates c
+     CROSS JOIN result r ON r.official_club = c.name
+     JOIN stage s ON s.id = r.stage_id JOIN event e ON e.id = s.event_id
+     WHERE r.person_id IS NOT NULL${dw.sql}
+     GROUP BY c.name ORDER BY n DESC LIMIT ?`, [`%${q}%`, ...dw.params, limit]);
 }
 // The Läufer:innen directory is the public projection of ANNE's /user
 // registry, not a list of every provisional identity ever parsed from a
@@ -292,14 +311,19 @@ function wireClubPicker() {
   const inp = document.getElementById("club-picker-input");
   if (!inp) return;
   const res = document.getElementById("club-picker-results");
+  let searchTimer = null;
   inp.addEventListener("input", () => {
     const q = inp.value.trim();
+    clearTimeout(searchTimer);
     if (!q) { res.hidden = true; return; }
-    const hits = clubHits(q);
-    res.innerHTML = hits.length
-      ? hits.map((c) => `<button data-club="${esc(c.name)}">${esc(c.name)} <small>${c.n} Erg.</small></button>`).join("")
-      : `<button disabled><small>keine Treffer</small></button>`;
-    res.hidden = false;
+    searchTimer = setTimeout(() => {
+      if (!inp.isConnected || inp.value.trim() !== q) return;
+      const hits = clubHits(q);
+      res.innerHTML = hits.length
+        ? hits.map((c) => `<button data-club="${esc(c.name)}">${esc(c.name)} <small>${c.n} Erg.</small></button>`).join("")
+        : `<button disabled><small>keine Treffer</small></button>`;
+      res.hidden = false;
+    }, 200);
   });
 }
 
