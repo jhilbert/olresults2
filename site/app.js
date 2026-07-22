@@ -199,25 +199,27 @@ function clubHits(q, limit = 12) {
 function runnerHits(q, limit = 10) {
   const dw = disciplineWhere("e.sport_type");
   return query(
-    `SELECT p.id AS person_id, p.name, p.year_of_birth AS yob,
-            COALESCE(
-              (SELECT pi.identifier FROM person_identifier pi
-                WHERE pi.person_id = p.id AND pi.scheme = 'oefol_id'
-                  AND pi.source = 'anne-user-registry'
-                  AND pi.identifier = CAST(p.id AS TEXT) LIMIT 1),
-              (SELECT MIN(pi.identifier) FROM person_identifier pi
-                WHERE pi.person_id = p.id AND pi.scheme = 'oefol_id'
-                  AND pi.source = 'anne-user-registry')
-            ) AS oefol_id,
+    `WITH candidates AS MATERIALIZED (
+       SELECT p.id, p.name, p.year_of_birth,
+              COALESCE(
+                MAX(CASE WHEN pi.identifier = CAST(p.id AS TEXT)
+                         THEN pi.identifier END),
+                MIN(pi.identifier)
+              ) AS oefol_id
+       FROM person p
+       JOIN person_identifier pi ON pi.person_id = p.id
+       WHERE p.name LIKE ?
+         AND pi.scheme = 'oefol_id'
+         AND pi.source = 'anne-user-registry'
+       GROUP BY p.id
+     )
+     SELECT c.id AS person_id, c.name, c.year_of_birth AS yob, c.oefol_id,
             COUNT(r.id) AS starts
-     FROM person p
-     JOIN person_result r ON r.person_id = p.id
+     FROM candidates c
+     CROSS JOIN person_result r ON r.person_id = c.id
      JOIN stage s ON s.id = r.stage_id JOIN event e ON e.id = s.event_id
-     WHERE p.name LIKE ? AND r.result_kind != 'team'
-       AND EXISTS (SELECT 1 FROM person_identifier pi
-                    WHERE pi.person_id = p.id AND pi.scheme = 'oefol_id'
-                      AND pi.source = 'anne-user-registry')${dw.sql}
-     GROUP BY p.id ORDER BY starts DESC LIMIT ?`, [`%${q}%`, ...dw.params, limit]);
+     WHERE r.result_kind != 'team'${dw.sql}
+     GROUP BY c.id ORDER BY starts DESC LIMIT ?`, [`%${q}%`, ...dw.params, limit]);
 }
 
 // Resolves identity.runnerId (a bare person.id, possibly stale after a
@@ -313,15 +315,22 @@ function wireRunnerPicker() {
   const inp = document.getElementById("runner-picker-input");
   if (!inp) return;
   const res = document.getElementById("runner-picker-results");
+  let searchTimer = null;
   inp.addEventListener("input", () => {
     const q = inp.value.trim();
+    clearTimeout(searchTimer);
     if (q.length < 2) { res.hidden = true; return; }
-    const hits = runnerHits(q);
-    res.innerHTML = hits.length
-      ? hits.map((r2) => `<button data-runner="${r2.person_id}">${esc(r2.name)}
-          <small>${r2.yob ? "Jg. " + r2.yob + " · " : ""}${r2.starts} Starts · ÖFOL ${esc(r2.oefol_id)}</small></button>`).join("")
-      : `<button disabled><small>keine Treffer</small></button>`;
-    res.hidden = false;
+    searchTimer = setTimeout(() => {
+      // The route may have changed while the debounce was pending. Avoid an
+      // unnecessary synchronous SQL query and never render stale suggestions.
+      if (!inp.isConnected || inp.value.trim() !== q) return;
+      const hits = runnerHits(q);
+      res.innerHTML = hits.length
+        ? hits.map((r2) => `<button data-runner="${r2.person_id}">${esc(r2.name)}
+            <small>${r2.yob ? "Jg. " + r2.yob + " · " : ""}${r2.starts} Starts · ÖFOL ${esc(r2.oefol_id)}</small></button>`).join("")
+        : `<button disabled><small>keine Treffer</small></button>`;
+      res.hidden = false;
+    }, 200);
   });
 }
 
