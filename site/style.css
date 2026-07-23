@@ -262,6 +262,7 @@ tr.detail-row:hover { background: none; }
 .medal-events li { padding: 4px 0; font-size: 13.5px; }
 
 .cat-block { margin-bottom: 26px; }
+.stage-anchor { scroll-margin-top: 88px; }
 .cat-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; }
 .cat-head h3 { font-size: 15.5px; }
 .cat-head .course { color: var(--ink-faint); font-size: 13px; }

@@ -706,7 +706,7 @@ function runnerHeaderHtml(id, { withChangeButton } = {}) {
   return { p, dw, allRows, html };
 }
 
-function runnerDetailHtml(id, year, { withChangeButton } = {}) {
+function runnerDetailHtml(id, year, { withChangeButton, hrefBase } = {}) {
   const h = runnerHeaderHtml(id, { withChangeButton });
   if (!h) return null;
   const { p, allRows } = h;
@@ -720,8 +720,9 @@ function runnerDetailHtml(id, year, { withChangeButton } = {}) {
   const wins = finished.filter((r) => r.rank === 1).length;
   const podiums = finished.filter((r) => r.rank <= 3).length;
 
+  const base = hrefBase || `#/runner/${p.id}`;
   const chip = (val, label) => `<a class="chip ${(!year && !val) || year === val ? "active" : ""}"
-      href="#/runner/${p.id}${val ? "/" + val : ""}">${label}</a>`;
+      href="${base}${val ? "/" + val : ""}">${label}</a>`;
 
   const body = `
     <div class="chips">
@@ -806,7 +807,10 @@ function viewRunnersPage(year, omGroup, ansicht, regionalCode = null) {
       <div class="chips">${yearChip(null, "Alle")}${years.map(([yr]) => yearChip(yr, yr)).join("")}</div>
       ${renderRankedMedalTable(podiums, { showClub: true, isOm: mode !== "all", capOutput: 500 })}`;
   } else if (runner) {
-    const r = runnerDetailHtml(runner.person_id, year, { withChangeButton: true });
+    const r = runnerDetailHtml(runner.person_id, year, {
+      withChangeButton: true,
+      hrefBase: "#/runners",
+    });
     app.innerHTML = r.header + ansichtRow + r.body;
   } else {
     app.innerHTML = `<h1>Läufer:innen</h1>${runnerSearchHtml()}${ansichtRow}<p class="sub dim">Wähle oben eine Läufer:in, um ihre Ergebnisse zu sehen.</p>`;
@@ -917,6 +921,14 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
     <p class="sub">${fmtDate(stageDate)} · ${esc(e.location || "")}
       ${e.url ? `· <a href="${esc(e.url)}" target="_blank" rel="noopener">ANNE ↗</a>` : ""}</p>
     ${stageLabel ? `<p class="sub"><b>${esc(stageLabel)}</b> · <a href="#/event/${id}">alle Etappen (${allStages.length})</a></p>` : ""}
+    ${!onStage && stages.length > 1 && !medalsOnly ? `
+      <nav class="chips stage-jumps" aria-label="Etappen auf dieser Seite">
+        ${stages.map((st) => {
+          const label = st.title || `Etappe ${st.number}`;
+          return `<a class="chip" href="#stage-${id}-${st.number}"
+            data-stage-anchor="stage-${id}-${st.number}">${esc(label)}${st.date ? ` · ${fmtDate(st.date)}` : ""}</a>`;
+        }).join("")}
+      </nav>` : ""}
     ${champBadges ? `<p class="sub">${champBadges}</p>` : ""}
     ${regionalViews.length ? `<div class="chips championship-views">
       <a class="chip ${!regionalCode ? "active" : ""}" href="#/event/${id}${stageParam}">Gesamtergebnis</a>
@@ -959,7 +971,7 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
     if (stages.length > 1) {
       // each stage heading links to that race on its own for a clean, single-
       // race results page
-      html += `<h2><a href="#/event/${id}/stage/${st.number}${medalsOnly ? "/om" : ""}">${esc(st.title || "Etappe " + st.number)}</a></h2>`;
+      html += `<h2 id="stage-${id}-${st.number}" class="stage-anchor"><a href="#/event/${id}/stage/${st.number}${medalsOnly ? "/om" : ""}">${esc(st.title || "Etappe " + st.number)}</a></h2>`;
     }
     const stageHasOfficial = cats.some((c) => !isBahn(c.category));
     for (const c of cats) {
@@ -1066,6 +1078,14 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
     }
   }
   app.innerHTML = html;
+  app.querySelectorAll("[data-stage-anchor]").forEach((link) => {
+    link.addEventListener("click", (event) => {
+      const target = document.getElementById(link.dataset.stageAnchor);
+      if (!target) return;
+      event.preventDefault();
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  });
 }
 
 /* ---------- all events (Wettkämpfe) ---------- */

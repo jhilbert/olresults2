@@ -56,7 +56,7 @@ class SportidentCenterParserTest(unittest.TestCase):
 
     def test_committed_kolv_snapshot_is_complete(self):
         snapshot = (
-            ROOT / "data" / "raw" / "anne" / "files" /
+            ROOT / "tests" / "fixtures" / "parser" /
             "3438-0.sportident.json")
         doc = MODULE.normalize_snapshot(
             3438,
