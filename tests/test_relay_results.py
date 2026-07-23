@@ -1,4 +1,5 @@
 import importlib.util
+import inspect
 import json
 import sqlite3
 import sys
@@ -41,6 +42,22 @@ BUILD_SPEC.loader.exec_module(build_db)
 
 
 class RelayStructureTests(unittest.TestCase):
+    def setUp(self):
+        """Skip cache-backed integration cases in a clean Git checkout.
+
+        The ANNE source cache is intentionally gitignored. Unit and golden
+        fixture tests still run in CI; tests that explicitly reference that
+        local cache run whenever it is available, including the full local QA
+        loop.
+        """
+        raw_cache = ROOT / "data" / "raw" / "anne" / "files"
+        if raw_cache.exists():
+            return
+        method_source = inspect.getsource(
+            getattr(type(self), self._testMethodName))
+        if '"raw"' in method_source or "'raw'" in method_source:
+            self.skipTest("raw ANNE cache is intentionally not committed")
+
     def test_staggered_linz_cup_headings_still_use_two_column_parser(self):
         source = ROOT / "data" / "raw" / "anne" / "files" / "3711-0.pdf"
 

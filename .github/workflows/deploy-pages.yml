@@ -27,8 +27,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install state dependency
-        run: pip install certifi
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
       - name: Run regression tests
         run: python3 -m unittest discover -s tests -v

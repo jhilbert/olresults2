@@ -16,7 +16,13 @@ SPEC.loader.exec_module(pdf_parser)
 
 
 class VerifiedScanTranscriptTests(unittest.TestCase):
+    def require_raw_cache(self):
+        raw_cache = ROOT / "data" / "raw" / "anne" / "files"
+        if not raw_cache.exists():
+            self.skipTest("raw ANNE cache is intentionally not committed")
+
     def test_reviewed_transcripts_match_exact_cached_sources(self):
+        self.require_raw_cache()
         expected = {
             931: (17, 94),
             932: (18, 96),
@@ -51,6 +57,7 @@ class VerifiedScanTranscriptTests(unittest.TestCase):
                     changed_pdf, 931, 0)
 
     def test_known_scan_ties_and_statuses_survive_transcription(self):
+        self.require_raw_cache()
         transcript = pdf_parser.load_verified_scan_transcript(
             ROOT / "data" / "raw" / "anne" / "files" / "3929-0.pdf",
             3929,
