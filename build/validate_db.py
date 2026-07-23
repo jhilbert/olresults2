@@ -109,6 +109,12 @@ def collect(db_path, eligibility_path):
                     WHERE status NOT IN ('ok','dns','dnf','mp','dsq','unknown')""")
         if illegal_status:
             raise RuntimeError(f"{illegal_status} results use a non-normalized status")
+        negative_elapsed_time = scalar(
+            con, """SELECT COUNT(*) FROM result
+                    WHERE time_s < 0 OR team_time_s < 0""")
+        if negative_elapsed_time:
+            raise RuntimeError(
+                f"{negative_elapsed_time} results store a negative elapsed-time sentinel")
         illegal_eligibility = scalar(
             con, """SELECT COUNT(*) FROM result
                     WHERE championship_eligibility_state NOT IN
@@ -140,6 +146,13 @@ def collect(db_path, eligibility_path):
                                    'not-applicable-relay-placeholder')
                                AND team_name IS NOT NULL
                                AND championship IS NULL)""")
+        personless_ordinary -= scalar(
+            con, """SELECT COUNT(*) FROM result
+                    WHERE person_id IS NULL AND result_kind IN ('individual', 'pair')
+                      AND identity_state = 'not_applicable'
+                      AND identity_basis =
+                          'not-applicable-unidentified-source'
+                      AND championship IS NULL""")
         if personless_ordinary:
             raise RuntimeError(
                 f"{personless_ordinary} ordinary results have no person mapping")
@@ -243,6 +256,7 @@ def collect(db_path, eligibility_path):
                 "results_without_identity_basis": missing_identity_basis,
                 "results_without_result_list": missing_list,
                 "illegal_statuses": illegal_status,
+                "negative_elapsed_times": negative_elapsed_time,
                 "illegal_eligibility_states": illegal_eligibility,
                 "unmatched_explicit_championship_rows": unmatched_explicit_championship,
                 "family_identity_leaks": family_identity,

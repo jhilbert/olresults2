@@ -38,7 +38,8 @@ from pathlib import Path
 import certifi
 
 from sportsoftware_common import (
-    CAT_LINE_RE, KAT_TOKEN_RE, MANUAL_ATTACHMENT_SKIP, MANUAL_DOC_DATE_OVERRIDES, STATUS_TAIL_RE,
+    CAT_LINE_RE, KAT_TOKEN_RE, MANUAL_ATTACHMENT_INDEX_SKIP,
+    MANUAL_ATTACHMENT_SKIP, MANUAL_DOC_DATE_OVERRIDES, STATUS_TAIL_RE,
     aggregate_team_status, category_starter_count, classify_championship_text,
     detect_list_type, find_trailing_club, guess_doc_date,
     expand_pair_result, is_junk_name, is_ooc_status, load_clubs, looks_like_person,
@@ -6647,6 +6648,900 @@ def parse_knockout_final_pdf(path):
              "rankingBasis": "other", "results": results}] if results else []
 
 
+TIROL_SCHOOL_TEAM_CATEGORY_RE = re.compile(
+    r"^(?:5\./6\.|5\.-8\.|9\./12\.|9\.-12\.)\s+(?:weiblich|männlich)$",
+    re.I,
+)
+TIROL_SCHOOL_TEAM_VALUE_RE = (
+    r"(?:\d{2}:\d{2}:\d{2}|Fehlstempel|Disqu|Aufg\.?|N\.\s*An\.?)"
+)
+
+
+def parse_tirol_school_2016_individual_pdf(path):
+    """Parse the OE2010 individual list whose school-grade classes are not
+    recognised by the generic D/H category grammar."""
+    import pdfplumber
+
+    categories = []
+    current = None
+    category_re = re.compile(
+        r"^(?P<name>(?:5\./6\.|5\.-8\.|9\./12\.|9\.-12\.)\s+"
+        r"(?:weiblich|männlich))\s+\((?P<count>\d+)\)"
+        r"(?P<course>.*?)(?:\s+\(Forts\.\))?$",
+        re.I,
+    )
+
+    def cell(words, start, end=None):
+        return " ".join(
+            word["text"] for word in words
+            if word["x0"] >= start
+            and (end is None or word["x0"] < end)
+        ).strip()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        with pdfplumber.open(path) as pdf:
+            for page in pdf.pages:
+                for words in group_lines(page.extract_words()):
+                    text = " ".join(word["text"] for word in words).strip()
+                    category_match = category_re.fullmatch(text)
+                    if category_match:
+                        name = category_match.group("name")
+                        if current is not None and current["name"] == name:
+                            continue
+                        current = {
+                            "name": name,
+                            "declaredStarters": int(category_match.group("count")),
+                            "rankingBasis": "time", "results": [],
+                        }
+                        current.update(parse_course_info(category_match.group("course")))
+                        categories.append(current)
+                        continue
+                    if current is None:
+                        continue
+                    bib_text = cell(words, 55, 78)
+                    name = cell(words, 78, 250)
+                    club = cell(words, 250, 410)
+                    raw_value = cell(words, 410)
+                    seconds = parse_time_loose(raw_value)
+                    status = "ok" if seconds is not None else parse_status(raw_value)
+                    if (not bib_text.isdigit() or not name or not club
+                            or status is None):
+                        continue
+                    result = {
+                        "name": name, "club": club, "timeText": raw_value,
+                        "status": status,
+                    }
+                    rank_text = cell(words, 20, 55).rstrip(".")
+                    if rank_text.isdigit():
+                        result["rank"] = int(rank_text)
+                    if seconds is not None:
+                        result["timeS"] = seconds
+                    current["results"].append(result)
+    for category in categories:
+        category["sourceUnitCount"] = len(category["results"])
+    return [category for category in categories if category["results"]]
+
+
+def parse_tirol_school_2020_individual_pdf(path):
+    """Parse the 2019/20 Tirol school individual ranking.
+
+    The four source classes use ``5./6.`` and ``5./8.`` labels and therefore
+    fall outside the ordinary D/H category grammar.  Column boundaries are
+    stable across the three-page OE2010 report; using them also prevents the
+    school-team suffix (for example ``Langkampfen 1``) from leaking into a
+    long time such as ``1:08:10``.
+    """
+    import pdfplumber
+
+    categories = []
+    current = None
+    category_re = re.compile(
+        r"^(?P<name>5\./(?:6|8)\.\s+(?:weiblich|männlich))\s+"
+        r"\((?P<count>\d+)\)(?P<course>.*?)(?:\s+\(Forts\.\))?$",
+        re.I,
+    )
+
+    def cell(words, start, end=None):
+        return " ".join(
+            word["text"] for word in words
+            if word["x0"] >= start
+            and (end is None or word["x0"] < end)
+        ).strip()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        with pdfplumber.open(path) as pdf:
+            for page in pdf.pages:
+                for words in group_lines(page.extract_words()):
+                    text = " ".join(word["text"] for word in words).strip()
+                    category_match = category_re.fullmatch(text)
+                    if category_match:
+                        name = category_match.group("name")
+                        if current is not None and current["name"] == name:
+                            continue
+                        current = {
+                            "name": name,
+                            "declaredStarters": int(category_match.group("count")),
+                            "rankingBasis": "time", "results": [],
+                        }
+                        current.update(parse_course_info(category_match.group("course")))
+                        categories.append(current)
+                        continue
+                    if current is None:
+                        continue
+                    bib_text = cell(words, 60, 93)
+                    name = cell(words, 93, 242)
+                    club = cell(words, 261, 409)
+                    raw_value = cell(words, 409, 455)
+                    seconds = parse_time_loose(raw_value)
+                    status = "ok" if seconds is not None else parse_status(raw_value)
+                    if (not bib_text.isdigit() or not name or not club
+                            or status is None):
+                        continue
+                    result = {
+                        "name": name, "club": club, "timeText": raw_value,
+                        "status": status, "sourceBib": bib_text,
+                    }
+                    rank_text = cell(words, 20, 60).rstrip(".")
+                    if rank_text.isdigit():
+                        result["rank"] = int(rank_text)
+                    if seconds is not None:
+                        result["timeS"] = seconds
+                    current["results"].append(result)
+    for category in categories:
+        category["sourceUnitCount"] = len(category["results"])
+    return [category for category in categories if category["results"]]
+
+
+def parse_tirol_school_team_lines(lines):
+    """Parse the 2016 Tirol school team ranking from extracted PDF lines."""
+    categories = []
+    current = None
+    pending = None
+
+    team_re = re.compile(
+        r"^(?P<rank>\d+|x)\s+(?P<club>.+?)\s+"
+        r"(?P<value>\d{2}:\d{2}:\d{2}|ohne\s+Wertung)$", re.I)
+    member_re = re.compile(
+        rf"^(?:\d+\s+)?(?P<name>.*?)\s*(?P<value>{TIROL_SCHOOL_TEAM_VALUE_RE})$",
+        re.I)
+
+    def flush():
+        nonlocal pending
+        if current is None or pending is None:
+            pending = None
+            return
+        current["sourceUnitCount"] += 1
+        team_number = f"{current['name']}-{current['sourceUnitCount']}"
+        members = pending["members"]
+        for index, member in enumerate(members, 1):
+            result = {
+                "name": member["name"], "club": pending["club"],
+                "status": "ok", "individualStatus": member["status"],
+                "timeText": member["timeText"],
+                "resultKind": "team", "teamNumber": team_number,
+                "teamName": pending["club"],
+                "teamTimeText": pending["teamTimeText"],
+                "note": (
+                    f"Mannschaft {pending['club']} · "
+                    f"Mitglied {index}/{len(members)}"
+                ),
+            }
+            if pending.get("rank") is not None:
+                result["rank"] = pending["rank"]
+            if pending["outOfCompetition"]:
+                result["outOfCompetition"] = True
+            if member.get("timeS") is not None:
+                result["timeS"] = member["timeS"]
+            if pending.get("teamTimeS") is not None:
+                result["teamTimeS"] = pending["teamTimeS"]
+            current["results"].append(result)
+        pending = None
+
+    def start_team(match):
+        nonlocal pending
+        raw_value = match.group("value")
+        team_seconds = parse_time_loose(raw_value)
+        rank_text = match.group("rank")
+        pending = {
+            "rank": int(rank_text) if rank_text.isdigit() else None,
+            "club": match.group("club").strip(),
+            "teamTimeText": raw_value,
+            "teamTimeS": team_seconds,
+            "outOfCompetition": rank_text.casefold() == "x",
+            "members": [], "slots": 0,
+        }
+
+    for raw_line in lines:
+        line = re.sub(r"\s+", " ", raw_line or "").strip()
+        if not line:
+            continue
+        if TIROL_SCHOOL_TEAM_CATEGORY_RE.fullmatch(line):
+            flush()
+            current = {
+                "name": line, "declaredStarters": None,
+                "sourceUnitCount": 0, "rankingBasis": "time", "results": [],
+            }
+            categories.append(current)
+            continue
+        if current is None:
+            continue
+
+        if pending is None:
+            team_match = team_re.fullmatch(line)
+            if team_match:
+                start_team(team_match)
+            continue
+
+        member_match = member_re.fullmatch(line)
+        if member_match and pending["slots"] < 4:
+            pending["slots"] += 1
+            name = member_match.group("name").strip()
+            raw_value = member_match.group("value")
+            seconds = parse_time_loose(raw_value)
+            status = "ok" if seconds is not None else (parse_status(raw_value) or "unknown")
+            if name and name.casefold() != "vakant":
+                pending["members"].append({
+                    "name": name, "timeText": raw_value,
+                    "timeS": seconds, "status": status,
+                })
+            if pending["slots"] == 4:
+                flush()
+            continue
+
+        # A new team after a shorter exceptional team (the source contains
+        # one one-person OOC team) must not be consumed as a member row.
+        team_match = team_re.fullmatch(line)
+        if team_match:
+            flush()
+            start_team(team_match)
+    flush()
+
+    for category in categories:
+        category["declaredStarters"] = category["sourceUnitCount"]
+    return [category for category in categories if category["results"]]
+
+
+def parse_tirol_school_team_pdf(path):
+    import pdfplumber
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        with pdfplumber.open(path) as pdf:
+            lines = [
+                line
+                for page in pdf.pages
+                for line in (page.extract_text() or "").splitlines()
+            ]
+    return parse_tirol_school_team_lines(lines)
+
+
+def _school_team_result_rows(current, pending):
+    """Materialize one best-three school team without inventing relay legs."""
+    if current is None or pending is None or not pending["members"]:
+        return
+    current["sourceUnitCount"] += 1
+    team_number = f"{current['name']}-{current['sourceUnitCount']}"
+    team_status = pending["teamStatus"]
+    for index, member in enumerate(pending["members"], 1):
+        result = {
+            "name": member["name"], "club": pending["club"],
+            "status": team_status, "teamStatus": team_status,
+            "individualStatus": member["status"],
+            "timeText": member["timeText"],
+            "resultKind": "team", "teamNumber": team_number,
+            "teamName": pending["teamName"],
+            "teamTimeText": pending.get("teamTimeText") or "",
+            "note": (
+                f"Mannschaft {pending['teamName']} · "
+                f"Mitglied {index}/{len(pending['members'])}"
+            ),
+        }
+        if pending.get("rank") is not None:
+            result["rank"] = pending["rank"]
+        if member.get("timeS") is not None:
+            result["timeS"] = member["timeS"]
+        if pending.get("teamTimeS") is not None:
+            result["teamTimeS"] = pending["teamTimeS"]
+        current["results"].append(result)
+
+
+def _school_club_from_team_name(team_name):
+    return re.sub(r"\s+\d+$", "", (team_name or "").strip())
+
+
+def parse_tirol_school_team_2020_pdf(path):
+    """Parse the 2019/20 Tirol school best-three Mannschaftswertung."""
+    import pdfplumber
+
+    categories = []
+    current = None
+    pending = None
+    category_re = re.compile(r"^5\./(?:6|8)\.\s+[wm]$", re.I)
+
+    def flush():
+        nonlocal pending
+        _school_team_result_rows(current, pending)
+        pending = None
+
+    def cell(words, start, end=None):
+        return " ".join(
+            word["text"] for word in words
+            if word["x0"] >= start
+            and (end is None or word["x0"] < end)
+        ).strip()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        with pdfplumber.open(path) as pdf:
+            for page in pdf.pages:
+                for words in group_lines(page.extract_words()):
+                    text = " ".join(word["text"] for word in words).strip()
+                    if category_re.fullmatch(text):
+                        flush()
+                        current = {
+                            "name": text, "declaredStarters": None,
+                            "sourceUnitCount": 0,
+                            "rankingBasis": "time", "results": [],
+                        }
+                        categories.append(current)
+                        continue
+                    if current is None:
+                        continue
+                    rank_text = cell(words, 45, 110).rstrip(".")
+                    team_cell = cell(words, 110, 235)
+                    name = cell(words, 235, 410)
+                    raw_time = cell(words, 410, 475)
+                    raw_total = cell(words, 475)
+                    seconds = parse_time_loose(raw_time)
+                    status = "ok" if seconds is not None else parse_status(raw_time)
+                    if not name or status is None:
+                        continue
+
+                    if rank_text:
+                        flush()
+                        rank_match = re.fullmatch(r"(\d+)\.", rank_text + ".")
+                        declared_status = parse_status(rank_text)
+                        pending = {
+                            "rank": int(rank_text) if rank_text.isdigit() else None,
+                            "teamName": team_cell,
+                            "club": _school_club_from_team_name(team_cell),
+                            "teamStatus": (
+                                declared_status if declared_status not in (None, "ok")
+                                else "ok"
+                            ),
+                            "members": [],
+                        }
+                    if pending is None:
+                        continue
+                    if team_cell and team_cell != pending["teamName"]:
+                        # Fancy team names are followed by the actual school
+                        # in the same column on member two.
+                        pending["club"] = _school_club_from_team_name(team_cell)
+                    pending["members"].append({
+                        "name": name, "timeText": raw_time,
+                        "timeS": seconds, "status": status,
+                    })
+                    total_seconds = parse_time_loose(raw_total)
+                    total_status = parse_status(raw_total)
+                    if total_seconds is not None:
+                        pending.update({
+                            "teamTimeText": raw_total,
+                            "teamTimeS": total_seconds,
+                            "teamStatus": "ok",
+                        })
+                    elif total_status not in (None, "ok"):
+                        pending["teamStatus"] = total_status
+                    if len(pending["members"]) == 4:
+                        flush()
+    flush()
+    for category in categories:
+        category["declaredStarters"] = category["sourceUnitCount"]
+    return [category for category in categories if category["results"]]
+
+
+def parse_tirol_school_team_2023_pdf(path):
+    """Parse the 2023 Tirol school best-three Mannschaftswertung."""
+    import pdfplumber
+
+    categories = []
+    current = None
+    pending = None
+    category_re = re.compile(
+        r"^(?:5\./6\.\s+(?:männlich|weiblich)|"
+        r"Untestufe männlich|Unterstufe weiblich|"
+        r"Oberstufe männlich/weiblich gemischt)$",
+        re.I,
+    )
+
+    def flush():
+        nonlocal pending
+        _school_team_result_rows(current, pending)
+        pending = None
+
+    def cell(words, start, end=None):
+        return " ".join(
+            word["text"] for word in words
+            if word["x0"] >= start
+            and (end is None or word["x0"] < end)
+        ).strip()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        with pdfplumber.open(path) as pdf:
+            for page in pdf.pages:
+                for words in group_lines(page.extract_words()):
+                    text = " ".join(word["text"] for word in words).strip()
+                    if category_re.fullmatch(text):
+                        flush()
+                        current = {
+                            "name": text.replace("Untestufe", "Unterstufe"),
+                            "declaredStarters": None,
+                            "sourceUnitCount": 0,
+                            "rankingBasis": "time", "results": [],
+                        }
+                        categories.append(current)
+                        continue
+                    if current is None:
+                        continue
+                    team_cell = cell(words, 45, 160)
+                    name = cell(words, 160, 335)
+                    # Individual values start near x=339.  The team total or
+                    # a collective ``disqu.`` starts near x=404; using 420 as
+                    # the boundary attached the member time to the club and
+                    # misread the collective status as that member's time.
+                    raw_time = cell(words, 335, 400)
+                    raw_total = cell(words, 400, 480)
+                    rank_or_status = cell(words, 480).rstrip(".")
+                    seconds = parse_time_loose(raw_time)
+                    status = "ok" if seconds is not None else parse_status(raw_time)
+                    if not name or status is None:
+                        continue
+                    if team_cell:
+                        flush()
+                        pending = {
+                            "rank": None, "teamName": team_cell,
+                            "club": _school_club_from_team_name(team_cell),
+                            "teamStatus": "unknown",
+                            "members": [],
+                        }
+                    if pending is None:
+                        continue
+                    pending["members"].append({
+                        "name": name, "timeText": raw_time,
+                        "timeS": seconds, "status": status,
+                    })
+                    total_seconds = parse_time_loose(raw_total)
+                    total_status = parse_status(raw_total)
+                    if total_seconds is not None:
+                        pending.update({
+                            "teamTimeText": raw_total,
+                            "teamTimeS": total_seconds,
+                            "teamStatus": "ok",
+                        })
+                    elif total_status not in (None, "ok"):
+                        pending.update({
+                            "teamTimeText": raw_total,
+                            "teamStatus": total_status,
+                        })
+                    if rank_or_status.isdigit():
+                        pending["rank"] = int(rank_or_status)
+                    else:
+                        rank_status = parse_status(rank_or_status)
+                        if rank_status not in (None, "ok"):
+                            pending["teamStatus"] = rank_status
+                    if (pending.get("rank") is not None
+                            and pending.get("teamTimeS") is not None):
+                        # Some pages print rank on member three and the team
+                        # sum on member four; do not flush until the total.
+                        if len(pending["members"]) >= 3 and raw_total:
+                            flush()
+                    elif len(pending["members"]) == 4 and pending["teamStatus"] != "unknown":
+                        flush()
+    flush()
+    for category in categories:
+        category["declaredStarters"] = category["sourceUnitCount"]
+    return [category for category in categories if category["results"]]
+
+
+def parse_surprise_three_person_team_pdf(path):
+    """Parse the 2013 Surprise three-person aggregate team ranking."""
+    import pdfplumber
+
+    category = {
+        "name": "Teamwertung", "declaredStarters": None,
+        "sourceUnitCount": 0, "rankingBasis": "time", "results": [],
+    }
+    members = []
+    rank = None
+
+    def cell(words, start, end=None):
+        return " ".join(
+            word["text"] for word in words
+            if word["x0"] >= start
+            and (end is None or word["x0"] < end)
+        ).strip()
+
+    def flush(team_time_text):
+        nonlocal members, rank
+        team_seconds = parse_time_loose(team_time_text)
+        if rank is None or team_seconds is None or len(members) != 3:
+            members = []
+            rank = None
+            return
+        category["sourceUnitCount"] += 1
+        team_number = str(rank)
+        team_name = f"Team {rank}"
+        for index, member in enumerate(members, 1):
+            result = {
+                "name": member["name"], "club": member["club"],
+                "rank": rank, "status": "ok",
+                "individualStatus": "ok",
+                "timeText": member["timeText"], "timeS": member["timeS"],
+                "resultKind": "team", "teamNumber": team_number,
+                "teamName": team_name,
+                "teamTimeText": team_time_text, "teamTimeS": team_seconds,
+                "note": f"Mannschaft {team_name} · Mitglied {index}/3",
+            }
+            category["results"].append(result)
+        members = []
+        rank = None
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        with pdfplumber.open(path) as pdf:
+            for words in group_lines(pdf.pages[0].extract_words()):
+                name = cell(words, 60, 165)
+                club = cell(words, 165, 320)
+                individual_total = cell(words, 465)
+                individual_seconds = parse_time_loose(individual_total)
+                if name and club and individual_seconds is not None:
+                    rank_text = cell(words, 40, 60).rstrip(".")
+                    if rank_text.isdigit():
+                        rank = int(rank_text)
+                    members.append({
+                        "name": name, "club": club,
+                        "timeText": individual_total,
+                        "timeS": individual_seconds,
+                    })
+                    continue
+                team_total = cell(words, 450)
+                if (len(members) == 3
+                        and parse_time_loose(team_total) is not None):
+                    flush(team_total)
+    category["declaredStarters"] = category["sourceUnitCount"]
+    return [category] if category["results"] else []
+
+
+def parse_uwg_multistage_pdf(path):
+    """Extract the missing E2/E3 individual races from UWG 2018's total PDF."""
+    import pdfplumber
+
+    specs = [
+        {
+            "stageNumber": 3, "stageDate": "2018-06-23",
+            "stageTitle": "Mixed Staffel / E2-Einzelwertung",
+            # Two-digit E2 ranks begin at x≈436.  Keeping the time cell open
+            # until x=440 therefore joined values such as ``1:18:29 10`` and
+            # made every hour-long E2 result unreadable.  The blank between
+            # the time (ending at x≈425) and rank is the stable boundary.
+            "sourceColumn": "E2", "valueRange": (390, 430),
+            "rankRange": (430, 450),
+        },
+        {
+            "stageNumber": 4, "stageDate": "2018-06-24",
+            "stageTitle": "Einzelwettkampf und Siegerehrung / E3",
+            # Hour-long values are wider and begin near x=457, while shorter
+            # E3 values begin near x=465.
+            "sourceColumn": "E3", "valueRange": (450, 500),
+            "rankRange": (500, 525),
+        },
+    ]
+    stage_categories = [[] for _ in specs]
+    current = [None for _ in specs]
+    category_re = re.compile(
+        r"^(?P<name>.+?)\s+\((?P<count>\d+)\)"
+        r"(?:\s+Annulliert\s+E2)?(?:\s+\(Forts\.\))?$", re.I)
+
+    def cell(words, start, end=None):
+        return " ".join(
+            word["text"] for word in words
+            if word["x0"] >= start
+            and (end is None or word["x0"] < end)
+        ).strip()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        with pdfplumber.open(path) as pdf:
+            for page in pdf.pages:
+                for words in group_lines(page.extract_words()):
+                    text = " ".join(word["text"] for word in words).strip()
+                    category_match = category_re.fullmatch(text)
+                    if category_match and words[0]["x0"] < 5:
+                        name = category_match.group("name").strip()
+                        annulled_e2 = bool(re.search(
+                            r"Annulliert\s+E2", text, re.I))
+                        for index in range(len(specs)):
+                            if (annulled_e2
+                                    and specs[index].get("sourceColumn") == "E2"):
+                                current[index] = None
+                                continue
+                            if (current[index] is not None
+                                    and current[index]["name"] == name):
+                                continue
+                            category = {
+                                "name": name, "sourceCategory": text,
+                                "declaredStarters": int(category_match.group("count")),
+                                "sourceUnitCount": 0,
+                                "rankingBasis": "time",
+                                "_hasObservedStageValue": False,
+                                "results": [],
+                            }
+                            stage_categories[index].append(category)
+                            current[index] = category
+                        continue
+                    name = cell(words, 56, 193)
+                    club = cell(words, 209, 330)
+                    club = re.sub(
+                        r"\s+\d{1,3}:\d{2}(?::\d{2})?$", "", club).strip()
+                    if not name or not club or is_junk_name(name):
+                        continue
+                    for index, spec in enumerate(specs):
+                        if current[index] is None:
+                            continue
+                        raw_value = cell(words, *spec["valueRange"])
+                        seconds = parse_time_loose(raw_value)
+                        status = (
+                            "ok" if seconds is not None
+                            else parse_status(raw_value)
+                        )
+                        inferred_dns = status is None and not raw_value
+                        if inferred_dns:
+                            status = "dns"
+                            raw_value = "DNS"
+                        elif status is None:
+                            continue
+                        if not inferred_dns:
+                            current[index]["_hasObservedStageValue"] = True
+                        rank_text = cell(words, *spec["rankRange"]).rstrip(".")
+                        result = {
+                            "name": name, "club": club,
+                            "timeText": raw_value, "status": status,
+                        }
+                        if inferred_dns:
+                            result["note"] = (
+                                f"{spec['sourceColumn']}-Wert leer (als DNS)"
+                            )
+                        if seconds is not None:
+                            result["timeS"] = seconds
+                        if rank_text.isdigit() and status == "ok":
+                            result["rank"] = int(rank_text)
+                        elif is_ooc_status(rank_text):
+                            result["outOfCompetition"] = True
+                        current[index]["results"].append(result)
+
+    stage_documents = []
+    for spec, categories in zip(specs, stage_categories):
+        categories = [category for category in categories
+                      if (category["results"]
+                          and category.pop("_hasObservedStageValue", False))]
+        for category in categories:
+            category["sourceUnitCount"] = len(category["results"])
+        if categories:
+            stage_documents.append({
+                "stageNumber": spec["stageNumber"],
+                "stageDate": spec["stageDate"],
+                "stageTitle": spec["stageTitle"],
+                "listType": "race", "categories": categories,
+            })
+    return stage_documents
+
+
+def parse_mtbo_two_stage_overall_pdf(path):
+    """Extract both physical stages from the Waldviertel MTBO total table."""
+    import pdfplumber
+
+    specs = [
+        {
+            "stageNumber": 1, "stageDate": "2025-06-14",
+            "stageTitle": "Austria Masters MTBO – Stage 1",
+            "timeRange": (420, 520), "rankRange": (520, 540),
+        },
+        {
+            "stageNumber": 2, "stageDate": "2025-06-15",
+            "stageTitle": "4.AC MTBO ÖSTM/ÖM Langdistanz",
+            "timeRange": (540, 640), "rankRange": (640, 665),
+        },
+    ]
+    stage_categories = [[] for _ in specs]
+    current = [None for _ in specs]
+
+    def cell(words, start, end=None):
+        return " ".join(
+            word["text"] for word in words
+            if word["x0"] >= start
+            and (end is None or word["x0"] < end)
+        ).strip()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        with pdfplumber.open(path) as pdf:
+            for page in pdf.pages:
+                for words in group_lines(page.extract_words()):
+                    if any(word["text"] == "Name" and 155 <= word["x0"] < 180
+                           for word in words):
+                        category_name = cell(words, 45, 165)
+                        if not category_name:
+                            continue
+                        for index in range(len(specs)):
+                            category = {
+                                "name": category_name,
+                                "sourceCategory": category_name,
+                                "declaredStarters": None,
+                                "sourceUnitCount": 0,
+                                "rankingBasis": "time", "results": [],
+                            }
+                            stage_categories[index].append(category)
+                            current[index] = category
+                        continue
+                    name = cell(words, 165, 284)
+                    club = cell(words, 284, 420)
+                    if not name or not club or is_junk_name(name):
+                        continue
+                    for index, spec in enumerate(specs):
+                        if current[index] is None:
+                            continue
+                        raw_value = cell(words, *spec["timeRange"])
+                        seconds = _excel_elapsed_time(raw_value)
+                        status = (
+                            "ok" if seconds is not None
+                            else parse_status(raw_value)
+                        )
+                        if status is None:
+                            continue
+                        rank_text = cell(words, *spec["rankRange"]).rstrip(".")
+                        result = {
+                            "name": name, "club": club,
+                            "timeText": raw_value, "status": status,
+                        }
+                        if seconds is not None:
+                            result["timeS"] = seconds
+                        if rank_text.isdigit() and status == "ok":
+                            result["rank"] = int(rank_text)
+                        elif is_ooc_status(rank_text):
+                            result["outOfCompetition"] = True
+                        current[index]["results"].append(result)
+
+    stage_documents = []
+    for spec, categories in zip(specs, stage_categories):
+        categories = [category for category in categories
+                      if category["results"]]
+        for category in categories:
+            category["sourceUnitCount"] = len(category["results"])
+            category["declaredStarters"] = len(category["results"])
+        if categories:
+            stage_documents.append({
+                "stageNumber": spec["stageNumber"],
+                "stageDate": spec["stageDate"],
+                "stageTitle": spec["stageTitle"],
+                "listType": "race", "categories": categories,
+            })
+    return stage_documents
+
+
+def _repair_glued_school_name(value):
+    value = re.sub(r"(?<=[a-zäöüß])(?=[A-ZÄÖÜ])", " ", value or "")
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def parse_noe_school_team_pdf(path):
+    """Parse ranked three-person teams from the 2022 NÖ school result."""
+    import pdfplumber
+
+    categories = []
+    current = None
+    loose_previous = None
+    pending = None
+    category_re = re.compile(r"^(?:Damen|Herren)\s+(?:Oberstufe|Unterstufe)$")
+
+    def flush_pending():
+        nonlocal pending
+        if current is None or pending is None:
+            pending = None
+            return
+        members = pending["members"]
+        if len(members) != 3:
+            pending = None
+            return
+        current["sourceUnitCount"] += 1
+        team_number = f"{current['name']}-{current['sourceUnitCount']}"
+        for index, member in enumerate(members, 1):
+            result = {
+                "name": member["name"], "club": member["club"],
+                "rank": pending["rank"], "status": "ok",
+                "individualStatus": member["status"],
+                "timeText": member["timeText"],
+                "resultKind": "team", "teamNumber": team_number,
+                "teamName": pending["club"],
+                "teamTimeText": pending["teamTimeText"],
+                "teamTimeS": pending["teamTimeS"],
+                "note": (
+                    f"Mannschaft {pending['club']} · "
+                    f"Mitglied {index}/3"
+                ),
+            }
+            if member.get("timeS") is not None:
+                result["timeS"] = member["timeS"]
+            current["results"].append(result)
+        pending = None
+
+    def cell(words, start, end=None):
+        return " ".join(
+            word["text"] for word in words
+            if word["x0"] >= start
+            and (end is None or word["x0"] < end)
+        ).strip()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        with pdfplumber.open(path) as pdf:
+            for page in pdf.pages:
+                for words in group_lines(page.extract_words()):
+                    text = " ".join(word["text"] for word in words).strip()
+                    if category_re.fullmatch(text):
+                        flush_pending()
+                        loose_previous = None
+                        current = {
+                            "name": text, "declaredStarters": None,
+                            "sourceUnitCount": 0,
+                            "rankingBasis": "time", "results": [],
+                        }
+                        categories.append(current)
+                        continue
+                    if current is None:
+                        continue
+
+                    raw_time = cell(words, 425, 485)
+                    seconds = parse_time_loose(raw_time)
+                    status = "ok" if seconds is not None else parse_status(raw_time)
+                    name = _repair_glued_school_name(cell(words, 145, 295))
+                    club = cell(words, 295, 425)
+                    if not name or not club or status is None:
+                        continue
+                    row = {
+                        "name": name, "club": club, "timeText": raw_time,
+                        "timeS": seconds, "status": status,
+                    }
+
+                    raw_team_time = cell(words, 485)
+                    team_seconds = parse_time_loose(raw_team_time)
+                    rank_text = cell(words, 0, 110).rstrip(".")
+                    if team_seconds is not None and rank_text.isdigit():
+                        flush_pending()
+                        if loose_previous is None:
+                            continue
+                        pending = {
+                            "rank": int(rank_text), "club": club,
+                            "teamTimeText": raw_team_time,
+                            "teamTimeS": team_seconds,
+                            "members": [loose_previous, row],
+                        }
+                        loose_previous = None
+                        continue
+                    if pending is not None:
+                        pending["members"].append(row)
+                        flush_pending()
+                        loose_previous = None
+                    else:
+                        loose_previous = row
+
+    flush_pending()
+    for category in categories:
+        category["declaredStarters"] = category["sourceUnitCount"]
+    return [category for category in categories if category["results"]]
+
+
 def parse_school_score_team_pdf(path):
     """Parse the wide Wiener Neustadt school score sheet with up to 3 names."""
     import pdfplumber
@@ -7125,6 +8020,142 @@ def parse_plain_regional_championship_pdf(path):
     categories = [category for category in categories if category["results"]]
     for category in categories:
         category["declaredStarters"] = len(category["results"])
+    return categories
+
+
+WIEN_SPRINT_CATEGORY_RE = re.compile(
+    r"^(?:[DH]\s+(?:15-|-14|45-|55-)|Damen offen|Herren offen|Neulinge)$",
+    re.I,
+)
+
+
+def parse_wien_sprint_result_line(text, inferred_rank=None):
+    """Parse one row of the 2019 Wiener Sprintmeisterschaft Word export."""
+    match = re.match(
+        r"^(?:(?P<rank>\d+)\.\s+)?(?P<body>.+?)\s+"
+        r"(?P<value>\d{1,2}:\d{2}(?::\d{2})?|MP|DNF|DNS|DSQ)$",
+        text, re.I)
+    if not match:
+        return None
+    club, name_tokens = find_trailing_club(match.group("body").split(), CLUBS)
+    name = " ".join(name_tokens).strip()
+    if not club or not looks_like_person(name) or is_junk_name(name):
+        return None
+    raw_value = match.group("value")
+    seconds = parse_time_loose(raw_value)
+    result = {
+        "name": name,
+        "club": club,
+        "timeText": raw_value,
+        "status": ("ok" if seconds is not None else
+                   parse_status(raw_value) or "unknown"),
+    }
+    if seconds is not None:
+        result["timeS"] = seconds
+        if match.group("rank"):
+            result["rank"] = int(match.group("rank"))
+        elif inferred_rank is not None:
+            result["rank"] = inferred_rank
+    return result
+
+
+def parse_wien_sprint_championship_pdf(path):
+    """Parse the official 2019 Wiener individual Sprint championship list.
+
+    Its champion announcement is printed on a separate line, so the winner
+    row has no leading rank while later finishers do.
+    """
+    import pdfplumber
+
+    categories = []
+    current = None
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        with pdfplumber.open(path) as pdf:
+            for page in pdf.pages:
+                for raw_line in (page.extract_text() or "").splitlines():
+                    text = re.sub(r"\s+", " ", raw_line).strip()
+                    text = re.sub(r"\s+Laufzeit$", "", text)
+                    if WIEN_SPRINT_CATEGORY_RE.fullmatch(text):
+                        current = {
+                            "name": text,
+                            "declaredStarters": None,
+                            "results": [],
+                        }
+                        categories.append(current)
+                        continue
+                    if current is None or text.startswith("1. und Wiener "):
+                        continue
+                    row = parse_wien_sprint_result_line(
+                        text, inferred_rank=1 if not current["results"] else None)
+                    if row:
+                        current["results"].append(row)
+
+    categories = [category for category in categories if category["results"]]
+    for category in categories:
+        category["declaredStarters"] = len(category["results"])
+    return categories
+
+
+def academic_championship_table_result(row):
+    """Normalize one five-column row from the Kärntner academic PDF."""
+    if len(row or []) != 5:
+        return None
+    rank_text, surname, firstname, raw_value, club = [
+        re.sub(r"\s+", " ", value or "").strip() for value in row]
+    rank_match = re.fullmatch(r"(\d+)\.", rank_text)
+    seconds = parse_time_loose(raw_value)
+    if not rank_match or seconds is None:
+        return None
+    # The PDF's character positioning inserts spaces inside some surnames
+    # (``Ka ltenbacher``); the visual table has one surname cell, so those
+    # spaces are extraction artifacts rather than word boundaries.
+    surname = re.sub(r"\s+", "", surname)
+    name = f"{surname} {firstname}".strip()
+    if not looks_like_person(name) or is_junk_name(name):
+        return None
+    return {
+        "name": name,
+        "club": club,
+        "timeText": raw_value,
+        "timeS": seconds,
+        "status": "ok",
+        "rank": int(rank_match.group(1)),
+    }
+
+
+def parse_academic_championship_pdf(path):
+    """Parse the four Word tables of the 2018 Kärntner academic ranking."""
+    import pdfplumber
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        with pdfplumber.open(path) as pdf:
+            headings = []
+            tables = []
+            for page in pdf.pages:
+                headings.extend(
+                    re.sub(r"\s+", " ", line).strip()
+                    for line in (page.extract_text() or "").splitlines()
+                    if re.fullmatch(
+                        r"(?:Herren|Damen).+\(Bahn\s+\d+\)",
+                        re.sub(r"\s+", " ", line).strip(),
+                        re.I,
+                    )
+                )
+                tables.extend(page.extract_tables() or [])
+    categories = []
+    for heading, table in zip(headings, tables):
+        results = [
+            parsed for row in table
+            if (parsed := academic_championship_table_result(row)) is not None
+        ]
+        if results:
+            categories.append({
+                "name": heading,
+                "declaredStarters": len(results),
+                "results": results,
+            })
     return categories
 
 
@@ -7805,6 +8836,74 @@ def parse_labyrinth_challenge_pdf(path):
     return categories
 
 
+def parse_mtbo_dns_supplement_pdf(path):
+    """Recover named DNS rows from event 1909's official split-time PDF.
+
+    The compact result attachment omits seven ``N Ang`` rows even though its
+    class counts include them.  ANNE also publishes SportSoftware's official
+    ``Zwischenzeiten Ergebnis`` attachment, where those names and clubs are
+    explicit.  Only the missing DNS observations are returned: ordinary
+    finishers and the one runner whose compact result says ``Aufg`` remain
+    authoritative in the primary result attachment.
+    """
+    import pdfplumber
+
+    category_map = {
+        "Herren -14": "Herren/Damen -14",
+        "Herren Elite": "Herren Elite",
+        "Herren 60": "Herren 60",
+        "Herren 70": "Herren 70",
+    }
+    categories = {
+        target: {"name": target, "results": []}
+        for target in category_map.values()
+    }
+    lines = []
+    with pdfplumber.open(path) as pdf:
+        for page in pdf.pages:
+            lines.extend(
+                line.strip()
+                for line in (page.extract_text(x_tolerance=2, y_tolerance=3) or "").splitlines()
+                if line.strip()
+            )
+
+    current = None
+    for index, line in enumerate(lines):
+        heading = next(
+            (source for source in category_map
+             if re.match(rf"^{re.escape(source)}\s+\(\d+\)(?:\s|$)", line)),
+            None,
+        )
+        if heading:
+            current = category_map[heading]
+            continue
+        match = re.match(r"^\d+\s+(.+?)\s+N\s+Ang$", line)
+        if current is None or not match:
+            continue
+        name = re.sub(r"\s+", " ", match.group(1)).strip()
+        # The compact, higher-priority result attachment records Jan Rochford
+        # as ``Aufg``. Do not let the older split snapshot downgrade that
+        # explicit final status to DNS.
+        if name == "Rochford Jan":
+            continue
+        club = lines[index + 1] if index + 1 < len(lines) else ""
+        if (not club or re.search(r"\b(?:Ziel|\d+:\d{2})\b", club)
+                or re.match(r"^(?:Herren|Damen)\b", club)):
+            club = ""
+        categories[current]["results"].append({
+            "name": name,
+            "club": club,
+            "timeText": "N Ang",
+            "status": "dns",
+            "note": "DNS aus offiziellem ANNE-Zwischenzeiten-Anhang",
+        })
+
+    return [
+        category for category in categories.values()
+        if category["results"]
+    ]
+
+
 def fetch(url, dest, force=False):
     if dest.exists() and not force:
         return dest.read_bytes()
@@ -7862,7 +8961,8 @@ def main():
 
     ok = empty = failed = 0
     for eid, n, f, sole_attachment in jobs:
-        if (eid, f["fileName"]) in MANUAL_ATTACHMENT_SKIP:
+        if ((eid, n) in MANUAL_ATTACHMENT_INDEX_SKIP
+                or (eid, f["fileName"]) in MANUAL_ATTACHMENT_SKIP):
             empty += 1
             continue
         out_path = OUT / f"{eid}-{n}.json"
@@ -7894,7 +8994,17 @@ def main():
                 cats, head_text = parse_pdf(
                     pdf_path, allow_inline_splits=sole_attachment)
             list_type = detect_list_type(f["fileName"], head_text, sole_attachment)
-            if list_type == "overall":
+            stage_documents = None
+            if (eid, n) == (1909, 0):
+                cats = parse_mtbo_dns_supplement_pdf(pdf_path)
+                list_type = "race"
+            elif (eid, n) == (2091, 1):
+                stage_documents = parse_uwg_multistage_pdf(pdf_path)
+                cats = []
+            elif (eid, n) == (4835, 1):
+                stage_documents = parse_mtbo_two_stage_overall_pdf(pdf_path)
+                cats = []
+            elif list_type == "overall":
                 # Cumulative standings, split-time sheets and per-course
                 # relay rankings are not a physical race result. In
                 # particular, a sole Zwischenzeiten PDF still cannot be fed
@@ -7957,6 +9067,29 @@ def main():
                 cats = parse_funol_two_column_pdf(pdf_path)
             elif re.search(r"Einzelergebnisse,?\s+Schulcup\s+2023", head_text, re.I):
                 cats = parse_tirol_school_individual_pdf(pdf_path)
+            elif ("TM Schulen 2016" in head_text
+                  and re.search(r"5\./6\.\s+männlich", head_text, re.I)):
+                cats = parse_tirol_school_2016_individual_pdf(pdf_path)
+            elif ((eid, n) == (3004, 1)
+                  or ("1. Schulcup 2019/20" in head_text
+                      and re.search(r"5\./8\.\s+männlich", head_text, re.I))):
+                cats = parse_tirol_school_2020_individual_pdf(pdf_path)
+            elif ("Tiroler Schulmeisterschaft 2016" in head_text
+                  and re.search(r"5\./6\.\s+weiblich", head_text, re.I)):
+                cats = parse_tirol_school_team_pdf(pdf_path)
+            elif (re.search(r"^5\./6\.\s+w$", head_text, re.I | re.M)
+                  and re.search(r"^5\./6\.\s+m$", head_text, re.I | re.M)):
+                cats = parse_tirol_school_team_2020_pdf(pdf_path)
+            elif ("Ergebnisse Schulcuplauf Mannschaftswertung" in head_text
+                  and re.search(r"5\./6\.\s+männlich", head_text, re.I)):
+                cats = parse_tirol_school_team_2023_pdf(pdf_path)
+            elif ("ERGEBNISSE SURPISE MANNSCHAFT 31.08.2013" in head_text
+                  and "TEAMWERTUNG" in head_text):
+                cats = parse_surprise_three_person_team_pdf(pdf_path)
+            elif ("NÖ Schulmeisterschaft der Schulen im Orientierungslauf"
+                  in head_text
+                  and re.search(r"Damen\s+Oberstufe", head_text, re.I)):
+                cats = parse_noe_school_team_pdf(pdf_path)
             elif re.search(
                     r"Nachname\s+Vorname\s+Start\s+Ziel\s+Zeit\s+Wertung\s+Ort\s+Kurz\s+Platz",
                     head_text, re.I):
@@ -8022,6 +9155,11 @@ def main():
                     r"Niederösterreichische Meisterschaft im "
                     r"Sprint-Orientierungslauf", head_text, re.I):
                 cats = parse_plain_regional_championship_pdf(pdf_path)
+            elif ("Wiener Sprintmeisterschaft" in head_text
+                  and "Offizielle Ergebnisliste" in head_text):
+                cats = parse_wien_sprint_championship_pdf(pdf_path)
+            elif "Ktn. Akademische Meisterschaft Orientierungslauf" in head_text:
+                cats = parse_academic_championship_pdf(pdf_path)
             elif ("Wiener Meisterschaft Mixed-Sprintstaffel" in head_text
                   and "Offizielle Ergebnisliste" in head_text):
                 cats = parse_wien_mixed_sprint_relay_pdf(pdf_path)
@@ -8058,10 +9196,16 @@ def main():
                     cats = parse_flowing_pdf(pdf_path)
             cats = repair_wrapped_champion_names(pdf_path, cats)
             cats = normalize_qualitative_result_ranks(cats)
-            for category in cats:
+            normalized_category_sets = [cats]
+            if stage_documents:
+                for stage in stage_documents:
+                    stage["categories"] = normalize_qualitative_result_ranks(
+                        stage.get("categories") or [])
+                    normalized_category_sets.append(stage["categories"])
+            for category in itertools.chain.from_iterable(normalized_category_sets):
                 for result in category.get("results") or []:
                     repair_official_club_status_overflow(result)
-            if not cats:
+            if not cats and not stage_documents:
                 empty += 1
                 # a file that used to parse (under an earlier, buggier
                 # version of this script) but correctly comes up empty now
@@ -8076,11 +9220,13 @@ def main():
                 "source": "sportsoftware-pdf",
                 "sourceUrl": f["url"],
                 "fileName": f["fileName"],
-                "listType": list_type,
+                "listType": "multi-stage" if stage_documents else list_type,
                 "docDate": MANUAL_DOC_DATE_OVERRIDES.get((eid, f["fileName"]))
                            or guess_doc_date(f["fileName"], head_text),
                 "categories": cats,
             }
+            if stage_documents:
+                normalized_document["stageDocuments"] = stage_documents
             if verified_scan:
                 normalized_document["verifiedScanTranscript"] = {
                     "schemaVersion": verified_scan.get("schemaVersion"),

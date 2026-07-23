@@ -16,6 +16,7 @@ COMMANDS = [
     [sys.executable, "ingest/parse_sportsoftware_text.py"],
     [sys.executable, "ingest/parse_club_table.py"],
     [sys.executable, "ingest/parse_liveresultat.py"],
+    [sys.executable, "ingest/parse_sportident_center.py"],
 ]
 
 ATTACHMENT_PARSERS = {
@@ -23,6 +24,7 @@ ATTACHMENT_PARSERS = {
     "parse_sportsoftware_pdf.py",
     "parse_sportsoftware_text.py",
     "parse_club_table.py",
+    "parse_sportident_center.py",
 }
 
 

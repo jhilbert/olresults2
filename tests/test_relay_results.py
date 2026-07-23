@@ -1,6 +1,8 @@
+import html
 import importlib.util
 import inspect
 import json
+import re
 import sqlite3
 import sys
 import unittest
@@ -245,6 +247,7 @@ class RelayStructureTests(unittest.TestCase):
         self.assertEqual(parse_status("Missing Punch"), "mp")
         self.assertEqual(parse_status("NOK"), "mp")
         self.assertEqual(parse_status("2 Posten fehlen"), "mp")
+        self.assertEqual(parse_status("Posten 10 falsch"), "mp")
         self.assertEqual(parse_status("Not Finish"), "dnf")
         self.assertEqual(parse_status("dis."), "dsq")
         self.assertEqual(parse_status("techn. Fehler"), "dnf")
@@ -1727,6 +1730,23 @@ class RelayStructureTests(unittest.TestCase):
         self.assertEqual((flachberger["timeText"], flachberger["status"]),
                          ("Zeitï¿½b", "dsq"))
 
+    def test_incomplete_member_of_three_person_source_row_is_preserved(self):
+        source = ROOT / "data" / "raw" / "anne" / "files" / "856-0.html"
+        self.require_source_fixture(source)
+        fixed_text = html.unescape(re.sub(
+            r"<[^>]+>", "",
+            html_parser.decode(source.read_bytes()),
+        ))
+        categories = text_parser.parse_text(fixed_text)
+        women = next(c for c in categories if c["name"] == "Damen E")
+        fifth = [r for r in women["results"] if r.get("rank") == 5]
+        self.assertEqual(
+            [(r["name"], bool(r.get("identityExcluded"))) for r in fifth],
+            [("Laura", True), ("Maria Reil", False),
+             ("Christina Hell", False)],
+        )
+        self.assertTrue(all(r["resultKind"] == "pair" for r in fifth))
+
     def test_score_club_overflow_before_status_is_not_a_time(self):
         source = ROOT / "data" / "raw" / "anne" / "files" / "4106-0.pdf"
         self.require_source_fixture(source)
@@ -1826,6 +1846,14 @@ class RelayStructureTests(unittest.TestCase):
                 False,
             ),
             "overall",
+        )
+        self.assertEqual(
+            html_parser.detect_list_type(
+                "ergebnis-nach-kategorie-gesamt.pdf",
+                "NÖ MS Ultralang 2024\nPl Name Verein Zeit",
+                False,
+            ),
+            "race",
         )
 
     def test_fixed_width_time_before_region_column_keeps_ranked_rows(self):
@@ -2625,8 +2653,13 @@ class RelayStructureTests(unittest.TestCase):
         categories = html_parser.parse_positioned_document(
             html_parser.decode(individual.read_bytes()))
         self.assertEqual((len(categories), sum(len(c["results"]) for c in categories)),
-                         (24, 244))
+                         (24, 245))
         self.assertEqual(categories[0]["name"], "Wien H14")
+        noe_h45 = next(c for c in categories if c["name"] == "NO H45")
+        schuller = next(r for r in noe_h45["results"]
+                        if r["name"] == "Schuller Georg")
+        self.assertEqual((schuller["status"], schuller["timeText"]),
+                         ("unknown", "–"))
 
         relay = ROOT / "data" / "raw" / "anne" / "files" / "1989-0.html"
         categories = html_parser.parse_positioned_document(
@@ -2635,6 +2668,26 @@ class RelayStructureTests(unittest.TestCase):
         self.assertEqual((first["declaredStarters"], first["sourceUnitCount"]),
                          (54, 54))
         self.assertEqual({row["leg"] for row in first["results"][:3]}, {1, 2, 3})
+
+    def test_mtbo_split_attachment_recovers_only_missing_dns_rows(self):
+        source = (ROOT / "data" / "raw" / "anne" / "files" /
+                  "1909-0.pdf")
+        categories = pdf_parser.parse_mtbo_dns_supplement_pdf(source)
+        rows = {
+            category["name"]: [row["name"] for row in category["results"]]
+            for category in categories
+        }
+        self.assertEqual(rows, {
+            "Herren/Damen -14": ["Diesenreiter Ben"],
+            "Herren Elite": ["Haselberger Kevin", "Fürnkranz Martin"],
+            "Herren 60": [
+                "Wendler Michael", "Pirchegger Günter", "Schanes Josef"],
+            "Herren 70": ["Fruhwirth Friedrich"],
+        })
+        self.assertNotIn("Rochford Jan", rows["Herren 60"])
+        self.assertTrue(all(
+            row["status"] == "dns"
+            for category in categories for row in category["results"]))
 
     def test_meos_single_table_relay_does_not_count_legs_as_teams(self):
         source = ROOT / "data" / "raw" / "anne" / "files" / "5156-1.html"
@@ -2896,6 +2949,91 @@ class RelayStructureTests(unittest.TestCase):
         self.assertEqual((loitz["status"], loitz["individualStatus"], loitz["rank"]),
                          ("ok", "mp", 2))
 
+        noe_2016_source = (
+            ROOT / "data" / "raw" / "anne" / "files" / "1669-1.html")
+        noe_2016 = html_parser.parse_noe_school_team_html(
+            html_parser.decode(noe_2016_source.read_bytes()))
+        self.assertEqual((len(noe_2016), sum(
+            c["sourceUnitCount"] for c in noe_2016), sum(
+            len(c["results"]) for c in noe_2016)), (3, 38, 114))
+
+        tirol_2016_individual = (
+            pdf_parser.parse_tirol_school_2016_individual_pdf(
+                ROOT / "data" / "raw" / "anne" / "files" / "1682-0.pdf"))
+        self.assertEqual(
+            [(c["name"], c["declaredStarters"], c["sourceUnitCount"])
+             for c in tirol_2016_individual],
+            [
+                ("5./6. männlich", 24, 24),
+                ("5./6. weiblich", 16, 16),
+                ("5.-8. männlich", 32, 32),
+                ("5.-8. weiblich", 16, 16),
+                ("9.-12. männlich", 12, 12),
+                ("9.-12. weiblich", 1, 1),
+            ],
+        )
+
+        tirol_2016 = pdf_parser.parse_tirol_school_team_pdf(
+            ROOT / "data" / "raw" / "anne" / "files" / "1682-2.pdf")
+        self.assertEqual((len(tirol_2016), sum(
+            c["sourceUnitCount"] for c in tirol_2016), sum(
+            len(c["results"]) for c in tirol_2016)), (6, 26, 97))
+
+        noe_2022 = pdf_parser.parse_noe_school_team_pdf(
+            ROOT / "data" / "raw" / "anne" / "files" / "3728-1.pdf")
+        self.assertEqual((len(noe_2022), sum(
+            c["sourceUnitCount"] for c in noe_2022), sum(
+            len(c["results"]) for c in noe_2022)), (4, 26, 78))
+
+        tirol_2020 = pdf_parser.parse_tirol_school_team_2020_pdf(
+            ROOT / "data" / "raw" / "anne" / "files" / "3004-0.pdf")
+        self.assertEqual((len(tirol_2020), sum(
+            c["sourceUnitCount"] for c in tirol_2020), sum(
+            len(c["results"]) for c in tirol_2020)), (4, 24, 96))
+
+        tirol_2020_individual = pdf_parser.parse_tirol_school_2020_individual_pdf(
+            ROOT / "data" / "raw" / "anne" / "files" / "3004-1.pdf")
+        self.assertEqual(
+            [(c["name"], c["declaredStarters"], c["sourceUnitCount"])
+             for c in tirol_2020_individual],
+            [
+                ("5./6. weiblich", 13, 13),
+                ("5./6. männlich", 20, 20),
+                ("5./8. weiblich", 32, 32),
+                ("5./8. männlich", 33, 33),
+            ],
+        )
+        pfluger = next(
+            r for c in tirol_2020_individual for r in c["results"]
+            if r["name"] == "Pfluger Sophia"
+        )
+        self.assertEqual(
+            (pfluger["club"], pfluger["timeText"], pfluger["timeS"]),
+            ("NMS Langkampfen 1", "1:08:10", 4090),
+        )
+
+        tirol_2023 = pdf_parser.parse_tirol_school_team_2023_pdf(
+            ROOT / "data" / "raw" / "anne" / "files" / "4271-1.pdf")
+        self.assertEqual((len(tirol_2023), sum(
+            c["sourceUnitCount"] for c in tirol_2023), sum(
+            len(c["results"]) for c in tirol_2023)), (5, 49, 192))
+        posthoorn = next(
+            r for c in tirol_2023 for r in c["results"]
+            if r["name"] == "Posthoorn Kilian"
+        )
+        self.assertEqual(
+            (posthoorn["club"], posthoorn["timeText"],
+             posthoorn["individualStatus"], posthoorn["status"]),
+            ("MS Hopfgarten", "00:40:06", "ok", "dsq"),
+        )
+
+        surprise = pdf_parser.parse_surprise_three_person_team_pdf(
+            ROOT / "data" / "raw" / "anne" / "files" / "952-1.pdf")
+        self.assertEqual(
+            (surprise[0]["sourceUnitCount"], len(surprise[0]["results"])),
+            (7, 21),
+        )
+
         arge_alp = pdf_parser.parse_arge_alp_relay_pdf(
             ROOT / "data" / "raw" / "anne" / "files" / "3551-0.pdf")
         self.assertEqual((len(arge_alp), sum(
@@ -2916,6 +3054,113 @@ class RelayStructureTests(unittest.TestCase):
              retired_team_member["individualStatus"]),
             ("dnf", "ok"),
         )
+
+    def test_multistage_overall_sources_split_into_physical_stages(self):
+        uwg_2018 = pdf_parser.parse_uwg_multistage_pdf(
+            ROOT / "data" / "raw" / "anne" / "files" / "2091-1.pdf")
+        self.assertEqual(
+            [(stage["stageNumber"], len(stage["categories"]),
+              sum(len(c["results"]) for c in stage["categories"]))
+             for stage in uwg_2018],
+            [(3, 11, 141), (4, 22, 289)],
+        )
+        self.assertFalse(any(
+            c["name"] == "M12"
+            for c in uwg_2018[0]["categories"]
+        ))
+        ievstafiev = next(
+            r for c in uwg_2018[0]["categories"] for r in c["results"]
+            if r["name"] == "Ievstafiev Oleksandr"
+        )
+        self.assertEqual(
+            (ievstafiev["rank"], ievstafiev["timeS"], ievstafiev["timeText"]),
+            (10, 4709, "1:18:29"),
+        )
+
+        uwg_2019_source = (
+            ROOT / "data" / "raw" / "anne" / "files" / "2430-3.html")
+        uwg_2019 = html_parser.parse_oe_multistage_html(
+            html_parser.decode(uwg_2019_source.read_bytes()),
+            [
+                {
+                    "stageNumber": 3, "stageDate": "2019-06-22",
+                    "stageTitle": "E2", "sourceColumn": "E2",
+                    "timeIndex": 7, "rankIndex": 8,
+                    "blankStageMeansDns": True,
+                },
+                {
+                    "stageNumber": 4, "stageDate": "2019-06-23",
+                    "stageTitle": "E3", "sourceColumn": "E3",
+                    "timeIndex": 9, "rankIndex": 10,
+                    "blankStageMeansDns": True,
+                },
+            ],
+        )
+        self.assertEqual(
+            [(stage["stageNumber"], len(stage["categories"]),
+              sum(len(c["results"]) for c in stage["categories"]))
+             for stage in uwg_2019],
+            [(3, 16, 176), (4, 24, 305)],
+        )
+
+        skio_source = (
+            ROOT / "data" / "raw" / "anne" / "files" / "3681-1.html")
+        skio = html_parser.parse_oe_multistage_html(
+            html_parser.decode(skio_source.read_bytes()),
+            [{
+                "stageNumber": 2, "stageDate": "2022-02-27",
+                "stageTitle": "8 AC Verfolgung", "sourceColumn": "E2",
+                "timeIndex": 7, "overallTimeIndex": 8,
+                "overallRankIndex": 0, "sourceLabel": "E2-Laufzeit",
+                "unrankedStageIsOoc": True,
+                "blankStageMeansDns": True,
+            }],
+        )
+        habenicht = next(
+            r for c in skio[0]["categories"] for r in c["results"]
+            if r["name"] == "Tobias Habenicht"
+        )
+        self.assertEqual(
+            (habenicht["rank"], habenicht["timeS"], habenicht["note"]),
+            (1, 2417, "E2-Laufzeit: 23:40"),
+        )
+        hnilica = next(
+            r for c in skio[0]["categories"] for r in c["results"]
+            if r["name"] == "Sonja Hnilica"
+        )
+        self.assertEqual(
+            (hnilica.get("rank"), hnilica["timeS"],
+             hnilica.get("outOfCompetition")),
+            (None, 1905, True),
+        )
+        h45 = next(
+            c for c in skio[0]["categories"]
+            if c["name"] == "Herren ab 45"
+        )
+        self.assertEqual(
+            (h45["declaredStarters"], h45["sourceUnitCount"],
+             len(h45["results"])),
+            (8, 8, 8),
+        )
+        self.assertEqual(
+            [r["name"] for r in h45["results"] if r["status"] == "dns"],
+            ["Klaus Zweiker", "Hannes Brecka", "Gilbert Rass",
+             "Peter Unterberger", "Bernhard Prokopetz"],
+        )
+
+        mtbo = pdf_parser.parse_mtbo_two_stage_overall_pdf(
+            ROOT / "data" / "raw" / "anne" / "files" / "4835-1.pdf")
+        self.assertEqual(
+            [(stage["stageNumber"], len(stage["categories"]),
+              sum(len(c["results"]) for c in stage["categories"]))
+             for stage in mtbo],
+            [(1, 28, 233), (2, 27, 220)],
+        )
+        berthaud = next(
+            r for c in mtbo[1]["categories"] for r in c["results"]
+            if r["name"] == "Armel Berthaud"
+        )
+        self.assertEqual((berthaud["rank"], berthaud["timeS"]), (2, 6742))
 
         online = pdf_parser.parse_orienteering_online_pdf(
             ROOT / "data" / "raw" / "anne" / "files" / "4071-1.pdf")

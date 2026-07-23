@@ -23,9 +23,11 @@ embed this format - we do not blindly crawl all ~500 external result links
 """
 import argparse
 from collections import defaultdict
+import certifi
 import html as html_mod
 import json
 import re
+import ssl
 import sys
 import time
 import urllib.parse
@@ -33,7 +35,8 @@ import urllib.request
 from pathlib import Path
 
 from sportsoftware_common import (
-    CAT_LINE_RE, CLUB_LINK_ALLOWLIST, COLUMN_ALIASES, STATUS_TAIL_RE,
+    CAT_LINE_RE, CLUB_LINK_ALLOWLIST, COLUMN_ALIASES, MANUAL_ATTACHMENT_SKIP,
+    STATUS_TAIL_RE,
     category_starter_count,
     classify_championship_text, detect_list_type, aggregate_team_status,
     expand_pair_result, is_expected_source_failure, is_junk_name, is_ooc_status,
@@ -637,7 +640,8 @@ def fetch(url, dest, force=False):
         return dest.read_bytes()
     safe_url = urllib.parse.quote(url, safe=":/?&=%#")
     data = urllib.request.urlopen(
-        urllib.request.Request(safe_url, headers=HEADERS), timeout=30).read()
+        urllib.request.Request(safe_url, headers=HEADERS), timeout=30,
+        context=ssl.create_default_context(cafile=certifi.where())).read()
     dest.write_bytes(data)
     time.sleep(0.15)
     return data
@@ -660,6 +664,8 @@ def collect_jobs():
     for eid, files in attachments.items():
         for n, f in enumerate(files or []):
             mime, url = f["mimeType"], f["url"]
+            if (int(eid), f.get("fileName") or "") in MANUAL_ATTACHMENT_SKIP:
+                continue
             if mime == "text/plain":
                 jobs.append((int(eid), n, f, "txt"))
             elif mime == "text/link" and domain_of(url) in LINK_DOMAIN_ALLOWLIST:

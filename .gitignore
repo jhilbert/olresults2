@@ -4,7 +4,11 @@ node_modules/
 .DS_Store
 .env.local
 site/data/results.db
-data/raw/anne/files/
+# Attachment downloads are normally reproducible caches.  Keep the one
+# reviewed SPORTident Center DOM snapshot whose backing API cannot be fetched
+# anonymously; its deterministic normalized form depends on this evidence.
+data/raw/anne/files/*
+!data/raw/anne/files/3438-0.sportident.json
 site/data/results.db.gz
 *-errors.log
 # Per-person data fetched via an authenticated, elevated-access ANNE

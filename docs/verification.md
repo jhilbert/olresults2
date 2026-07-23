@@ -69,3 +69,40 @@ heutigen Verein bleibt bewusst `candidate`.
 Landesjurisdiktionen. `award` ist die gemeinsame Grundlage der nationalen und
 regionalen Medaillenspiegel. Die verbindlichen Regeln und noch provisorischen
 Ableitungen stehen im [OLRESULTS2-Regelwerk](rules/README.md).
+
+## Sechsstufiger QA-Ablauf
+
+Parseränderungen werden gesammelt und anschließend gemeinsam geprüft, damit
+die große SQLite-Datenbank nicht nach jeder Einzelkorrektur neu gebaut werden
+muss:
+
+1. **Event- und Quellenabdeckung:** Kalender, Attachment-Inventar,
+   normalisierte Parserausgaben und veröffentlichte DB gegeneinander prüfen.
+2. **Struktur:** Quellenzahl, geparste Einheiten, Ergebniszeilen, Team-/Leg-
+   Gruppierung, Kategorien und Rangabdeckung vergleichen.
+3. **Semantik:** Zeiten, Status, AK/OOC, Ränge sowie Kopf-/Fußzeilenartefakte
+   auf unmögliche oder nicht gelesene Werte prüfen.
+4. **Identität und Verein:** direkte ÖFOL-ID, Name/Jahrgang-Evidenz,
+   Kandidatenstatus und kanonische Vereinszuordnung getrennt prüfen.
+5. **Meisterschaften:** nationale Eligibility, Landeszuordnung, OOC-/Family-
+   Ausschluss und Medailleninvarianten prüfen.
+6. **Regression und Release:** normalisierten Diff ansehen, einmal vollständig
+   bauen, Qualitätsgate, DB-Invarianten und Tests ausführen.
+
+Die Standardbefehle für die Abschlussphase sind:
+
+```sh
+python3 build/normalized_diff.py
+python3 build/build_db.py
+python3 build/audit_event_coverage.py
+python3 build/quality_report.py --fail-on-blockers
+python3 build/validate_db.py
+python3 -m unittest discover -s tests
+```
+
+`cached_sources_without_parsed_rows` ist eine priorisierte Quellen-Queue, aber
+nicht automatisch ein fehlendes Event: Bahnlisten, Serienwertungen,
+Vereins-/Schulsonderwertungen und schlechtere Parallelquellen können bewusst
+außerhalb der veröffentlichten Rennergebnisse bleiben. Ein Releasefehler liegt
+vor, wenn ein Event mit Ergebnisquelle gar keine Ergebnisse besitzt oder eine
+normalisierte Quelle ohne erklärten Grund unveröffentlicht bleibt.

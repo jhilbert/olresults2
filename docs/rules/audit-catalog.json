@@ -13,6 +13,7 @@
   "source_count_anomaly": {"rule": "PARSE-005", "domain": "source", "owner": "source", "action": "Widerspruch im Quellkopf dokumentieren; vollständige Ergebniszeilen nicht löschen."},
   "source_category_missing": {"rule": "PARSE-002", "domain": "source", "owner": "source", "action": "Quelle enthält keine rekonstruierbare Kategorie; bessere offizielle Quelle suchen, Daten nicht erraten."},
   "source_declared_omission": {"rule": "PARSE-005", "domain": "source", "owner": "source", "action": "Prüfen, ob gemeldete Nichtstarter in der Quelle tatsächlich nicht angeführt sind."},
+  "source_omission_recovered": {"rule": "PARSE-005", "domain": "source", "owner": "source", "action": "Ergänzende offizielle Quelle als Provenienz behalten; bei Wegfall der ergänzten Zeilen wieder als offene Auslassung behandeln."},
   "source_rank_anomaly": {"rule": "RANK-002", "domain": "source", "owner": "source", "action": "Rang und Zeit wurden quellgetreu übernommen; sichtbaren Widerspruch der Originalquelle dokumentieren."},
   "source_value_missing": {"rule": "PARSE-002", "domain": "source", "owner": "source", "action": "Leeren Quellwert bestätigen; keinen Status ohne Evidenz ergänzen."},
   "source_value_unreadable": {"rule": "STATUS-003", "domain": "source", "owner": "source", "action": "Als Quellenlimit dokumentieren oder bessere Quelle suchen."},

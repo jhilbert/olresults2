@@ -28,7 +28,8 @@ from pathlib import Path
 import certifi
 
 from sportsoftware_common import (
-    CAT_LINE_RE, COLUMN_ALIASES, COURSE_RE, MANUAL_ATTACHMENT_SKIP, MANUAL_CATEGORY_SKIP,
+    CAT_LINE_RE, COLUMN_ALIASES, COURSE_RE, MANUAL_ATTACHMENT_INDEX_SKIP,
+    MANUAL_ATTACHMENT_SKIP, MANUAL_CATEGORY_SKIP,
     MANUAL_DOC_DATE_OVERRIDES,
     STATUS_TAIL_RE, TIME_TOKEN_RE, category_starter_count, classify_championship_text,
     detect_list_type,
@@ -430,6 +431,583 @@ def parse_document(html_text):
                 and len(results) > category["declaredStarters"]):
             category["declaredStarters"] = len(results)
     return parsed
+
+
+def parse_simple_global_results(html_text):
+    """Parse tiny category-per-table exports without table-bound headings.
+
+    WOLV's Kids-Cup export prints ``<b>Winter (10)</b>`` outside the result
+    table. The number is the control count, not a starter count. Keep this
+    adapter narrow: every accepted table needs Pos/Name/Zeit/Posten columns.
+    """
+    categories = []
+    section_re = re.compile(
+        r"<b\b[^>]*>(?P<title>.*?)</b>\s*<br\s*/?>\s*"
+        r"(?P<table><table\b.*?</table>)",
+        re.I | re.S,
+    )
+    for section in section_re.finditer(html_text):
+        title = re.sub(
+            r"\s+", " ",
+            html_mod.unescape(re.sub(r"<[^>]+>", "", section.group("title"))),
+        ).strip()
+        title_match = re.fullmatch(
+            r"(?P<name>.+?)\s*\((?P<controls>\d+)\)", title)
+        if not title_match:
+            continue
+        extractor = TableExtractor()
+        extractor.feed(section.group("table"))
+        if len(extractor.tables) != 1 or not extractor.tables[0]:
+            continue
+        rows = extractor.tables[0]
+        header = [cell.casefold() for cell in rows[0]]
+        required = {"pos", "name", "zeit", "posten"}
+        if not required.issubset(set(header)):
+            continue
+        positions = {name: header.index(name) for name in required}
+        results = []
+        for row in rows[1:]:
+            if max(positions.values()) >= len(row):
+                continue
+            rank_text = row[positions["pos"]].strip().rstrip(".")
+            name = row[positions["name"]].strip()
+            value = row[positions["zeit"]].strip()
+            controls_text = row[positions["posten"]].strip()
+            if not rank_text.isdigit() or not name:
+                continue
+            seconds = parse_time_loose(value)
+            result = {
+                "name": name,
+                "club": "",
+                "rank": int(rank_text),
+                "timeText": value,
+                "rankingBasis": "score",
+                "status": ("ok" if seconds is not None
+                           else (parse_status(value) or "unknown")),
+            }
+            if seconds is not None:
+                result["timeS"] = seconds
+            if name.isdigit():
+                # Preserve a card number accidentally entered in the source's
+                # Name cell, but never mint a fake runner identity from it.
+                result["identityExcluded"] = True
+            if controls_text.isdigit():
+                result["sourceControls"] = int(controls_text)
+                result["scoreText"] = controls_text
+            results.append(result)
+        if results:
+            categories.append({
+                "name": title_match.group("name").strip(),
+                "sourceCategory": title,
+                "declaredStarters": len(results),
+                "sourceUnitCount": len(results),
+                "courseControls": int(title_match.group("controls")),
+                "rankingBasis": "score",
+                "results": results,
+            })
+    return categories
+
+
+def parse_oe_multistage_html(html_text, stage_specs):
+    """Extract stage columns from one OE ``Gesamt-Ergebnis`` HTML export.
+
+    ``stage_specs`` contains logical output stages and source-column indexes.
+    Ordinary stages use their own time/rank columns.  A pursuit/final stage
+    may set ``overallTimeIndex`` and ``overallRankIndex`` so its published
+    finish order and accumulated time remain authoritative while the stage
+    split is retained in the note.
+    """
+    extractor = TableExtractor()
+    extractor.feed(html_text)
+    stage_documents = []
+    stage_categories = [[] for _ in stage_specs]
+    category_re = re.compile(
+        r"^(?P<name>.+?)\s*\((?P<count>\d+)\)(?:\s+.*)?$")
+
+    tables = extractor.tables
+    for index in range(len(tables) - 2):
+        category_table, header_table, result_table = (
+            tables[index:index + 3])
+        if (len(category_table) != 1 or not category_table[0]
+                or len(header_table) != 1 or not header_table[0]):
+            continue
+        match = category_re.fullmatch(category_table[0][0].strip())
+        header = header_table[0]
+        if not match or "Name" not in header or not any(
+                re.fullmatch(r"E\d+", cell.strip()) for cell in header):
+            continue
+        category_name = match.group("name").strip()
+        declared = int(match.group("count"))
+        annulled = {
+            f"E{number}" for number in re.findall(
+                r"Annulliert\s+E(\d+)", category_table[0][0], re.I)
+        }
+        per_stage = [
+            None if spec.get("sourceColumn") in annulled else {
+                "name": category_name,
+                "sourceCategory": category_table[0][0].strip(),
+                "declaredStarters": declared,
+                "sourceUnitCount": 0,
+                "rankingBasis": "time",
+                "_hasObservedStageValue": False,
+                "results": [],
+            }
+            for spec in stage_specs
+        ]
+        for row in result_table:
+            if len(row) < 6:
+                continue
+            name = row[2].strip() if len(row) > 2 else ""
+            club = row[4].strip() if len(row) > 4 else ""
+            if not name or not club or is_junk_name(name):
+                continue
+            for spec_index, spec in enumerate(stage_specs):
+                if per_stage[spec_index] is None:
+                    continue
+                value_index = spec["timeIndex"]
+                if value_index >= len(row):
+                    continue
+                stage_value = row[value_index].strip()
+                stage_seconds = parse_time_loose(stage_value)
+                stage_status = (
+                    "ok" if stage_seconds is not None
+                    else parse_status(stage_value)
+                )
+                inferred_dns = bool(
+                    stage_status is None
+                    and spec.get("blankStageMeansDns")
+                    and not stage_value
+                )
+                if inferred_dns:
+                    stage_status = "dns"
+                    stage_value = "DNS"
+                elif stage_status is None:
+                    continue
+                if not inferred_dns:
+                    per_stage[spec_index]["_hasObservedStageValue"] = True
+
+                displayed_value = stage_value
+                displayed_seconds = stage_seconds
+                rank_text = ""
+                if spec.get("overallTimeIndex") is not None:
+                    overall_index = spec["overallTimeIndex"]
+                    overall_value = (
+                        row[overall_index].strip()
+                        if overall_index < len(row) else ""
+                    )
+                    overall_seconds = parse_time_loose(overall_value)
+                    if stage_status == "ok" and overall_seconds is not None:
+                        displayed_value = overall_value
+                        displayed_seconds = overall_seconds
+                    rank_index = spec.get("overallRankIndex")
+                    rank_text = (
+                        row[rank_index].strip().rstrip(".")
+                        if rank_index is not None and rank_index < len(row)
+                        else ""
+                    )
+                else:
+                    rank_index = spec.get("rankIndex")
+                    rank_text = (
+                        row[rank_index].strip().rstrip(".")
+                        if rank_index is not None and rank_index < len(row)
+                        else ""
+                    )
+
+                result = {
+                    "name": name, "club": club,
+                    "timeText": displayed_value,
+                    "status": stage_status,
+                }
+                if displayed_seconds is not None:
+                    result["timeS"] = displayed_seconds
+                if rank_text.isdigit() and stage_status == "ok":
+                    result["rank"] = int(rank_text)
+                elif is_ooc_status(rank_text):
+                    result["outOfCompetition"] = True
+                if spec.get("overallTimeIndex") is not None:
+                    result["note"] = (
+                        f"{spec.get('sourceLabel', 'Etappenzeit')}: "
+                        f"{'leer (als DNS)' if inferred_dns else stage_value}"
+                    )
+                    # A pursuit/overall export can contain a valid final-stage
+                    # split but deliberately no overall placement or total
+                    # when an earlier stage was MP/DNS.  Preserve the split,
+                    # but identify the row as outside the published overall
+                    # classification instead of presenting it as a lost rank.
+                    if (spec.get("unrankedStageIsOoc")
+                            and stage_status == "ok"
+                            and displayed_value == stage_value
+                            and not rank_text):
+                        result["outOfCompetition"] = True
+                yob = row[3].strip() if len(row) > 3 else ""
+                if yob.isdigit():
+                    year = int(yob)
+                    result["yearOfBirth"] = (
+                        year + (2000 if year <= 26 else 1900)
+                        if year < 100 else year
+                    )
+                per_stage[spec_index]["results"].append(result)
+
+        for spec_index, category in enumerate(per_stage):
+            if (category is not None and category["results"]
+                    and category.pop("_hasObservedStageValue", False)):
+                category["sourceUnitCount"] = len(category["results"])
+                stage_categories[spec_index].append(category)
+
+    for spec, categories in zip(stage_specs, stage_categories):
+        if not categories:
+            continue
+        stage_documents.append({
+            "stageNumber": spec["stageNumber"],
+            "stageDate": spec.get("stageDate"),
+            "stageTitle": spec.get("stageTitle"),
+            "listType": "race",
+            "categories": categories,
+        })
+    return stage_documents
+
+
+def _school_excel_duration(value):
+    """Interpret Excel's accidental ``minutes:seconds:00`` display."""
+    match = re.fullmatch(r"(\d+):([0-5]\d):00", (value or "").strip())
+    if not match:
+        return None
+    return int(match.group(1)) * 60 + int(match.group(2))
+
+
+def parse_noe_school_team_html(html_text):
+    """Parse the 2016 NÖ school Mannschaftswertung Excel-HTML export.
+
+    Only ranked three-person teams are results in this source. The later
+    ``Qualifikation für Bundesmeisterschaft`` block is a duplicate subset.
+    """
+    extractor = TableExtractor()
+    extractor.feed(html_text)
+    extractor.close()
+    if not extractor.tables:
+        return []
+
+    categories = []
+    current = None
+    pending = None
+    category_names = {
+        "Unterstufe männlich", "Unterstufe weiblich",
+        "Oberstufe männlich", "Oberstufe weiblich",
+    }
+
+    def flush():
+        nonlocal pending
+        if current is None or pending is None:
+            pending = None
+            return
+        members = pending["members"]
+        if len(members) != 3:
+            pending = None
+            return
+        team_number = f"{current['name']}-{pending['rank']}"
+        for index, member in enumerate(members, 1):
+            result = {
+                "name": member["name"], "club": pending["club"],
+                "rank": pending["rank"], "status": "ok",
+                "individualStatus": member["status"],
+                "timeText": member["timeText"],
+                "resultKind": "team", "teamNumber": team_number,
+                "teamName": pending["club"],
+                "teamTimeText": pending["teamTimeText"],
+                "note": f"Mannschaft {pending['club']} · Mitglied {index}/3",
+            }
+            if member.get("timeS") is not None:
+                result["timeS"] = member["timeS"]
+            if pending.get("teamTimeS") is not None:
+                result["teamTimeS"] = pending["teamTimeS"]
+            current["results"].append(result)
+        current["sourceUnitCount"] += 1
+        pending = None
+
+    for row in extractor.tables[0]:
+        cells = [re.sub(r"\s+", " ", cell or "").strip() for cell in row]
+        first = cells[0] if cells else ""
+        if first.startswith("Qualifikation für Bundesmeisterschaft"):
+            flush()
+            break
+        if first in category_names:
+            flush()
+            current = {
+                "name": first, "declaredStarters": None,
+                "sourceUnitCount": 0, "rankingBasis": "time", "results": [],
+            }
+            categories.append(current)
+            continue
+        if current is None or first == "Rang":
+            continue
+
+        if first.isdigit() and len(cells) >= 6:
+            flush()
+            club, surname, given, raw_time, team_time = cells[1:6]
+            if not all((club, surname, given, raw_time, team_time)):
+                continue
+            seconds = _school_excel_duration(raw_time)
+            status = "ok" if seconds is not None else parse_status(raw_time)
+            team_seconds = _school_excel_duration(team_time)
+            if status is None or team_seconds is None:
+                continue
+            pending = {
+                "rank": int(first), "club": club,
+                "teamTimeText": team_time, "teamTimeS": team_seconds,
+                "members": [{
+                    "name": f"{surname} {given}", "timeText": raw_time,
+                    "timeS": seconds, "status": status,
+                }],
+            }
+            continue
+
+        if pending is not None and len(cells) >= 4:
+            club, surname, given, raw_time = cells[:4]
+            if not all((club, surname, given, raw_time)):
+                continue
+            seconds = _school_excel_duration(raw_time)
+            status = "ok" if seconds is not None else parse_status(raw_time)
+            if status is None:
+                continue
+            pending["members"].append({
+                "name": f"{surname} {given}", "timeText": raw_time,
+                "timeS": seconds, "status": status,
+            })
+            if len(pending["members"]) == 3:
+                flush()
+    flush()
+
+    for category in categories:
+        category["declaredStarters"] = category["sourceUnitCount"]
+    return [category for category in categories if category["results"]]
+
+
+def parse_os2003_relay_pre_html(html_text):
+    """Parse OS2003's fixed-width relay report embedded in ``<pre>``."""
+    pre_match = re.search(r"<pre\b[^>]*>(.*?)</pre>", html_text, re.I | re.S)
+    if not pre_match:
+        return []
+    fixed = html_mod.unescape(re.sub(r"<[^>]+>", "", pre_match.group(1)))
+    categories = []
+    current = None
+    pending = None
+    category_re = re.compile(r"^(?P<name>.+?)\s+\((?P<count>\d+)\)\s*$")
+
+    def result_value(value):
+        seconds = parse_time_loose(value)
+        return seconds, ("ok" if seconds is not None
+                         else (parse_status(value) or "unknown"))
+
+    def flush():
+        nonlocal pending
+        if current is None or pending is None:
+            pending = None
+            return
+        member_statuses = [member["status"] for member in pending["members"]]
+        team_status = aggregate_team_status(pending["declaredStatus"], member_statuses)
+        team_number = pending["teamNumber"]
+        members = pending["members"]
+        if not members:
+            current["results"].append({
+                "name": "", "club": "", "status": team_status,
+                "teamStatus": team_status, "timeText": pending["teamTimeText"],
+                "resultKind": "relay", "teamNumber": team_number,
+                "teamName": pending["teamName"], "memberlessTeam": True,
+                "teamTimeText": pending["teamTimeText"],
+            })
+        for leg, member in enumerate(members, 1):
+            result = {
+                "name": member["name"], "club": "",
+                "status": team_status, "teamStatus": team_status,
+                "individualStatus": member["status"],
+                "timeText": member["timeText"],
+                "resultKind": "relay", "teamNumber": team_number,
+                "teamName": pending["teamName"],
+                "teamTimeText": pending["teamTimeText"],
+                "leg": leg, "legCount": len(members),
+                "note": (
+                    f"Staffel {pending['teamName']} · "
+                    f"Leg {leg}/{len(members)}"
+                ),
+            }
+            if pending.get("rank") is not None:
+                result["rank"] = pending["rank"]
+            if pending["outOfCompetition"]:
+                result["outOfCompetition"] = True
+            if member.get("timeS") is not None:
+                result["timeS"] = member["timeS"]
+            if pending.get("teamTimeS") is not None:
+                result["teamTimeS"] = pending["teamTimeS"]
+            current["results"].append(result)
+        current["sourceUnitCount"] += 1
+        pending = None
+
+    for raw_line in fixed.splitlines():
+        line = raw_line.rstrip()
+        category_match = category_re.fullmatch(line.strip())
+        if category_match and not line.lstrip().startswith(("Pl ", "Name ")):
+            flush()
+            current = {
+                "name": category_match.group("name").strip(),
+                "declaredStarters": int(category_match.group("count")),
+                "sourceUnitCount": 0, "rankingBasis": "time", "results": [],
+            }
+            categories.append(current)
+            continue
+        if current is None or not line.strip():
+            continue
+
+        # Fixed columns: Pl[0:6], Stnr[6:13], Staffel[13:50], Zeit[50:].
+        team_number = line[6:13].strip() if len(line) >= 13 else ""
+        team_name = line[13:50].strip() if len(line) >= 50 else ""
+        team_value = line[50:].strip() if len(line) > 50 else ""
+        if team_number.isdigit() and team_name and team_value:
+            flush()
+            rank_text = line[:6].strip()
+            team_seconds, declared_status = result_value(team_value)
+            pending = {
+                "rank": int(rank_text) if rank_text.isdigit() else None,
+                "outOfCompetition": rank_text.casefold() == "ak",
+                "teamNumber": team_number, "teamName": team_name,
+                "teamTimeText": team_value, "teamTimeS": team_seconds,
+                "declaredStatus": declared_status, "members": [],
+            }
+            continue
+
+        if pending is None or len(line) < 48:
+            continue
+        member_name = line[13:42].strip()
+        member_value = line[47:].strip()
+        if not member_name or not member_value:
+            continue
+        seconds, status = result_value(member_value)
+        pending["members"].append({
+            "name": member_name, "timeText": member_value,
+            "timeS": seconds, "status": status,
+        })
+    flush()
+    return [category for category in categories if category["results"]]
+
+
+def parse_vienna_sprint_relay_html(html_text):
+    """Parse Vienna O Challenge's compact team/member relay table."""
+    extractor = TableExtractor()
+    extractor.feed(html_text)
+    extractor.close()
+    if not extractor.tables:
+        return []
+    categories = []
+    current = None
+    pending = None
+
+    def value_status(value):
+        seconds = parse_time_loose(value)
+        return seconds, ("ok" if seconds is not None
+                         else (parse_status(value) or "unknown"))
+
+    def flush():
+        nonlocal pending
+        if current is None or pending is None:
+            pending = None
+            return
+        member_statuses = [member["status"] for member in pending["members"]]
+        team_status = aggregate_team_status(pending["declaredStatus"], member_statuses)
+        members = pending["members"]
+        if not members:
+            current["results"].append({
+                "name": "", "club": "",
+                "status": team_status, "teamStatus": team_status,
+                "timeText": pending["teamTimeText"],
+                "resultKind": "relay", "teamNumber": pending["teamNumber"],
+                "teamName": pending["teamName"],
+                "teamTimeText": pending["teamTimeText"],
+                "memberlessTeam": True,
+                "note": f"Staffel {pending['teamName']} · keine Mitgliedsnamen",
+            })
+        for member in members:
+            result = {
+                "name": member["name"], "club": "",
+                "status": team_status, "teamStatus": team_status,
+                "individualStatus": member["status"],
+                "timeText": member["timeText"],
+                "resultKind": "relay", "teamNumber": pending["teamNumber"],
+                "teamName": pending["teamName"],
+                "teamTimeText": pending["teamTimeText"],
+                "leg": member["leg"], "legCount": len(members),
+                "note": (
+                    f"Staffel {pending['teamName']} · "
+                    f"Leg {member['leg']}/{len(members)}"
+                ),
+            }
+            if pending.get("rank") is not None:
+                result["rank"] = pending["rank"]
+            if member.get("timeS") is not None:
+                result["timeS"] = member["timeS"]
+            if pending.get("teamTimeS") is not None:
+                result["teamTimeS"] = pending["teamTimeS"]
+            current["results"].append(result)
+        current["sourceUnitCount"] += 1
+        pending = None
+
+    for row in extractor.tables[0]:
+        cells = [re.sub(r"\s+", " ", cell or "").strip() for cell in row]
+        while cells and not cells[-1]:
+            cells.pop()
+        if cells and not cells[0]:
+            cells = cells[1:]
+        if len(cells) >= 3 and cells[-2:] == ["", "Time"]:
+            # Defensive path for a differently retained blank cell.
+            cells = [cell for cell in cells if cell]
+        if len(cells) >= 2 and cells[-1] == "Time":
+            flush()
+            current = {
+                "name": cells[0], "declaredStarters": None,
+                "sourceUnitCount": 0, "rankingBasis": "time", "results": [],
+            }
+            categories.append(current)
+            continue
+        if current is None or not cells:
+            continue
+
+        # Members always have leg, name, leg time and cumulative time.
+        expected_leg = (
+            len(pending["members"]) + 1 if pending is not None else None)
+        if (pending is not None and len(cells) >= 4
+                and cells[0] == f"{expected_leg}."
+                and expected_leg <= 4):
+            leg = int(cells[0].rstrip("."))
+            seconds, status = value_status(cells[2])
+            pending["members"].append({
+                "leg": leg, "name": cells[1], "timeText": cells[2],
+                "timeS": seconds, "status": status,
+            })
+            if leg == 4:
+                flush()
+            continue
+
+        flush()
+        if len(cells) >= 3 and re.fullmatch(r"\d+\.", cells[0]):
+            rank = int(cells[0].rstrip("."))
+            team_name, team_value = cells[1], cells[2]
+        elif len(cells) >= 2:
+            rank = None
+            team_name, team_value = cells[0], cells[1]
+        else:
+            continue
+        team_seconds, declared_status = value_status(team_value)
+        if not team_name or declared_status == "unknown":
+            continue
+        pending = {
+            "rank": rank,
+            "teamNumber": f"{current['name']}-{current['sourceUnitCount'] + 1}",
+            "teamName": team_name,
+            "teamTimeText": team_value, "teamTimeS": team_seconds,
+            "declaredStatus": declared_status, "members": [],
+        }
+    flush()
+    for category in categories:
+        category["declaredStarters"] = category["sourceUnitCount"]
+    return [category for category in categories if category["results"]]
 
 
 BRACKET_CAT_RE = re.compile(r"^\(\d+(?:\s*/\s*\d+)?\)$")
@@ -990,9 +1568,11 @@ def parse_positioned_document(html_text, relay=False):
         if not name or is_junk_name(name):
             continue
         seconds = parse_time_loose(value)
-        status = "ok" if seconds is not None else (parse_status(value) or None)
-        if status is None:
-            continue
+        # A dash is a real, named source row with an unspecified result
+        # state.  Dropping it turns the row into a false completeness gap.
+        # Keep it as ``unknown`` so it remains visible and reviewable.
+        status = "ok" if seconds is not None else (
+            parse_status(value) or "unknown")
         result = {
             "name": name, "club": club, "timeText": value, "status": status,
         }
@@ -1167,7 +1747,8 @@ def main():
 
     ok = empty = failed = 0
     for eid, n, f, sole_attachment in jobs:
-        if (eid, f["fileName"]) in MANUAL_ATTACHMENT_SKIP:
+        if ((eid, n) in MANUAL_ATTACHMENT_INDEX_SKIP
+                or (eid, f["fileName"]) in MANUAL_ATTACHMENT_SKIP):
             empty += 1
             continue
         out_path = OUT / f"{eid}-{n}.json"
@@ -1179,11 +1760,47 @@ def main():
             data = fetch(f["url"], html_path, args.force_download)
             text = decode(data)
             list_type = detect_list_type(f["fileName"], text, sole_attachment)
-            if list_type == "overall":
+            stage_documents = None
+            if (eid, n) == (2430, 3):
+                stage_documents = parse_oe_multistage_html(text, [
+                    {
+                        "stageNumber": 3, "stageDate": "2019-06-22",
+                        "stageTitle": "-2. Einzelbewerb",
+                        "sourceColumn": "E2", "timeIndex": 7, "rankIndex": 8,
+                        "blankStageMeansDns": True,
+                    },
+                    {
+                        "stageNumber": 4, "stageDate": "2019-06-23",
+                        "stageTitle": "-3.Einzelbewerb",
+                        "sourceColumn": "E3", "timeIndex": 9, "rankIndex": 10,
+                        "blankStageMeansDns": True,
+                    },
+                ])
+                cats = []
+            elif (eid, n) == (3681, 1):
+                stage_documents = parse_oe_multistage_html(text, [{
+                    "stageNumber": 2, "stageDate": "2022-02-27",
+                    "stageTitle": "8 AC Verfolgung",
+                    "timeIndex": 7,
+                    "overallTimeIndex": 8,
+                    "overallRankIndex": 0,
+                    "sourceLabel": "E2-Laufzeit",
+                    "unrankedStageIsOoc": True,
+                    "blankStageMeansDns": True,
+                }])
+                cats = []
+            elif ("Bundesländer-Staffel Turracherhöhe 8.9.2013" in text
+                    and "<pre" in text.lower()):
+                cats = parse_os2003_relay_pre_html(text)
+            elif "Results Vienna Sprint Relay 2022" in text:
+                cats = parse_vienna_sprint_relay_html(text)
+            elif "NÖ Schul MS - 19.04.2016 / Mannschaftswertungen" in text:
+                cats = parse_noe_school_team_html(text)
+            elif list_type == "overall":
                 empty += 1  # split-times / cumulative-standings report: redundant, skip
                 out_path.unlink(missing_ok=True)  # stale output from an earlier, buggier run
                 continue
-            if list_type == "relay":
+            elif list_type == "relay":
                 cats = parse_relay_document(text)
                 if not cats and re.search(r"Results\s+[–-].*\bTime lost\b", text, re.I | re.S):
                     cats = parse_meos_relay_table(text)
@@ -1214,29 +1831,37 @@ def main():
                     fixed_text = html_mod.unescape(re.sub(r"<[^>]+>", "", text))
                     cats = parse_text(fixed_text)
                 if not cats:
+                    cats = parse_simple_global_results(text)
+                if not cats:
                     cats = parse_bracket_html(text)
             skip_cats = MANUAL_CATEGORY_SKIP.get((eid, f["fileName"]))
-            if skip_cats:
+            if skip_cats and not stage_documents:
                 cats = [c for c in cats if c["name"] not in skip_cats]
-            if not cats:
+            if not cats and not stage_documents:
                 empty += 1
                 out_path.unlink(missing_ok=True)  # stale output from an earlier, buggier run
                 continue
-            if re.search(r"\bOEScore(?:\d{4})?\b|\bSCORE[- ]?OL\b", text, re.I):
+            if (not stage_documents
+                    and re.search(r"\bOEScore(?:\d{4})?\b|\bSCORE[- ]?OL\b",
+                                  text, re.I)):
                 for category in cats:
                     for result in category.get("results") or []:
                         result["rankingBasis"] = "score"
-            out_path.write_text(json.dumps({
+            normalized_document = {
                 "eventId": eid,
                 "source": "sportsoftware-html",
                 "sourceUrl": f["url"],
                 "fileName": f["fileName"],
-                "listType": list_type,
+                "listType": "multi-stage" if stage_documents else list_type,
                 "docDate": MANUAL_DOC_DATE_OVERRIDES.get((eid, f["fileName"]))
                            or guess_doc_date(f["fileName"], text),
                 "docTitle": extract_html_title(text),
                 "categories": cats,
-            }, ensure_ascii=False))
+            }
+            if stage_documents:
+                normalized_document["stageDocuments"] = stage_documents
+            out_path.write_text(json.dumps(
+                normalized_document, ensure_ascii=False))
             ok += 1
         except Exception as e:
             failed += 1

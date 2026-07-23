@@ -1,0 +1,10 @@
+{
+  "530": {
+    "reason": "ANNE enthält nur einen ranglosen, minutengenauen Altimport; die verlinkte Veranstalter-Domain ist nicht mehr erreichbar und eine belastbare Ergebnisliste wurde nicht gefunden.",
+    "decision": "exclude-no-usable-result-source"
+  },
+  "2610": {
+    "reason": "ANNE enthält nur ranglose, minutengenaue Teilinformationen. Das erreichbare ARGE-ALP-Staffel-Livearchiv wurde mitten im Bewerb eingefroren; die vollständige Einzelwertung gehört zu einer anderen Etappe.",
+    "decision": "exclude-no-usable-result-source"
+  }
+}

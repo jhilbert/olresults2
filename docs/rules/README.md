@@ -30,6 +30,14 @@ sein. Direkte Korrekturen der erzeugten SQLite-Datenbank sind nicht zulässig.
 | `PARSE-005` | confirmed | Eine Quellenzahl in Klammern kann Meldungen statt sichtbarer Ergebnisse zählen. Eine Abweichung ist deshalb zu erklären, nicht automatisch als Parserfehler zu behandeln. |
 | `EXCEPT-001` | confirmed | Eine quell- oder eventbezogene Ausnahme muss eng begrenzt, mit Quelle und Grund dokumentiert sowie durch einen Regressionstest geschützt sein. Globale Heuristiken dürfen nicht aus einem Einzelfall abgeleitet werden. |
 
+## Wettkampfjahr und Saison
+
+| ID | Status | Regel |
+|---|---|---|
+| `SEASON-001` | confirmed | Das Wettkampfjahr dauert grundsätzlich vom 1. Jänner bis zum 31. Dezember desselben Kalenderjahres. |
+| `SEASON-002` | confirmed | Beim Ski-O beginnt das Wettkampfjahr am 1. November des Vorjahres und endet am 31. Oktober. Ein Ski-O-Ergebnis aus November oder Dezember gehört daher zur Saison des folgenden Kalenderjahres. |
+| `SEASON-003` | confirmed | Alle Saisonfilter und -gruppierungen in Wettkampf-, Läufer:innen-, Vereins-, Medaillen- und DNS-Sichten verwenden dieselbe disziplinabhängige Wettkampfjahrberechnung. |
+
 ## Ergebnis-, Rang- und Statusmodell
 
 | ID | Status | Regel |
@@ -37,6 +45,7 @@ sein. Direkte Korrekturen der erzeugten SQLite-Datenbank sind nicht zulässig.
 | `STATUS-001` | confirmed | Der normalisierte Status ist genau `ok`, `dns`, `dnf`, `mp`, `dsq` oder `unknown`. Historische Synonyme werden auf diese Werte abgebildet. |
 | `STATUS-002` | confirmed | `AK`/`OOC` ist das unabhängige Feld `out_of_competition`, kein Ergebnisstatus. OOC kann gleichzeitig Zeit, DNS, DNF, MP oder DSQ besitzen. |
 | `STATUS-003` | confirmed | Nicht rekonstruierbare Quellwerte bleiben `unknown`; die Oberfläche muss zwischen unlesbarer Quelle und Parserfehler unterscheiden. |
+| `STATUS-004` | confirmed | Negative Zeitwerte sind Quell- oder API-Sentinels, keine messbaren Laufzeiten. Der Rohwert bleibt als Evidenz erhalten, wird aber nicht in `time_s` oder `team_time_s` gespeichert. |
 | `RANK-001` | confirmed | OOC-Leistungen erhalten keinen regulären numerischen Rang und nehmen an keiner Medaillenberechnung teil; sie bleiben am Ende der Ergebnisdarstellung sichtbar. |
 | `RANK-002` | confirmed | Eine Rang-Zeit-Inversion ist nur bei echten Zeitwertungen verdächtig. Score-, Serien-, Spezial- und autoritative ANNE-Rankings sind ausgenommen. |
 | `RANK-003` | confirmed | Annullierte Kategorien und ausdrücklich reine Bahnlisten benötigen keine Rangfolge. |
@@ -49,6 +58,7 @@ sein. Direkte Korrekturen der erzeugten SQLite-Datenbank sind nicht zulässig.
 | `IDENT-001` | confirmed | Eine ÖFOL-ID aus dem ANNE-Personenregister ist der kanonische Personen-Identifier. Quell-ID, Registertreffer und Vereinslistenbestätigung bleiben getrennte Evidenzen. |
 | `IDENT-002` | confirmed | Exakter Name plus Geburtsjahr beziehungsweise direkte ÖFOL-ID kann eine Identität auflösen. Nur heutiger Verein plus Name bleibt ein Kandidat, weil heutige Mitgliedschaft historische Ergebnisse nicht umschreibt. |
 | `IDENT-003` | confirmed | Mehrdeutige oder widersprüchliche Evidenz erzeugt einen Prüf- oder Konfliktstatus und darf keine automatische Personenverschmelzung auslösen. |
+| `IDENT-004` | confirmed | Ein sichtbares Ergebnis ohne verwendbaren Personenbezeichner (zum Beispiel eine SI-Kartennummer im Namensfeld) bleibt als personlose Quellleistung erhalten, erzeugt aber weder Läuferprofil noch Meisterschaftswertung. |
 | `CLUB-001` | confirmed | Quellschreibweisen dürfen auf einen bestätigten kanonischen Verein normalisiert werden; beobachteter Vereinsname und kanonischer Verein bleiben getrennt nachvollziehbar. |
 
 ## Paar, Mannschaft und Staffel
@@ -61,6 +71,7 @@ sein. Direkte Korrekturen der erzeugten SQLite-Datenbank sind nicht zulässig.
 | `TEAM-004` | confirmed | Dieselbe Person darf mehrere Legs laufen, wird aber pro Teamleistung in Personen-, Vereins- und Medaillensichten nur einmal gezählt. |
 | `TEAM-005` | confirmed | Nachtlauf-Paare werden als eine Start-/Rang-Einheit und zugleich als getrennt identifizierbare Personen gespeichert. |
 | `TEAM-006` | confirmed | Mannschaft bedeutet gemeinsamer Lauf mit einer Teamzeit; Staffel bedeutet aufeinanderfolgende Legs. Beide Modelle dürfen nicht gegenseitig interpretiert werden. |
+| `TEAM-007` | confirmed | Eine ausdrücklich veröffentlichte Mannschaftswertung aus getrennten Einzelläufen bleibt ebenfalls ein Teamresultat: Teamrang und Mannschaftssumme werden gemeinsam gespeichert, Einzelzeiten und Einzelstatus je Mitglied zusätzlich. Sie wird nicht als Staffel mit Legs interpretiert. |
 
 ## Meisterschaften
 
@@ -86,8 +97,10 @@ sein. Direkte Korrekturen der erzeugten SQLite-Datenbank sind nicht zulässig.
 
 ## Verknüpfte Implementierung
 
-- Parser: `ingest/parse_sportsoftware_*.py`, `ingest/sportsoftware_common.py`
+- Parser: `ingest/parse_sportsoftware_*.py`,
+  `ingest/parse_sportident_center.py`, `ingest/sportsoftware_common.py`
 - Datenmodell, Identität und Meisterschaften: `build/build_db.py`
+- Saison- und weitere reine Oberflächenregeln: `site/domain_rules.js`
 - Release-Invarianten: `build/validate_db.py`
 - Prüfoberfläche: `site/review.js`
 - Parser-Golden-Fälle: `tests/fixtures/parser/`, `tests/test_parser_golden.py`

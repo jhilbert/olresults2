@@ -28,6 +28,22 @@
         {"match": {"name": "Fink Bernhard"}, "expect": {"rank": 1, "timeS": 6386, "status": "ok", "resultKind": "team"}},
         {"match": {"memberlessTeam": true}, "expect": {"teamNumber": "29", "status": "dns", "resultKind": "team"}}
       ]
+    },
+    {
+      "id": "simple-global-category-and-unidentified-source-row",
+      "rules": ["PARSE-001", "PARSE-002", "IDENT-004", "STATUS-003"],
+      "parser": "sportsoftware-html-simple-global",
+      "source": "simple_global_results.html",
+      "category": "Geschenke",
+      "declared_starters": 4,
+      "source_units": 4,
+      "result_rows": 4,
+      "rows": [
+        {"match": {"name": "2052065"}, "expect": {"rank": 1, "timeS": 179, "status": "ok", "identityExcluded": true}},
+        {"match": {"name": "Leonard"}, "expect": {"rank": 2, "timeS": 245, "status": "ok", "rankingBasis": "score", "scoreText": "7"}},
+        {"match": {"name": "Serge"}, "expect": {"rank": 3, "timeS": 371, "status": "ok"}},
+        {"match": {"name": "Source Error"}, "expect": {"rank": 4, "timeText": "-11:25:53", "status": "unknown"}}
+      ]
     }
   ]
 }

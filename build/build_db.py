@@ -26,6 +26,24 @@ DB_PATH = ROOT / "site" / "data" / "results.db"
 REVIEW_DECISIONS_PATH = ROOT / "data" / "review" / "verification.json"
 CHAMPIONSHIP_CATALOG_PATH = ROOT / "data" / "review" / "championship_catalog.json"
 CLUB_JURISDICTIONS_PATH = ROOT / "data" / "club_jurisdictions.json"
+EXCLUDED_EVENTS_PATH = ROOT / "data" / "review" / "excluded_events.json"
+
+
+def load_event_exclusions(path=EXCLUDED_EVENTS_PATH):
+    """Return event IDs deliberately omitted from the published database.
+
+    Raw and normalized evidence stays in the repository so a later recovered
+    official source can reverse the decision.  The exclusion acts before the
+    event row is inserted, so stages, results and derived person/statistic
+    rows cannot leak into the published model.
+    """
+    if not path.exists():
+        return {}
+    return {int(event_id): value for event_id, value
+            in json.loads(path.read_text()).items()}
+
+
+EXCLUDED_EVENTS = load_event_exclusions()
 
 # Dedicated national result sources discovered in ANNE's attachment catalog.
 # ``supplemental`` means the document is a real stage missing from ANNE's
@@ -330,7 +348,7 @@ SELECT stage_id, category,
        SUM(status = 'ok')                             AS classified,
        MIN(CASE WHEN rank = 1 THEN time_s END)        AS winner_time_s
 FROM result
-WHERE status != 'dns' AND result_kind NOT IN ('relay', 'family')
+WHERE result_kind NOT IN ('relay', 'family')
 GROUP BY stage_id, category;
 
 -- Source-faithful relay rows stay in result: one row per leg.  Person- and
@@ -890,6 +908,10 @@ FOREIGN_HOST_REQUIRE_OFFICIAL_CLUB_EVENTS = {5280}
 # result (including the very next day's) spells the same Naturfreunde Wien
 # runner "Anika Gassner" - verified against the club's own Excel medal sheet.
 KNOWN_NAME_TYPOS = {
+    # The fixed-width 2013 Nachtlauf export splits the last three letters
+    # across the Name/Verein boundary: ``Christina Hell | man OK gittis...``.
+    # The full physical source line unambiguously spells Christina Hellman.
+    (856, "Christina Hell"): "Christina Hellman",
     (3633, "Anita Gassner"): "Anika Gassner",
     # Naturfreunde Wien's own Excel medal sheet and her ANNE-resolved
     # identity both spell her "Matilda" (no h); these two source documents
@@ -924,6 +946,11 @@ KNOWN_NAME_TYPOS = {
 # wurden gegengeprüft.  ``observed_club`` behält unten weiterhin den rohen
 # Wert; nur die normalisierte sportliche Zuordnung wird berichtigt.
 KNOWN_RESULT_CLUB_OVERRIDES = {
+    (856, "Christina Hellman"): "Orienteering Klosterneuburg",
+    # The same damaged fixed-width row leaks ``man`` (the tail of
+    # Hellman) into the Verein column for all three pair members.
+    (856, "Maria Reil"): "Orienteering Klosterneuburg",
+    (856, "Laura"): "Orienteering Klosterneuburg",
     (3847, "Thomas Radon"): "Naturfreunde Wien",
     (3847, "Nikolaus Euler-Rolle"): "Naturfreunde Wien",
     (3847, "Michael Grill"): "Naturfreunde Wien",
@@ -1703,6 +1730,8 @@ CLUB_SOURCE_ALIASES = {
     "HSV OL Wr. Neustadt": "HSV OL Wiener Neustadt",
     "HSV OL Wr.Neustadt": "HSV OL Wiener Neustadt",
     "HSV Wr. Neustadt": "HSV OL Wiener Neustadt",
+    "HSV Wr Neustadt": "HSV OL Wiener Neustadt",
+    "HSV Wr.Neustadt": "HSV OL Wiener Neustadt",
     "HSV Wiener Neustadt": "HSV OL Wiener Neustadt",
     "LK Innsbruck": "Laufklub Kompass Innsbruck",
     "NF Villach Orienteering": "Naturfreunde Villach - Orienteering",
@@ -2337,7 +2366,7 @@ EVENT_SPORT_TYPE_OVERRIDES = {
 
 def load_events(cur):
     events = {e["id"]: e for e in json.loads((RAW / "events.json").read_text())
-              if not is_bewertung_clone(e)}
+              if not is_bewertung_clone(e) and e["id"] not in EXCLUDED_EVENTS}
     for e in events.values():
         cur.execute(
             "INSERT INTO event VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -2357,6 +2386,7 @@ PARSER_FILES = {
     "sportsoftware-text": ROOT / "ingest" / "parse_sportsoftware_text.py",
     "club-table": ROOT / "ingest" / "parse_club_table.py",
     "liveresultat": ROOT / "ingest" / "parse_liveresultat.py",
+    "sportident-center": ROOT / "ingest" / "parse_sportident_center.py",
     "anne-api": Path(__file__),
 }
 
@@ -2606,6 +2636,29 @@ def normalized_source_unit_count(rows):
     return len(set(keys))
 
 
+def reserve_source_row_key(
+        seen, current_list_occurrences, base_key, source_signature):
+    """Reserve a dedup key without dropping repeated rows in one source list.
+
+    ``seen`` deliberately removes overlapping copies from different official
+    documents.  A single document can nevertheless list the same person more
+    than once in one class, for example a ranked KO-sprint start followed by
+    ``Name (2) – DNS``.  Such a second observation is real source data and
+    must survive even though both labels resolve to the same person identity.
+    """
+    signatures = current_list_occurrences[base_key]
+    if source_signature in signatures:
+        return None
+    occurrence = len(signatures)
+    key = (base_key if occurrence == 0
+           else (*base_key, "repeated-source-row", occurrence))
+    if key in seen:
+        return None
+    seen.add(key)
+    signatures.add(source_signature)
+    return key
+
+
 def register_result_list(cur, stage_id, source_document_id, category, category_full,
                          declared_starters, rows, course=None):
     """Create the stable review unit for one category in one source list."""
@@ -2682,6 +2735,13 @@ def insert_result(cur, **kw):
     kw.setdefault("result_kind", "individual")
     kw.setdefault("identity_basis", "unknown")
     kw.setdefault("identity_confidence", 0.0)
+    # ANNE and a few legacy exports use negative elapsed values as internal
+    # sentinels for MP/DNS rather than as durations. Keep the raw observation
+    # for audit/display, but never expose a negative value as a measured time.
+    for duration_field in ("time_s", "time_behind_s", "team_time_s"):
+        value = kw.get(duration_field)
+        if isinstance(value, (int, float)) and value < 0:
+            kw[duration_field] = None
     # A numeric placement is itself an explicit classification. Several
     # score, school-cup and browser-to-PDF result lists intentionally omit the
     # elapsed-time column, while old normalized snapshots consequently stored
@@ -3187,6 +3247,28 @@ def map_docs_to_anne_stages(docs):
             except (json.JSONDecodeError, OSError):
                 stages = None
         if not stages or len(stages) < 2:
+            explicit = [
+                d for d in event_docs
+                if d.get("_multistageSource") and d.get("_anneStage")
+            ]
+            explicit_numbers = {
+                d["_anneStage"].get("number") for d in explicit
+            }
+            if len(explicit_numbers) >= 2:
+                by_date = defaultdict(list)
+                for d in explicit:
+                    stage_date = d["_anneStage"].get("date")
+                    if stage_date:
+                        by_date[stage_date].append(d["_anneStage"])
+                for d in event_docs:
+                    if d in explicit or d.get("_anneStage"):
+                        continue
+                    matches = by_date.get(d.get("docDate")) or []
+                    if len(matches) == 1:
+                        d["_anneStage"] = dict(matches[0])
+                    elif d.get("listType") in ("race", "relay"):
+                        d["_skip"] = True
+                continue
             # No usable ANNE stage data at all for this event - fall back to
             # the filenames' own Etappe numbering alone, when at least 2
             # distinct numbers show up (own date as each stage's date, no
@@ -3270,7 +3352,8 @@ def map_docs_to_anne_stages(docs):
         if len({i for i, _ in matched if i is not None}) >= 2:
             for i, d in matched:
                 if i is not None:
-                    d["_anneStage"] = info(i)
+                    if not d.get("_multistageSource"):
+                        d["_anneStage"] = info(i)
                 elif d.get("listType") in ("race", "relay"):
                     d["_skip"] = True
     return docs
@@ -3456,6 +3539,48 @@ def legacy_document_quality(doc):
     }
 
 
+def expand_multistage_normalized_document(document, normalized_path):
+    """Expand one physical source into stage-scoped logical documents.
+
+    Some official exports place E1/E2/E3 in columns of one Gesamt-Ergebnis.
+    Keeping one source_document preserves provenance, while each logical
+    child carries an explicit ANNE-stage identity and an independent category
+    set.  Ordinary normalized documents remain unchanged.
+    """
+    stage_documents = document.get("stageDocuments")
+    if not stage_documents:
+        child = dict(document)
+        child["_normalizedPath"] = normalized_path
+        return [child]
+
+    shared = {
+        key: value for key, value in document.items()
+        if key not in {"categories", "stageDocuments"}
+    }
+    expanded = []
+    for stage_document in stage_documents:
+        number = stage_document.get("stageNumber")
+        categories = stage_document.get("categories") or []
+        if not isinstance(number, int) or number < 1 or not categories:
+            continue
+        child = dict(shared)
+        child.update({
+            "listType": stage_document.get("listType") or "race",
+            "docDate": stage_document.get("stageDate"),
+            "docTitle": stage_document.get("stageTitle"),
+            "categories": categories,
+            "_anneStage": {
+                "number": number,
+                "date": stage_document.get("stageDate"),
+                "title": stage_document.get("stageTitle"),
+            },
+            "_normalizedPath": normalized_path,
+            "_multistageSource": True,
+        })
+        expanded.append(child)
+    return expanded
+
+
 def replace_minute_precision_anne_with_legacy(cur, stage_id, doc):
     """Prefer a complete exact official attachment over a lossy ANNE import.
 
@@ -3515,9 +3640,10 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
         if not canonical.match(path.name):
             continue
         doc = json.loads(path.read_text())
-        normalize_qualitative_result_ranks(doc.get("categories"))
-        doc["_normalizedPath"] = repo_path(path)
-        docs.append(doc)
+        for expanded in expand_multistage_normalized_document(
+                doc, repo_path(path)):
+            normalize_qualitative_result_ranks(expanded.get("categories"))
+            docs.append(expanded)
     docs = [d for d in docs if not JUNK_DOC_FILENAME_RE.search(d.get("fileName") or "")]
     docs, _n_dropped = drop_cross_event_duplicate_docs(docs)
     correct_legacy_stage_dates(docs, events)
@@ -3636,6 +3762,7 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
             stage_doc_titles[sid].append(doc["docTitle"])
         flip_doc = detect_lastname_firstname_doc(doc["categories"], persons.first_names)
         for cat in doc["categories"]:
+            current_list_occurrences = defaultdict(set)
             list_id = register_result_list(
                 cur, sid, source_document_id, cat["name"],
                 cat.get("sourceCategory") or cat["name"],
@@ -3699,6 +3826,54 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                 # emits one entry per runner already, each with its own name
                 # and a note; treat them uniformly here
                 parser_kind = r.get("resultKind")
+                if r.get("identityExcluded"):
+                    # Preserve a ranked/timed source row whose Name cell is
+                    # explicitly unusable as a person identifier (for example
+                    # an SI-card number). It stays visible on the event but
+                    # cannot enter the runner index or a championship.
+                    observed_name = (r.get("name") or "").strip()
+                    key = (sid, cat["name"], observed_name,
+                           "unidentified", None)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    raw_status = r.get("status", "unknown")
+                    club_value = KNOWN_RESULT_CLUB_OVERRIDES.get(
+                        (eid, clean_result_name(eid, observed_name)),
+                        r.get("club"))
+                    status, ooc = normalize_status(
+                        raw_status, r.get("timeText") or raw_status,
+                        r.get("outOfCompetition"))
+                    insert_result(
+                        cur, stage_id=sid, person_id=None,
+                        result_list_id=list_id, category=cat["name"],
+                        category_full=cat["name"], club=club_value,
+                        official_club=canonicalize_official_club(
+                            club_value, OFFICIAL_CLUBS),
+                        rank=r.get("rank"), status=status,
+                        time_s=r.get("timeS"), out_of_competition=ooc,
+                        course_length_m=cat.get("courseLengthM"),
+                        course_climb_m=cat.get("courseClimbM"),
+                        course_controls=cat.get("courseControls"),
+                        result_kind=r.get("resultKind") or "individual",
+                        note=(r.get("note") or
+                              "Quellzeile ohne verwendbaren Personenbezeichner"),
+                        source=doc["source"],
+                        source_document_id=source_document_id,
+                        observed_name=observed_name,
+                        observed_club=r.get("club"),
+                        observed_category=cat["name"],
+                        observed_rank=str(r.get("rank"))
+                        if r.get("rank") is not None else None,
+                        observed_status=raw_status,
+                        observed_time=r.get("timeText"),
+                        observed_nation=r.get("sourceNat"),
+                        identity_basis="not-applicable-unidentified-source",
+                        identity_confidence=1.0,
+                        identity_state="not_applicable",
+                        championship=None)
+                    n += 1
+                    continue
                 if r.get("memberlessTeam") and parser_kind in ("relay", "team", "pair"):
                     # A DNS team can exist in the official result list without
                     # any participant/leg rows. Persist the team observation,
@@ -3825,10 +4000,16 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                 # it in the dedup key retains both real observations instead
                 # of silently dropping the second appearance of (for example)
                 # Fuchs Max.
-                key = (sid, cat["name"], name_key(name), kind, unit_identity)
-                if key in seen:
+                base_key = (
+                    sid, cat["name"], name_key(name), kind, unit_identity)
+                source_signature = (
+                    observed_name, r.get("rank"), r.get("status"),
+                    r.get("timeS"), r.get("timeText"), r.get("club"),
+                    r.get("note"))
+                if reserve_source_row_key(
+                        seen, current_list_occurrences, base_key,
+                        source_signature) is None:
                     continue
-                seen.add(key)
                 club_value = source_club_for_team(
                     r.get("club"), metadata.get("team_name") if metadata else None, kind)
                 if kind == "relay" and metadata:
@@ -4089,6 +4270,42 @@ KNOWN_SOURCE_VALUE_CORRUPTIONS = {
     (5204, "ht 95"),
 }
 
+# Confirmed contradictions between a published category header and the number
+# of visible competitor units below it.  Keep this list exact: a newly parsed
+# extra row must block publication until somebody has compared it with the
+# original source instead of inheriting a broad "source defect" exemption.
+KNOWN_SOURCE_COUNT_ANOMALIES = {
+    (853, "Premium", 54, 55),
+    (1167, "Offen 19-", 14, 15),
+    (1249, "Damen 65-", 2, 3),
+    (1367, "Herren B", 29, 30),
+    (3134, "DB-Kurz", 4, 5),
+    (3713, "C", 10, 11),
+}
+
+# A compact result attachment may omit DNS names which another official
+# attachment for the same event supplies.  These exact cases remain guarded
+# by an aggregate row-count check below: if the supplemental parser stops
+# recovering the rows, they automatically return to the unresolved warning
+# queue instead of inheriting a permanent exemption.
+KNOWN_RECOVERED_SOURCE_OMISSIONS = {
+    (1909, "Herren Elite", 15, 13),
+    (1909, "Herren/Damen -14", 7, 6),
+    (1909, "Herren 60", 16, 13),
+    (1909, "Herren 70", 4, 3),
+}
+
+# Named rows whose official result cell is visibly empty.  No sporting status
+# can safely be inferred from an empty cell, but only these reviewed cases may
+# remain warnings; future blank values return to the parser-repair queue.
+KNOWN_SOURCE_MISSING_VALUES = {
+    (1672, "Damen 10", "Veitsberger Miriam"),
+    (1672, "Herren 10", "Ehrlich Lilly"),
+    (1947, "NO H45", "Schuller Georg"),
+    (2020, "Family", "Annika Springer"),
+    (2375, "Family", "Böhm Niklas"),
+}
+
 # Confirmed defects in the published source itself, not parser output. The
 # PDFs visibly print the same inverted numeric ranks which the parser stores.
 KNOWN_SOURCE_RANK_ANOMALIES = {
@@ -4106,7 +4323,9 @@ KNOWN_ANNE_CATEGORY_OMISSIONS = {3438}
 
 def source_value_is_unreadable(event_id, value):
     value = (value or "").strip()
-    return bool(re.fullmatch(r"\?+", value) or
+    return bool(re.fullmatch(r"\?+", value)
+                or re.fullmatch(r"-\d{1,3}:\d{2}(?::\d{2})?", value)
+                or
                 (event_id, value) in KNOWN_SOURCE_VALUE_CORRUPTIONS)
 
 
@@ -4168,19 +4387,36 @@ def populate_quality_model(cur):
                 # omission remains important context, but it is not evidence
                 # that a visible result row failed to parse.  Parser failures
                 # stay blocking through the row/value/ranking checks below.
-                difference = declared - source_entries
-                add_audit_issue(
-                    cur, list_id, "source_declared_omission", "warning",
-                    f"Klassenkopf nennt {declared} Meldungen, der Ergebnisbereich "
-                    f"enthält {source_entries} sichtbare Einträge; {difference} "
-                    f"gemeldete {'Person wird' if difference == 1 else 'Personen werden'} "
-                    "in dieser Quelle nicht als Ergebniszeile angeführt.")
-            elif source_entries > declared and unexplained_extra == 0:
+                recovery_key = (
+                    event_id, category, declared, source_entries)
+                recovered_total = cur.execute(
+                    """SELECT COUNT(*) FROM result
+                       WHERE stage_id = ? AND category = ?
+                         AND result_kind = 'individual'""",
+                    (stage_id, category)).fetchone()[0]
+                if (recovery_key in KNOWN_RECOVERED_SOURCE_OMISSIONS
+                        and recovered_total >= declared):
+                    add_audit_issue(
+                        cur, list_id, "source_omission_recovered", "info",
+                        f"Die kompakte Quelle enthält {source_entries} von "
+                        f"{declared} Einträgen; der offizielle ANNE-"
+                        "Zwischenzeiten-Anhang ergänzt die fehlenden DNS-Zeilen.")
+                else:
+                    difference = declared - source_entries
+                    add_audit_issue(
+                        cur, list_id, "source_declared_omission", "warning",
+                        f"Klassenkopf nennt {declared} Meldungen, der Ergebnisbereich "
+                        f"enthält {source_entries} sichtbare Einträge; {difference} "
+                        f"gemeldete {'Person wird' if difference == 1 else 'Personen werden'} "
+                        "in dieser Quelle nicht als Ergebniszeile angeführt.")
+            elif (source_entries > declared and unexplained_extra == 0
+                  and (event_id, category, declared, source_entries)
+                  in KNOWN_SOURCE_COUNT_ANOMALIES):
                 # The source itself can print more fully classified rows than
                 # its category header claims (confirmed examples: ``DB-Kurz
                 # (4)`` followed by ranks 1..5, and relay headers omitting an
-                # MP/DNF team).  Keep the contradiction visible, but do not
-                # present correct parsed results as a parser blocker.
+                # MP/DNF team). Only exact, visually reviewed contradictions
+                # are warnings; a new occurrence remains a blocker below.
                 add_audit_issue(
                     cur, list_id, "source_count_anomaly", "warning",
                     f"Klassenkopf nennt {declared} Starts, die Quelle enthält aber "
@@ -4231,10 +4467,10 @@ def populate_quality_model(cur):
                 "Quellränge; Zeitwerte sind als ungefähre volle Minuten dargestellt.")
 
         unknown = cur.execute(
-            """SELECT id, observed_status, observed_time FROM result
+            """SELECT id, observed_name, observed_status, observed_time FROM result
                WHERE result_list_id = ? AND status = 'unknown'""",
             (list_id,)).fetchall()
-        for result_id, observed_status, observed_time in unknown:
+        for result_id, observed_name, observed_status, observed_time in unknown:
             if source_value_is_unreadable(event_id, observed_time):
                 add_audit_issue(
                     cur, list_id, "source_value_unreadable", "warning",
@@ -4252,17 +4488,22 @@ def populate_quality_model(cur):
                     f"Zeit {observed_time!r} ist in der Quelle vorhanden, wurde aber nicht als Zeit gelesen.",
                     result_id, auto_resolvable=True)
                 continue
-            if ((observed_status or "").strip().casefold() in ("", "unknown")
-                    and not (observed_time or "").strip()):
-                # The parser retained the named source row correctly, but
-                # the source itself leaves its result cell blank (confirmed
-                # in qualitative ``Gut`` children/family classes). There is
-                # no parser repair to perform and no defensible automatic
-                # DNS/MP inference; present it as source clarification work
-                # rather than a hard parser blocker.
+            if ((event_id, category, observed_name)
+                    in KNOWN_SOURCE_MISSING_VALUES):
+                # The parser retained the named source row correctly, but the
+                # source itself leaves its result cell blank or uses a bare
+                # dash. There is no defensible automatic DNS/MP inference.
                 add_audit_issue(
                     cur, list_id, "source_value_missing", "warning",
                     "Die Quelle führt den Eintrag an, lässt Rang, Zeit und Status aber leer.",
+                    result_id)
+                continue
+            if ((observed_status or "").strip().casefold() in ("", "unknown")
+                    and not (observed_time or "").strip()):
+                add_audit_issue(
+                    cur, list_id, "unknown_status", "blocker",
+                    "Rang, Zeit und Status sind leer; Originalquelle auf "
+                    "eine Parserlücke oder einen tatsächlich leeren Quellwert prüfen.",
                     result_id)
                 continue
             add_audit_issue(
@@ -4760,6 +5001,30 @@ def _regional_club_states(unit_rows, club_jurisdictions):
     return states
 
 
+def _regional_membership_states(unit_rows, person_memberships, stage_date):
+    """Resolve a unit through event-time ANNE club memberships.
+
+    Team labels such as ``Naturfreunde 1`` intentionally remain team names,
+    not guessed official clubs.  When every identified member nevertheless
+    has a valid membership in the same state on the race date, that is
+    stronger evidence than the generic team label and can safely partition a
+    joint Landes-MS.
+    """
+    states = set()
+    for row in unit_rows:
+        person_id = row[1]
+        if person_id is None:
+            continue
+        for jurisdiction, valid_from, valid_to in person_memberships.get(person_id, ()):
+            if stage_date:
+                if valid_from and valid_from > stage_date:
+                    continue
+                if valid_to and valid_to < stage_date:
+                    continue
+            states.add(jurisdiction)
+    return states
+
+
 def _regional_unit_has_unresolved_club(unit_rows, club_jurisdictions):
     """Whether a unit carries a plausible club that still needs mapping.
 
@@ -4790,6 +5055,17 @@ def _regional_unit_has_unresolved_club(unit_rows, club_jurisdictions):
 
 def populate_regional_championships(cur, catalog, club_jurisdictions):
     """Build nationwide regional mappings, instances and competitor entries."""
+    person_memberships = defaultdict(list)
+    for person_id, club, valid_from, valid_to in cur.execute(
+            """SELECT person_id, club, valid_from, valid_to
+                 FROM person_club_membership""").fetchall():
+        canonical = (club if club in club_jurisdictions else
+                     canonicalize_official_club(club, OFFICIAL_CLUBS))
+        jurisdiction = club_jurisdictions.get(canonical)
+        if jurisdiction:
+            person_memberships[person_id].append(
+                (jurisdiction, valid_from or "", valid_to))
+
     lists = cur.execute(
         """SELECT rl.id, rl.stage_id, rl.category, rl.input_fingerprint,
                   e.title, s.title, sd.file_name
@@ -4866,9 +5142,10 @@ def populate_regional_championships(cur, catalog, club_jurisdictions):
     mapping_rows = cur.execute(
         """SELECT m.result_list_id, m.jurisdiction, m.category_key, m.state,
                   m.evidence_kind, m.partition_required, m.input_fingerprint,
-                  rl.stage_id, ci.id, ci.state
+                  rl.stage_id, ci.id, ci.state, s.date
            FROM regional_category_mapping m
            JOIN result_list rl ON rl.id = m.result_list_id
+           JOIN stage s ON s.id = rl.stage_id
            JOIN championship_instance ci
              ON ci.jurisdiction = m.jurisdiction AND ci.stage_id = rl.stage_id
             AND ci.category_key = m.category_key AND ci.championship_type = 'LMS'
@@ -4881,7 +5158,8 @@ def populate_regional_championships(cur, catalog, club_jurisdictions):
     claimed_results = {}
     unresolved_mappings = {}
     for (list_id, jurisdiction, category_key, mapping_state, evidence_kind,
-         partition_required, fingerprint, stage_id, instance_id, instance_state) in mapping_rows:
+         partition_required, fingerprint, stage_id, instance_id, instance_state,
+         stage_date) in mapping_rows:
         rows = cur.execute(
             """SELECT id, person_id, result_kind, team_number, team_name, club,
                       official_club, rank, status, time_s, out_of_competition,
@@ -4897,6 +5175,8 @@ def populate_regional_championships(cur, catalog, club_jurisdictions):
                 continue
             source_states = _regional_source_states(unit_rows)
             club_states = _regional_club_states(unit_rows, club_jurisdictions)
+            membership_states = _regional_membership_states(
+                unit_rows, person_memberships, stage_date)
             if partition_required:
                 # A printed Nat column in a joint Landes-MS is direct
                 # event-time evidence and outranks a current/historical club
@@ -4906,8 +5186,12 @@ def populate_regional_championships(cur, catalog, club_jurisdictions):
                     if source_states != {jurisdiction}:
                         continue
                     eligibility_basis = "explicit-source-nat"
-                elif club_states != {jurisdiction}:
-                    if (not club_states
+                elif club_states == {jurisdiction}:
+                    eligibility_basis = "event-time-club-jurisdiction"
+                elif not club_states and membership_states == {jurisdiction}:
+                    eligibility_basis = "event-time-person-club-membership"
+                else:
+                    if (not club_states and not membership_states
                             and _regional_unit_has_unresolved_club(
                                 unit_rows, club_jurisdictions)):
                         issue_key = (list_id, mapping_state, jurisdiction, instance_id)
@@ -4915,8 +5199,6 @@ def populate_regional_championships(cur, catalog, club_jurisdictions):
                             unresolved_mappings.get(issue_key, False)
                             or any(row[8] == "ok" for row in unit_rows))
                     continue
-                else:
-                    eligibility_basis = "event-time-club-jurisdiction"
             else:
                 eligibility_basis = f"explicit-regional-{evidence_kind}"
             claim_key = (stage_id, unit_key)
@@ -5023,6 +5305,44 @@ def compute_national_ranks(cur):
           AND championship_eligibility_state IN ('eligible', 'provisional')
     """)
     cur.execute("DROP TABLE pair_unit")
+
+
+def compute_time_behind(cur):
+    """Derive a non-negative gap only for classified time rankings.
+
+    Score/series lists can rank by points while still carrying a representative
+    elapsed value, and OOC/unranked performances can legitimately be faster
+    than the official winner. Neither case has a meaningful ``time behind``.
+    Explicit source/API gaps remain untouched.
+    """
+    cur.execute("""
+        UPDATE result AS current
+           SET time_behind_s = current.time_s - (
+               SELECT MIN(winner.time_s)
+                 FROM result winner
+                WHERE winner.result_list_id = current.result_list_id
+                  AND winner.rank = 1
+                  AND winner.status = 'ok'
+                  AND winner.out_of_competition = 0
+                  AND winner.time_s IS NOT NULL)
+         WHERE current.time_behind_s IS NULL
+           AND current.time_s IS NOT NULL
+           AND current.status = 'ok'
+           AND current.rank IS NOT NULL
+           AND current.out_of_competition = 0
+           AND EXISTS (
+               SELECT 1 FROM result_list source_list
+                WHERE source_list.id = current.result_list_id
+                  AND source_list.ranking_basis = 'time')
+           AND current.time_s >= (
+               SELECT MIN(winner.time_s)
+                 FROM result winner
+                WHERE winner.result_list_id = current.result_list_id
+                  AND winner.rank = 1
+                  AND winner.status = 'ok'
+                  AND winner.out_of_competition = 0
+                  AND winner.time_s IS NOT NULL)
+    """)
 
 
 def populate_championship_model(cur):
@@ -5793,13 +6113,9 @@ def main():
     # get national_rank = 1, "beating" everyone, since COUNT(...) = 0 + 1).
     compute_national_ranks(cur)
 
-    # compute time_behind for legacy rows from winner time per category
-    cur.execute("""
-        UPDATE result SET time_behind_s = time_s - (
-            SELECT winner_time_s FROM category_stats cs
-            WHERE cs.stage_id = result.stage_id AND cs.category = result.category)
-        WHERE time_behind_s IS NULL AND time_s IS NOT NULL AND status = 'ok'
-    """)
+    # Compute source-faithful time gaps only where a time ranking makes them
+    # meaningful. Score lists, OOC rows and unranked rows remain without a gap.
+    compute_time_behind(cur)
 
     populate_championship_model(cur)
     populate_quality_model(cur)

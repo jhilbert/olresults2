@@ -1,0 +1,168 @@
+{
+  "title": "1. KOLV Cup Mitteldistanz",
+  "date": "2021-06-19",
+  "sourceUrl": "https://center.sportident.com/results/orienteering/sportunion-klagenfurt-orientierungslauf/2021/event-1-kolv-cup-mitteldistanz/overview/1",
+  "capturedFrom": "visible SPORTident Center result tables",
+  "categories": [
+    {
+      "category": "H19-",
+      "declared": 5,
+      "course": "5.0 km / 275 m / 22 controls / 5 athletes",
+      "rows": [
+        {"rank": "1", "name": "David Rapotz (2004)", "club": "Naturfreunde Villach - Orienteering", "time": "55:27", "behind": ""},
+        {"rank": "2", "name": "Maximilian Steinwender (2001)", "club": "SU Klagenfurt", "time": "59:27", "behind": "+4:00"},
+        {"rank": "3", "name": "Martin Fürnkranz (1901)", "club": "Naturfreunde Linz", "time": "1:03:24", "behind": "+7:57"},
+        {"rank": "4", "name": "Jakob Steinwender (2004)", "club": "SU Klagenfurt", "time": "1:06:23", "behind": "+10:56"},
+        {"rank": "-", "name": "Daniel Gotthardt (1998)", "club": "HSV Spittal / Drau", "time": "MP", "behind": ""}
+      ]
+    },
+    {
+      "category": "H35-",
+      "declared": 3,
+      "course": "5.0 km / 275 m / 22 controls / 3 athletes",
+      "rows": [
+        {"rank": "1", "name": "Markus Buchtele (1973)", "club": "OLCU Viktring", "time": "54:15", "behind": ""},
+        {"rank": "2", "name": "Hannes Wenzel (1976)", "club": "OLCU Viktring", "time": "59:09", "behind": "+4:54"},
+        {"rank": "-", "name": "Oleksandr Ievstafiev", "club": "", "time": "MP", "behind": ""}
+      ]
+    },
+    {
+      "category": "D19-",
+      "declared": 1,
+      "course": "3.5 km / 170 m / 14 controls / 1 athlete",
+      "rows": [
+        {"rank": "1", "name": "Anna Angermann (2004)", "club": "SU Klagenfurt", "time": "54:58", "behind": ""}
+      ]
+    },
+    {
+      "category": "H 45-",
+      "declared": 10,
+      "course": "3.5 km / 170 m / 14 controls / 10 athletes",
+      "rows": [
+        {"rank": "1", "name": "Arno Huss (1969)", "club": "SU Klagenfurt", "time": "41:05", "behind": ""},
+        {"rank": "2", "name": "Helmut Wöllik (1968)", "club": "SU Klagenfurt", "time": "44:31", "behind": "+3:26"},
+        {"rank": "3", "name": "Gregor Chudoba (1967)", "club": "OLCU Viktring", "time": "46:19", "behind": "+5:14"},
+        {"rank": "4", "name": "Franz Unegg (1971)", "club": "SU Klagenfurt", "time": "47:24", "behind": "+6:19"},
+        {"rank": "5", "name": "Michael Steinwender (1972)", "club": "SU Klagenfurt", "time": "48:05", "behind": "+7:00"},
+        {"rank": "6", "name": "Josef Polster (1962)", "club": "HSV Spittal / Drau", "time": "50:55", "behind": "+9:50"},
+        {"rank": "7", "name": "Bruno Scherr (1956)", "club": "HSV Spittal / Drau", "time": "51:40", "behind": "+10:35"},
+        {"rank": "8", "name": "Markus Thoman", "club": "Sportunion Klagenfurt", "time": "55:01", "behind": "+13:56"},
+        {"rank": "9", "name": "Gottfried Kühr (1969)", "club": "Naturfreunde Villach - Orienteering", "time": "2:12:41", "behind": "+1:31:36"},
+        {"rank": "-", "name": "Franz Gusel (1968)", "club": "HSV Spittal / Drau", "time": "MP", "behind": ""}
+      ]
+    },
+    {
+      "category": "D35-",
+      "declared": 2,
+      "course": "3.6 km / 135 m / 14 controls / 2 athletes",
+      "rows": [
+        {"rank": "1", "name": "Nina Striednig", "club": "", "time": "50:45", "behind": ""},
+        {"rank": "2", "name": "Kate Matti (1901)", "club": "HSV OL Villach", "time": "1:30:07", "behind": "+39:22"}
+      ]
+    },
+    {
+      "category": "D45-",
+      "declared": 6,
+      "course": "3.6 km / 135 m / 14 controls / 6 athletes",
+      "rows": [
+        {"rank": "1", "name": "Ulrike Striednig", "club": "", "time": "41:36", "behind": ""},
+        {"rank": "2", "name": "Bernadett Pegan (1970)", "club": "Naturfreunde Villach - Orienteering", "time": "52:16", "behind": "+10:40"},
+        {"rank": "3", "name": "Sonja Springer-Venhauer (1976)", "club": "OLCU Viktring", "time": "55:39", "behind": "+14:03"},
+        {"rank": "4", "name": "Irmgard Steinwender (1971)", "club": "SU Klagenfurt", "time": "1:00:11", "behind": "+18:35"},
+        {"rank": "5", "name": "Christine Unegg (1971)", "club": "SU Klagenfurt", "time": "1:04:31", "behind": "+22:55"},
+        {"rank": "6", "name": "Brigitte Rapotz (1974)", "club": "Naturfreunde Villach - Orienteering", "time": "1:12:46", "behind": "+31:10"}
+      ]
+    },
+    {
+      "category": "D15-16",
+      "declared": 1,
+      "course": "3.6 km / 135 m / 14 controls / 1 athlete",
+      "rows": [
+        {"rank": "1", "name": "Christiana Sendlhofer (2006)", "club": "SU Klagenfurt", "time": "1:12:51", "behind": ""}
+      ]
+    },
+    {
+      "category": "D17-18",
+      "declared": 1,
+      "course": "3.6 km / 135 m / 14 controls / 1 athlete",
+      "rows": [
+        {"rank": "1", "name": "Johanna Thoman", "club": "Sportunion Klagenfurt", "time": "1:04:56", "behind": ""}
+      ]
+    },
+    {
+      "category": "D55-",
+      "declared": 4,
+      "course": "3.6 km / 135 m / 14 controls / 4 athletes",
+      "rows": [
+        {"rank": "1", "name": "Karin Irk (1957)", "club": "Naturfreunde Villach - Orienteering", "time": "1:04:12", "behind": ""},
+        {"rank": "2", "name": "Hildegard Scherr (1962)", "club": "HSV Spittal / Drau", "time": "1:09:48", "behind": "+5:36"},
+        {"rank": "3", "name": "Eszter Almas (1963)", "club": "HSV OL Villach", "time": "1:28:37", "behind": "+24:25"},
+        {"rank": "-", "name": "Barbara Schweder (1963)", "club": "OLCU Viktring", "time": "MP", "behind": ""}
+      ]
+    },
+    {
+      "category": "H55-",
+      "declared": 3,
+      "course": "3.6 km / 135 m / 14 controls / 3 athletes",
+      "rows": [
+        {"rank": "1", "name": "Christian Herzog (1963)", "club": "OLCU Viktring", "time": "54:56", "behind": ""},
+        {"rank": "2", "name": "Christian Gotthardt (1963)", "club": "HSV Spittal / Drau", "time": "1:01:31", "behind": "+6:35"},
+        {"rank": "3", "name": "Helmut Tanner (1963)", "club": "OLCU Viktring", "time": "1:22:11", "behind": "+27:15"}
+      ]
+    },
+    {
+      "category": "D-12",
+      "declared": 1,
+      "course": "1.6 km / 80 m / 9 controls / 1 athlete",
+      "rows": [
+        {"rank": "1", "name": "Monika Polster (1967)", "club": "HSV Spittal / Drau", "time": "1:10:16", "behind": ""}
+      ]
+    },
+    {
+      "category": "H13-14",
+      "declared": 1,
+      "course": "1.6 km / 80 m / 9 controls / 1 athlete",
+      "rows": [
+        {"rank": "1", "name": "Tobias Angermann (2008)", "club": "SU Klagenfurt", "time": "23:55", "behind": ""}
+      ]
+    },
+    {
+      "category": "D65-",
+      "declared": 2,
+      "course": "1.6 km / 80 m / 9 controls / 2 athletes",
+      "rows": [
+        {"rank": "1", "name": "Martha Prommer (1950)", "club": "Naturfreunde Brückl", "time": "29:28", "behind": ""},
+        {"rank": "2", "name": "Ute Hierzegger", "club": "WATV", "time": "53:12", "behind": "+23:44"}
+      ]
+    },
+    {
+      "category": "H65-",
+      "declared": 4,
+      "course": "1.6 km / 80 m / 9 controls / 4 athletes",
+      "rows": [
+        {"rank": "1", "name": "Wolfgang Germ (1950)", "club": "Naturfreunde Kühnsdorf", "time": "24:09", "behind": ""},
+        {"rank": "2", "name": "Otto Venhauer (1941)", "club": "OLCU Viktring", "time": "28:12", "behind": "+4:03"},
+        {"rank": "3", "name": "Günther Prommer", "club": "NF St. Veit", "time": "30:30", "behind": "+6:21"},
+        {"rank": "4", "name": "Herwig Hierzegger", "club": "WATV", "time": "41:21", "behind": "+17:12"}
+      ]
+    },
+    {
+      "category": "H-10",
+      "declared": 1,
+      "course": "1.2 km / 50 m / 6 controls / 1 athlete",
+      "rows": [
+        {"rank": "1", "name": "Björn Chudoba (2012)", "club": "OLCU Viktring", "time": "18:07", "behind": ""}
+      ]
+    },
+    {
+      "category": "Family",
+      "declared": 3,
+      "course": "1.2 km / 50 m / 6 controls / 3 athletes",
+      "rows": [
+        {"rank": "1", "name": "Silke Sendlhofer", "club": "SU Klagenfurt", "time": "18:59", "behind": ""},
+        {"rank": "2", "name": "Ursula Meier", "club": "Askö OLC Ebenthal", "time": "25:06", "behind": "+6:07"},
+        {"rank": "3", "name": "Jonathan Matti", "club": "HSV OL Villach", "time": "26:40", "behind": "+7:41"}
+      ]
+    }
+  ]
+}

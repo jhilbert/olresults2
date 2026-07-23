@@ -41,6 +41,19 @@ CLUB_LINK_ALLOWLIST = {"olc-wienerwald.at", "hsvwrn-ol.at"}
 # results. {event_id: [(url, fileName), ...]}
 MANUAL_ATTACHMENT_OVERRIDES = {
     1303: [("http://www.hsvwrn-ol.at/german/events/ergebnisse/2015/wintertour6.htm", "")],
+    # The ANNE event page links the complete SPORTident Center result.  Its
+    # public site is rendered client-side, so the reviewed source snapshot is
+    # committed and normalized by parse_sportident_center.py.
+    3438: [(
+        "https://center.sportident.com/results/orienteering/"
+        "sportunion-klagenfurt-orientierungslauf/2021/"
+        "event-1-kolv-cup-mitteldistanz/overview/1",
+        "event-3438-sportident-center.json",
+    )],
+    # ANNE links the organizer's event page rather than its dedicated result
+    # subpage.  The latter is a complete fixed-width SportSoftware export.
+    197: [("https://www.olc-wienerwald.at/?p=2008/sprinterg",
+           "event_197_sprinterg.html")],
 }
 
 # Attachments that must not be ingested at all - not "redundant" in
@@ -52,6 +65,10 @@ MANUAL_ATTACHMENT_OVERRIDES = {
 # the two real result PDFs for the same event anyway (see
 # MANUAL_CATEGORY_SKIP). {(event_id, fileName)}
 MANUAL_ATTACHMENT_SKIP = {
+    # Event 197 exposes two generic organizer links with an empty file name:
+    # the home page and a course-data anchor.  The dedicated result subpage is
+    # registered separately above with a non-empty stable file name.
+    (197, ""),
     (4894, "event_4894_ergebnis-split-ostm-sprint-ski-o-2025.pdf"),
     (4894, "event_4894_split-ostm-mittel-ski-o-2025.pdf"),
     # Event 2445 publishes the same physical starts three times: the complete
@@ -60,6 +77,82 @@ MANUAL_ATTACHMENT_SKIP = {
     # the two score sheets would duplicate runners within the same event.
     (2445, "event_2445_ergebnis-1-schulcup-2018-19.pdf"),
     (2445, "event_2445_ergbnis-8nolvcup-milak.pdf"),
+    # Cumulative series tables: each sheet contains a total plus several
+    # round columns and is not the result of one physical race. Importing the
+    # total would fabricate an event result and double-count the real rounds.
+    (3226, "event_3226_ergebnisse-lockdown-cup-2020.pdf"),
+    (4231, "event_4231_street-o-results-23-24.pdf"),
+    (4694, "event_4694_street-o-results-24-25-bewerb1.pdf"),
+    (4695, "event_4695_street-o-results-24-25-bewerb2.pdf"),
+    (5151, "event_5151_street-o-results-01-nov2025.pdf"),
+    (5153, "Street-O_Results_03_Jan2026.pdf"),
+    (5154, "Street-O_Results_04_Feb2026.pdf"),
+    # Explicit auxiliary/parallel sources reviewed in the championship
+    # attachment audit. The selected source beside each one contains the same
+    # physical race with cleaner category/team structure.
+    (874, "event_874_event_874_Ergebnis_nach_Kat_SI.pdf"),
+    (874, "event_874_event_874_Ergebnis_SI_ Bahnen.pdf"),
+    (1221, "event_1221_oemsprint-ergebnis.pdf"),
+    (1253, "event_1253_NOe_Wr_Staffel_MS_2014_Ergebnisse_Staffeln.html"),
+    (1409, "event_1409_event_1409_Ergebnisse_Middle_ GHL.htm"),
+    (1409, "event_1409_event_1409_Ergebnis KM.htm"),
+    (1410, "event_1410_event_1410_Ergebnisse_Kategorien_Sprint GHL.htm"),
+    (1634, "event_1634_bl-staffel-ergebnisbahnen.html"),
+    (1682, "event_1682_ergebnisse-schulen-einzel.pdf"),
+    (1893, "event_1893_2017-05-06-ac-ergebnisse-zz.pdf"),
+    (1893, "event_1893_2017-05-06-ac-kinder-ergebnisse.pdf"),
+    (2084, "event_2084_bartsg-kupa-2017-endergebnis.html"),
+    (2091, "event_2091_teamresult-t-2018.pdf"),
+    (2119, "event_2119_ergebnis-2.html"),
+    (2158, "event_2158_20180923-135837-ergebnis-bahnen.html"),
+    (2236, "event_2236_ergebnis-mannschaft-zz.pdf"),
+    (2240, "event_2240_ergebnis-lang.html"),
+    (2274, "event_2274_ergebnisse-gesamt.pdf"),
+    (2303, "event_2303_ergebnisbahnen.pdf"),
+    (2315, "event_2315_2018-05-01-ergebnis-bahn.pdf"),
+    (2364, "event_2364_ergebnisse-regio.html"),
+    (2395, "event_2395_kagl-challenge-ergebnis-serie.pdf"),
+    (2430, "event_2430_teamresult-t-2019.pdf"),
+    (2447, "event_2447_ergebnis-einzel-si.pdf"),
+    (2475, "event_2475_vergebnis.pdf"),
+    (2622, "event_2622_gesamtwertung.html"),
+    (2690, "event_2690_sgmtbo-overall-results.pdf"),
+    (2806, "event_2806_zirbenlandopenendergebnis2.html"),
+    (2835, "event_2835_vergebnisse.pdf"),
+    (3132, "event_3132_ergebnis-bahnen-steinberg.pdf"),
+    (3184, "event_3184_wolv-cup-2020-endergebnis-4-l-int.pdf"),
+    (3526, "event_3526_ergebnis-bahnen.pdf"),
+    (3540, "event_3540_gesamtergebnis.pdf"),
+    (3652, "event_3652_8-sc-ergebnis-bahnen.pdf"),
+    (3687, "event_3687_gesamtwertungnachzweitagen.html"),
+    (3699, "event_3699_gesamtwertungnach2tagen.html"),
+    (3715, "event_3715_2022-03-27-ergebnis-bahnen.pdf"),
+    (3947, "event_3947_gesamtwertung2.html"),
+    (3949, "event_3949_gesamtwertung2.html"),
+    (3949, "event_3949_gesamtwertung3.html"),
+    (3949, "event_3949_gesamtwertung4.html"),
+    (3955, "event_3955_information-zum-ergebnis-17-06-2023.pdf"),
+    (4038, "event_4038_202302129-ergebnisbahnenst-jakob.pdf"),
+    (4087, "event_4087_20230421-2-kolv-cup-ergebnisse-bahnen.pdf"),
+    (4545, "event_4545_ergebnisse-slit.html"),
+    (4408, "event_4408_wolv-cup-2024-endergebnis-nach-5-laufen-int.pdf"),
+    (4626, "event_4626_over-all-results-after-e02.pdf"),
+    (4626, "event_4626_results-after-e03.pdf"),
+    (4626, "event_4626_results-after-e04.pdf"),
+    (4879, "event_4879_obstsalat-seestadt-global-results.html"),
+    (4879, "event_4879_obstsalat-seestadt-detailed-results.html"),
+    (4995, "event_4995_250405-minikidsol-ergebnis-detail.html"),
+    (4999, "event_4999_ergebnisse.txt"),
+    (5278, "Ergebnisse_gesamt.pdf"),
+    (5301, "Ergebnisse_gesamt_1000Pkt.pdf"),
+    (5457, "Gesamtwertung.html"),
+    (952, "event_952_Ergebnisse_2013_08_31_Rundenzeiten.pdf"),
+}
+
+# Some ANNE records use the same empty filename for several distinct links,
+# so the ordinary (event, filename) key cannot target one attachment safely.
+MANUAL_ATTACHMENT_INDEX_SKIP = {
+    (1221, 1),  # club-only subranking; attachment 0 is the full race result
 }
 
 # Categories to drop from a specific attachment because a *different*
@@ -210,6 +303,13 @@ MANUAL_LIVERESULTAT_COMPS = {
 # Deliberately excludes the "-total" 3-day combined-standings page, which
 # would just duplicate each day's own results under one cumulative ranking.
 MANUAL_HTML_OVERRIDES = {
+    # The legacy ANNE event page still exposes this complete result export,
+    # but it is absent from the attachment API snapshot.
+    1079: [(
+        "https://anne-cdn.oefol.at/public/legacy/"
+        "event_1079_Ergebnisse_Sprint.html",
+        "event_1079_Ergebnisse_Sprint.html",
+    )],
     3340: [("https://viennaochallenge.com/voc22-1-results", "voc22-1-results.html")],
     3816: [("https://viennaochallenge.com/voc22-2-results", "voc22-2-results.html")],
     3474: [("https://viennaochallenge.com/voc22-3-results", "voc22-3-results.html"),
@@ -388,6 +488,11 @@ PARENTHESIZED_TIME_RE = re.compile(r"^\(\s*\d{1,3}:\d{2}(?::\d{2})?\s*\)$")
 def parse_time_loose(text):
     """Like parse_time but tolerates a trailing marker SportSoftware appends to
     some times, e.g. '19:24 (*)' or '22:46 (+)' (note / twilight flags)."""
+    if re.match(r"^\s*-", text or ""):
+        # A negative elapsed duration is an impossible source value.  Do not
+        # let the fallback token search silently discard its sign and turn it
+        # into a plausible positive time.
+        return None
     s = parse_time(text)
     if s is not None:
         return s
@@ -411,7 +516,8 @@ def parse_status(text):
     # value with a control-specific note (``Nr.10 fehlt`` or
     # ``Posten 54 fehlt``). This is the source's missing-punch status, not a
     # finish-time column and not an unknown free-text remark.
-    if re.search(r"\b(?:nr\.?\s*\d+|posten\s*\d*)\s+fehlt\b", t):
+    if re.search(
+            r"\b(?:nr\.?\s*\d+|posten\s*\d*)\s+(?:fehlt|falsch)\b", t):
         return "mp"
     for key, val in STATUS_MAP.items():
         # Short codes must be real tokens: ``ak`` (außer Konkurrenz) is not
@@ -581,6 +687,17 @@ def detect_list_type(file_name, doc_text, is_sole_attachment=False):
         # ``ergebnis-bahnen.pdf`` can mean an ordinary result grouped by
         # courses, not a per-control split protocol (event 2102). Its explicit
         # result header is authoritative over the ambiguous filename.
+        return "race"
+    if re.search(r"\bPl\s+(?:Stnr\s+)?Name\s+Verein\s+Zeit\b", head, re.I):
+        # ``gesamt`` can also mean the complete field of one physical race,
+        # not a multi-stage overall. A plain rank/name/club/time header is
+        # unambiguous race evidence (event 4298).
+        return "race"
+    if re.search(
+            r"ERGEBNISSE\s+SURPISE\s+MANNSCHAFT.*TEAMWERTUNG",
+            head, re.I | re.S):
+        # Event 952 is one physical three-person aggregate race. ``Wertung``
+        # names the event's actual result, not a season or multi-stage table.
         return "race"
     if re.search(r"(?:^|[-_])si[-_]", file_name, re.I) and not is_sole_attachment:
         # SportIdent station/control protocols shipped alongside a real result
@@ -974,15 +1091,27 @@ def expand_pair_result(result, category=None):
             cleaned["name"] = name.rstrip().rstrip("+").strip()
             return [cleaned]
         return [result]
-    if not all(
-            len(n.split()) == 2 and looks_like_person(n) for n in names):
-        return [result]
+    valid = [
+        len(n.split()) == 2 and looks_like_person(n)
+        for n in names
+    ]
+    if not all(valid):
+        # A rare old youth-pair export can contain three runners but publish
+        # only a first name for one of them (real source example:
+        # ``Laura / Maria Reil / Christina Hellman``).  When at least two
+        # complete people make the slash-separated structure unambiguous,
+        # retain the incomplete label as a deliberately personless member
+        # instead of dropping the entire ranked source row during DB import.
+        if len(names) < 3 or sum(valid) < 2:
+            return [result]
     out = []
-    for nm in names:
+    for nm, is_valid in zip(names, valid):
         r = dict(result)
         r["name"] = nm
         r["resultKind"] = "pair"
         r["note"] = "Partner: " + ", ".join(o for o in names if o != nm)
+        if not is_valid:
+            r["identityExcluded"] = True
         out.append(r)
     return out
 
@@ -991,7 +1120,8 @@ STATUS_TAIL_RE = re.compile(
     r"(?i)(n\.?\s*ang\.?|n\.?\s*gest\.?|nicht\s+ang\.?|nicht angetreten|"
     r"nicht gestartet|aufg\.?|aufgegeben|not\s+finish(?:ed)?|verletzt|vzdal|"
     r"fehlst\.?|ehlst\.?|missing\s+punch|NOK|"
-    r"(?:\d+\s+)?(?:po|posten)\s+(?:fehlt|fehlen|falsch)|ziel\s+fehlt|"
+    r"(?:(?:\d+\s+)?(?:po|posten)\s+(?:fehlt|fehlen|falsch)|"
+    r"posten\s*\d+\s+(?:fehlt|falsch))|ziel\s+fehlt|"
     r"maximalzeit|keine\s+zielzeit|keine\s+e-?card|"
     r"dis\.?|disq(?:u)?\.?|"
     r"disk\.?|"
