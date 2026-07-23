@@ -33,12 +33,14 @@ import urllib.request
 from pathlib import Path
 
 from sportsoftware_common import (
-    CAT_LINE_RE, CLUB_LINK_ALLOWLIST, COLUMN_ALIASES, category_starter_count,
-    classify_championship_text, detect_list_type,
+    CAT_LINE_RE, CLUB_LINK_ALLOWLIST, COLUMN_ALIASES, STATUS_TAIL_RE,
+    category_starter_count,
+    classify_championship_text, detect_list_type, aggregate_team_status,
     expand_pair_result, is_expected_source_failure, is_junk_name, is_ooc_status,
-    parse_champion_annotation, parse_course_info,
+    parse_champion_annotation, parse_course_info, find_trailing_club, load_clubs,
+    looks_like_person,
     parse_status, parse_time, parse_time_loose, number_team_results,
-    team_results_from_pairs,
+    repair_official_club_status_overflow, team_results_from_pairs,
 )
 from sync_selection import select_jobs
 
@@ -59,6 +61,12 @@ SCORE_CAT_LINE_RE = re.compile(
     r"^(?P<name>(?!\d).+?)\s+\d+(?::\d{2})?\s*min\b.*\b(?:P|Pkt)\b", re.I)
 COURSE_CAT_LINE_RE = re.compile(
     r"^(?P<name>(?!\d).+?)\s+\d+(?:[.,]\d+)?\s*km\b", re.I)
+LEGACY_HEADERLESS_CAT_RE = re.compile(
+    r"^(?P<name>.+?)\s+\((?P<shown>\d+)"
+    r"(?:\s*/\s*(?P<entered>\d+))?\)?\s+Ergebnis\b",
+    re.I)
+
+CLUBS = load_clubs()
 
 
 # The 2014 Krems school championship stored some two-person starts in one
@@ -159,6 +167,226 @@ def slice_row(line, labels, bounds):
         e = bounds[i + 1] if i + 1 < len(bounds) else len(line)
         rec[label] = line[s:e].strip()
     return rec
+
+
+def split_trailing_result_value(line):
+    """Split a fixed-width row into identity text and its final result value."""
+    status = STATUS_TAIL_RE.search(line)
+    if status and not line[status.end():].strip():
+        return line[:status.start()].rstrip(), status.group(0).strip()
+    clock = re.search(r"(\d{1,3}:\d{2}(?::\d{2})?)\s*$", line)
+    if clock:
+        return line[:clock.start()].rstrip(), clock.group(1)
+    return line.rstrip(), ""
+
+
+def parse_legacy_team_text(text):
+    """Parse old ``<pre>`` relay and Mannschaft exports.
+
+    These reports have one team header followed by indented roster lines and
+    therefore cannot be interpreted as ordinary individual fixed-width rows.
+    Team/status/rank are copied to every real member; a registered DNS team
+    without a roster remains one explicitly personless result unit.
+    """
+    expanded = text.expandtabs()
+    header = next((line for line in expanded.splitlines()
+                   if re.search(r"\bPl\b.*\bStnr\b.*\b(?:Staffel|Verein)\b", line)), "")
+    if not header:
+        return []
+    team_mode = bool(re.search(r"\bVerein\b", header))
+    kind = "team" if team_mode else "relay"
+    label = "Mannschaft" if team_mode else "Staffel"
+    categories, current, pending = [], None, None
+
+    def flush():
+        nonlocal pending
+        if not pending or current is None:
+            pending = None
+            return
+        current["sourceUnitCount"] = current.get("sourceUnitCount", 0) + 1
+        members = pending["members"]
+        member_statuses = []
+        for member in members:
+            seconds = parse_time_loose(member["timeText"])
+            member_statuses.append(
+                "ok" if seconds is not None else
+                (parse_status(member["timeText"]) or "unknown"))
+        team_status = aggregate_team_status(pending["status"], member_statuses)
+        common = {
+            "club": pending["name"], "resultKind": kind,
+            "status": team_status, "teamStatus": team_status,
+            "teamNumber": pending["number"], "teamName": pending["name"],
+            "teamTimeText": pending["timeText"],
+        }
+        if pending.get("rank") is not None:
+            common["rank"] = pending["rank"]
+        if pending.get("outOfCompetition"):
+            common["outOfCompetition"] = True
+        if pending.get("timeS") is not None:
+            common["teamTimeS"] = pending["timeS"]
+        if not members:
+            row = dict(common)
+            row.update({
+                "name": "", "timeText": "", "individualStatus": None,
+                "memberlessTeam": True,
+                "note": f"{label}: {pending['name']} · keine Teilnehmernamen in der Quelle",
+            })
+            current["results"].append(row)
+            pending = None
+            return
+        names = [member["name"] for member in members]
+        for index, member in enumerate(members, 1):
+            row = dict(common)
+            seconds = parse_time_loose(member["timeText"])
+            own_status = ("ok" if seconds is not None else
+                          (parse_status(member["timeText"]) or "unknown"))
+            mates = list(dict.fromkeys(name for name in names if name != member["name"]))
+            note = [f"{label}: {pending['name']}"]
+            if not team_mode:
+                note.append(f"Leg {index}/{len(members)}")
+            if mates:
+                note.append("Team: " + ", ".join(mates))
+            row.update({
+                "name": member["name"], "timeText": member["timeText"],
+                "individualStatus": own_status, "note": " · ".join(note),
+            })
+            if not team_mode:
+                row.update({"leg": index, "legCount": len(members)})
+            if seconds is not None:
+                row["timeS"] = seconds
+            current["results"].append(row)
+        pending = None
+
+    for raw_line in expanded.splitlines():
+        stripped = raw_line.strip()
+        if not stripped:
+            continue
+        category = CAT_LINE_RE.match(stripped)
+        course_category = COURSE_CAT_LINE_RE.match(stripped)
+        if category or course_category:
+            flush()
+            match = category or course_category
+            name = match.group("name").strip()
+            current = {
+                "name": name,
+                "declaredStarters": (category_starter_count(category)
+                                     if category else None),
+                "sourceUnitCount": 0, "results": [],
+            }
+            if category:
+                current.update(parse_course_info(category.group("rest")))
+            categories.append(current)
+            continue
+        if current is None or re.match(r"^(?:Pl\b|Name\b)", stripped):
+            continue
+        body, value = split_trailing_result_value(stripped)
+        team = re.match(r"^(?:(?P<place>AK|\d+)\s+)?(?P<number>\d+)\s+(?P<name>.+)$",
+                        body, re.I)
+        if team and value:
+            flush()
+            place = team.group("place") or ""
+            seconds = parse_time_loose(value)
+            pending = {
+                "rank": int(place) if place.isdigit() else None,
+                "outOfCompetition": is_ooc_status(place),
+                "number": team.group("number"), "name": team.group("name").strip(),
+                "timeText": value, "timeS": seconds,
+                "status": "ok" if seconds is not None else
+                          (parse_status(value) or "unknown"),
+                "members": [],
+            }
+            continue
+        if pending is None:
+            continue
+        member_text = body
+        member_text = re.sub(r"\s+(?:\d{2}|\d{4})\s*$", "", member_text).strip()
+        if (not value and not team_mode) or is_junk_name(member_text):
+            continue
+        if looks_like_person(member_text):
+            pending["members"].append({"name": member_text, "timeText": value})
+    flush()
+    return [category for category in categories if category["results"]]
+
+
+def parse_headerless_result_text(text):
+    """Parse OE fixed-width individual lists whose column header was omitted."""
+    categories, current = [], None
+    for raw_line in text.expandtabs().splitlines():
+        stripped = raw_line.strip()
+        category = LEGACY_HEADERLESS_CAT_RE.match(stripped)
+        if category:
+            current = {
+                "name": category.group("name").strip(),
+                "declaredStarters": int(category.group("shown")), "results": [],
+            }
+            categories.append(current)
+            continue
+        if current is None or not stripped:
+            continue
+        body, value = split_trailing_result_value(stripped)
+        if not value:
+            continue
+        prefix = re.match(r"^(?:(?P<place>AK|\d+)\s+)?(?P<body>.+)$", body, re.I)
+        if not prefix:
+            continue
+        identity = prefix.group("body").split()
+        club, name_tokens = find_trailing_club(identity, CLUBS)
+        yob = None
+        if club is None:
+            year_at = next((i for i, token in enumerate(identity)
+                            if i >= 2 and re.fullmatch(r"\d{2}|\d{4}", token)), None)
+            if year_at is not None:
+                name_tokens, yob = identity[:year_at], identity[year_at]
+                club = " ".join(identity[year_at + 1:])
+            else:
+                # These legacy <pre> reports remain fixed-width even when
+                # they omit the column header. Unknown foreign/school clubs
+                # cannot be found in the club dictionary, but the source's
+                # physical fields are stable: placement [0:13], name [13:44],
+                # optional birth year + club [44:time]. Preserve that row
+                # rather than dropping the winner (e.g. Lessinia Orienteering).
+                fixed_body, fixed_value = split_trailing_result_value(
+                    raw_line.rstrip())
+                fixed_name = fixed_body[13:44].strip() if len(fixed_body) > 44 else ""
+                fixed_club = fixed_body[44:].strip() if len(fixed_body) > 44 else ""
+                year_match = re.match(r"^(\d{2}|\d{4})\s+(.+)$", fixed_club)
+                if year_match:
+                    yob, fixed_club = year_match.groups()
+                if not fixed_name or not fixed_club:
+                    continue
+                name_tokens = fixed_name.split()
+                club = fixed_club
+                value = fixed_value or value
+        elif name_tokens and re.fullmatch(r"\d{2}|\d{4}", name_tokens[-1]):
+            yob = name_tokens.pop()
+        name = re.sub(r"^([^,]+),\s*(.+)$", r"\1 \2", " ".join(name_tokens)).strip()
+        if not looks_like_person(name) or is_junk_name(name):
+            continue
+        seconds = parse_time_loose(value)
+        row = {
+            "name": name, "club": club or "", "timeText": value,
+            "status": "ok" if seconds is not None else (parse_status(value) or "unknown"),
+        }
+        if "family" in current["name"].casefold() and "," not in " ".join(name_tokens):
+            row["resultKind"] = "family"
+        place = prefix.group("place") or ""
+        if place.isdigit():
+            row["rank"] = int(place)
+        elif is_ooc_status(place):
+            row["outOfCompetition"] = True
+        if seconds is not None:
+            row["timeS"] = seconds
+        if yob:
+            year = int(yob)
+            row["yearOfBirth"] = year + (2000 if year <= 26 else 1900) if year < 100 else year
+        current["results"].append(row)
+    return [category for category in categories if category["results"]]
+
+
+def parse_legacy_pre_text(text):
+    """Try the ordinary, team-block, then headerless historic text shapes."""
+    return (parse_text(text) or parse_legacy_team_text(text)
+            or parse_headerless_result_text(text))
 
 
 def parse_text(text):
@@ -387,6 +615,7 @@ def parse_text(text):
         if yob.isdigit():
             y = int(yob)
             result["yearOfBirth"] = y + (2000 if y <= 26 else 1900) if y < 100 else y
+        repair_official_club_status_overflow(result)
         current["results"].extend(expand_pair_result(result, current.get("name")))
 
     parsed = [c for c in categories if c["results"]]
@@ -461,6 +690,13 @@ def main():
         out_path = OUT / f"{eid}-{n}.json"
         try:
             data = fetch(f["url"], FILES / f"{eid}-{n}.{kind}", args.force_download)
+            # A number of legacy ANNE records mislabel a direct PDF URL as
+            # ``text/link``. The PDF parser owns those sources; importantly,
+            # do not unlink the normalized output it may just have written
+            # earlier in the same sync run.
+            if data[:4] == b"%PDF":
+                empty += 1
+                continue
             text = extract_pre_blocks(decode(data))
             list_type = detect_list_type(f["fileName"] or f["url"], text)
             if list_type == "overall":

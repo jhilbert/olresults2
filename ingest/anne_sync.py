@@ -24,7 +24,8 @@ import certifi
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from sportsoftware_common import (  # noqa: E402
     CLUB_LINK_ALLOWLIST, MANUAL_ATTACHMENT_OVERRIDES, MANUAL_HTML_OVERRIDES,
-    MANUAL_PDF_OVERRIDES,
+    MANUAL_PDF_OVERRIDES, is_championship_ranking_attachment,
+    is_result_named_attachment,
 )
 
 BASE = os.environ.get("ANNE_BASE_URL", "https://anne-api.oefol.at/v1").rstrip("/")
@@ -42,14 +43,6 @@ SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 NATIONAL_CHAMPIONSHIP_RE = re.compile(
     r"(?i)(?<![A-Za-zÄÖÜäöü])(?:Ö|OE)[–-]?(?:ST)?M(?![A-Za-zÄÖÜäöü])|"
     r"\b(?:österreich\w*\s+)?staatsmeister|\bösterreich\w*\s+meisterschaft")
-CHAMPIONSHIP_RANKING_ATTACHMENT_RE = re.compile(
-    r"(?i)meisterschafts[-_ ]?wertung")
-RESULT_NAMED_ATTACHMENT_RE = re.compile(
-    r"(?i)(?:ergebnis(?:se|liste)?|results?|gesamtwertung|"
-    r"(?:^|[-_ ])(?:oe|o|ö)(?:st)?m[-_ ].*[-_ ]erg(?:ebnis)?(?:[-_. ]|$))")
-NON_RESULT_ATTACHMENT_RE = re.compile(
-    r"(?i)(?:split|zwischenzeit|bahndat|meldung|startlist|startzeit|"
-    r"einladung|ausschreibung|l[aä]uferinfo|wettkampfinfo|bulletin|protokoll)")
 
 
 def get(url, retries=3):
@@ -64,6 +57,36 @@ def get(url, retries=3):
             time.sleep(2 * (attempt + 1))
 
 
+def merge_event_snapshot(existing, fetched):
+    """Update a calendar snapshot without losing temporarily hidden events.
+
+    The event endpoint is visibility-sensitive: an unauthenticated nightly run
+    does not see private events that may have been captured by an authorised
+    run before.  It can also move while its pages are being read, yielding a
+    duplicate row.  Keep the first-seen order of the durable snapshot, let the
+    current response update matching IDs, append genuinely new IDs, and
+    de-duplicate both inputs.
+    """
+    current = {}
+    fetched_order = []
+    for event in fetched or []:
+        event_id = int(event["id"])
+        if event_id not in current:
+            fetched_order.append(event_id)
+        current[event_id] = event
+
+    merged = []
+    seen = set()
+    for event in existing or []:
+        event_id = int(event["id"])
+        if event_id in seen:
+            continue
+        merged.append(current.get(event_id, event))
+        seen.add(event_id)
+    merged.extend(current[event_id] for event_id in fetched_order if event_id not in seen)
+    return merged
+
+
 def fetch_events():
     events, page = [], 1
     while True:
@@ -73,9 +96,15 @@ def fetch_events():
             break
         page += 1
         time.sleep(0.2)
-    (RAW / "events.json").write_text(json.dumps(events, ensure_ascii=False))
-    print(f"events: {len(events)}")
-    return events
+    path = RAW / "events.json"
+    existing = json.loads(path.read_text()) if path.exists() else []
+    merged = merge_event_snapshot(existing, events)
+    path.write_text(json.dumps(merged, ensure_ascii=False))
+    print(
+        f"events visible now: {len({int(event['id']) for event in events})}; "
+        f"durable snapshot: {len(merged)}"
+    )
+    return merged
 
 
 def needs_fetch(path, event, force, refresh_cutoff):
@@ -148,29 +177,6 @@ def has_national_championship_signal(event):
     text = " ".join(str(event.get(key) or "")
                     for key in ("shortTitle", "title", "slug"))
     return bool(NATIONAL_CHAMPIONSHIP_RE.search(text))
-
-
-def is_championship_ranking_attachment(attachment):
-    """Accept an explicitly named national ranking even when ANNE labels it
-    ``other``.  Do not broaden this to every filename containing ÖM/ÖSTM:
-    invitations, split times and jury documents use the same event title."""
-    text = f"{attachment.get('fileName') or ''} {attachment.get('url') or ''}"
-    return bool(CHAMPIONSHIP_RANKING_ATTACHMENT_RE.search(text)
-                and not NON_RESULT_ATTACHMENT_RE.search(text))
-
-
-def is_result_named_attachment(attachment):
-    """Recover result files that ANNE classified as ``other``/``splittimes``.
-
-    The attachment type is not reliable in the historic catalog.  A positive
-    result filename plus a conservative negative filter is safer than either
-    accepting every ``other`` file from a championship event or silently
-    missing an official result list.  The downstream parser still classifies
-    true cumulative/split reports as non-race data.
-    """
-    text = f"{attachment.get('fileName') or ''} {attachment.get('url') or ''}"
-    return bool(RESULT_NAMED_ATTACHMENT_RE.search(text)
-                and not NON_RESULT_ATTACHMENT_RE.search(text))
 
 
 def sync_attachments(events, known, force=False, refresh_cutoff=None, event_ids=None):

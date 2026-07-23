@@ -57,6 +57,9 @@ python3 ingest/anne_user_index.py      # private complete ANNE /user identity sn
 python3 build/build_db.py              # build site/data/results.db (pass 1)
 python3 ingest/anne_user_eligibility.py     # sync ÖM/ÖSTM championship eligibility (needs ANNE_API_KEY)
 python3 build/build_db.py              # rebuild with any newly-decided eligibility (pass 2)
+python3 build/normalized_diff.py        # summarize changed normalized parser output vs git HEAD
+python3 build/quality_report.py --fail-on-blockers  # event/source-grouped quality gate
+python3 build/audit_event_coverage.py   # find calendar/source/parser/DB coverage gaps
 python3 site/serve.py                  # local preview + writable result review
 ```
 
@@ -85,6 +88,19 @@ Open the review URL printed by the server (normally
 workflow. If port 8643 is already in use, the server automatically selects the
 next free port. See [docs/verification.md](docs/verification.md) for the review
 dimensions, Family/OOC model and championship campaigns.
+
+The normative business rules live in
+[`docs/rules/README.md`](docs/rules/README.md). Every deterministic review
+finding is mapped to one of those rule IDs in
+[`docs/rules/audit-catalog.json`](docs/rules/audit-catalog.json). Use
+`build/quality_report.py --domain parsing --domain completeness --domain ranking`
+for a parser-focused queue without championship-identity findings.
+
+`build/audit_event_coverage.py` checks the boundaries that row-level audits
+cannot see: an event missing from the built database, a cached result source
+with no normalized rows, or normalized rows not selected for publication.
+After a live calendar fetch, pass its JSON with `--external-calendar` to also
+detect event IDs absent from the durable local snapshot.
 
 Direct local access to ANNE remains supported. CI instead sets
 `ANNE_BASE_URL=https://<worker>/v1` and `ANNE_GATEWAY_TOKEN`.

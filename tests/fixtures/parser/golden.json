@@ -1,0 +1,33 @@
+{
+  "cases": [
+    {
+      "id": "individual-status-and-header",
+      "rules": ["PARSE-003", "STATUS-001", "STATUS-002"],
+      "parser": "sportsoftware-html",
+      "source": "sportsoftware_individual.html",
+      "category": "Damen 21-",
+      "declared_starters": 3,
+      "source_units": 3,
+      "rows": [
+        {"match": {"name": "Anna Schnell"}, "expect": {"rank": 1, "timeS": 2462, "status": "ok", "club": "Naturfreunde Wien"}},
+        {"match": {"name": "Berta Beispiel"}, "expect": {"status": "mp", "outOfCompetition": true, "club": "WAT-OL"}},
+        {"match": {"name": "Clara Ohne"}, "expect": {"status": "dns", "club": "OLC Graz"}}
+      ],
+      "forbidden_names": ["Annaberg", "Ergebnis", "Seite 2"]
+    },
+    {
+      "id": "team-unit-and-memberless-dns",
+      "rules": ["PARSE-001", "TEAM-002", "TEAM-006"],
+      "parser": "sportsoftware-html",
+      "source": "sportsoftware_team.html",
+      "category": "Herren ab 19",
+      "declared_starters": 2,
+      "source_units": 2,
+      "result_rows": 4,
+      "rows": [
+        {"match": {"name": "Fink Bernhard"}, "expect": {"rank": 1, "timeS": 6386, "status": "ok", "resultKind": "team"}},
+        {"match": {"memberlessTeam": true}, "expect": {"teamNumber": "29", "status": "dns", "resultKind": "team"}}
+      ]
+    }
+  ]
+}

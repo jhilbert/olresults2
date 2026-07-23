@@ -54,6 +54,12 @@ MANUAL_ATTACHMENT_OVERRIDES = {
 MANUAL_ATTACHMENT_SKIP = {
     (4894, "event_4894_ergebnis-split-ostm-sprint-ski-o-2025.pdf"),
     (4894, "event_4894_split-ostm-mittel-ski-o-2025.pdf"),
+    # Event 2445 publishes the same physical starts three times: the complete
+    # NOLV result, a school-category subset with points, and another scored
+    # copy of the NOLV result. Keep the complete first document only; loading
+    # the two score sheets would duplicate runners within the same event.
+    (2445, "event_2445_ergebnis-1-schulcup-2018-19.pdf"),
+    (2445, "event_2445_ergbnis-8nolvcup-milak.pdf"),
 }
 
 # Categories to drop from a specific attachment because a *different*
@@ -243,9 +249,39 @@ def category_starter_count(match):
     return int(match.group("starters"))
 
 # English-locale SportSoftware exports use different column headers
-COLUMN_ALIASES = {"Time": "Zeit", "Club": "Verein", "School": "Verein/Schule",
-                  "Schule": "Verein/Schule", "YB": "Jg",
-                  "Stno": "Stnr", "Runner": "Name", "Pos": "Pl", "Place": "Pl"}
+COLUMN_ALIASES = {
+    "Time": "Zeit", "Club": "Verein", "School": "Verein/Schule",
+    "Schule": "Verein/Schule", "YB": "Jg", "Stno": "Stnr",
+    "Runner": "Name", "Pos": "Pl", "Pos.": "Pl", "Place": "Pl",
+    "St. No.": "Stnr", "Time 1": "Zeit",
+    # Hungarian-localized OE2010/OE12 exports are common in the multi-day
+    # Austrian/Hungarian border-region cups. They have the exact same table
+    # structure as German SportSoftware output; only the labels differ.
+    "Hely": "Pl", "Rajtsz": "Stnr", "Név": "Name", "Szül": "Jg",
+    "Klub": "Verein", "Idõ": "Zeit", "Idő": "Zeit",
+}
+CHAMPIONSHIP_RANKING_ATTACHMENT_RE = re.compile(
+    r"(?i)meisterschafts[-_ ]?wertung")
+RESULT_NAMED_ATTACHMENT_RE = re.compile(
+    r"(?i)(?:ergebnis(?:se|liste)?|results?|gesamtwertung|"
+    r"(?:^|[-_ ])(?:oe|o|ö)(?:st)?m[-_ ].*[-_ ]erg(?:ebnis)?(?:[-_. ]|$))")
+NON_RESULT_ATTACHMENT_RE = re.compile(
+    r"(?i)(?:split|zwischenzeit|reszidos|bahndat|meldung|startlist|startzeit|"
+    r"einladung|ausschreibung|l[aä]uferinfo|wettkampfinfo|bulletin|protokoll)")
+
+
+def is_championship_ranking_attachment(attachment):
+    """Return whether a mislabeled attachment is an explicit ranking."""
+    text = f"{attachment.get('fileName') or ''} {attachment.get('url') or ''}"
+    return bool(CHAMPIONSHIP_RANKING_ATTACHMENT_RE.search(text)
+                and not NON_RESULT_ATTACHMENT_RE.search(text))
+
+
+def is_result_named_attachment(attachment):
+    """Recognize likely result files while excluding splits/start lists."""
+    text = f"{attachment.get('fileName') or ''} {attachment.get('url') or ''}"
+    return bool(RESULT_NAMED_ATTACHMENT_RE.search(text)
+                and not NON_RESULT_ATTACHMENT_RE.search(text))
 COURSE_RE = re.compile(r"(?:(?P<km>[\d.,]+)\s*km)?\s*(?:(?P<climb>\d+)\s*Hm)?")
 CONTROLS_RE = re.compile(r"(\d+)\s*P\b")
 # SportSoftware prints elapsed times over 99 minutes as ``114:08`` rather
@@ -283,12 +319,26 @@ JUNK_NAME_PATTERNS = (
 STATUS_MAP = {
     "aufg": "dnf", "aufgegeben": "dnf", "not finish": "dnf",
     "vzdal": "dnf",
+    # Hungarian OE2010 localizations. ``nfb`` abbreviates ``nem fejezte be``
+    # (did not finish), ``n.i.`` is ``nem indult`` (did not start), and
+    # ``hiba`` marks an erroneous/missing punch.
+    "nfb": "dnf", "n.i": "dns", "n.a": "dns",
+    "nem indult": "dns", "hiba": "mp",
     "verletzt": "dnf",
+    "techn. fehler": "dnf", "technischer fehler": "dnf",
     "fehlst": "mp", "ehlst": "mp", "fehlstempel": "mp",
+    # Child-course exports use NOK ("not OK") for a listed competitor who
+    # did not complete the prescribed course correctly.
+    "nok": "mp",
     "missing punch": "mp", "posten fehlt": "mp", "posten fehlen": "mp",
     "posten falsch": "mp", "po fehlt": "mp", "po falsch": "mp",
+    "falsche karte": "mp",
+    # Italian Oribos relay exports.
+    "punz. errata": "mp", "punz. mancante": "mp",
+    "po.f": "mp",
     "ziel fehlt": "mp",
     "dis": "dsq", "disq": "dsq", "disqu": "dsq", "disqualifiziert": "dsq",
+    "dq": "dsq",
     # Czech-localized OE2010 result exports use ``disk``.
     "disk": "dsq",
     "n. angetr.": "dns", "n.angetr.": "dns", "nicht angetreten": "dns",
@@ -301,9 +351,13 @@ STATUS_MAP = {
     # OE2010's old HTML export uses OMT ("omitted") for a listed runner
     # who did not start.  It is equivalent to DNS for result purposes.
     "omt": "dns",
+    "non partito": "dns",
+    "ritirato": "dnf", "incompleta": "dnf",
+    "fuori tempo max": "dsq",
     # Children's introductory classes sometimes use a qualitative successful
     # result instead of a time/rank.
-    "gut": "ok", "teilg": "ok", "teilgenommen": "ok",
+    "gut": "ok", "super gelaufen": "ok",
+    "teilg": "ok", "teilgenommen": "ok",
     # A few legacy files contain UTF-8's replacement character where the
     # original Windows-1252 Ü was already lost (``Zeit�b``).  Preserve the
     # only plausible OE2010 status instead of surfacing it as unknown.
@@ -353,6 +407,12 @@ def is_ooc_time(text):
 
 def parse_status(text):
     t = text.strip().lower().rstrip(".")
+    # Hand-made Start/Ziel/Laufzeit sheets sometimes replace the elapsed
+    # value with a control-specific note (``Nr.10 fehlt`` or
+    # ``Posten 54 fehlt``). This is the source's missing-punch status, not a
+    # finish-time column and not an unknown free-text remark.
+    if re.search(r"\b(?:nr\.?\s*\d+|posten\s*\d*)\s+fehlt\b", t):
+        return "mp"
     for key, val in STATUS_MAP.items():
         # Short codes must be real tokens: ``ak`` (außer Konkurrenz) is not
         # the middle of a country name such as "Slovakia". Longer German
@@ -515,6 +575,13 @@ def detect_list_type(file_name, doc_text, is_sole_attachment=False):
     no other source to fall back on, so treat it as this race's own results
     rather than silently discarding the entire event."""
     head = doc_text[:4000]
+    if re.search(
+            r"\bPl\s+\w*\s*Name\s+.*\bVerein\s+Kat\s+Zeit\b",
+            head, re.I):
+        # ``ergebnis-bahnen.pdf`` can mean an ordinary result grouped by
+        # courses, not a per-control split protocol (event 2102). Its explicit
+        # result header is authoritative over the ambiguous filename.
+        return "race"
     if re.search(r"(?:^|[-_])si[-_]", file_name, re.I) and not is_sole_attachment:
         # SportIdent station/control protocols shipped alongside a real result
         # list are diagnostic split data, not another race result.
@@ -535,10 +602,16 @@ def detect_list_type(file_name, doc_text, is_sole_attachment=False):
     # check below, since a split-times file can ALSO have "staffel" in its
     # name (event 3824's "...-relind-result-splits.pdf") and must still be
     # recognized as redundant, not misrouted to the relay parser instead.
-    if (re.search(r"(?:zwischen|zw)zeit|split|erg(?:ebnis)?[-_]?bahnen", file_name, re.I)
+    if (re.search(r"(?:zwischen|zw)zeit|split|reszidos|erg(?:ebnis)?[-_]?bahnen", file_name, re.I)
             or re.search(r"\bZwischenzeiten\b", head)):
         return "overall"                       # split-times report, redundant
-    if re.search(r"einzel", file_name, re.I):
+    if (re.search(r"<th\b[^>]*>\s*N1\s*</th>", doc_text, re.I)
+            and re.search(r"<th\b[^>]*>\s*N2\s*</th>", doc_text, re.I)):
+        # Hungarian multi-day OE2010 ``Összetett eredmények`` exports carry
+        # one N1/N2(/N3) time per stage plus a final sum. They are cumulative
+        # standings, not another physical race result.
+        return "overall"
+    if re.search(r"einzel|individual", file_name, re.I):
         return "race"                          # individual results within a Staffel event
     if re.search(r"wiener[-_ ]?wertung", file_name, re.I):
         # A regional championship subranking is still a result list for this
@@ -577,6 +650,22 @@ def detect_list_type(file_name, doc_text, is_sole_attachment=False):
             and not is_sole_attachment:
         return "overall"
     return "race"
+
+
+def is_auxiliary_attachment_name(file_name):
+    """Whether a file is clearly ancillary rather than the race result.
+
+    ``is_sole_attachment`` is intended to say whether an ambiguous
+    ``Gesamtergebnis`` is the event's only usable result. Counting a prose
+    report or split protocol alongside it made that answer falsely negative
+    (event 5060). Keep this deliberately narrow: another ordinary result or
+    championship list must still count as a competing source.
+    """
+    return bool(re.search(
+        r"(?:^|[-_ ])bericht(?:[-_ .]|$)|\breport\b|"
+        r"(?:zwischen|zw)zeit|split|reszidos|erg(?:ebnis)?[-_]?bahnen|"
+        r"\bbahn(?:en)?(?:daten|liste)?\b",
+        file_name or "", re.I))
 
 
 FILENAME_DATE_RE = re.compile(r"erg(\d{2})(\d{2})(\d{2})(?!\d)", re.I)
@@ -689,6 +778,9 @@ def load_clubs():
         "lk kompass innsbruck-imst": "Laufklub Kompass Innsbruck Imst",
         "askö olc ebental": "ASKÖ OLC Ebental",
         "oc c. budejovice": "OC C. Budejovice",
+        "sokol kremze": "Sokol Kremze",
+        "turn- und sportunion reic": "Turn- und Sportunion Reichenthal",
+        "abis anton bruckner internati": "ABIS Anton Bruckner International School",
         "kob cesky krumlov": "KOB Cesky Krumlov",
         "skv olg deutsch kaltenbrun": "SKV OLG Deutsch Kaltenbrunn",
         "sk zabovresky brno": "SK Zabovresky Brno",
@@ -716,6 +808,42 @@ def load_clubs():
         "mms freistadt": "MMS Freistadt",
         "tnms stadl-paura": "TNMS Stadl-Paura",
         "ms schwertberg": "MS Schwertberg",
+        # Historic exports sometimes print a short club code immediately
+        # before the long Verein column.  Treat the complete visible sequence
+        # as one parsing boundary so the short code cannot remain attached to
+        # the runner's name.
+        "hsv grm hsv großmittel": "HSV Großmittel",
+        "hsv lale hsv langenlebarn": "HSV Langenlebarn",
+        "hsvwrn hsv-ol wr.neustadt": "HSV OL Wiener Neustadt",
+        "nf wien naturfreunde": "Naturfreunde Wien",
+        "hsv wn hsv ol wr. n": "HSV OL Wiener Neustadt",
+        "orienteering klb orient": "Orienteering Klosterneuburg",
+        "olc wienerwald olc": "OLC Wienerwald",
+        # Complete historic/foreign spellings verified in their source rows.
+        "olg cordoba": "OLG Cordoba",
+        "su fürstenfeld": "SU Fürstenfeld",
+        "su reichenthal": "Turn- und Sportunion Reichenthal",
+        "naturfreunde gramastetten": "NF Gramastetten",
+        "naturfreunde steuerberg olg": "Naturfreunde Steuerberg OLG",
+        "naturfreunde limz": "Naturfreunde Linz",
+        # Hyphenated abbreviations in the 2015 OÖ Sprint-LM ranking-only
+        # classes. They are parsing boundaries for the person/club split.
+        "hsv-ried": "HSV Ried",
+        "nf-linz": "Naturfreunde Linz",
+        "nf-pasching": "NF Pasching",
+        # Compact club labels in SIME result exports.
+        "hsv ol wn": "HSV OL Wiener Neustadt",
+        "hsv gm": "HSV Großmittel",
+        "olc wiener": "OLC Wienerwald",
+        "oc fürsten": "OC Fürstenfeld",
+        "hsv pinkaf": "HSV Pinkafeld",
+        "nf wien": "Naturfreunde Wien",
+        "hsv lale": "HSV Langenlebarn",
+        "olt transd": "OLT Transdanubien",
+        "leibnitzer": "Leibnitzer AC",
+        "su schöckl": "SU Schöckl Orienteering",
+        "orienteering klosterneburg": "Orienteering Klosterneuburg",
+        "wat-ol -": "WAT-OL",
     })
     return out
 
@@ -817,7 +945,7 @@ def expand_pair_result(result, category=None):
     # Unlike a hyphen it is never part of a person's name, so it is safe to
     # recognise wherever it occurs.  A trailing '+' with only one real name
     # remains a normal individual AK/DNS result below.
-    if "/" in name or "+" in name:
+    if "/" in name or "+" in name or "&" in name:
         names = split_pair_names(name)
     elif category and PAIR_CATEGORY_RE.search(category):
         names = split_hyphenated_pair_names(name)
@@ -862,13 +990,94 @@ def expand_pair_result(result, category=None):
 STATUS_TAIL_RE = re.compile(
     r"(?i)(n\.?\s*ang\.?|n\.?\s*gest\.?|nicht\s+ang\.?|nicht angetreten|"
     r"nicht gestartet|aufg\.?|aufgegeben|not\s+finish(?:ed)?|verletzt|vzdal|"
-    r"fehlst\.?|ehlst\.?|missing\s+punch|"
+    r"fehlst\.?|ehlst\.?|missing\s+punch|NOK|"
     r"(?:\d+\s+)?(?:po|posten)\s+(?:fehlt|fehlen|falsch)|ziel\s+fehlt|"
     r"maximalzeit|keine\s+zielzeit|keine\s+e-?card|"
     r"dis\.?|disq(?:u)?\.?|"
     r"disk\.?|"
     r"ohne wertung|außer konkurrenz|ausser konkurrenz|wertungsfrei|AK|NC|"
     r"ok|dnf|dns|dsq|mp|omt|apng|gut|teilgenommen|zeitüb\.?|zeitüberschreitung)\s*$")
+
+
+@lru_cache(maxsize=1)
+def official_club_names():
+    """Return current official club spellings for conservative overflow repair."""
+    path = Path(__file__).resolve().parent.parent / "data" / "official_clubs.json"
+    if not path.exists():
+        return ()
+    return tuple(
+        entry["name"] for entry in json.loads(path.read_text())
+        if isinstance(entry, dict) and entry.get("name")
+    )
+
+
+@lru_cache(maxsize=1)
+def known_club_names():
+    names = set(official_club_names())
+    clubs = load_clubs()
+    names.update(clubs.values())
+    return tuple(name for name in names if "empty" not in name.casefold())
+
+
+def repair_official_club_status_overflow(result):
+    """Move a clipped official-club suffix out of the result-value column.
+
+    Fixed-width HTML/text exports can cut a long club at the physical column
+    boundary, e.g. ``Naturfreunde Villach - Orie`` + ``nt N Ang``.  The
+    status tail is trustworthy, but the leading fragment belongs to Verein.
+    Only an official club spelling that starts with the recombined fragments
+    is accepted, so ordinary free-text result values remain untouched.
+    """
+    club = (result.get("club") or "").strip()
+    value = (result.get("timeText") or "").strip()
+    status_tail = STATUS_TAIL_RE.search(value)
+    if not club or not status_tail or status_tail.start() == 0:
+        return result
+    displaced_raw = value[:status_tail.start()].strip()
+    displaced = displaced_raw.strip(" ,;:-")
+    if not displaced:
+        return result
+
+    semantic_prefix = re.sub(r"\s+", " ", displaced).casefold()
+    if semantic_prefix.startswith("am wechsel") or semantic_prefix == "sehr":
+        return result
+    if club.casefold() in {"vereinslos", "no club"} and value.casefold().startswith("(no "):
+        result["club"] = "Vereinslos (no club)"
+        result["timeText"] = value[4:].strip()
+        return result
+    # A school class can sit between Schule and Zeit. It is metadata, not a
+    # suffix of either field (``BG/BRG St. Martin | 4C Fehlst``).
+    if re.fullmatch(r"\d+[A-Z]", displaced, re.I):
+        result["timeText"] = value[status_tail.start():].strip()
+        return result
+
+    joined_forms = {
+        f"{club}{displaced}".casefold(),
+        f"{club} {displaced}".casefold(),
+    }
+    matches = []
+    official = set(official_club_names())
+    for canonical in known_club_names():
+        folded = canonical.casefold()
+        for joined in joined_forms:
+            missing = len(folded) - len(joined)
+            if folded.startswith(joined) and 0 <= missing <= 12:
+                matches.append((canonical not in official, missing, -len(joined), canonical))
+    if matches:
+        result["club"] = min(matches)[3]
+    else:
+        # The source corpus also contains foreign clubs and schools absent
+        # from the Austrian registry. Once an explicit status tail proves the
+        # value boundary, retain the visible prefix as club text. One/two
+        # trailing letters complete a clipped word; longer fragments are a
+        # separate word or location.
+        if re.fullmatch(r"[A-Za-zÀ-ž]{1,2}", displaced):
+            result["club"] = f"{club}{displaced}"
+        else:
+            result["club"] = re.sub(
+                r"\s+", " ", f"{club} {displaced_raw}").strip()
+    result["timeText"] = value[status_tail.start():].strip()
+    return result
 
 
 def parse_flow_row(text, clubs):

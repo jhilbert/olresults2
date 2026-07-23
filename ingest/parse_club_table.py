@@ -25,7 +25,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from parse_sportsoftware_html import TableExtractor
+from parse_sportsoftware_html import TableExtractor, parse_bracket_html
 from sportsoftware_common import (
     CLUB_LINK_ALLOWLIST, is_expected_source_failure, is_junk_name, parse_status,
     parse_time_loose,
@@ -39,6 +39,8 @@ OUT = ROOT / "data" / "normalized"
 
 HEADERS = {"User-Agent": "olresults-sync/0.1 (+https://github.com/josefhilbert/olresults)"}
 CAT_HEADER_RE = re.compile(r"^\((\d+)\s*/\s*(\d+)\)$")
+COMBINED_CAT_HEADER_RE = re.compile(
+    r"^(?P<name>.+?)\s+\((?P<finished>\d+)\s*/\s*(?P<entered>\d+)\)$")
 RANK_RE = re.compile(r"^(\d+)\.?$")
 
 
@@ -48,15 +50,38 @@ def parse_document(html_text):
 
     categories = []
     current = None
+    layout = None
     for table in ex.tables:
         for row in table:
             if not row or all(c in ("", "&nbsp", "&nbsp;") for c in row):
+                continue
+            combined = COMBINED_CAT_HEADER_RE.fullmatch(row[0].strip())
+            if combined:
+                current = {
+                    "name": combined.group("name").strip(),
+                    "declaredStarters": int(combined.group("entered")),
+                    "results": [],
+                }
+                categories.append(current)
+                layout = "sportsoftware"
                 continue
             if len(row) >= 3 and CAT_HEADER_RE.match(row[1].strip()) and row[2].strip() == "Zeit":
                 m = CAT_HEADER_RE.match(row[1].strip())
                 current = {"name": row[0].strip(), "declaredStarters": int(m.group(2)),
                            "results": []}
                 categories.append(current)
+                layout = "counted"
+                continue
+            if (len(row) >= 3 and row[0].strip()
+                    and row[2].strip() == "Zeit"
+                    and row[0].strip().casefold() not in {"pl", "platz"}):
+                current = {
+                    "name": row[0].strip(),
+                    "declaredStarters": None,
+                    "results": [],
+                }
+                categories.append(current)
+                layout = "simple"
                 continue
             if current is None or len(row) < 3:
                 continue
@@ -65,18 +90,49 @@ def parse_document(html_text):
             rank_m = RANK_RE.match(first)
             is_finisher_row = bool(rank_m)
             is_nonfinisher_row = first in ("", "&nbsp", "&nbsp;")
-            if not (is_finisher_row or is_nonfinisher_row):
+            is_ooc_row = first.casefold() == "ak"
+            if not (is_finisher_row or is_nonfinisher_row or is_ooc_row):
                 continue
 
-            name = row[1].strip()
+            if layout == "sportsoftware":
+                if len(row) < 6:
+                    continue
+                name = row[2].strip()
+                club = row[4].strip()
+                time_text = row[5].strip()
+            else:
+                name = row[1].strip()
+                # Prefer an actual result time anywhere to the right. Club
+                # names such as ``OK gittis Klosterneuburg`` legitimately
+                # begin with the token ``OK`` and must not become a
+                # qualitative status value.
+                value_index = next(
+                    (index for index, cell in enumerate(row[2:], 2)
+                     if parse_time_loose(cell.strip()) is not None),
+                    None,
+                )
+                if value_index is None:
+                    status_indices = [
+                        index for index, cell in enumerate(row[2:], 2)
+                        if parse_status(cell.strip()) is not None
+                    ]
+                    value_index = (
+                        status_indices[-1] if status_indices else None
+                    )
+                if value_index is None:
+                    continue
+                club = " ".join(
+                    cell.strip() for cell in row[2:value_index]
+                    if cell.strip() not in ("&nbsp", "&nbsp;"))
+                time_text = row[value_index].strip()
             if is_junk_name(name):
                 continue
-            club = row[2].strip()
-            time_text = row[3].strip() if len(row) > 3 else ""
 
             result = {"name": name, "club": club, "timeText": time_text}
             if rank_m:
                 result["rank"] = int(rank_m.group(1))
+            if is_ooc_row:
+                result["outOfCompetition"] = True
             seconds = parse_time_loose(time_text)
             if seconds is not None:
                 result["timeS"] = seconds
@@ -85,7 +141,11 @@ def parse_document(html_text):
                 result["status"] = parse_status(time_text) or "unknown"
             current["results"].append(result)
 
-    return [c for c in categories if c["results"]]
+    parsed = [c for c in categories if c["results"]]
+    for category in parsed:
+        if category["declaredStarters"] is None:
+            category["declaredStarters"] = len(category["results"])
+    return parsed
 
 
 def fetch(url, dest, force=False):
@@ -142,12 +202,20 @@ def main():
     for eid, n, f in jobs:
         out_path = OUT / f"{eid}-club{n}.json"
         try:
-            data = fetch(f["url"], FILES / f"{eid}-club{n}.html", args.force_download)
+            shared_cache = FILES / f"{eid}-{n}.html"
+            if shared_cache.exists() and not args.force_download:
+                data = shared_cache.read_bytes()
+            else:
+                data = fetch(
+                    f["url"], FILES / f"{eid}-club{n}.html", args.force_download)
             text = decode(data)
-            if "(" not in text or " / " not in text:
-                empty += 1  # cheap pre-check before the full table walk
-                continue
             cats = parse_document(text)
+            if not cats:
+                # The saved liveresultat variant has the same category/count
+                # blocks but a leading spacer cell and optional team/member
+                # rows. Keep one structural implementation for it instead of
+                # maintaining a second, subtly different table walker here.
+                cats = parse_bracket_html(text)
             if not cats:
                 empty += 1
                 continue

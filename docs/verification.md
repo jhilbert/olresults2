@@ -59,12 +59,13 @@ heutigen Verein bleibt bewusst `candidate`.
 
 ## Kampagnen
 
-1. ÖM/ÖSTM: bestehende Eligibility- und Medaillenlogik plus Listenprüfung.
-2. Wiener Meisterschaften: erkannte Kandidaten werden zuerst katalogisiert.
-   Wiener Medaillen entstehen erst nach bestätigter Instanz und einer aktiven,
-   versionierten Wiener Regelmenge.
+1. ÖM/ÖSTM: Eligibility-, Medaillen- und Listenprüfung.
+2. Landesmeisterschaften: Wien, Niederösterreich, Burgenland, Steiermark,
+   Oberösterreich, Salzburg, Tirol, Kärnten und Vorarlberg. Gemeinsame Bahnen
+   werden anhand expliziter Quellkennungen und historischer Vereinszugehörigkeit
+   in getrennte Wertungen partitioniert.
 
-`championship_instance` trennt AUT und WIEN. `award` ist die gemeinsame
-Grundlage künftiger nationaler und Wiener Medaillenspiegel. Die derzeitige
-Wiener Regelmenge ist bewusst `draft`; Kandidaten werden noch nicht als Awards
-veröffentlicht.
+`championship_instance` trennt die nationale Jurisdiktion `AUT` und die neun
+Landesjurisdiktionen. `award` ist die gemeinsame Grundlage der nationalen und
+regionalen Medaillenspiegel. Die verbindlichen Regeln und noch provisorischen
+Ableitungen stehen im [OLRESULTS2-Regelwerk](rules/README.md).

@@ -35,7 +35,8 @@ from sportsoftware_common import (
     expand_pair_result, extract_html_title,
     aggregate_team_status, guess_doc_date, is_junk_name, is_ooc_status, is_ooc_time,
     parse_champion_annotation, parse_course_info, parse_status, parse_time,
-    parse_time_loose, number_team_results, team_results_from_pairs,
+    parse_time_loose, number_team_results, repair_official_club_status_overflow,
+    team_results_from_pairs, is_auxiliary_attachment_name,
 )
 from sync_selection import select_jobs
 
@@ -145,14 +146,56 @@ def parse_document(html_text):
                 pending_rank = pending_championship = None
                 team_counts = defaultdict(int)
                 continue
-            if first == "Pl" or (current and "Name" in row):
+            oevent_category = re.match(
+                r"^(?P<name>.+?)\s+\(\d+(?:[.,]\d+)?\s*(?:m|km)\s*,", first, re.I)
+            if oevent_category and len(row) == 1:
+                # OEvent prints one global header followed by one-cell course
+                # boundaries. Preserve that header across categories.
+                current = {
+                    "name": oevent_category.group("name").strip(),
+                    "sourceCategory": first.strip(),
+                    "declaredStarters": None, "results": [],
+                }
+                current.update(parse_course_info(first))
+                categories.append(current)
+                pending_rank = pending_championship = None
+                team_counts = defaultdict(int)
+                continue
+            # Some compact/custom HTML exports omit ``(starter count)`` but
+            # keep an unambiguous course row (``Damen A | 5,0 km | 19
+            # Posten`` or ``Mittel | 1,7 km | 11 Posten``). It is a category
+            # boundary, not a title, only when distance and controls occur in
+            # the same short table row.
+            joined_header = " ".join(row)
+            if (len(row) >= 2 and first and not first.isdigit()
+                    and re.search(r"\d+(?:[.,]\d+)?\s*km\b", joined_header, re.I)
+                    and re.search(r"\d+\s*(?:P|Posten)\b", joined_header, re.I)):
+                current = {
+                    "name": first.strip(), "sourceCategory": first.strip(),
+                    "declaredStarters": None, "results": [],
+                }
+                current.update(parse_course_info(" ".join(row[1:])))
+                categories.append(current)
+                columns = None
+                pending_rank = pending_championship = None
+                team_counts = defaultdict(int)
+                continue
+            aliased_columns = [COLUMN_ALIASES.get(cell, cell) for cell in row]
+            if aliased_columns[0] == "Pl" or (current and "Name" in aliased_columns):
                 # OE's English export uses Time/Club/YB/Stno while the
                 # parser's canonical field names are German.  Keeping the
                 # raw labels made every ranked row look time-less and also
                 # dropped unranked MP/DNF rows completely, because neither
                 # rank nor the nominal ``Zeit`` field then existed.
-                columns = [COLUMN_ALIASES.get(cell, cell) for cell in row]
+                columns = aliased_columns
                 continue
+            if (current is not None and columns is None and len(row) >= 5
+                    and (row[0].strip().isdigit() or row[0].strip() in {"-", "AK"})
+                    and (parse_time_loose(row[4].split()[0].strip("()")) is not None
+                         or parse_status(row[4]))):
+                # Small club-generated tables often have no explicit column
+                # header but consistently use Pl | SI | Name | Verein | Zeit.
+                columns = ["Pl", "Stnr", "Name", "Verein", "Zeit"]
             if current is None or columns is None:
                 continue
             # champion-announcement rows come in several shapes - the whole
@@ -174,7 +217,21 @@ def parse_document(html_text):
                 pending_rank, pending_championship = annot_rank, annot_championship
                 continue
             # data row: align cells to columns
+            # Several classic OE exports print the winner's placement in a
+            # separate championship-announcement row.  The following winner
+            # row then physically omits the ``Pl`` cell instead of leaving it
+            # blank, so every value would otherwise shift one column left
+            # (bib becomes Pl, name becomes bib, year becomes name) and the
+            # real winner is discarded as a numeric "name".  Restore the
+            # missing leading cell before aligning the row.  A trailing empty
+            # header cell is deliberately ignored in the size comparison.
+            populated_column_count = sum(bool(column) for column in columns)
+            if (pending_rank is not None and columns and columns[0] == "Pl"
+                    and len(row) == populated_column_count - 1):
+                row = [""] + row
             rec = dict(zip([c or f"col{i}" for i, c in enumerate(columns)], row))
+            if rec.get("Pl"):
+                rec["Pl"] = rec["Pl"].strip().rstrip(".")
             time_text = (rec.get("Zeit") or rec.get("Gesamt") or "").strip()
             if parse_time_loose(time_text) is None and not parse_status(time_text):
                 # Colspan-heavy international exports can shift Country into
@@ -284,6 +341,8 @@ def parse_document(html_text):
                     continue
 
             name = rec.get("Name", "").strip()
+            if not name and (rec.get("Nachname") or rec.get("Vorname")):
+                name = f"{rec.get('Nachname') or ''} {rec.get('Vorname') or ''}".strip()
             if not name and individual_member_layout and member_values:
                 name = member_values[0]
             if is_junk_name(name):
@@ -353,6 +412,7 @@ def parse_document(html_text):
                 result["yearOfBirth"] = y + (2000 if y <= 26 else 1900) if y < 100 else y
             if rec.get("Pkt"):
                 result["scoreText"] = rec["Pkt"].strip()
+            repair_official_club_status_overflow(result)
             current["results"].extend(expand_pair_result(result, current.get("name")))
 
     parsed = [c for c in categories if c["results"]]
@@ -628,6 +688,15 @@ def parse_relay_document(html_text):
                 continue
             first = row[0].strip()
             m = CAT_LINE_RE.match(first)
+            if not m:
+                nonempty = [cell.strip() for cell in row
+                            if cell.strip() not in ("", "&nbsp")]
+                # Nested SportSoftware category tables put the heading in
+                # the middle cell, surrounded only by blanks. Never scan a
+                # populated member/team row for arbitrary ``(N)`` text: leg
+                # times in parentheses otherwise become phantom categories.
+                if len(nonempty) == 1:
+                    m = CAT_LINE_RE.match(nonempty[0])
             if m:
                 flush()
                 pending_rank = None
@@ -695,7 +764,11 @@ def parse_relay_document(html_text):
                              and len(row) > 1 and not row[1].strip().isdigit())
             confident_rank = ((first.isdigit() and not sprint_member)
                               or pending_rank is not None)
-            stnr_marks_team = has_stnr and len(row) > 1 and row[1].strip().isdigit()
+            nested_stnr_idx = staffel_idx + 2
+            stnr_marks_team = has_stnr and (
+                (len(row) > 1 and row[1].strip().isdigit())
+                or (staffel_idx >= 3 and len(row) > nested_stnr_idx
+                    and row[nested_stnr_idx].strip().isdigit()))
             len_marks_team = (not has_stnr and team_row_len and member_row_len
                               and team_row_len != member_row_len and len(row) == team_row_len)
 
@@ -714,7 +787,14 @@ def parse_relay_document(html_text):
                     team_row_len = team_row_len or len(row)
                 idx = staffel_idx if len(row) > staffel_idx else (len(row) - 1)
                 team_name = row[idx].strip() if idx >= 0 and row[idx] else ""
-                team_number = row[1].strip() if has_stnr and len(row) > 1 else ""
+                team_number = ""
+                if has_stnr:
+                    team_number = next((
+                        row[position].strip()
+                        for position in ((1, nested_stnr_idx)
+                                         if staffel_idx >= 3 else (1,))
+                        if len(row) > position and row[position].strip().isdigit()
+                    ), "")
                 team_time_text = ""
                 for cell in row[idx + 1:]:
                     cell = cell.strip()
@@ -773,6 +853,277 @@ def fetch(url, dest, force=False):
 
 
 CHARSET_UTF8_RE = re.compile(r'charset=["\']?utf-8', re.I)
+POSITIONED_ELEMENT_RE = re.compile(
+    r"<(?P<tag>div|h[1-6])\b(?P<attrs>[^>]*)>(?P<body>.*?)</(?P=tag)>",
+    re.I | re.S)
+
+
+def positioned_rows(html_text):
+    """Return rows from MeOS' absolute-positioned, table-less HTML export."""
+    rows = defaultdict(list)
+    for match in POSITIONED_ELEMENT_RE.finditer(html_text):
+        style = re.search(r'style=["\']([^"\']+)', match.group("attrs"), re.I)
+        if not style:
+            continue
+        left = re.search(r"\bleft\s*:\s*(\d+)px", style.group(1), re.I)
+        top = re.search(r"\btop\s*:\s*(\d+)px", style.group(1), re.I)
+        if not left or not top:
+            continue
+        value = html_mod.unescape(re.sub(r"<[^>]+>", "", match.group("body")))
+        value = re.sub(r"\s+", " ", value).strip().strip("\xa0")
+        if value:
+            rows[int(top.group(1))].append((int(left.group(1)), value))
+    return [sorted(cells) for _, cells in sorted(rows.items())]
+
+
+def parse_positioned_document(html_text, relay=False):
+    """Parse table-less MeOS individual or relay result HTML.
+
+    The export encodes semantic columns exclusively as CSS ``left/top``
+    coordinates. Reconstructing those rows is both more exact and safer than
+    flattening the whole document into one stream of words.
+    """
+    rows = positioned_rows(html_text)
+    if not rows:
+        return []
+    categories, current, pending = [], None, None
+
+    def cell(cells, left):
+        return next((value for x, value in cells if x == left), "")
+
+    def flush_team():
+        nonlocal pending
+        if not relay or not pending or current is None:
+            pending = None
+            return
+        current["sourceUnitCount"] = current.get("sourceUnitCount", 0) + 1
+        members = pending["members"]
+        own_statuses = []
+        for member in members:
+            seconds = parse_time_loose(member["timeText"])
+            own_statuses.append("ok" if seconds is not None else
+                                (parse_status(member["timeText"]) or "unknown"))
+        team_status = aggregate_team_status(pending["status"], own_statuses)
+        common = {
+            "club": pending["name"], "resultKind": "relay",
+            "status": team_status, "teamStatus": team_status,
+            "teamName": pending["name"], "teamNumber": pending.get("number"),
+            "teamTimeText": pending["timeText"],
+        }
+        if pending.get("rank") is not None:
+            common["rank"] = pending["rank"]
+        if pending.get("outOfCompetition"):
+            common["outOfCompetition"] = True
+        if pending.get("timeS") is not None:
+            common["teamTimeS"] = pending["timeS"]
+        if not members:
+            result = dict(common)
+            result.update({
+                "name": "", "timeText": "", "individualStatus": None,
+                "memberlessTeam": True,
+                "note": (f"Staffel: {pending['name']} · "
+                         "keine Teilnehmernamen in der Quelle"),
+            })
+            current["results"].append(result)
+        else:
+            names = [member["name"] for member in members]
+            for index, member in enumerate(members, 1):
+                result = dict(common)
+                seconds = parse_time_loose(member["timeText"])
+                mates = list(dict.fromkeys(name for name in names if name != member["name"]))
+                note = [f"Staffel: {pending['name']}", f"Leg {index}/{len(members)}"]
+                if mates:
+                    note.append("Team: " + ", ".join(mates))
+                result.update({
+                    "name": member["name"], "timeText": member["timeText"],
+                    "individualStatus": own_statuses[index - 1],
+                    "leg": index, "legCount": len(members),
+                    "note": " · ".join(note),
+                })
+                if seconds is not None:
+                    result["timeS"] = seconds
+                current["results"].append(result)
+        pending = None
+
+    count_left = 384 if relay else 280
+    for cells in rows:
+        first, count = cell(cells, 48), cell(cells, count_left)
+        count_match = re.fullmatch(r"\((\d+)\s*/\s*(\d+)\)", count)
+        if first and count_match:
+            flush_team()
+            current = {
+                "name": first.strip(), "declaredStarters": int(count_match.group(1)),
+                "results": [],
+            }
+            if relay:
+                current["sourceUnitCount"] = 0
+            categories.append(current)
+            continue
+        if current is None:
+            continue
+        if relay:
+            member_name = cell(cells, 102)
+            if member_name:
+                if pending is not None and not is_junk_name(member_name):
+                    pending["members"].append({
+                        "name": member_name, "timeText": cell(cells, 384),
+                    })
+                continue
+            team_name, team_value = cell(cells, 78), cell(cells, 528)
+            if not team_name or not (parse_time_loose(team_value) is not None
+                                     or parse_status(team_value)):
+                continue
+            flush_team()
+            rank_text = first.rstrip(".")
+            seconds = parse_time_loose(team_value)
+            pending = {
+                "name": team_name, "number": None, "timeText": team_value,
+                "timeS": seconds,
+                "status": "ok" if seconds is not None else
+                          (parse_status(team_value) or "unknown"),
+                "rank": int(rank_text) if rank_text.isdigit() else None,
+                "outOfCompetition": is_ooc_status(first), "members": [],
+            }
+            continue
+
+        name, club, value = cell(cells, 78), cell(cells, 280), cell(cells, 483)
+        if not name or is_junk_name(name):
+            continue
+        seconds = parse_time_loose(value)
+        status = "ok" if seconds is not None else (parse_status(value) or None)
+        if status is None:
+            continue
+        result = {
+            "name": name, "club": club, "timeText": value, "status": status,
+        }
+        rank_text = first.rstrip(".")
+        if rank_text.isdigit():
+            result["rank"] = int(rank_text)
+        elif is_ooc_status(first):
+            result["outOfCompetition"] = True
+        if seconds is not None:
+            result["timeS"] = seconds
+        current["results"].append(result)
+    flush_team()
+    return [category for category in categories if category["results"]]
+
+
+def parse_meos_relay_table(html_text):
+    """Parse MeOS' single-table relay layout (team row + numbered legs)."""
+    extractor = TableExtractor()
+    extractor.feed(html_text)
+    if len(extractor.tables) != 1:
+        return []
+    categories, current, pending = [], None, None
+
+    def clean_value(value):
+        return (value or "").strip().strip("()")
+
+    def flush():
+        nonlocal pending
+        if pending is None or current is None:
+            pending = None
+            return
+        current["sourceUnitCount"] += 1
+        members = pending["members"]
+        member_statuses = []
+        for member in members:
+            seconds = parse_time_loose(member["timeText"])
+            member_statuses.append("ok" if seconds is not None else
+                                   (parse_status(member["timeText"]) or "unknown"))
+        team_status = aggregate_team_status(pending["status"], member_statuses)
+        common = {
+            "club": pending["name"], "resultKind": "relay",
+            "status": team_status, "teamStatus": team_status,
+            "teamNumber": None, "teamName": pending["name"],
+            "teamTimeText": pending["timeText"],
+        }
+        if pending.get("rank") is not None:
+            common["rank"] = pending["rank"]
+        if pending.get("outOfCompetition"):
+            common["outOfCompetition"] = True
+        if pending.get("timeS") is not None:
+            common["teamTimeS"] = pending["timeS"]
+        if not members:
+            result = dict(common)
+            result.update({
+                "name": "", "timeText": "", "individualStatus": None,
+                "memberlessTeam": True,
+                "note": (f"Staffel: {pending['name']} · "
+                         "keine Teilnehmernamen in der Quelle"),
+            })
+            current["results"].append(result)
+        else:
+            names = [member["name"] for member in members]
+            for index, member in enumerate(members, 1):
+                result = dict(common)
+                seconds = parse_time_loose(member["timeText"])
+                mates = list(dict.fromkeys(name for name in names if name != member["name"]))
+                note = [f"Staffel: {pending['name']}", f"Leg {index}/{len(members)}"]
+                if mates:
+                    note.append("Team: " + ", ".join(mates))
+                result.update({
+                    "name": member["name"], "timeText": member["timeText"],
+                    "individualStatus": member_statuses[index - 1],
+                    "leg": index, "legCount": len(members),
+                    "note": " · ".join(note),
+                })
+                if seconds is not None:
+                    result["timeS"] = seconds
+                current["results"].append(result)
+        pending = None
+
+    for row in extractor.tables[0]:
+        if not row or all(not cell for cell in row):
+            continue
+        count = row[2].strip() if len(row) > 2 else ""
+        category_count = re.fullmatch(r"\((\d+)\s*/\s*(\d+)\)", count)
+        if category_count:
+            flush()
+            current = {
+                "name": row[1].strip(),
+                "declaredStarters": int(category_count.group(1)),
+                "sourceUnitCount": 0, "results": [],
+            }
+            categories.append(current)
+            continue
+        if current is None:
+            continue
+        ordinal = row[1].strip().rstrip(".") if len(row) > 1 else ""
+        is_member = bool(
+            pending and ordinal.isdigit()
+            and (len(row) >= 6
+                 or (len(row) == 5 and not row[4].strip().startswith("+"))))
+        if is_member:
+            name = row[2].strip()
+            if name and not is_junk_name(name):
+                pending["members"].append({
+                    "name": name, "timeText": clean_value(row[3]),
+                })
+            continue
+        # Team rows have either rank|name|value[|behind] or, when unranked,
+        # name|value. A valid result value prevents ordinary footer text from
+        # opening a phantom team.
+        if len(row) >= 4 and ordinal.isdigit():
+            rank, name, raw_value = int(ordinal), row[2].strip(), row[3].strip()
+        elif len(row) == 3:
+            rank, name, raw_value = None, row[1].strip(), row[2].strip()
+        else:
+            continue
+        value = clean_value(raw_value)
+        seconds = parse_time_loose(value)
+        status = "ok" if seconds is not None else (parse_status(value) or None)
+        if not name or status is None:
+            continue
+        flush()
+        ooc = raw_value.strip().startswith("(")
+        pending = {
+            "rank": None if ooc else rank, "name": name,
+            "timeText": value, "timeS": seconds, "status": status,
+            "outOfCompetition": ooc, "members": [],
+        }
+    flush()
+    return [category for category in categories if category["results"]]
 
 
 def decode(data):
@@ -802,7 +1153,10 @@ def main():
 
     jobs = []
     for eid, files in attachments.items():
-        sole_attachment = len(files or []) == 1
+        primary_count = sum(
+            not is_auxiliary_attachment_name(f.get("fileName") or "")
+            for f in (files or []))
+        sole_attachment = primary_count == 1
         for n, f in enumerate(files or []):
             if f["mimeType"] == "text/html":
                 jobs.append((int(eid), n, f, sole_attachment))
@@ -831,14 +1185,23 @@ def main():
                 continue
             if list_type == "relay":
                 cats = parse_relay_document(text)
+                if not cats and re.search(r"Results\s+[–-].*\bTime lost\b", text, re.I | re.S):
+                    cats = parse_meos_relay_table(text)
+                if not cats and "position:absolute" in text:
+                    cats = parse_positioned_document(text, relay=True)
+                if not cats and "<pre" in text.lower():
+                    from parse_sportsoftware_text import extract_pre_blocks, parse_legacy_pre_text
+                    cats = parse_legacy_pre_text(extract_pre_blocks(text))
             else:
                 cats = parse_document(text)
+                if not cats and "position:absolute" in text:
+                    cats = parse_positioned_document(text)
                 if not cats and "<pre" in text.lower():
                     # some SportSoftware HTML wraps a fixed-width report in <pre>
                     # instead of a table (e.g. team/Mannschaft lists) — parse it
                     # with the fixed-width text logic
-                    from parse_sportsoftware_text import extract_pre_blocks, parse_text
-                    cats = parse_text(extract_pre_blocks(text))
+                    from parse_sportsoftware_text import extract_pre_blocks, parse_legacy_pre_text
+                    cats = parse_legacy_pre_text(extract_pre_blocks(text))
                 if (not cats and re.search(r"<font\b", text, re.I)
                         and re.search(r"\bPl\s+.*\bName\s+.*\bVerein", text, re.I | re.S)):
                     # Older OE score exports are fixed-width reports wrapped

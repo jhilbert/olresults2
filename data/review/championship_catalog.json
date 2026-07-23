@@ -1,3 +1,214 @@
 {
-  "instances": []
+  "instances": [
+    {
+      "id": "champ:0457c9576a46f5b49b2d21ca",
+      "input_fingerprint": "d9e28e953b2e0985e2b084829ee29285ba71b4454942a97c0c3cf4df1758fa6b",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:25:11.378Z"
+    },
+    {
+      "id": "champ:07f882b89803fc06d8b66f3f",
+      "input_fingerprint": "7e9561f474f7d4de93948061ecbbe4842a39f9edf242593b2c1fc12329e953e2",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:24:50.782Z"
+    },
+    {
+      "id": "champ:0b93fcfbb50e6b2e83169eb7",
+      "input_fingerprint": "ff188fff39a084f21a1ed3e0615090449b77fec3beada18c58ff58913ea32783",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:29:10.026Z"
+    },
+    {
+      "id": "champ:1fdae83341f9f1018d7976b9",
+      "input_fingerprint": "f7a3089aa06b004e7ddbac335ac1484b2fe9c6d30b298c06c766bb41bb4c5b94",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:29:11.729Z"
+    },
+    {
+      "id": "champ:2aefeda827eb591d0ea49291",
+      "input_fingerprint": "703f297a9d1b6e5eb428883b610cdb23d651bc44d102fb3658afc9fdd3b177f0",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:24:52.253Z"
+    },
+    {
+      "id": "champ:403e05a7218d18e37dc5c53d",
+      "input_fingerprint": "f50f2ee28e0c375fe7662da5bbb5a3b54ba176d288e86c44f2c3c637934ba65a",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:24:35.685Z"
+    },
+    {
+      "id": "champ:43e23a3c4fa7e37c586c0f53",
+      "input_fingerprint": "de95c022a2376b39f536ad4f59663caee6f311e420e907c0ec198e320208d17d",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:25:03.911Z"
+    },
+    {
+      "id": "champ:4b564236b03f665f194fbdf5",
+      "input_fingerprint": "5e065580911e75f0b66f37d658f5afbc9767bac5868e53cda42fe7b5ba9d113e",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:29:13.346Z"
+    },
+    {
+      "id": "champ:52bea04153e9c1f51e41b187",
+      "input_fingerprint": "82fc57979f3dce0e9ea09a0ea5ce9b86a0b99556e8f5af6105909ef40e8ef23b",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:29:14.887Z"
+    },
+    {
+      "id": "champ:58c47e9b96a15bc7d4c99d7e",
+      "input_fingerprint": "7a114b95af87bb5d897da7634379e0e7cc45cd8bc19ff705be539ac11d262b06",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:25:10.131Z"
+    },
+    {
+      "id": "champ:5c3d90253dda361a4f38ec5c",
+      "input_fingerprint": "986719a810dcfe66cb77b8c67d9fade9ad706860bd791261edbdd76c042e20f9",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:25:08.899Z"
+    },
+    {
+      "id": "champ:5c97fca6536ad32d37563e62",
+      "input_fingerprint": "ee3828038b2a7b2093793b747b7bb96e6b4585eac47c3b6d7a35cdf571477bb0",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:24:49.241Z"
+    },
+    {
+      "id": "champ:676cfedbc49dff51aa8de325",
+      "input_fingerprint": "5047c1a29b50e79b1c405354e36d834a5d7951b6c250378683b954aac16fde86",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:29:05.177Z"
+    },
+    {
+      "id": "champ:6e77598d4b676f9b14555ecf",
+      "input_fingerprint": "0a9d3a34311cff0c7d2a15392635b57746f4db7b7272e22657ff71e3df29da4c",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:24:38.835Z"
+    },
+    {
+      "id": "champ:74f4d61af6a42d0e76522fd5",
+      "input_fingerprint": "f3098976b3ce522cad42534b26d127e0588186d8e25cc1b2a38386668fe263ff",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:25:05.577Z"
+    },
+    {
+      "id": "champ:76479ffa63d0a6872a13a2a6",
+      "input_fingerprint": "4ca58c7c52bd4cb1d32b83636abbfcdc6f70430b2735e31ee03b2a3cc8523795",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:29:19.586Z"
+    },
+    {
+      "id": "champ:7c8d1f002e47d3a452b5d0f3",
+      "input_fingerprint": "d2862450895f73eec0a100e3a20a51c61d65aa6a42d485053202d0adeb0f10bb",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:24:45.420Z"
+    },
+    {
+      "id": "champ:7d2f64ae02ebab682f1da015",
+      "input_fingerprint": "2535f9964332eb3fd574404beba1587ccd3f03ddeab40e8670329cd8dad899d0",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:24:10.434Z"
+    },
+    {
+      "id": "champ:9b31e0696e32aa7d8b6bf710",
+      "input_fingerprint": "51c91ffcee13ba08be7e8288e4717cac7746ef2287cce1bac6f790b2e7d3947e",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:29:16.527Z"
+    },
+    {
+      "id": "champ:abb5a9a8c5cd879fc913650e",
+      "input_fingerprint": "5e6d4b7614543f7a7aee9142659b454cb8df10d8ec06d148bf94ab23f26545ab",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:29:02.623Z"
+    },
+    {
+      "id": "champ:b4bf4076f00b6d1faaee7553",
+      "input_fingerprint": "7c730b2ef605b5bf07cea0cc088b5f4a9e715b731d3d5bdff1a70790b6f9a175",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:25:16.148Z"
+    },
+    {
+      "id": "champ:c4a93920b3c6751bfe24c211",
+      "input_fingerprint": "55a88afd4fe6ce30edf05a223ddd808ef9359e7be6a377ee0ee8be9f6b08e7fa",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:25:07.309Z"
+    },
+    {
+      "id": "champ:dd62a406504ea52fb2ebac2f",
+      "input_fingerprint": "41386ac374746d8e81070089a170ad2e09d46289dc3ffed30d23f39c76da7b5e",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:29:08.337Z"
+    },
+    {
+      "id": "champ:e0106e879fde7880118927f2",
+      "input_fingerprint": "4a90c3c823b73b2c16467185812c96287dbdc22c1bc5365fe220ab0fa0a43e75",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:25:14.652Z"
+    },
+    {
+      "id": "champ:e6075e4a78daf641658eddcd",
+      "input_fingerprint": "e078acd84e7e3ce56e69cdff09afb037bb43fb869fc904f1325c9539b503fe1c",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:29:06.894Z"
+    },
+    {
+      "id": "champ:ef95817f81514d7df4f6eeaf",
+      "input_fingerprint": "b15028a4bc92ba21f10334daa70456993a5418b4d67591260763c5547c35f788",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:29:18.092Z"
+    },
+    {
+      "id": "champ:f48f09100b140557a3bd5e37",
+      "input_fingerprint": "a90ba6ee10850a844c25e4022755bdc12288c742049e509e490b44ce05c22567",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:24:40.654Z"
+    },
+    {
+      "id": "champ:f51fcb7275b14fc894d0860f",
+      "input_fingerprint": "36923846fba34f910df921219725b46a8a551d67cac602bff468655420553886",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:24:42.577Z"
+    },
+    {
+      "id": "champ:f5b40a9491939d31954cf7c7",
+      "input_fingerprint": "fe2f665c468264faf7d085475eee28aeea7f3d79d3c8d0b4e403db6d05697661",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:25:12.962Z"
+    },
+    {
+      "id": "champ:f6249945420fedcb09209df7",
+      "input_fingerprint": "05c1b2ddb0a9b972fb6a9bcdb483250dc76eebe1cbe743c44c888f17701e97fa",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-22T18:24:47.428Z"
+    }
+  ]
 }

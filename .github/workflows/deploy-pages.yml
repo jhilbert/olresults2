@@ -45,6 +45,21 @@ jobs:
       - name: Validate database before publishing
         run: python3 build/validate_db.py
 
+      - name: Enforce parser quality gate
+        run: |
+          python3 build/quality_report.py \
+            --format json \
+            --output "$RUNNER_TEMP/quality-report.json" \
+            --fail-on-blockers
+
+      - name: Upload quality report
+        uses: actions/upload-artifact@v4
+        with:
+          name: pages-quality-${{ github.run_id }}
+          path: ${{ runner.temp }}/quality-report.json
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Cache-bust app shell
         run: |
           V="${GITHUB_SHA:0:8}-${GITHUB_RUN_NUMBER}"

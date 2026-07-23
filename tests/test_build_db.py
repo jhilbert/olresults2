@@ -683,6 +683,50 @@ class AnneIdentityTests(unittest.TestCase):
             "SELECT code || ':' || severity FROM audit_issue"
         ).fetchone()[0], "anne_missing_category:warning")
 
+    def test_known_anne_category_omission_is_a_source_warning(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id, title) VALUES (3438, '1. KOLV Cup')")
+        cur.execute("INSERT INTO stage (id, event_id, number) VALUES (1, 3438, 1)")
+        cur.execute(
+            "INSERT INTO source_document (id,event_id,source_type) VALUES ('doc',3438,'anne-api')")
+        cur.execute(
+            """INSERT INTO result_list
+               (id,stage_id,source_document_id,category,parsed_entries,
+                parsed_rows,input_fingerprint)
+               VALUES ('list',1,'doc','empty',1,1,'x')""")
+        build_db.insert_result(
+            cur, stage_id=1, result_list_id="list", category="empty",
+            status="ok", time_s=1200, source="anne-api",
+            source_document_id="doc", observed_name="Max Muster")
+        build_db.populate_quality_model(cur)
+        self.assertEqual(cur.execute(
+            "SELECT code || ':' || severity FROM audit_issue"
+        ).fetchone()[0], "source_category_missing:warning")
+
+    def test_confirmed_source_rank_inversion_is_not_a_parser_finding(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id, title) VALUES (1734, 'Süd-Ost-Cup')")
+        cur.execute("INSERT INTO stage (id, event_id, number) VALUES (1, 1734, 1)")
+        cur.execute(
+            "INSERT INTO source_document (id,event_id,source_type) VALUES ('doc',1734,'sportsoftware-pdf')")
+        list_id = build_db.register_result_list(cur, 1, "doc", "B", "B", 2, [
+            {"name": "Anna", "rank": 21, "timeS": 200},
+            {"name": "Berta", "rank": 22, "timeS": 190},
+        ])
+        for name, rank, seconds in (("Anna", 21, 200), ("Berta", 22, 190)):
+            build_db.insert_result(
+                cur, stage_id=1, result_list_id=list_id, category="B",
+                rank=rank, status="ok", time_s=seconds,
+                source="sportsoftware-pdf", observed_name=name)
+        build_db.populate_quality_model(cur)
+        self.assertEqual(cur.execute(
+            "SELECT code || ':' || severity FROM audit_issue"
+        ).fetchone()[0], "source_rank_anomaly:warning")
+
     def test_unreadable_source_value_is_not_reported_as_parser_failure(self):
         con = sqlite3.connect(":memory:")
         con.executescript(build_db.SCHEMA)
@@ -749,6 +793,34 @@ class AnneIdentityTests(unittest.TestCase):
         build_db.populate_quality_model(cur)
         self.assertEqual(
             cur.execute("SELECT ranking_basis FROM result_list").fetchone()[0], "score")
+        self.assertEqual(cur.execute(
+            "SELECT count(*) FROM audit_issue WHERE code='rank_time_inversion'"
+        ).fetchone()[0], 0)
+
+    def test_team_member_times_do_not_raise_rank_time_inversion(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id, title) VALUES (1, 'Schulteam')")
+        cur.execute("INSERT INTO stage (id, event_id, number) VALUES (1, 1, 1)")
+        cur.execute(
+            "INSERT INTO source_document (id,event_id,source_type) "
+            "VALUES ('doc',1,'sportsoftware-pdf')")
+        rows = [
+            {"name": "Anna Team", "rank": 1, "timeS": 1800,
+             "resultKind": "team"},
+            {"name": "Berta Team", "rank": 2, "timeS": 1200,
+             "resultKind": "team"},
+        ]
+        list_id = build_db.register_result_list(
+            cur, 1, "doc", "Damen", "Damen", 2, rows)
+        for row in rows:
+            build_db.insert_result(
+                cur, stage_id=1, result_list_id=list_id, category="Damen",
+                rank=row["rank"], status="ok", time_s=row["timeS"],
+                result_kind="team", source="sportsoftware-pdf",
+                observed_name=row["name"])
+        build_db.populate_quality_model(cur)
         self.assertEqual(cur.execute(
             "SELECT count(*) FROM audit_issue WHERE code='rank_time_inversion'"
         ).fetchone()[0], 0)

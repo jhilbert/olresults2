@@ -1,0 +1,4937 @@
+{
+  "schemaVersion": 1,
+  "eventId": 1062,
+  "attachmentIndex": 0,
+  "sourceSha256": "a2379e644b327cef8a17c4862c28265c5c7d1b5fcad353d20b1cee45baebd512",
+  "headText": "Ergebnis",
+  "verification": {
+    "method": "macOS Vision OCR at 170/300/450 dpi plus rendered-page structural review",
+    "pageCount": 14,
+    "declaredRows": 602,
+    "transcribedRows": 602
+  },
+  "categories": [
+    {
+      "name": "Herren 21-Elite",
+      "declaredStarters": 25,
+      "results": [
+        {
+          "name": "Wartbichler Christian",
+          "club": "ASKÖ Henndorf",
+          "timeText": "1:16:53",
+          "status": "ok",
+          "timeS": 4613,
+          "rank": 1
+        },
+        {
+          "name": "Schgaguler Klaus",
+          "club": "OLC Graz",
+          "timeText": "1:17:00",
+          "status": "ok",
+          "timeS": 4620,
+          "rank": 2
+        },
+        {
+          "name": "Sulz Henrik",
+          "club": "OLC Wienerwald",
+          "timeText": "1:20:57",
+          "status": "ok",
+          "timeS": 4857,
+          "rank": 3
+        },
+        {
+          "name": "Pfeifer Christian",
+          "club": "OLC Graz",
+          "timeText": "1:22:43",
+          "status": "ok",
+          "timeS": 4963,
+          "rank": 4
+        },
+        {
+          "name": "Siegert Wolfgang",
+          "club": "WAT",
+          "timeText": "1:23:08",
+          "status": "ok",
+          "timeS": 4988,
+          "rank": 5
+        },
+        {
+          "name": "Arbter Simon",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:24:07",
+          "status": "ok",
+          "timeS": 5047,
+          "rank": 6
+        },
+        {
+          "name": "Gremmel Helmut",
+          "club": "HSV Pinkafeld",
+          "timeText": "1:25:02",
+          "status": "ok",
+          "timeS": 5102,
+          "rank": 7
+        },
+        {
+          "name": "Plohn Markus",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:26:36",
+          "status": "ok",
+          "timeS": 5196,
+          "rank": 8
+        },
+        {
+          "name": "Glaner Franz",
+          "club": "WAT",
+          "timeText": "1:26:45",
+          "status": "ok",
+          "timeS": 5205,
+          "rank": 9
+        },
+        {
+          "name": "Scharnagl Lukas",
+          "club": "ASKÖ Henndorf",
+          "timeText": "1:29:42",
+          "status": "ok",
+          "timeS": 5382,
+          "rank": 10
+        },
+        {
+          "name": "Wolf Matthias",
+          "club": "HSV Großmittel",
+          "timeText": "1:30:44",
+          "status": "ok",
+          "timeS": 5444,
+          "rank": 11
+        },
+        {
+          "name": "Gassner Manuel",
+          "club": "ASKÖ Henndorf",
+          "timeText": "1:32:17",
+          "status": "ok",
+          "timeS": 5537,
+          "rank": 12
+        },
+        {
+          "name": "Lang Markus",
+          "club": "HSV Pinkafeld",
+          "timeText": "1:32:58",
+          "status": "ok",
+          "timeS": 5578,
+          "rank": 13
+        },
+        {
+          "name": "Schachner Sandro",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "1:34:31",
+          "status": "ok",
+          "timeS": 5671,
+          "rank": 14
+        },
+        {
+          "name": "König Markus",
+          "club": "ASKÖ Henndorf",
+          "timeText": "1:37:04",
+          "status": "ok",
+          "timeS": 5824,
+          "rank": 15
+        },
+        {
+          "name": "Zazgornik Jan",
+          "club": "HSV Großmittel",
+          "timeText": "1:39:51",
+          "status": "ok",
+          "timeS": 5991,
+          "rank": 16
+        },
+        {
+          "name": "Brogli Roman",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "1:42:37",
+          "status": "ok",
+          "timeS": 6157,
+          "rank": 17
+        },
+        {
+          "name": "Exler Florian",
+          "club": "OLT Transdanubien",
+          "timeText": "1:48:04",
+          "status": "ok",
+          "timeS": 6484,
+          "rank": 18
+        },
+        {
+          "name": "Koppert Axel",
+          "club": "OLC Graz",
+          "timeText": "1:50:46",
+          "status": "ok",
+          "timeS": 6646,
+          "rank": 19
+        },
+        {
+          "name": "Lange Korbinian",
+          "club": "ASKÖ Henndorf",
+          "timeText": "1:51:59",
+          "status": "ok",
+          "timeS": 6719,
+          "rank": 20
+        },
+        {
+          "name": "Jeschke Stefan",
+          "club": "OLG Ströck Wien",
+          "timeText": "1:56:18",
+          "status": "ok",
+          "timeS": 6978,
+          "rank": 21
+        },
+        {
+          "name": "Poell Matthias",
+          "club": "OLC Wienerwald",
+          "timeText": "1:59:14",
+          "status": "ok",
+          "timeS": 7154,
+          "rank": 22
+        },
+        {
+          "name": "Simkovics Erik",
+          "club": "OLC Wienerwald",
+          "timeText": "Aufg",
+          "status": "dnf"
+        },
+        {
+          "name": "Haider Philipp",
+          "club": "WAT",
+          "timeText": "N Ang",
+          "status": "dns"
+        },
+        {
+          "name": "Schiel Philipp",
+          "club": "OLC Graz",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Herren-20 Elite",
+      "declaredStarters": 8,
+      "results": [
+        {
+          "name": "Berger Xander",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:00:30",
+          "status": "ok",
+          "timeS": 3630,
+          "rank": 1
+        },
+        {
+          "name": "Gröll Matthias",
+          "club": "OLC Graz",
+          "timeText": "1:07:44",
+          "status": "ok",
+          "timeS": 4064,
+          "rank": 2
+        },
+        {
+          "name": "Reiner Matthias",
+          "club": "Naturfreunde Villach - Oriente",
+          "timeText": "1:10:08",
+          "status": "ok",
+          "timeS": 4208,
+          "rank": 3
+        },
+        {
+          "name": "Siemmeister Michael",
+          "club": "OC Fürstenfeld",
+          "timeText": "1:12:54",
+          "status": "ok",
+          "timeS": 4374,
+          "rank": 4
+        },
+        {
+          "name": "Polster Thomas",
+          "club": "HSV Spittal / Drau",
+          "timeText": "1:16:39",
+          "status": "ok",
+          "timeS": 4599,
+          "rank": 5
+        },
+        {
+          "name": "Pauser Jakob",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:19:48",
+          "status": "ok",
+          "timeS": 4788,
+          "rank": 6
+        },
+        {
+          "name": "Tanzer Michael",
+          "club": "HSV Langenlebarn",
+          "timeText": "1:48:57",
+          "status": "ok",
+          "timeS": 6537,
+          "rank": 7
+        },
+        {
+          "name": "Wickert Adrian",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Herren-18 Elite",
+      "declaredStarters": 11,
+      "results": [
+        {
+          "name": "Dobnik Rafael",
+          "club": "OLCU Viktring",
+          "timeText": "54:55",
+          "status": "ok",
+          "timeS": 3295,
+          "rank": 1
+        },
+        {
+          "name": "Peter Mathias",
+          "club": "OLC Graz",
+          "timeText": "56:01",
+          "status": "ok",
+          "timeS": 3361,
+          "rank": 2
+        },
+        {
+          "name": "Kurz Florian",
+          "club": "Naturfreunde Wien",
+          "timeText": "58:47",
+          "status": "ok",
+          "timeS": 3527,
+          "rank": 3
+        },
+        {
+          "name": "Falk Stefan",
+          "club": "Naturfreunde Linz",
+          "timeText": "1:01:42",
+          "status": "ok",
+          "timeS": 3702,
+          "rank": 4
+        },
+        {
+          "name": "Braun Emanuel jun",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:05:08",
+          "status": "ok",
+          "timeS": 3908,
+          "rank": 5
+        },
+        {
+          "name": "Kubelka Stefan",
+          "club": "Leibnitzer AC",
+          "timeText": "1:07:28",
+          "status": "ok",
+          "timeS": 4048,
+          "rank": 6
+        },
+        {
+          "name": "Gremmel Richard",
+          "club": "HSV Pinkafeld",
+          "timeText": "1:11:11",
+          "status": "ok",
+          "timeS": 4271,
+          "rank": 7
+        },
+        {
+          "name": "Hellmayr Valentin",
+          "club": "OC Fürstenfeld",
+          "timeText": "1:21:03",
+          "status": "ok",
+          "timeS": 4863,
+          "rank": 8
+        },
+        {
+          "name": "Sittlinger Michael",
+          "club": "HSV Spittal / Drau",
+          "timeText": "1:23:36",
+          "status": "ok",
+          "timeS": 5016,
+          "rank": 9
+        },
+        {
+          "name": "Lerchegger Maximilian",
+          "club": "Leibnitzer AC",
+          "timeText": "1:27:04",
+          "status": "ok",
+          "timeS": 5224,
+          "rank": 10
+        },
+        {
+          "name": "Mayer Andreas",
+          "club": "OLC Wienerwald",
+          "timeText": "1:40:27",
+          "status": "ok",
+          "timeS": 6027,
+          "rank": 11
+        }
+      ]
+    },
+    {
+      "name": "Herren-16 Elite",
+      "declaredStarters": 11,
+      "results": [
+        {
+          "name": "Bonek Jannis",
+          "club": "Naturfreunde Wien",
+          "timeText": "48:33",
+          "status": "ok",
+          "timeS": 2913,
+          "rank": 1
+        },
+        {
+          "name": "Gröll Georg",
+          "club": "OLC Graz",
+          "timeText": "49:19",
+          "status": "ok",
+          "timeS": 2959,
+          "rank": 2
+        },
+        {
+          "name": "Jandl Dominik",
+          "club": "Naturfreunde Wien",
+          "timeText": "53:07",
+          "status": "ok",
+          "timeS": 3187,
+          "rank": 3
+        },
+        {
+          "name": "Brantner Niklas",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "56:47",
+          "status": "ok",
+          "timeS": 3407,
+          "rank": 4
+        },
+        {
+          "name": "Wolfram Clemens",
+          "club": "Naturfreunde Wien",
+          "timeText": "57:19",
+          "status": "ok",
+          "timeS": 3439,
+          "rank": 5
+        },
+        {
+          "name": "Abart Theodor",
+          "club": "OLG Ströck Wien",
+          "timeText": "58:40",
+          "status": "ok",
+          "timeS": 3520,
+          "rank": 6
+        },
+        {
+          "name": "Allwinger Herwig jun",
+          "club": "Leibnitzer AC",
+          "timeText": "1:00:20",
+          "status": "ok",
+          "timeS": 3620,
+          "rank": 7
+        },
+        {
+          "name": "Kastner Nicolas",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:00:42",
+          "status": "ok",
+          "timeS": 3642,
+          "rank": 8
+        },
+        {
+          "name": "Krenn Martin",
+          "club": "OC Fürstenfeld",
+          "timeText": "1:14:12",
+          "status": "ok",
+          "timeS": 4452,
+          "rank": 9
+        },
+        {
+          "name": "Gotthardt Daniel",
+          "club": "HSV Spittal / Drau",
+          "timeText": "1:19:52",
+          "status": "ok",
+          "timeS": 4792,
+          "rank": 10
+        },
+        {
+          "name": "Zechner Andreas",
+          "club": "OC Fürstenfeld",
+          "timeText": "1:35:58",
+          "status": "ok",
+          "timeS": 5758,
+          "rank": 11
+        }
+      ]
+    },
+    {
+      "name": "Herren-10",
+      "declaredStarters": 2,
+      "results": [
+        {
+          "name": "Lang Maximilian",
+          "club": "HSV Pinkafeld",
+          "timeText": "23:11",
+          "status": "ok",
+          "timeS": 1391,
+          "rank": 1
+        },
+        {
+          "name": "Heindl Clemens",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "33:00",
+          "status": "ok",
+          "timeS": 1980,
+          "rank": 2
+        }
+      ]
+    },
+    {
+      "name": "Herren-12",
+      "declaredStarters": 20,
+      "results": [
+        {
+          "name": "Deubel Jonas",
+          "club": "Naturfreunde Wien",
+          "timeText": "22:51",
+          "status": "ok",
+          "timeS": 1371,
+          "rank": 1
+        },
+        {
+          "name": "Christ Felix",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "25:02",
+          "status": "ok",
+          "timeS": 1502,
+          "rank": 2
+        },
+        {
+          "name": "Jeindl Alexander",
+          "club": "OC Fürstenfeld",
+          "timeText": "29:06",
+          "status": "ok",
+          "timeS": 1746,
+          "rank": 3
+        },
+        {
+          "name": "Hnilica Hannes",
+          "club": "OLT Transdanubien",
+          "timeText": "29:51",
+          "status": "ok",
+          "timeS": 1791,
+          "rank": 4
+        },
+        {
+          "name": "Ziegerhofer Maximilian",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "30:02",
+          "status": "ok",
+          "timeS": 1802,
+          "rank": 5
+        },
+        {
+          "name": "Zapf Kilian",
+          "club": "OC Fürstenfeld",
+          "timeText": "33:50",
+          "status": "ok",
+          "timeS": 2030,
+          "rank": 6
+        },
+        {
+          "name": "Leitner Mario",
+          "club": "OLT Transdanubien",
+          "timeText": "33:56",
+          "status": "ok",
+          "timeS": 2036,
+          "rank": 7
+        },
+        {
+          "name": "Pietsch Max",
+          "club": "Naturfreunde Wien",
+          "timeText": "34:53",
+          "status": "ok",
+          "timeS": 2093,
+          "rank": 8
+        },
+        {
+          "name": "Berger Peter",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "36:22",
+          "status": "ok",
+          "timeS": 2182,
+          "rank": 9
+        },
+        {
+          "name": "Brabek Peter",
+          "club": "OC Fürstenfeld",
+          "timeText": "41:06",
+          "status": "ok",
+          "timeS": 2466,
+          "rank": 10
+        },
+        {
+          "name": "Tobler Simon",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "41:24",
+          "status": "ok",
+          "timeS": 2484,
+          "rank": 11
+        },
+        {
+          "name": "Lechenauer Raphael",
+          "club": "ASKÖ Henndorf",
+          "timeText": "45:06",
+          "status": "ok",
+          "timeS": 2706,
+          "rank": 12
+        },
+        {
+          "name": "Florian Sebastian",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "47:21",
+          "status": "ok",
+          "timeS": 2841,
+          "rank": 13
+        },
+        {
+          "name": "Teichmann Tobias",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "52:47",
+          "status": "ok",
+          "timeS": 3167,
+          "rank": 14
+        },
+        {
+          "name": "Schwarz Maximilian",
+          "club": "MTV Hernals",
+          "timeText": "58:44",
+          "status": "ok",
+          "timeS": 3524,
+          "rank": 15
+        },
+        {
+          "name": "Müllner Joachim",
+          "club": "HSV Langenlebarn",
+          "timeText": "Fehlstb",
+          "status": "mp"
+        },
+        {
+          "name": "Seher Michael",
+          "club": "OC Fürstenfeld",
+          "timeText": "Fehlstр",
+          "status": "mp"
+        },
+        {
+          "name": "Posch Lukas",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Nlmagambetov Rolanc",
+          "club": "OLT Transdanubien",
+          "timeText": "N Ang",
+          "status": "dns"
+        },
+        {
+          "name": "Lechthaler Philipp",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Herren-14",
+      "declaredStarters": 28,
+      "results": [
+        {
+          "name": "Micko Tobias",
+          "club": "GO Harzberg",
+          "timeText": "31:11",
+          "status": "ok",
+          "timeS": 1871,
+          "rank": 1
+        },
+        {
+          "name": "Bonek Erik",
+          "club": "Naturfreunde Wien",
+          "timeText": "33:14",
+          "status": "ok",
+          "timeS": 1994,
+          "rank": 2
+        },
+        {
+          "name": "Jandl Florian",
+          "club": "Naturfreunde Wien",
+          "timeText": "37:57",
+          "status": "ok",
+          "timeS": 2277,
+          "rank": 3
+        },
+        {
+          "name": "Christ Oliver",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "38:56",
+          "status": "ok",
+          "timeS": 2336,
+          "rank": 4
+        },
+        {
+          "name": "Brabek Paul",
+          "club": "OC Fürstenfeld",
+          "timeText": "39:06",
+          "status": "ok",
+          "timeS": 2346,
+          "rank": 5
+        },
+        {
+          "name": "Kohlbacher Thomas",
+          "club": "Naturfreunde Villach - Oriente",
+          "timeText": "41:05",
+          "status": "ok",
+          "timeS": 2465,
+          "rank": 6
+        },
+        {
+          "name": "Weiß Nico",
+          "club": "OC Fürstenfeld",
+          "timeText": "41:44",
+          "status": "ok",
+          "timeS": 2504,
+          "rank": 7
+        },
+        {
+          "name": "Deubel Joergen",
+          "club": "Naturfreunde Wien",
+          "timeText": "42:19",
+          "status": "ok",
+          "timeS": 2539,
+          "rank": 8
+        },
+        {
+          "name": "Kremshofer Samuel",
+          "club": "OC Fürstenfeld",
+          "timeText": "43:38",
+          "status": "ok",
+          "timeS": 2618,
+          "rank": 9
+        },
+        {
+          "name": "Kofler Martin",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "44:54",
+          "status": "ok",
+          "timeS": 2694,
+          "rank": 10
+        },
+        {
+          "name": "Altmann Benjamin",
+          "club": "OLC Wienerwald",
+          "timeText": "47:17",
+          "status": "ok",
+          "timeS": 2837,
+          "rank": 11
+        },
+        {
+          "name": "Wolfram Jakob",
+          "club": "Naturfreunde Wien",
+          "timeText": "49:44",
+          "status": "ok",
+          "timeS": 2984,
+          "rank": 12
+        },
+        {
+          "name": "Fabian Sebastian",
+          "club": "OC Fürstenfeld",
+          "timeText": "53:03",
+          "status": "ok",
+          "timeS": 3183,
+          "rank": 13
+        },
+        {
+          "name": "Steinwender Maximillian",
+          "club": "SU Klagenfurt",
+          "timeText": "53:21",
+          "status": "ok",
+          "timeS": 3201,
+          "rank": 14
+        },
+        {
+          "name": "Holper Leo",
+          "club": "OC Fürstenfeld",
+          "timeText": "54:45",
+          "status": "ok",
+          "timeS": 3285,
+          "rank": 15
+        },
+        {
+          "name": "Grünbeck Johannes",
+          "club": "OLC Wienerwald",
+          "timeText": "56:35",
+          "status": "ok",
+          "timeS": 3395,
+          "rank": 16
+        },
+        {
+          "name": "Babin Robert",
+          "club": "Naturfreunde Villach - Oriente",
+          "timeText": "57:35",
+          "status": "ok",
+          "timeS": 3455,
+          "rank": 17
+        },
+        {
+          "name": "Kopp Sebastian",
+          "club": "Naturfreunde Villach - Oriente",
+          "timeText": "59:20",
+          "status": "ok",
+          "timeS": 3560,
+          "rank": 18
+        },
+        {
+          "name": "Egger Maximilian",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "1:02:24",
+          "status": "ok",
+          "timeS": 3744,
+          "rank": 19
+        },
+        {
+          "name": "Fenk William",
+          "club": "GO Harzberg",
+          "timeText": "1:03:01",
+          "status": "ok",
+          "timeS": 3781,
+          "rank": 20
+        },
+        {
+          "name": "Guggenberger David",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:05:22",
+          "status": "ok",
+          "timeS": 3922,
+          "rank": 21
+        },
+        {
+          "name": "Lechenauer Phillip",
+          "club": "ASKÖ Henndorf",
+          "timeText": "1:05:57",
+          "status": "ok",
+          "timeS": 3957,
+          "rank": 22
+        },
+        {
+          "name": "Wilhelm Josef",
+          "club": "ASKÖ Henndorf",
+          "timeText": "1:17:25",
+          "status": "ok",
+          "timeS": 4645,
+          "rank": 23
+        },
+        {
+          "name": "Ditz Markus",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:22:16",
+          "status": "ok",
+          "timeS": 4936,
+          "rank": 24
+        },
+        {
+          "name": "Kofler Moritz",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "1:31:08",
+          "status": "ok",
+          "timeS": 5468,
+          "rank": 25
+        },
+        {
+          "name": "Schirmer Fabian",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "1:40:51",
+          "status": "ok",
+          "timeS": 6051,
+          "rank": 26
+        },
+        {
+          "name": "Pauser Leo",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "N Ang",
+          "status": "dns"
+        },
+        {
+          "name": "Gessl Konrad",
+          "club": "WAT",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Herren 15-18",
+      "declaredStarters": 22,
+      "results": [
+        {
+          "name": "Zach Oliver",
+          "club": "SKV OLG Deutsch Kaltenbrunn",
+          "timeText": "54:27",
+          "status": "ok",
+          "timeS": 3267,
+          "rank": 1
+        },
+        {
+          "name": "Hampl Burkhard",
+          "club": "WATV",
+          "timeText": "56:32",
+          "status": "ok",
+          "timeS": 3392,
+          "rank": 2
+        },
+        {
+          "name": "Adenstedt Markus",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "57:18",
+          "status": "ok",
+          "timeS": 3438,
+          "rank": 3
+        },
+        {
+          "name": "Schuh Roman",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "58:06",
+          "status": "ok",
+          "timeS": 3486,
+          "rank": 4
+        },
+        {
+          "name": "Babin Markus",
+          "club": "Naturfreunde Villach - Oriente",
+          "timeText": "58:30",
+          "status": "ok",
+          "timeS": 3510,
+          "rank": 5
+        },
+        {
+          "name": "Nestelberger Florian",
+          "club": "OC Fürstenfeld",
+          "timeText": "58:32",
+          "status": "ok",
+          "timeS": 3512,
+          "rank": 6
+        },
+        {
+          "name": "Kirchmeir Constantin",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:00:46",
+          "status": "ok",
+          "timeS": 3646,
+          "rank": 7
+        },
+        {
+          "name": "Frohnwieser Johannes",
+          "club": "HSV Pinkafeld",
+          "timeText": "1:00:51",
+          "status": "ok",
+          "timeS": 3651,
+          "rank": 8
+        },
+        {
+          "name": "Kratky Paul",
+          "club": "OLT Transdanubien",
+          "timeText": "1:03:22",
+          "status": "ok",
+          "timeS": 3802,
+          "rank": 9
+        },
+        {
+          "name": "Babin Peter",
+          "club": "Naturfreunde Villach - Oriente",
+          "timeText": "1:03:31",
+          "status": "ok",
+          "timeS": 3811,
+          "rank": 10
+        },
+        {
+          "name": "Ewerz Martin",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "1:04:35",
+          "status": "ok",
+          "timeS": 3875,
+          "rank": 11
+        },
+        {
+          "name": "Seidl Andreas",
+          "club": "OC Fürstenfeld",
+          "timeText": "1:14:07",
+          "status": "ok",
+          "timeS": 4447,
+          "rank": 12
+        },
+        {
+          "name": "Kundörfer Jan",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "1:15:15",
+          "status": "ok",
+          "timeS": 4515,
+          "rank": 13
+        },
+        {
+          "name": "Neussl Alexander",
+          "club": "OLT Transdanubien",
+          "timeText": "1:18:51",
+          "status": "ok",
+          "timeS": 4731,
+          "rank": 14
+        },
+        {
+          "name": "Müllner Christoph",
+          "club": "HSV Langenlebarn",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Oswald Fabian",
+          "club": "HSV Langenlebarn",
+          "timeText": "Fehlstb",
+          "status": "mp"
+        },
+        {
+          "name": "Loidolt Clemens",
+          "club": "HSV Langenlebarn",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Wiesinger Simon",
+          "club": "Naturfreunde Wien",
+          "timeText": "Aufg",
+          "status": "dnf"
+        },
+        {
+          "name": "Perner Martin",
+          "club": "ASKÖ Henndorf",
+          "timeText": "N Ang",
+          "status": "dns"
+        },
+        {
+          "name": "Türk Andreas",
+          "club": "HSV Großmittel",
+          "timeText": "N Ang",
+          "status": "dns"
+        },
+        {
+          "name": "Flachberger Jakob",
+          "club": "GO Harzberg",
+          "timeText": "N Ang",
+          "status": "dns"
+        },
+        {
+          "name": "Huber Karl",
+          "club": "vereinslos",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Herren 21-Lang",
+      "declaredStarters": 12,
+      "results": [
+        {
+          "name": "Bosina Joachim",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:21:08",
+          "status": "ok",
+          "timeS": 4868,
+          "rank": 1
+        },
+        {
+          "name": "Kreczy Franz",
+          "club": "WAT",
+          "timeText": "1:25:46",
+          "status": "ok",
+          "timeS": 5146,
+          "rank": 2
+        },
+        {
+          "name": "Tichy Tomas",
+          "club": "Südböhmen",
+          "timeText": "1:27:12",
+          "status": "ok",
+          "timeS": 5232,
+          "rank": 3
+        },
+        {
+          "name": "Koiser Michael",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:28:30",
+          "status": "ok",
+          "timeS": 5310,
+          "rank": 4
+        },
+        {
+          "name": "Bichl Daniel",
+          "club": "WAT",
+          "timeText": "1:35:42",
+          "status": "ok",
+          "timeS": 5742,
+          "rank": 5
+        },
+        {
+          "name": "Hulec Jakub",
+          "club": "Südböhmen",
+          "timeText": "1:38:12",
+          "status": "ok",
+          "timeS": 5892,
+          "rank": 6
+        },
+        {
+          "name": "Grün Dominik",
+          "club": "OLG Ströck Wien",
+          "timeText": "1:53:07",
+          "status": "ok",
+          "timeS": 6787,
+          "rank": 7
+        },
+        {
+          "name": "Imriska Samuel",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:58:44",
+          "status": "ok",
+          "timeS": 7124,
+          "rank": 8
+        },
+        {
+          "name": "Prach Franz",
+          "club": "Leibnitzer AC",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Zapletal Leon",
+          "club": "Naturfreunde Wien",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Samec Fabiar",
+          "club": "WAT",
+          "timeText": "N Ang",
+          "status": "dns"
+        },
+        {
+          "name": "Griener Greao",
+          "club": "HSV Langenlebarn",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Herren 21-Kurz",
+      "declaredStarters": 21,
+      "results": [
+        {
+          "name": "Vogl Roland",
+          "club": "ASKÖ Henndorf",
+          "timeText": "55:25",
+          "status": "ok",
+          "timeS": 3325,
+          "rank": 1
+        },
+        {
+          "name": "Kogler Bernhard",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "56:25",
+          "status": "ok",
+          "timeS": 3385,
+          "rank": 2
+        },
+        {
+          "name": "Prosek Michal",
+          "club": "OK Jihlava",
+          "timeText": "58:02",
+          "status": "ok",
+          "timeS": 3482,
+          "rank": 3
+        },
+        {
+          "name": "Hulec Filip",
+          "club": "Südböhmen",
+          "timeText": "1:00:47",
+          "status": "ok",
+          "timeS": 3647,
+          "rank": 4
+        },
+        {
+          "name": "Traint Stefan",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:04:14",
+          "status": "ok",
+          "timeS": 3854,
+          "rank": 5
+        },
+        {
+          "name": "Pacher Paul",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "1:11:36",
+          "status": "ok",
+          "timeS": 4296,
+          "rank": 6
+        },
+        {
+          "name": "Palme Sebastian",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "1:11:58",
+          "status": "ok",
+          "timeS": 4318,
+          "rank": 7
+        },
+        {
+          "name": "Trummer Herfried",
+          "club": "OC Fürstenfeld",
+          "timeText": "1:14:08",
+          "status": "ok",
+          "timeS": 4448,
+          "rank": 8
+        },
+        {
+          "name": "Knapp Christian",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "1:18:10",
+          "status": "ok",
+          "timeS": 4690,
+          "rank": 9
+        },
+        {
+          "name": "Pühringer Dominik",
+          "club": "Naturfreunde Linz",
+          "timeText": "1:18:54",
+          "status": "ok",
+          "timeS": 4734,
+          "rank": 10
+        },
+        {
+          "name": "Ekhlas Daniel",
+          "club": "Leibnitzer AC",
+          "timeText": "1:20:02",
+          "status": "ok",
+          "timeS": 4802,
+          "rank": 11
+        },
+        {
+          "name": "Deubel Dirk",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:21:27",
+          "status": "ok",
+          "timeS": 4887,
+          "rank": 12
+        },
+        {
+          "name": "Burmann Rainer",
+          "club": "OLC Wienerwald",
+          "timeText": "1:23:25",
+          "status": "ok",
+          "timeS": 5005,
+          "rank": 13
+        },
+        {
+          "name": "Satrapa Vito",
+          "club": "OLC Wienerwald",
+          "timeText": "1:24:03",
+          "status": "ok",
+          "timeS": 5043,
+          "rank": 14
+        },
+        {
+          "name": "Koiser Bernhard",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:24:15",
+          "status": "ok",
+          "timeS": 5055,
+          "rank": 15
+        },
+        {
+          "name": "Heinschink Anton",
+          "club": "OLCU Viktring",
+          "timeText": "1:25:43",
+          "status": "ok",
+          "timeS": 5143,
+          "rank": 16
+        },
+        {
+          "name": "Habisch Christof",
+          "club": "HSV Großmittel",
+          "timeText": "1:34:26",
+          "status": "ok",
+          "timeS": 5666,
+          "rank": 17
+        },
+        {
+          "name": "Kainzbauer Peter",
+          "club": "WAT",
+          "timeText": "1:34:59",
+          "status": "ok",
+          "timeS": 5699,
+          "rank": 18
+        },
+        {
+          "name": "Renz Johannes",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "1:43:39",
+          "status": "ok",
+          "timeS": 6219,
+          "rank": 19
+        },
+        {
+          "name": "Bauci Gabrielle",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "2:01:31",
+          "status": "ok",
+          "timeS": 7291,
+          "rank": 20
+        },
+        {
+          "name": "Holzinger Philipp",
+          "club": "HSV Großmittel",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Herren 35-",
+      "declaredStarters": 15,
+      "results": [
+        {
+          "name": "Kaltenbacher Pierre",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:11:37",
+          "status": "ok",
+          "timeS": 4297,
+          "rank": 1
+        },
+        {
+          "name": "Venhoda Milan",
+          "club": "OK Jihlava",
+          "timeText": "1:12:01",
+          "status": "ok",
+          "timeS": 4321,
+          "rank": 2
+        },
+        {
+          "name": "Fink Bernhard",
+          "club": "ASKÖ Henndorf",
+          "timeText": "1:18:36",
+          "status": "ok",
+          "timeS": 4716,
+          "rank": 3
+        },
+        {
+          "name": "Egger Jürgen",
+          "club": "Leibnitzer AC",
+          "timeText": "1:19:26",
+          "status": "ok",
+          "timeS": 4766,
+          "rank": 4
+        },
+        {
+          "name": "Gregor Martin",
+          "club": "Südböhmen",
+          "timeText": "1:23:33",
+          "status": "ok",
+          "timeS": 5013,
+          "rank": 5
+        },
+        {
+          "name": "Radon Thomas",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:24:16",
+          "status": "ok",
+          "timeS": 5056,
+          "rank": 6
+        },
+        {
+          "name": "Wittberger Georg",
+          "club": "OLC Wienerwald",
+          "timeText": "1:25:22",
+          "status": "ok",
+          "timeS": 5122,
+          "rank": 7
+        },
+        {
+          "name": "Prochazka Antonin",
+          "club": "Südböhmen",
+          "timeText": "1:32:48",
+          "status": "ok",
+          "timeS": 5568,
+          "rank": 8
+        },
+        {
+          "name": "Leidl Thomas",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:36:38",
+          "status": "ok",
+          "timeS": 5798,
+          "rank": 9
+        },
+        {
+          "name": "Sengstschmid Georg",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:38:04",
+          "status": "ok",
+          "timeS": 5884,
+          "rank": 10
+        },
+        {
+          "name": "Ballik Thomas",
+          "club": "WAT",
+          "timeText": "1:38:42",
+          "status": "ok",
+          "timeS": 5922,
+          "rank": 11
+        },
+        {
+          "name": "Kolar Hannes",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:42:25",
+          "status": "ok",
+          "timeS": 6145,
+          "rank": 12
+        },
+        {
+          "name": "Wenzel Hannes",
+          "club": "OLCU Viktring",
+          "timeText": "1:45:42",
+          "status": "ok",
+          "timeS": 6342,
+          "rank": 13
+        },
+        {
+          "name": "Rothauer Thomas",
+          "club": "ASKÖ Henndorf",
+          "timeText": "1:50:05",
+          "status": "ok",
+          "timeS": 6605,
+          "rank": 14
+        },
+        {
+          "name": "Komarek Arnost",
+          "club": "Südböhmen",
+          "timeText": "1:52:41",
+          "status": "ok",
+          "timeS": 6761,
+          "rank": 15
+        }
+      ]
+    },
+    {
+      "name": "Herren 40-",
+      "declaredStarters": 14,
+      "results": [
+        {
+          "name": "Pölzl Andreas",
+          "club": "Leibnitzer AC",
+          "timeText": "1:03:38",
+          "status": "ok",
+          "timeS": 3818,
+          "rank": 1
+        },
+        {
+          "name": "Stadler Siegfried",
+          "club": "Naturfreunde Linz",
+          "timeText": "1:04:59",
+          "status": "ok",
+          "timeS": 3899,
+          "rank": 2
+        },
+        {
+          "name": "Benes Jan",
+          "club": "Südböhmen",
+          "timeText": "1:12:07",
+          "status": "ok",
+          "timeS": 4327,
+          "rank": 3
+        },
+        {
+          "name": "Kroupa Günther",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:12:35",
+          "status": "ok",
+          "timeS": 4355,
+          "rank": 4
+        },
+        {
+          "name": "Srb Alexander",
+          "club": "WAT",
+          "timeText": "1:18:55",
+          "status": "ok",
+          "timeS": 4735,
+          "rank": 5
+        },
+        {
+          "name": "Orany Tomas",
+          "club": "OK Jihlava",
+          "timeText": "1:21:57",
+          "status": "ok",
+          "timeS": 4917,
+          "rank": 6
+        },
+        {
+          "name": "Borsitzky Hans",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:23:24",
+          "status": "ok",
+          "timeS": 5004,
+          "rank": 7
+        },
+        {
+          "name": "Schmid Martin",
+          "club": "Naturfreunde Steiermark",
+          "timeText": "1:23:34",
+          "status": "ok",
+          "timeS": 5014,
+          "rank": 8
+        },
+        {
+          "name": "Hofer Rupert",
+          "club": "OLC Graz",
+          "timeText": "1:27:21",
+          "status": "ok",
+          "timeS": 5241,
+          "rank": 9
+        },
+        {
+          "name": "Marksteiner Martin",
+          "club": "WAT",
+          "timeText": "1:30:12",
+          "status": "ok",
+          "timeS": 5412,
+          "rank": 10
+        },
+        {
+          "name": "Puchegger Stephan",
+          "club": "WAT",
+          "timeText": "1:30:50",
+          "status": "ok",
+          "timeS": 5450,
+          "rank": 11
+        },
+        {
+          "name": "Lang Gerhard",
+          "club": "HSV Pinkafeld",
+          "timeText": "1:35:45",
+          "status": "ok",
+          "timeS": 5745,
+          "rank": 12
+        },
+        {
+          "name": "Schwarz Holger",
+          "club": "MTV Hernals",
+          "timeText": "1:38:08",
+          "status": "ok",
+          "timeS": 5888,
+          "rank": 13
+        },
+        {
+          "name": "Pölzelbauer Michael",
+          "club": "OLG Ströck Wien",
+          "timeText": "1:42:55",
+          "status": "ok",
+          "timeS": 6175,
+          "rank": 14
+        }
+      ]
+    },
+    {
+      "name": "Herren 45-",
+      "declaredStarters": 36,
+      "results": [
+        {
+          "name": "Stockmayer Michael",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "56:50",
+          "status": "ok",
+          "timeS": 3410,
+          "rank": 1
+        },
+        {
+          "name": "Gassner Ferri",
+          "club": "Naturfreunde Wien",
+          "timeText": "59:16",
+          "status": "ok",
+          "timeS": 3556,
+          "rank": 2
+        },
+        {
+          "name": "Teringl Radek",
+          "club": "Südböhmen",
+          "timeText": "1:01:13",
+          "status": "ok",
+          "timeS": 3673,
+          "rank": 3
+        },
+        {
+          "name": "Braun Emanuel",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:01:50",
+          "status": "ok",
+          "timeS": 3710,
+          "rank": 4
+        },
+        {
+          "name": "Hnilica Thomas",
+          "club": "OLT Transdanubien",
+          "timeText": "1:06:59",
+          "status": "ok",
+          "timeS": 4019,
+          "rank": 5
+        },
+        {
+          "name": "Zöbl Gottfried",
+          "club": "HSV Ried",
+          "timeText": "1:07:48",
+          "status": "ok",
+          "timeS": 4068,
+          "rank": 6
+        },
+        {
+          "name": "Pietsch Werner",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:10:11",
+          "status": "ok",
+          "timeS": 4211,
+          "rank": 7
+        },
+        {
+          "name": "Gröll Reinhard",
+          "club": "OLC Graz",
+          "timeText": "1:12:13",
+          "status": "ok",
+          "timeS": 4333,
+          "rank": 8
+        },
+        {
+          "name": "Reisenberger Roland",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "1:13:04",
+          "status": "ok",
+          "timeS": 4384,
+          "rank": 9
+        },
+        {
+          "name": "Täuber Thomas",
+          "club": "OLT Transdanubien",
+          "timeText": "1:14:51",
+          "status": "ok",
+          "timeS": 4491,
+          "rank": 10
+        },
+        {
+          "name": "Kastner-Jirka Boris",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:14:54",
+          "status": "ok",
+          "timeS": 4494,
+          "rank": 11
+        },
+        {
+          "name": "Kohlbacher Roland",
+          "club": "Naturfreunde Villach - Oriente",
+          "timeText": "1:17:11",
+          "status": "ok",
+          "timeS": 4631,
+          "rank": 12
+        },
+        {
+          "name": "Göschl Erich",
+          "club": "OLC Wienerwald",
+          "timeText": "1:18:27",
+          "status": "ok",
+          "timeS": 4707,
+          "rank": 13
+        },
+        {
+          "name": "Ditz Robert",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:18:38",
+          "status": "ok",
+          "timeS": 4718,
+          "rank": 14
+        },
+        {
+          "name": "Grünberger Martin",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "1:18:45",
+          "status": "ok",
+          "timeS": 4725,
+          "rank": 15
+        },
+        {
+          "name": "Kühnel Ralf",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:21:07",
+          "status": "ok",
+          "timeS": 4867,
+          "rank": 16
+        },
+        {
+          "name": "Kalcher Robert",
+          "club": "HSV Pinkafeld",
+          "timeText": "1:21:46",
+          "status": "ok",
+          "timeS": 4906,
+          "rank": 17
+        },
+        {
+          "name": "Hlosta Thomas",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:22:10",
+          "status": "ok",
+          "timeS": 4930,
+          "rank": 18
+        },
+        {
+          "name": "Lerchegger Helmut",
+          "club": "Leibnitzer AC",
+          "timeText": "1:22:22",
+          "status": "ok",
+          "timeS": 4942,
+          "rank": 19
+        },
+        {
+          "name": "Eschlboeck Rainer",
+          "club": "Naturfreunde Linz",
+          "timeText": "1:24:55",
+          "status": "ok",
+          "timeS": 5095,
+          "rank": 20
+        },
+        {
+          "name": "Kubicko Petr",
+          "club": "Südböhmen",
+          "timeText": "1:25:02",
+          "status": "ok",
+          "timeS": 5102,
+          "rank": 21
+        },
+        {
+          "name": "Adenstedt Erik",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "1:25:44",
+          "status": "ok",
+          "timeS": 5144,
+          "rank": 22
+        },
+        {
+          "name": "Kössler Markus",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:26:43",
+          "status": "ok",
+          "timeS": 5203,
+          "rank": 23
+        },
+        {
+          "name": "Kramer Klaus",
+          "club": "GO Harzberg",
+          "timeText": "1:26:43",
+          "status": "ok",
+          "timeS": 5203,
+          "rank": 23
+        },
+        {
+          "name": "Schiefer Mario",
+          "club": "WAT",
+          "timeText": "1:27:36",
+          "status": "ok",
+          "timeS": 5256,
+          "rank": 25
+        },
+        {
+          "name": "Grill Michael",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:29:33",
+          "status": "ok",
+          "timeS": 5373,
+          "rank": 26
+        },
+        {
+          "name": "Kasper Reinhard",
+          "club": "LZ OMAHA",
+          "timeText": "1:36:39",
+          "status": "ok",
+          "timeS": 5799,
+          "rank": 27
+        },
+        {
+          "name": "Adenstedt Nikolaus",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "1:41:57",
+          "status": "ok",
+          "timeS": 6117,
+          "rank": 28
+        },
+        {
+          "name": "Falk Martin",
+          "club": "Naturfreunde Linz",
+          "timeText": "1:42:45",
+          "status": "ok",
+          "timeS": 6165,
+          "rank": 29
+        },
+        {
+          "name": "Bauer Christian",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "1:43:58",
+          "status": "ok",
+          "timeS": 6238,
+          "rank": 30
+        },
+        {
+          "name": "Olearczick Erlefried",
+          "club": "HSV Langenlebarn",
+          "timeText": "1:45:39",
+          "status": "ok",
+          "timeS": 6339,
+          "rank": 31
+        },
+        {
+          "name": "Jöbstl Gerhard",
+          "club": "OLC Graz",
+          "timeText": "1:47:22",
+          "status": "ok",
+          "timeS": 6442,
+          "rank": 32
+        },
+        {
+          "name": "Lipphart-Kirchmeir Harald",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:50:03",
+          "status": "ok",
+          "timeS": 6603,
+          "rank": 33
+        },
+        {
+          "name": "Hilbert Josef",
+          "club": "Naturfreunde Wien",
+          "timeText": "2:00:09",
+          "status": "ok",
+          "timeS": 7209,
+          "rank": 34
+        },
+        {
+          "name": "Guggenberger Thomas",
+          "club": "Naturfreunde Wien",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Huss Arno",
+          "club": "SU Klagenfurt",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Herren 50-",
+      "declaredStarters": 35,
+      "results": [
+        {
+          "name": "Krischan Klaus",
+          "club": "Naturfreunde Linz",
+          "timeText": "40:48",
+          "status": "ok",
+          "timeS": 2448,
+          "rank": 1
+        },
+        {
+          "name": "Bonek Peter",
+          "club": "Naturfreunde Wien",
+          "timeText": "41:15",
+          "status": "ok",
+          "timeS": 2475,
+          "rank": 2
+        },
+        {
+          "name": "Kradischnig Wolfgang",
+          "club": "Naturfreunde Linz",
+          "timeText": "45:02",
+          "status": "ok",
+          "timeS": 2702,
+          "rank": 3
+        },
+        {
+          "name": "Köck Erwin",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "46:10",
+          "status": "ok",
+          "timeS": 2770,
+          "rank": 4
+        },
+        {
+          "name": "Arbter Roland",
+          "club": "Naturfreunde Wien",
+          "timeText": "46:40",
+          "status": "ok",
+          "timeS": 2800,
+          "rank": 5
+        },
+        {
+          "name": "Hartmann Dirk",
+          "club": "SV Mietraching",
+          "timeText": "47:36",
+          "status": "ok",
+          "timeS": 2856,
+          "rank": 6
+        },
+        {
+          "name": "Lang Karl",
+          "club": "HSV Pinkafeld",
+          "timeText": "48:43",
+          "status": "ok",
+          "timeS": 2923,
+          "rank": 7
+        },
+        {
+          "name": "Pietsch Wolfgang",
+          "club": "Naturfreunde Wien",
+          "timeText": "49:22",
+          "status": "ok",
+          "timeS": 2962,
+          "rank": 8
+        },
+        {
+          "name": "Polster Josef",
+          "club": "HSV Spittal / Drau",
+          "timeText": "49:52",
+          "status": "ok",
+          "timeS": 2992,
+          "rank": 9
+        },
+        {
+          "name": "Elstner Florian",
+          "club": "ASKÖ Henndorf",
+          "timeText": "53:55",
+          "status": "ok",
+          "timeS": 3235,
+          "rank": 10
+        },
+        {
+          "name": "Kradischnig Günter",
+          "club": "OLC Graz",
+          "timeText": "53:59",
+          "status": "ok",
+          "timeS": 3239,
+          "rank": 11
+        },
+        {
+          "name": "Hosek Lubos",
+          "club": "Südböhmen",
+          "timeText": "54:12",
+          "status": "ok",
+          "timeS": 3252,
+          "rank": 12
+        },
+        {
+          "name": "Scheikl Gottfried",
+          "club": "OC Fürstenfeld",
+          "timeText": "54:15",
+          "status": "ok",
+          "timeS": 3255,
+          "rank": 13
+        },
+        {
+          "name": "Treml Peter",
+          "club": "Naturfreunde Linz",
+          "timeText": "57:22",
+          "status": "ok",
+          "timeS": 3442,
+          "rank": 14
+        },
+        {
+          "name": "Billroth Georg",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "1:00:17",
+          "status": "ok",
+          "timeS": 3617,
+          "rank": 15
+        },
+        {
+          "name": "Tilling Giles",
+          "club": "Naturfreunde Linz",
+          "timeText": "1:01:15",
+          "status": "ok",
+          "timeS": 3675,
+          "rank": 16
+        },
+        {
+          "name": "Tiefenböck Willi",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:01:44",
+          "status": "ok",
+          "timeS": 3704,
+          "rank": 17
+        },
+        {
+          "name": "Pregartner Georg",
+          "club": "SKV OLG Deutsch Kaltenbrunn",
+          "timeText": "1:03:42",
+          "status": "ok",
+          "timeS": 3822,
+          "rank": 18
+        },
+        {
+          "name": "Tanzer Josef",
+          "club": "HSV Langenlebarn",
+          "timeText": "1:04:12",
+          "status": "ok",
+          "timeS": 3852,
+          "rank": 19
+        },
+        {
+          "name": "Kanai Herbert",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:06:03",
+          "status": "ok",
+          "timeS": 3963,
+          "rank": 20
+        },
+        {
+          "name": "Tichy Martin",
+          "club": "Südböhmen",
+          "timeText": "1:07:14",
+          "status": "ok",
+          "timeS": 4034,
+          "rank": 21
+        },
+        {
+          "name": "Biel Axel",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:08:22",
+          "status": "ok",
+          "timeS": 4102,
+          "rank": 22
+        },
+        {
+          "name": "Diwok Felix",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "1:08:24",
+          "status": "ok",
+          "timeS": 4104,
+          "rank": 23
+        },
+        {
+          "name": "Wiesinger Georg",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:09:28",
+          "status": "ok",
+          "timeS": 4168,
+          "rank": 24
+        },
+        {
+          "name": "Mayer Horst",
+          "club": "SSV Hallein-Neualm",
+          "timeText": "1:09:48",
+          "status": "ok",
+          "timeS": 4188,
+          "rank": 25
+        },
+        {
+          "name": "Bauer Peter",
+          "club": "SKV OLG Deutsch Kaltenbrunn",
+          "timeText": "1:12:25",
+          "status": "ok",
+          "timeS": 4345,
+          "rank": 26
+        },
+        {
+          "name": "Hampl Manfred",
+          "club": "WATV",
+          "timeText": "1:17:57",
+          "status": "ok",
+          "timeS": 4677,
+          "rank": 27
+        },
+        {
+          "name": "Nebel Peter",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:21:47",
+          "status": "ok",
+          "timeS": 4907,
+          "rank": 28
+        },
+        {
+          "name": "Cart Andreas",
+          "club": "OLC Wienerwald",
+          "timeText": "1:23:47",
+          "status": "ok",
+          "timeS": 5027,
+          "rank": 29
+        },
+        {
+          "name": "Pühringer Dieter",
+          "club": "Naturfreunde Linz",
+          "timeText": "1:28:15",
+          "status": "ok",
+          "timeS": 5295,
+          "rank": 30
+        },
+        {
+          "name": "Peter Erich",
+          "club": "OLC Graz",
+          "timeText": "1:28:47",
+          "status": "ok",
+          "timeS": 5327,
+          "rank": 31
+        },
+        {
+          "name": "Bruckner Franz",
+          "club": "HSV Pinkafeld",
+          "timeText": "1:32:59",
+          "status": "ok",
+          "timeS": 5579,
+          "rank": 32
+        },
+        {
+          "name": "Friessnig Armin",
+          "club": "OC Fürstenfeld",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Proske Herwig",
+          "club": "OC Fürstenfeld",
+          "timeText": "FehlstR",
+          "status": "mp"
+        },
+        {
+          "name": "Gotthardt Christian",
+          "club": "HSV Spittal / Drau",
+          "timeText": "Fehlst",
+          "status": "mp"
+        }
+      ]
+    },
+    {
+      "name": "Herren 55-",
+      "declaredStarters": 18,
+      "results": [
+        {
+          "name": "Friessnig Joachim",
+          "club": "OC Fürstenfeld",
+          "timeText": "51:38",
+          "status": "ok",
+          "timeS": 3098,
+          "rank": 1
+        },
+        {
+          "name": "Zapletal Josef",
+          "club": "Naturfreunde Wien",
+          "timeText": "54:30",
+          "status": "ok",
+          "timeS": 3270,
+          "rank": 2
+        },
+        {
+          "name": "Mayrhofer Gerald",
+          "club": "SKV OLG Deutsch Kaltenbrunn",
+          "timeText": "56:32",
+          "status": "ok",
+          "timeS": 3392,
+          "rank": 3
+        },
+        {
+          "name": "Gittmaier Georg sen",
+          "club": "HSV Ried",
+          "timeText": "59:40",
+          "status": "ok",
+          "timeS": 3580,
+          "rank": 4
+        },
+        {
+          "name": "Juraszovich Johannes",
+          "club": "OLC Wienerwald",
+          "timeText": "1:03:11",
+          "status": "ok",
+          "timeS": 3791,
+          "rank": 5
+        },
+        {
+          "name": "Gratzer Hans Georg",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "1:03:43",
+          "status": "ok",
+          "timeS": 3823,
+          "rank": 6
+        },
+        {
+          "name": "Dobnik Günther",
+          "club": "OLCU Viktring",
+          "timeText": "1:03:47",
+          "status": "ok",
+          "timeS": 3827,
+          "rank": 7
+        },
+        {
+          "name": "Blabla Zdenek",
+          "club": "Südböhmen",
+          "timeText": "1:05:08",
+          "status": "ok",
+          "timeS": 3908,
+          "rank": 8
+        },
+        {
+          "name": "Huemer Martin",
+          "club": "WAT",
+          "timeText": "1:06:21",
+          "status": "ok",
+          "timeS": 3981,
+          "rank": 9
+        },
+        {
+          "name": "Genevois Frédéric",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:06:28",
+          "status": "ok",
+          "timeS": 3988,
+          "rank": 10
+        },
+        {
+          "name": "Nosek Vladimir",
+          "club": "Südböhmen",
+          "timeText": "1:06:45",
+          "status": "ok",
+          "timeS": 4005,
+          "rank": 11
+        },
+        {
+          "name": "Purgathofer Werner",
+          "club": "OLG Ströck Wien",
+          "timeText": "1:12:59",
+          "status": "ok",
+          "timeS": 4379,
+          "rank": 12
+        },
+        {
+          "name": "Mayer Ewald",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:15:38",
+          "status": "ok",
+          "timeS": 4538,
+          "rank": 13
+        },
+        {
+          "name": "Leonhardt Kristian",
+          "club": "OC Fürstenfeld",
+          "timeText": "1:16:46",
+          "status": "ok",
+          "timeS": 4606,
+          "rank": 14
+        },
+        {
+          "name": "Pacher Hannes",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "1:19:18",
+          "status": "ok",
+          "timeS": 4758,
+          "rank": 15
+        },
+        {
+          "name": "Wolfram Arnulf",
+          "club": "WAT",
+          "timeText": "1:21:58",
+          "status": "ok",
+          "timeS": 4918,
+          "rank": 16
+        },
+        {
+          "name": "Rogl Hartwig",
+          "club": "Naturfreunde Seekirchen",
+          "timeText": "1:33:45",
+          "status": "ok",
+          "timeS": 5625,
+          "rank": 17
+        },
+        {
+          "name": "Drage Stefan",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Herren 60-",
+      "declaredStarters": 19,
+      "results": [
+        {
+          "name": "Hones Josef",
+          "club": "HSV Ried",
+          "timeText": "45:28",
+          "status": "ok",
+          "timeS": 2728,
+          "rank": 1
+        },
+        {
+          "name": "Frantisek Peterka",
+          "club": "Sokol Troja",
+          "timeText": "52:06",
+          "status": "ok",
+          "timeS": 3126,
+          "rank": 2
+        },
+        {
+          "name": "Ponweiser Franz",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "52:39",
+          "status": "ok",
+          "timeS": 3159,
+          "rank": 3
+        },
+        {
+          "name": "Schweifer Erwin",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "52:51",
+          "status": "ok",
+          "timeS": 3171,
+          "rank": 4
+        },
+        {
+          "name": "Grün Paul",
+          "club": "OLG Ströck Wien",
+          "timeText": "54:08",
+          "status": "ok",
+          "timeS": 3248,
+          "rank": 5
+        },
+        {
+          "name": "Dytlewski Nick",
+          "club": "Naturfreunde Wien",
+          "timeText": "55:15",
+          "status": "ok",
+          "timeS": 3315,
+          "rank": 6
+        },
+        {
+          "name": "Ziegerhofer Othmar",
+          "club": "Naturfreunde Linz",
+          "timeText": "1:00:44",
+          "status": "ok",
+          "timeS": 3644,
+          "rank": 7
+        },
+        {
+          "name": "Hartinger Franz",
+          "club": "Leibnitzer AC",
+          "timeText": "1:01:32",
+          "status": "ok",
+          "timeS": 3692,
+          "rank": 8
+        },
+        {
+          "name": "Bosina Martin",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:04:10",
+          "status": "ok",
+          "timeS": 3850,
+          "rank": 9
+        },
+        {
+          "name": "Hudax Rudolf",
+          "club": "OC Fürstenfeld",
+          "timeText": "1:10:24",
+          "status": "ok",
+          "timeS": 4224,
+          "rank": 10
+        },
+        {
+          "name": "Schuster Helmut",
+          "club": "USC Theresianum",
+          "timeText": "1:11:11",
+          "status": "ok",
+          "timeS": 4271,
+          "rank": 11
+        },
+        {
+          "name": "Hechl Georg",
+          "club": "Naturfreunde Kitzbühel",
+          "timeText": "1:17:42",
+          "status": "ok",
+          "timeS": 4662,
+          "rank": 12
+        },
+        {
+          "name": "Ptacek Ladislav",
+          "club": "Südböhmen",
+          "timeText": "1:24:26",
+          "status": "ok",
+          "timeS": 5066,
+          "rank": 13
+        },
+        {
+          "name": "Kainzbauer Josef",
+          "club": "WAT",
+          "timeText": "1:24:34",
+          "status": "ok",
+          "timeS": 5074,
+          "rank": 14
+        },
+        {
+          "name": "Werther Wolfgang",
+          "club": "WATV",
+          "timeText": "1:28:40",
+          "status": "ok",
+          "timeS": 5320,
+          "rank": 15
+        },
+        {
+          "name": "Werner Richard",
+          "club": "SSV Dornbirn Schoren",
+          "timeText": "1:31:26",
+          "status": "ok",
+          "timeS": 5486,
+          "rank": 16
+        },
+        {
+          "name": "Pongratz Karl",
+          "club": "HSV Pinkafeld",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Huemer Meinrad",
+          "club": "WAT",
+          "timeText": "N Ang",
+          "status": "dns"
+        },
+        {
+          "name": "Graf Josef",
+          "club": "LZ OMAHA",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Herren 65-",
+      "declaredStarters": 18,
+      "results": [
+        {
+          "name": "Grabenhofer Wilhelm",
+          "club": "LZ OMAHA",
+          "timeText": "38:58",
+          "status": "ok",
+          "timeS": 2338,
+          "rank": 1
+        },
+        {
+          "name": "Gurka Jiri",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "39:25",
+          "status": "ok",
+          "timeS": 2365,
+          "rank": 2
+        },
+        {
+          "name": "NAGELE Franz",
+          "club": "HSV WALS",
+          "timeText": "39:27",
+          "status": "ok",
+          "timeS": 2367,
+          "rank": 3
+        },
+        {
+          "name": "Müller Leo",
+          "club": "ASKÖ Henndorf",
+          "timeText": "40:18",
+          "status": "ok",
+          "timeS": 2418,
+          "rank": 4
+        },
+        {
+          "name": "Böhm Eduard",
+          "club": "ASKÖ Henndorf",
+          "timeText": "42:55",
+          "status": "ok",
+          "timeS": 2575,
+          "rank": 5
+        },
+        {
+          "name": "Tonka Leopold",
+          "club": "HSV WALS",
+          "timeText": "44:47",
+          "status": "ok",
+          "timeS": 2687,
+          "rank": 6
+        },
+        {
+          "name": "Siegert Reinhard",
+          "club": "WAT",
+          "timeText": "45:35",
+          "status": "ok",
+          "timeS": 2735,
+          "rank": 7
+        },
+        {
+          "name": "Käfer Franz",
+          "club": "HSV Pinkafeld",
+          "timeText": "45:40",
+          "status": "ok",
+          "timeS": 2740,
+          "rank": 8
+        },
+        {
+          "name": "Burmann Werner",
+          "club": "OLC Wienerwald",
+          "timeText": "45:54",
+          "status": "ok",
+          "timeS": 2754,
+          "rank": 9
+        },
+        {
+          "name": "Lukaseder Hubert",
+          "club": "HSV Langenlebarn",
+          "timeText": "46:34",
+          "status": "ok",
+          "timeS": 2794,
+          "rank": 10
+        },
+        {
+          "name": "Hejjas Attila",
+          "club": "Naturfreunde Wien",
+          "timeText": "50:49",
+          "status": "ok",
+          "timeS": 3049,
+          "rank": 11
+        },
+        {
+          "name": "Fiala Milos",
+          "club": "Südböhmen",
+          "timeText": "51:31",
+          "status": "ok",
+          "timeS": 3091,
+          "rank": 12
+        },
+        {
+          "name": "Krausmann Walter",
+          "club": "HSV Ried",
+          "timeText": "58:17",
+          "status": "ok",
+          "timeS": 3497,
+          "rank": 13
+        },
+        {
+          "name": "Naskau Klaus",
+          "club": "HSV Pinkafeld",
+          "timeText": "1:02:02",
+          "status": "ok",
+          "timeS": 3722,
+          "rank": 14
+        },
+        {
+          "name": "Fruhwirth Friedrich",
+          "club": "HSV Langenlebarn",
+          "timeText": "1:22:14",
+          "status": "ok",
+          "timeS": 4934,
+          "rank": 15
+        },
+        {
+          "name": "Offner Willibald",
+          "club": "HSV Graz",
+          "timeText": "1:26:57",
+          "status": "ok",
+          "timeS": 5217,
+          "rank": 16
+        },
+        {
+          "name": "Fink Karl",
+          "club": "OLC Graz",
+          "timeText": "N Ang",
+          "status": "dns"
+        },
+        {
+          "name": "Haring Karl",
+          "club": "WAT",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Herren 70-",
+      "declaredStarters": 13,
+      "results": [
+        {
+          "name": "Bonek Ernst",
+          "club": "Naturfreunde Wien",
+          "timeText": "47:18",
+          "status": "ok",
+          "timeS": 2838,
+          "rank": 1
+        },
+        {
+          "name": "Maier Curt",
+          "club": "ASKÖ OLC Ebenthal",
+          "timeText": "51:44",
+          "status": "ok",
+          "timeS": 3104,
+          "rank": 2
+        },
+        {
+          "name": "Venhauer Otto",
+          "club": "OLCU Viktring",
+          "timeText": "53:14",
+          "status": "ok",
+          "timeS": 3194,
+          "rank": 3
+        },
+        {
+          "name": "Reisenberger Hans",
+          "club": "Naturfreunde Wien",
+          "timeText": "53:31",
+          "status": "ok",
+          "timeS": 3211,
+          "rank": 4
+        },
+        {
+          "name": "Grundel Ivan",
+          "club": "Südböhmen",
+          "timeText": "58:13",
+          "status": "ok",
+          "timeS": 3493,
+          "rank": 5
+        },
+        {
+          "name": "Rieder Gernot",
+          "club": "ASKÖ Henndorf",
+          "timeText": "1:06:46",
+          "status": "ok",
+          "timeS": 4006,
+          "rank": 6
+        },
+        {
+          "name": "Holzinger Klaus",
+          "club": "HSV Großmittel",
+          "timeText": "1:08:20",
+          "status": "ok",
+          "timeS": 4100,
+          "rank": 7
+        },
+        {
+          "name": "Hauser Siegfried",
+          "club": "HSV Linz",
+          "timeText": "1:11:33",
+          "status": "ok",
+          "timeS": 4293,
+          "rank": 8
+        },
+        {
+          "name": "Ziermann Paul",
+          "club": "HSV Pinkafeld",
+          "timeText": "1:19:16",
+          "status": "ok",
+          "timeS": 4756,
+          "rank": 9
+        },
+        {
+          "name": "Radil Klaus",
+          "club": "WAT",
+          "timeText": "1:20:15",
+          "status": "ok",
+          "timeS": 4815,
+          "rank": 10
+        },
+        {
+          "name": "Gaisbauer Herbert",
+          "club": "HSV Ried",
+          "timeText": "1:41:47",
+          "status": "ok",
+          "timeS": 6107,
+          "rank": 11
+        },
+        {
+          "name": "Kochmann Günther",
+          "club": "WAT",
+          "timeText": "1:47:13",
+          "status": "ok",
+          "timeS": 6433,
+          "rank": 12
+        },
+        {
+          "name": "Srb Walter",
+          "club": "WAT",
+          "timeText": "Fehlst",
+          "status": "mp"
+        }
+      ]
+    },
+    {
+      "name": "Herren 75-",
+      "declaredStarters": 5,
+      "results": [
+        {
+          "name": "Wagner Max",
+          "club": "Naturfreunde Linz",
+          "timeText": "37:45",
+          "status": "ok",
+          "timeS": 2265,
+          "rank": 1
+        },
+        {
+          "name": "Fierlinger Adolf",
+          "club": "Naturfreunde Linz",
+          "timeText": "56:58",
+          "status": "ok",
+          "timeS": 3418,
+          "rank": 2
+        },
+        {
+          "name": "Gassner Ferdinand",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:01:39",
+          "status": "ok",
+          "timeS": 3699,
+          "rank": 3
+        },
+        {
+          "name": "Palme Thorwik",
+          "club": "OLC Wienerwald",
+          "timeText": "1:13:46",
+          "status": "ok",
+          "timeS": 4426,
+          "rank": 4
+        },
+        {
+          "name": "Chudoba Klaus",
+          "club": "OLCU Viktring",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Damen 21-Elite",
+      "declaredStarters": 15,
+      "results": [
+        {
+          "name": "Kadan Ursula",
+          "club": "OC Fürstenfeld",
+          "timeText": "1:06:44",
+          "status": "ok",
+          "timeS": 4004,
+          "rank": 1
+        },
+        {
+          "name": "Arbter Anja",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:12:35",
+          "status": "ok",
+          "timeS": 4355,
+          "rank": 2
+        },
+        {
+          "name": "Gregorova Kamila",
+          "club": "Südböhmen",
+          "timeText": "1:15:17",
+          "status": "ok",
+          "timeS": 4517,
+          "rank": 3
+        },
+        {
+          "name": "Bauer Julia",
+          "club": "SKV OLG Deutsch Kaltenbrunn",
+          "timeText": "1:15:34",
+          "status": "ok",
+          "timeS": 4534,
+          "rank": 4
+        },
+        {
+          "name": "Stögerer Patrizia",
+          "club": "HSV Pinkafeld",
+          "timeText": "1:21:38",
+          "status": "ok",
+          "timeS": 4898,
+          "rank": 5
+        },
+        {
+          "name": "Pacher Lisa",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "1:21:46",
+          "status": "ok",
+          "timeS": 4906,
+          "rank": 6
+        },
+        {
+          "name": "Herrgesell Maren",
+          "club": "OLC Graz",
+          "timeText": "1:23:32",
+          "status": "ok",
+          "timeS": 5012,
+          "rank": 7
+        },
+        {
+          "name": "Gschöpf Brië",
+          "club": "WAT",
+          "timeText": "1:26:40",
+          "status": "ok",
+          "timeS": 5200,
+          "rank": 8
+        },
+        {
+          "name": "Englmaier Gudrun",
+          "club": "OLC Wienerwald",
+          "timeText": "1:36:04",
+          "status": "ok",
+          "timeS": 5764,
+          "rank": 9
+        },
+        {
+          "name": "Mang July",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "1:57:00",
+          "status": "ok",
+          "timeS": 7020,
+          "rank": 10
+        },
+        {
+          "name": "Penzkofer Julia",
+          "club": "ASKÖ Henndorf",
+          "timeText": "2:19:53",
+          "status": "ok",
+          "timeS": 8393,
+          "rank": 11
+        },
+        {
+          "name": "Gerbeaux Nathanaëlle",
+          "club": "OLC Wienerwald",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Illes Sandrina",
+          "club": "OLG Ströck Wien",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Ewiak Amelia",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Strasser Andrea",
+          "club": "ASKÖ Henndorf",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Damen-20 Elite",
+      "declaredStarters": 3,
+      "results": [
+        {
+          "name": "Walch Martina",
+          "club": "OLC Graz",
+          "timeText": "1:20:25",
+          "status": "ok",
+          "timeS": 4825,
+          "rank": 1
+        },
+        {
+          "name": "Cart Veronika",
+          "club": "OLC Wienerwald",
+          "timeText": "1:39:23",
+          "status": "ok",
+          "timeS": 5963,
+          "rank": 2
+        },
+        {
+          "name": "Kubickova Bara",
+          "club": "Südböhmen",
+          "timeText": "Fehlst",
+          "status": "mp"
+        }
+      ]
+    },
+    {
+      "name": "Damen-18 Elite",
+      "declaredStarters": 9,
+      "results": [
+        {
+          "name": "Trummer Johanna",
+          "club": "OLC Graz",
+          "timeText": "58:59",
+          "status": "ok",
+          "timeS": 3539,
+          "rank": 1
+        },
+        {
+          "name": "Polzer Carina",
+          "club": "SU Klagenfurt",
+          "timeText": "59:56",
+          "status": "ok",
+          "timeS": 3596,
+          "rank": 2
+        },
+        {
+          "name": "Pauser Ida",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:12:17",
+          "status": "ok",
+          "timeS": 4337,
+          "rank": 3
+        },
+        {
+          "name": "Hlosta Denise",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:13:46",
+          "status": "ok",
+          "timeS": 4426,
+          "rank": 4
+        },
+        {
+          "name": "Berger Marlene",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "1:17:38",
+          "status": "ok",
+          "timeS": 4658,
+          "rank": 5
+        },
+        {
+          "name": "Zettl Ines",
+          "club": "OLT Transdanubien",
+          "timeText": "1:18:31",
+          "status": "ok",
+          "timeS": 4711,
+          "rank": 6
+        },
+        {
+          "name": "Schaffer Isabel",
+          "club": "HSV Ried",
+          "timeText": "1:21:25",
+          "status": "ok",
+          "timeS": 4885,
+          "rank": 7
+        },
+        {
+          "name": "Fend Sara",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "1:30:09",
+          "status": "ok",
+          "timeS": 5409,
+          "rank": 8
+        },
+        {
+          "name": "Gassner Anika",
+          "club": "Naturfreunde Wien",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Damen-16 Elite",
+      "declaredStarters": 14,
+      "results": [
+        {
+          "name": "Gassner Jasmina",
+          "club": "Naturfreunde Wien",
+          "timeText": "37:08",
+          "status": "ok",
+          "timeS": 2228,
+          "rank": 1
+        },
+        {
+          "name": "Erhart Antonia",
+          "club": "Leibnitzer AC",
+          "timeText": "41:27",
+          "status": "ok",
+          "timeS": 2487,
+          "rank": 2
+        },
+        {
+          "name": "Trummer Rosa",
+          "club": "OLC Graz",
+          "timeText": "46:25",
+          "status": "ok",
+          "timeS": 2785,
+          "rank": 3
+        },
+        {
+          "name": "Schaffer Ines",
+          "club": "HSV Ried",
+          "timeText": "48:49",
+          "status": "ok",
+          "timeS": 2929,
+          "rank": 4
+        },
+        {
+          "name": "Berger Anni",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "49:15",
+          "status": "ok",
+          "timeS": 2955,
+          "rank": 5
+        },
+        {
+          "name": "Tiefenböck Tina",
+          "club": "Naturfreunde Wien",
+          "timeText": "49:59",
+          "status": "ok",
+          "timeS": 2999,
+          "rank": 6
+        },
+        {
+          "name": "Scheikl Agnes",
+          "club": "OC Fürstenfeld",
+          "timeText": "51:53",
+          "status": "ok",
+          "timeS": 3113,
+          "rank": 7
+        },
+        {
+          "name": "Kalcher Hannah",
+          "club": "HSV Pinkafeld",
+          "timeText": "52:36",
+          "status": "ok",
+          "timeS": 3156,
+          "rank": 8
+        },
+        {
+          "name": "Hristova Lora",
+          "club": "Naturfreunde Linz",
+          "timeText": "54:42",
+          "status": "ok",
+          "timeS": 3282,
+          "rank": 9
+        },
+        {
+          "name": "Kasper Ida-Karolina",
+          "club": "LZ OMAHA",
+          "timeText": "57:07",
+          "status": "ok",
+          "timeS": 3427,
+          "rank": 10
+        },
+        {
+          "name": "Knauder Viktoria",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "58:21",
+          "status": "ok",
+          "timeS": 3501,
+          "rank": 11
+        },
+        {
+          "name": "Prach Doris",
+          "club": "Leibnitzer AC",
+          "timeText": "1:06:20",
+          "status": "ok",
+          "timeS": 3980,
+          "rank": 12
+        },
+        {
+          "name": "Kalcher Magdalena",
+          "club": "HSV Pinkafeld",
+          "timeText": "1:08:37",
+          "status": "ok",
+          "timeS": 4117,
+          "rank": 13
+        },
+        {
+          "name": "Hoffmann Hannah",
+          "club": "LZ OMAHA",
+          "timeText": "Fehlst",
+          "status": "mp"
+        }
+      ]
+    },
+    {
+      "name": "Damen-10",
+      "declaredStarters": 9,
+      "results": [
+        {
+          "name": "Kirchmeir Yolanda",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "22:33",
+          "status": "ok",
+          "timeS": 1353,
+          "rank": 1
+        },
+        {
+          "name": "Radon Livia",
+          "club": "Naturfreunde Wien",
+          "timeText": "22:58",
+          "status": "ok",
+          "timeS": 1378,
+          "rank": 2
+        },
+        {
+          "name": "Biel Corinna",
+          "club": "Naturfreunde Wien",
+          "timeText": "24:25",
+          "status": "ok",
+          "timeS": 1465,
+          "rank": 3
+        },
+        {
+          "name": "Adenstedt Emily",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "24:47",
+          "status": "ok",
+          "timeS": 1487,
+          "rank": 4
+        },
+        {
+          "name": "Ditz Carina",
+          "club": "Naturfreunde Wien",
+          "timeText": "24:57",
+          "status": "ok",
+          "timeS": 1497,
+          "rank": 5
+        },
+        {
+          "name": "Benezova Missa",
+          "club": "Südböhmen",
+          "timeText": "27:20",
+          "status": "ok",
+          "timeS": 1640,
+          "rank": 6
+        },
+        {
+          "name": "Komarkova Zbynka",
+          "club": "Südböhmen",
+          "timeText": "28:43",
+          "status": "ok",
+          "timeS": 1723,
+          "rank": 7
+        },
+        {
+          "name": "Beck Maria",
+          "club": "Naturfreunde Wien",
+          "timeText": "41:45",
+          "status": "ok",
+          "timeS": 2505,
+          "rank": 8
+        },
+        {
+          "name": "Kühnel llka",
+          "club": "Naturfreunde Wien",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Damen-12",
+      "declaredStarters": 20,
+      "results": [
+        {
+          "name": "Hnilica Jana",
+          "club": "OLT Transdanubien",
+          "timeText": "20:04",
+          "status": "ok",
+          "timeS": 1204,
+          "rank": 1
+        },
+        {
+          "name": "Ennemoser Lena",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "24:00",
+          "status": "ok",
+          "timeS": 1440,
+          "rank": 2
+        },
+        {
+          "name": "Schaumann Laura",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "24:10",
+          "status": "ok",
+          "timeS": 1450,
+          "rank": 3
+        },
+        {
+          "name": "Auer Merlin",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "28:02",
+          "status": "ok",
+          "timeS": 1682,
+          "rank": 4
+        },
+        {
+          "name": "Gröll Anna",
+          "club": "OLC Graz",
+          "timeText": "28:49",
+          "status": "ok",
+          "timeS": 1729,
+          "rank": 5
+        },
+        {
+          "name": "Aus der Schmitten Helena",
+          "club": "HSV Pinkafeld",
+          "timeText": "29:34",
+          "status": "ok",
+          "timeS": 1774,
+          "rank": 6
+        },
+        {
+          "name": "Kastner Maya",
+          "club": "Naturfreunde Wien",
+          "timeText": "32:32",
+          "status": "ok",
+          "timeS": 1952,
+          "rank": 7
+        },
+        {
+          "name": "Kasper Matilda",
+          "club": "LZ OMAHA",
+          "timeText": "32:50",
+          "status": "ok",
+          "timeS": 1970,
+          "rank": 8
+        },
+        {
+          "name": "Kalcher Marie",
+          "club": "HSV Pinkafeld",
+          "timeText": "34:19",
+          "status": "ok",
+          "timeS": 2059,
+          "rank": 9
+        },
+        {
+          "name": "Ennemoser Lisa",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "38:02",
+          "status": "ok",
+          "timeS": 2282,
+          "rank": 10
+        },
+        {
+          "name": "Starkbaum Clara",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "40:02",
+          "status": "ok",
+          "timeS": 2402,
+          "rank": 11
+        },
+        {
+          "name": "Erbstein Elena",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "40:20",
+          "status": "ok",
+          "timeS": 2420,
+          "rank": 12
+        },
+        {
+          "name": "Komarkova Jindra",
+          "club": "Südböhmen",
+          "timeText": "44:42",
+          "status": "ok",
+          "timeS": 2682,
+          "rank": 13
+        },
+        {
+          "name": "Bogensperger Nilla",
+          "club": "ASKÖ Henndorf",
+          "timeText": "51:15",
+          "status": "ok",
+          "timeS": 3075,
+          "rank": 14
+        },
+        {
+          "name": "Schrahböck Janine",
+          "club": "GO Harzberg",
+          "timeText": "51:40",
+          "status": "ok",
+          "timeS": 3100,
+          "rank": 15
+        },
+        {
+          "name": "Micko Anja",
+          "club": "GO Harzberg",
+          "timeText": "55:39",
+          "status": "ok",
+          "timeS": 3339,
+          "rank": 16
+        },
+        {
+          "name": "Schönleitner Leonie",
+          "club": "SSV Hallein-Neualm",
+          "timeText": "56:29",
+          "status": "ok",
+          "timeS": 3389,
+          "rank": 17
+        },
+        {
+          "name": "Posch Elisa",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "Fehlstb",
+          "status": "mp"
+        },
+        {
+          "name": "Jany Carla",
+          "club": "HSV Pinkafeld",
+          "timeText": "N Ang",
+          "status": "dns"
+        },
+        {
+          "name": "Hechl Anna",
+          "club": "OLC Schwaz",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Damen-14",
+      "declaredStarters": 16,
+      "results": [
+        {
+          "name": "Zeiner Elena",
+          "club": "OLC Graz",
+          "timeText": "32:04",
+          "status": "ok",
+          "timeS": 1924,
+          "rank": 1
+        },
+        {
+          "name": "Lueger Anna",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "32:41",
+          "status": "ok",
+          "timeS": 1961,
+          "rank": 2
+        },
+        {
+          "name": "Hnilica Lea",
+          "club": "OLT Transdanubien",
+          "timeText": "34:29",
+          "status": "ok",
+          "timeS": 2069,
+          "rank": 3
+        },
+        {
+          "name": "Kastner Ylvi",
+          "club": "Naturfreunde Wien",
+          "timeText": "35:08",
+          "status": "ok",
+          "timeS": 2108,
+          "rank": 4
+        },
+        {
+          "name": "Standhartinger Magdalena",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "39:47",
+          "status": "ok",
+          "timeS": 2387,
+          "rank": 5
+        },
+        {
+          "name": "Grünberger Pia",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "39:52",
+          "status": "ok",
+          "timeS": 2392,
+          "rank": 6
+        },
+        {
+          "name": "Pietsch Anna",
+          "club": "Naturfreunde Wien",
+          "timeText": "41:27",
+          "status": "ok",
+          "timeS": 2487,
+          "rank": 7
+        },
+        {
+          "name": "Tiefenböck Rita",
+          "club": "Naturfreunde Wien",
+          "timeText": "43:07",
+          "status": "ok",
+          "timeS": 2587,
+          "rank": 8
+        },
+        {
+          "name": "Wiedemayer Laura",
+          "club": "ASKÖ Henndorf",
+          "timeText": "43:08",
+          "status": "ok",
+          "timeS": 2588,
+          "rank": 9
+        },
+        {
+          "name": "Sladek Laura",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "43:41",
+          "status": "ok",
+          "timeS": 2621,
+          "rank": 10
+        },
+        {
+          "name": "Dabernig Celina",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "47:03",
+          "status": "ok",
+          "timeS": 2823,
+          "rank": 11
+        },
+        {
+          "name": "Marti Felicitas",
+          "club": "HSV Pinkafeld",
+          "timeText": "51:50",
+          "status": "ok",
+          "timeS": 3110,
+          "rank": 12
+        },
+        {
+          "name": "Velkovski Julia",
+          "club": "OLT Transdanubien",
+          "timeText": "53:12",
+          "status": "ok",
+          "timeS": 3192,
+          "rank": 13
+        },
+        {
+          "name": "Mödlhammer Kerstin",
+          "club": "ASKÖ Henndorf",
+          "timeText": "54:50",
+          "status": "ok",
+          "timeS": 3290,
+          "rank": 14
+        },
+        {
+          "name": "Zeiner Dora",
+          "club": "OLC Graz",
+          "timeText": "54:51",
+          "status": "ok",
+          "timeS": 3291,
+          "rank": 15
+        },
+        {
+          "name": "Spitaler Kathi",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "57:11",
+          "status": "ok",
+          "timeS": 3431,
+          "rank": 16
+        }
+      ]
+    },
+    {
+      "name": "Damen 15-18",
+      "declaredStarters": 13,
+      "results": [
+        {
+          "name": "Hlosta Nicole",
+          "club": "Naturfreunde Wien",
+          "timeText": "42:32",
+          "status": "ok",
+          "timeS": 2552,
+          "rank": 1
+        },
+        {
+          "name": "Broinger Christina",
+          "club": "OLC Wienerwald",
+          "timeText": "54:02",
+          "status": "ok",
+          "timeS": 3242,
+          "rank": 2
+        },
+        {
+          "name": "Kohlbacher Lena",
+          "club": "Naturfreunde Villach - Oriente",
+          "timeText": "54:31",
+          "status": "ok",
+          "timeS": 3271,
+          "rank": 3
+        },
+        {
+          "name": "Kofler Sophie",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "54:46",
+          "status": "ok",
+          "timeS": 3286,
+          "rank": 4
+        },
+        {
+          "name": "Pühringer Anna",
+          "club": "Naturfreunde Linz",
+          "timeText": "56:07",
+          "status": "ok",
+          "timeS": 3367,
+          "rank": 5
+        },
+        {
+          "name": "Loidolt Clara",
+          "club": "OC Fürstenfeld",
+          "timeText": "1:16:59",
+          "status": "ok",
+          "timeS": 4619,
+          "rank": 6
+        },
+        {
+          "name": "Pesl Teresa",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "1:28:40",
+          "status": "ok",
+          "timeS": 5320,
+          "rank": 7
+        },
+        {
+          "name": "Mecenovic Hannah",
+          "club": "sU Schöckl Orienteering",
+          "timeText": "1:36:52",
+          "status": "ok",
+          "timeS": 5812,
+          "rank": 8
+        },
+        {
+          "name": "Edlinger Chiara",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Frädrich Yola",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Hochwarder Elisabeth",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "Fehlst р",
+          "status": "mp"
+        },
+        {
+          "name": "Temmer Lisa",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Löschnig Sophia",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Damen 21-Lang",
+      "declaredStarters": 9,
+      "results": [
+        {
+          "name": "Torggler Jutta",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "1:07:38",
+          "status": "ok",
+          "timeS": 4058,
+          "rank": 1
+        },
+        {
+          "name": "Rogl Franziska",
+          "club": "ASKÖ Henndorf",
+          "timeText": "1:09:20",
+          "status": "ok",
+          "timeS": 4160,
+          "rank": 2
+        },
+        {
+          "name": "Harreither Agnes",
+          "club": "OLC Wienerwald",
+          "timeText": "1:17:11",
+          "status": "ok",
+          "timeS": 4631,
+          "rank": 3
+        },
+        {
+          "name": "Kovarova Lenka",
+          "club": "Südböhmen",
+          "timeText": "1:21:31",
+          "status": "ok",
+          "timeS": 4891,
+          "rank": 4
+        },
+        {
+          "name": "Aschacher Verena",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:23:15",
+          "status": "ok",
+          "timeS": 4995,
+          "rank": 5
+        },
+        {
+          "name": "Pregartner Gudrun",
+          "club": "SKV OLG Deutsch Kaltenbrunn",
+          "timeText": "1:24:23",
+          "status": "ok",
+          "timeS": 5063,
+          "rank": 6
+        },
+        {
+          "name": "Kogelmann Silke",
+          "club": "SKV OLG Deutsch Kaltenbrunn",
+          "timeText": "1:26:57",
+          "status": "ok",
+          "timeS": 5217,
+          "rank": 7
+        },
+        {
+          "name": "Linhart Gisa",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:28:32",
+          "status": "ok",
+          "timeS": 5312,
+          "rank": 8
+        },
+        {
+          "name": "Erber Martina",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "1:37:20",
+          "status": "ok",
+          "timeS": 5840,
+          "rank": 9
+        }
+      ]
+    },
+    {
+      "name": "Damen 21-Kurz",
+      "declaredStarters": 20,
+      "results": [
+        {
+          "name": "Traint Christina",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "40:18",
+          "status": "ok",
+          "timeS": 2418,
+          "rank": 1
+        },
+        {
+          "name": "Novak Katharina",
+          "club": "HSV Großmittel",
+          "timeText": "40:44",
+          "status": "ok",
+          "timeS": 2444,
+          "rank": 2
+        },
+        {
+          "name": "Türk Elisabeth",
+          "club": "HSV Großmittel",
+          "timeText": "40:51",
+          "status": "ok",
+          "timeS": 2451,
+          "rank": 3
+        },
+        {
+          "name": "Ponweiser Monika",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "45:25",
+          "status": "ok",
+          "timeS": 2725,
+          "rank": 4
+        },
+        {
+          "name": "Germ Petra",
+          "club": "Naturfreunde Villach - Oriente",
+          "timeText": "46:11",
+          "status": "ok",
+          "timeS": 2771,
+          "rank": 5
+        },
+        {
+          "name": "Graf Nicole",
+          "club": "SKV OLG Deutsch Kaltenbrunn",
+          "timeText": "46:41",
+          "status": "ok",
+          "timeS": 2801,
+          "rank": 6
+        },
+        {
+          "name": "Bauer Michaela",
+          "club": "SKV OLG Deutsch Kaltenbrunn",
+          "timeText": "47:34",
+          "status": "ok",
+          "timeS": 2854,
+          "rank": 7
+        },
+        {
+          "name": "Krail Elisabeth",
+          "club": "WAT",
+          "timeText": "49:00",
+          "status": "ok",
+          "timeS": 2940,
+          "rank": 8
+        },
+        {
+          "name": "Vogl Karin",
+          "club": "ASKÖ Henndorf",
+          "timeText": "51:25",
+          "status": "ok",
+          "timeS": 3085,
+          "rank": 9
+        },
+        {
+          "name": "Gremmel Romana",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "52:20",
+          "status": "ok",
+          "timeS": 3140,
+          "rank": 10
+        },
+        {
+          "name": "Jonackova Zuzana",
+          "club": "OLT Transdanubien",
+          "timeText": "52:31",
+          "status": "ok",
+          "timeS": 3151,
+          "rank": 11
+        },
+        {
+          "name": "Kröppl Katrin",
+          "club": "HSV Großmittel",
+          "timeText": "53:21",
+          "status": "ok",
+          "timeS": 3201,
+          "rank": 12
+        },
+        {
+          "name": "Glentzer Nina",
+          "club": "WAT",
+          "timeText": "59:17",
+          "status": "ok",
+          "timeS": 3557,
+          "rank": 13
+        },
+        {
+          "name": "Hafner Andrea",
+          "club": "SKV OLG Deutsch Kaltenbrunn",
+          "timeText": "1:02:18",
+          "status": "ok",
+          "timeS": 3738,
+          "rank": 14
+        },
+        {
+          "name": "Hauser Barbara",
+          "club": "OLC Wienerwald",
+          "timeText": "1:02:46",
+          "status": "ok",
+          "timeS": 3766,
+          "rank": 15
+        },
+        {
+          "name": "Neuwirth Annika",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "1:23:45",
+          "status": "ok",
+          "timeS": 5025,
+          "rank": 16
+        },
+        {
+          "name": "Heinschink Andreea",
+          "club": "OLCU Viktring",
+          "timeText": "1:27:50",
+          "status": "ok",
+          "timeS": 5270,
+          "rank": 17
+        },
+        {
+          "name": "Langer Christina",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Mangold Anita",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "N Ang",
+          "status": "dns"
+        },
+        {
+          "name": "Hechl Isabel",
+          "club": "Naturfreunde Kitzbühel",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Damen 35-",
+      "declaredStarters": 8,
+      "results": [
+        {
+          "name": "Sandrisser Lisi",
+          "club": "Naturfreunde Villach - Oriente",
+          "timeText": "44:30",
+          "status": "ok",
+          "timeS": 2670,
+          "rank": 1
+        },
+        {
+          "name": "Hulcova Pavla",
+          "club": "Südböhmen",
+          "timeText": "46:53",
+          "status": "ok",
+          "timeS": 2813,
+          "rank": 2
+        },
+        {
+          "name": "Ponweiser Eva",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "50:11",
+          "status": "ok",
+          "timeS": 3011,
+          "rank": 3
+        },
+        {
+          "name": "Skern Marina",
+          "club": "Naturfreunde Wien",
+          "timeText": "53:14",
+          "status": "ok",
+          "timeS": 3194,
+          "rank": 4
+        },
+        {
+          "name": "Allwinger Judit",
+          "club": "Leibnitzer AC",
+          "timeText": "57:20",
+          "status": "ok",
+          "timeS": 3440,
+          "rank": 5
+        },
+        {
+          "name": "Springer-Venhauer Sonja",
+          "club": "OLCU Viktring",
+          "timeText": "1:23:26",
+          "status": "ok",
+          "timeS": 5006,
+          "rank": 6
+        },
+        {
+          "name": "Pölzelbauer Martina",
+          "club": "OLG Ströck Wien",
+          "timeText": "N Ang",
+          "status": "dns"
+        },
+        {
+          "name": "Teringlova Martina",
+          "club": "Südböhmen",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Damen 40-",
+      "declaredStarters": 12,
+      "results": [
+        {
+          "name": "Rothauer Lucie",
+          "club": "ASKÖ Henndorf",
+          "timeText": "43:41",
+          "status": "ok",
+          "timeS": 2621,
+          "rank": 1
+        },
+        {
+          "name": "Adenstedt Ingrid",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "56:26",
+          "status": "ok",
+          "timeS": 3386,
+          "rank": 2
+        },
+        {
+          "name": "Kastner Barbara",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:02:22",
+          "status": "ok",
+          "timeS": 3742,
+          "rank": 3
+        },
+        {
+          "name": "Dulovcova Marie",
+          "club": "Südböhmen",
+          "timeText": "1:03:02",
+          "status": "ok",
+          "timeS": 3782,
+          "rank": 4
+        },
+        {
+          "name": "Benesova Iva",
+          "club": "Südböhmen",
+          "timeText": "1:03:12",
+          "status": "ok",
+          "timeS": 3792,
+          "rank": 5
+        },
+        {
+          "name": "Allwinger Tünde",
+          "club": "Leibnitzer AC",
+          "timeText": "1:05:19",
+          "status": "ok",
+          "timeS": 3919,
+          "rank": 6
+        },
+        {
+          "name": "Kaminger Ingrid",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "1:09:31",
+          "status": "ok",
+          "timeS": 4171,
+          "rank": 7
+        },
+        {
+          "name": "Calvet Christine",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:12:14",
+          "status": "ok",
+          "timeS": 4334,
+          "rank": 8
+        },
+        {
+          "name": "Tobler- Egger Gabriele",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:16:31",
+          "status": "ok",
+          "timeS": 4591,
+          "rank": 9
+        },
+        {
+          "name": "Lyatoshinskaya Polina",
+          "club": "OLC Wienerwald",
+          "timeText": "1:22:16",
+          "status": "ok",
+          "timeS": 4936,
+          "rank": 10
+        },
+        {
+          "name": "Kanai Nada",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:22:16",
+          "status": "ok",
+          "timeS": 4936,
+          "rank": 10
+        },
+        {
+          "name": "Tezarek Helga",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "1:32:14",
+          "status": "ok",
+          "timeS": 5534,
+          "rank": 12
+        }
+      ]
+    },
+    {
+      "name": "Damen 45-",
+      "declaredStarters": 20,
+      "results": [
+        {
+          "name": "Berger Hedi",
+          "club": "OLC Wienerwald",
+          "timeText": "34:59",
+          "status": "ok",
+          "timeS": 2099,
+          "rank": 1
+        },
+        {
+          "name": "Hlosta Manuela",
+          "club": "Naturfreunde Wien",
+          "timeText": "36:41",
+          "status": "ok",
+          "timeS": 2201,
+          "rank": 2
+        },
+        {
+          "name": "Gassner Katja",
+          "club": "Naturfreunde Wien",
+          "timeText": "37:16",
+          "status": "ok",
+          "timeS": 2236,
+          "rank": 3
+        },
+        {
+          "name": "Mrazova Pavla",
+          "club": "Südböhmen",
+          "timeText": "39:11",
+          "status": "ok",
+          "timeS": 2351,
+          "rank": 4
+        },
+        {
+          "name": "Hnilica Sonja",
+          "club": "OLT Transdanubien",
+          "timeText": "39:58",
+          "status": "ok",
+          "timeS": 2398,
+          "rank": 5
+        },
+        {
+          "name": "Aschacher Angelika",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "41:07",
+          "status": "ok",
+          "timeS": 2467,
+          "rank": 6
+        },
+        {
+          "name": "Prochazkova Miluse",
+          "club": "Südböhmen",
+          "timeText": "42:43",
+          "status": "ok",
+          "timeS": 2563,
+          "rank": 7
+        },
+        {
+          "name": "Wagner Birgit",
+          "club": "Naturfreunde Linz",
+          "timeText": "45:04",
+          "status": "ok",
+          "timeS": 2704,
+          "rank": 8
+        },
+        {
+          "name": "Eschlböck Gudrun",
+          "club": "Naturfreunde Linz",
+          "timeText": "46:53",
+          "status": "ok",
+          "timeS": 2813,
+          "rank": 9
+        },
+        {
+          "name": "Perner Heda",
+          "club": "ASKÖ Henndorf",
+          "timeText": "48:51",
+          "status": "ok",
+          "timeS": 2931,
+          "rank": 10
+        },
+        {
+          "name": "Wlcek Sonja",
+          "club": "WAT",
+          "timeText": "49:26",
+          "status": "ok",
+          "timeS": 2966,
+          "rank": 11
+        },
+        {
+          "name": "Palme Guni",
+          "club": "OLC Wienerwald",
+          "timeText": "50:27",
+          "status": "ok",
+          "timeS": 3027,
+          "rank": 12
+        },
+        {
+          "name": "Micko Roswitha",
+          "club": "OLC Wienerwald",
+          "timeText": "50:54",
+          "status": "ok",
+          "timeS": 3054,
+          "rank": 13
+        },
+        {
+          "name": "Ziegerhofer Petra",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "53:57",
+          "status": "ok",
+          "timeS": 3237,
+          "rank": 14
+        },
+        {
+          "name": "Kirchmeir Elisabeth",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "55:18",
+          "status": "ok",
+          "timeS": 3318,
+          "rank": 15
+        },
+        {
+          "name": "Kofler Maria",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "55:22",
+          "status": "ok",
+          "timeS": 3322,
+          "rank": 16
+        },
+        {
+          "name": "Grünberger Christine",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "1:01:40",
+          "status": "ok",
+          "timeS": 3700,
+          "rank": 17
+        },
+        {
+          "name": "Gröll Michaela",
+          "club": "OLC Graz",
+          "timeText": "1:06:29",
+          "status": "ok",
+          "timeS": 3989,
+          "rank": 18
+        },
+        {
+          "name": "Exler Doris",
+          "club": "OLT Transdanubien",
+          "timeText": "1:08:01",
+          "status": "ok",
+          "timeS": 4081,
+          "rank": 19
+        },
+        {
+          "name": "Bonek Claudia",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:34:09",
+          "status": "ok",
+          "timeS": 5649,
+          "rank": 20
+        }
+      ]
+    },
+    {
+      "name": "Damen 50-",
+      "declaredStarters": 21,
+      "results": [
+        {
+          "name": "Arbter Vera",
+          "club": "Naturfreunde Wien",
+          "timeText": "32:39",
+          "status": "ok",
+          "timeS": 1959,
+          "rank": 1
+        },
+        {
+          "name": "Gittmaier Doris",
+          "club": "HSV Ried",
+          "timeText": "34:56",
+          "status": "ok",
+          "timeS": 2096,
+          "rank": 2
+        },
+        {
+          "name": "Hrstkova Dana",
+          "club": "OK Jihlava",
+          "timeText": "37:26",
+          "status": "ok",
+          "timeS": 2246,
+          "rank": 3
+        },
+        {
+          "name": "Gollmann Birgit",
+          "club": "Naturfreunde Wien",
+          "timeText": "38:06",
+          "status": "ok",
+          "timeS": 2286,
+          "rank": 4
+        },
+        {
+          "name": "Ticha Jana",
+          "club": "Südböhmen",
+          "timeText": "42:05",
+          "status": "ok",
+          "timeS": 2525,
+          "rank": 5
+        },
+        {
+          "name": "Mayrhofer Klaudia",
+          "club": "SKV OLG Deutsch Kaltenbrunn",
+          "timeText": "43:38",
+          "status": "ok",
+          "timeS": 2618,
+          "rank": 6
+        },
+        {
+          "name": "Elstner Margit",
+          "club": "ASKÖ Henndorf",
+          "timeText": "45:47",
+          "status": "ok",
+          "timeS": 2747,
+          "rank": 7
+        },
+        {
+          "name": "Kogler Martina",
+          "club": "OL Kufstein",
+          "timeText": "46:30",
+          "status": "ok",
+          "timeS": 2790,
+          "rank": 8
+        },
+        {
+          "name": "Pfeil Petra",
+          "club": "Naturfreunde Wien",
+          "timeText": "49:08",
+          "status": "ok",
+          "timeS": 2948,
+          "rank": 9
+        },
+        {
+          "name": "Oswald Angelika",
+          "club": "HSV Pinkafeld",
+          "timeText": "50:35",
+          "status": "ok",
+          "timeS": 3035,
+          "rank": 10
+        },
+        {
+          "name": "Schaffer Brigitta",
+          "club": "HSV Ried",
+          "timeText": "50:49",
+          "status": "ok",
+          "timeS": 3049,
+          "rank": 11
+        },
+        {
+          "name": "Troupova Viadena",
+          "club": "Südböhmen",
+          "timeText": "51:40",
+          "status": "ok",
+          "timeS": 3100,
+          "rank": 12
+        },
+        {
+          "name": "Gassner Irene",
+          "club": "Naturfreunde Wien",
+          "timeText": "53:23",
+          "status": "ok",
+          "timeS": 3203,
+          "rank": 13
+        },
+        {
+          "name": "Kovarickova Darja",
+          "club": "Südböhmen",
+          "timeText": "54:24",
+          "status": "ok",
+          "timeS": 3264,
+          "rank": 14
+        },
+        {
+          "name": "Naskau Veronika",
+          "club": "HSV Pinkafeld",
+          "timeText": "56:21",
+          "status": "ok",
+          "timeS": 3381,
+          "rank": 15
+        },
+        {
+          "name": "Maget Brigitte",
+          "club": "SKV OLG Deutsch Kaltenbrunn",
+          "timeText": "1:09:41",
+          "status": "ok",
+          "timeS": 4181,
+          "rank": 16
+        },
+        {
+          "name": "Zöbl Maria",
+          "club": "Naturfreunde Linz",
+          "timeText": "1:12:44",
+          "status": "ok",
+          "timeS": 4364,
+          "rank": 17
+        },
+        {
+          "name": "Kröppl Elke",
+          "club": "HSV Großmittel",
+          "timeText": "1:18:08",
+          "status": "ok",
+          "timeS": 4688,
+          "rank": 18
+        },
+        {
+          "name": "Hilbert Sabine",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:23:33",
+          "status": "ok",
+          "timeS": 5013,
+          "rank": 19
+        },
+        {
+          "name": "Kalliany Susanne",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "1:41:58",
+          "status": "ok",
+          "timeS": 6118,
+          "rank": 20
+        },
+        {
+          "name": "Schreiber Hannelore",
+          "club": "HSV Langenlebarn",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Damen 55-",
+      "declaredStarters": 9,
+      "results": [
+        {
+          "name": "Fesselhofer Traude",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "42:30",
+          "status": "ok",
+          "timeS": 2550,
+          "rank": 1
+        },
+        {
+          "name": "Takacs Elisabeth",
+          "club": "HSV Pinkafeld",
+          "timeText": "43:28",
+          "status": "ok",
+          "timeS": 2608,
+          "rank": 2
+        },
+        {
+          "name": "Lugsteiner Karin",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "45:54",
+          "status": "ok",
+          "timeS": 2754,
+          "rank": 3
+        },
+        {
+          "name": "Ponweiser Christine",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "46:29",
+          "status": "ok",
+          "timeS": 2789,
+          "rank": 4
+        },
+        {
+          "name": "Oswald Luise",
+          "club": "HSV Pinkafeld",
+          "timeText": "50:48",
+          "status": "ok",
+          "timeS": 3048,
+          "rank": 5
+        },
+        {
+          "name": "Ziegerhofer Anneliese",
+          "club": "Naturfreunde Linz",
+          "timeText": "51:49",
+          "status": "ok",
+          "timeS": 3109,
+          "rank": 6
+        },
+        {
+          "name": "Broinger Karin",
+          "club": "OLC Wienerwald",
+          "timeText": "52:29",
+          "status": "ok",
+          "timeS": 3149,
+          "rank": 7
+        },
+        {
+          "name": "Fedorcsák Eszter",
+          "club": "Naturfreunde Wien",
+          "timeText": "55:06",
+          "status": "ok",
+          "timeS": 3306,
+          "rank": 8
+        },
+        {
+          "name": "Haider Anna",
+          "club": "HSV Ried",
+          "timeText": "1:06:32",
+          "status": "ok",
+          "timeS": 3992,
+          "rank": 9
+        }
+      ]
+    },
+    {
+      "name": "Damen 60-",
+      "declaredStarters": 8,
+      "results": [
+        {
+          "name": "Knapp Elisabeth",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "31:27",
+          "status": "ok",
+          "timeS": 1887,
+          "rank": 1
+        },
+        {
+          "name": "Linhart Reingild",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "34:30",
+          "status": "ok",
+          "timeS": 2070,
+          "rank": 2
+        },
+        {
+          "name": "Nilsson Gunnel",
+          "club": "OLC Wienerwald",
+          "timeText": "41:50",
+          "status": "ok",
+          "timeS": 2510,
+          "rank": 3
+        },
+        {
+          "name": "Breitschädel Eva",
+          "club": "ASKÖ Henndorf",
+          "timeText": "51:39",
+          "status": "ok",
+          "timeS": 3099,
+          "rank": 4
+        },
+        {
+          "name": "Schandor Gerti",
+          "club": "OC Fürstenfeld",
+          "timeText": "1:00:01",
+          "status": "ok",
+          "timeS": 3601,
+          "rank": 5
+        },
+        {
+          "name": "Kovarova Milena",
+          "club": "Südböhmen",
+          "timeText": "1:12:27",
+          "status": "ok",
+          "timeS": 4347,
+          "rank": 6
+        },
+        {
+          "name": "Hatzl Sigrid",
+          "club": "OLG Ströck Wien",
+          "timeText": "1:29:10",
+          "status": "ok",
+          "timeS": 5350,
+          "rank": 7
+        },
+        {
+          "name": "Pfeiffer Rose-Marie",
+          "club": "LZ OMAHA",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Damen 65-",
+      "declaredStarters": 4,
+      "results": [
+        {
+          "name": "Wagner Elfi",
+          "club": "Naturfreunde Linz",
+          "timeText": "44:36",
+          "status": "ok",
+          "timeS": 2676,
+          "rank": 1
+        },
+        {
+          "name": "Müller Brigitte",
+          "club": "ASKÖ Henndorf",
+          "timeText": "55:49",
+          "status": "ok",
+          "timeS": 3349,
+          "rank": 2
+        },
+        {
+          "name": "Kienast Johanna",
+          "club": "OLT Transdanubien",
+          "timeText": "1:29:33",
+          "status": "ok",
+          "timeS": 5373,
+          "rank": 3
+        },
+        {
+          "name": "Tobler Barbara",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Damen 70-",
+      "declaredStarters": 3,
+      "results": [
+        {
+          "name": "Venhauer Dietlinde",
+          "club": "OLCU Viktring",
+          "timeText": "52:05",
+          "status": "ok",
+          "timeS": 3125,
+          "rank": 1
+        },
+        {
+          "name": "Bonek Anneliese",
+          "club": "Naturfreunde Wien",
+          "timeText": "52:37",
+          "status": "ok",
+          "timeS": 3157,
+          "rank": 2
+        },
+        {
+          "name": "Dobler Christa",
+          "club": "MTV Hernals",
+          "timeText": "1:04:38",
+          "status": "ok",
+          "timeS": 3878,
+          "rank": 3
+        }
+      ]
+    },
+    {
+      "name": "Herren Hobby",
+      "declaredStarters": 5,
+      "results": [
+        {
+          "name": "Hackl Karl",
+          "club": "ASKÖ Henndorf",
+          "timeText": "41:00",
+          "status": "ok",
+          "timeS": 2460,
+          "rank": 1
+        },
+        {
+          "name": "Zeiner Harald",
+          "club": "OLC Graz",
+          "timeText": "49:42",
+          "status": "ok",
+          "timeS": 2982,
+          "rank": 2
+        },
+        {
+          "name": "Mages Franz",
+          "club": "SSV Hallein-Neualm",
+          "timeText": "51:54",
+          "status": "ok",
+          "timeS": 3114,
+          "rank": 3
+        },
+        {
+          "name": "Löffler Michael",
+          "club": "OLT Transdanubien",
+          "timeText": "55:00",
+          "status": "ok",
+          "timeS": 3300,
+          "rank": 4
+        },
+        {
+          "name": "Jandl Hannes",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:01:34",
+          "status": "ok",
+          "timeS": 3694,
+          "rank": 5
+        }
+      ]
+    },
+    {
+      "name": "Damen Hobby",
+      "declaredStarters": 13,
+      "results": [
+        {
+          "name": "Engl Magdalena",
+          "club": "OLC Wienerwald",
+          "timeText": "49:29",
+          "status": "ok",
+          "timeS": 2969,
+          "rank": 1
+        },
+        {
+          "name": "Walther Katja",
+          "club": "OLT Transdanubien",
+          "timeText": "53:49",
+          "status": "ok",
+          "timeS": 3229,
+          "rank": 2
+        },
+        {
+          "name": "Tiefenböck Riki",
+          "club": "Naturfreunde Wien",
+          "timeText": "57:26",
+          "status": "ok",
+          "timeS": 3446,
+          "rank": 3
+        },
+        {
+          "name": "Marko Carmen",
+          "club": "OLC Graz",
+          "timeText": "1:02:43",
+          "status": "ok",
+          "timeS": 3763,
+          "rank": 4
+        },
+        {
+          "name": "Wolfram-Teischl Sabine",
+          "club": "Naturfreunde Wien",
+          "timeText": "1:11:35",
+          "status": "ok",
+          "timeS": 4295,
+          "rank": 5
+        },
+        {
+          "name": "Emde Sabine",
+          "club": "OLC Wienerwald",
+          "timeText": "1:13:41",
+          "status": "ok",
+          "timeS": 4421,
+          "rank": 6
+        },
+        {
+          "name": "Hochwieser Silke",
+          "club": "OLT Transdanubien",
+          "timeText": "1:28:44",
+          "status": "ok",
+          "timeS": 5324,
+          "rank": 7
+        },
+        {
+          "name": "Zeiner Elisabeth",
+          "club": "OLC Graz",
+          "timeText": "1:37:44",
+          "status": "ok",
+          "timeS": 5864,
+          "rank": 8
+        },
+        {
+          "name": "Kohlabacher Vera",
+          "club": "Naturfreunde Villach - Oriente",
+          "timeText": "1:38:43",
+          "status": "ok",
+          "timeS": 5923,
+          "rank": 9
+        },
+        {
+          "name": "Gotthardt Sigrun",
+          "club": "HSV Spittal / Drau",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Kellner Claudia",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "N Ang",
+          "status": "dns"
+        },
+        {
+          "name": "Gusenbauer Petra",
+          "club": "Naturfreunde Linz",
+          "timeText": "N Ang",
+          "status": "dns"
+        },
+        {
+          "name": "Almagambetov Mirtill",
+          "club": "OLT Transdanubien",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Offen Lang",
+      "declaredStarters": 9,
+      "results": [
+        {
+          "name": "Tökes Csongor",
+          "club": "Naturfreunde Linz",
+          "timeText": "1:15:21",
+          "status": "ok",
+          "timeS": 4521,
+          "rank": 1
+        },
+        {
+          "name": "Brenner Heimo",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "1:19:55",
+          "status": "ok",
+          "timeS": 4795,
+          "rank": 2
+        },
+        {
+          "name": "Kalliany Rainer",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "1:38:03",
+          "status": "ok",
+          "timeS": 5883,
+          "rank": 3
+        },
+        {
+          "name": "Erber Robert",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "1:41:39",
+          "status": "ok",
+          "timeS": 6099,
+          "rank": 4
+        },
+        {
+          "name": "Krapfenbauer Martin",
+          "club": "Cosmopiloten Zwettl",
+          "timeText": "1:57:32",
+          "status": "ok",
+          "timeS": 7052,
+          "rank": 5
+        },
+        {
+          "name": "Gusenbauer Nicole",
+          "club": "Naturfreunde Linz",
+          "timeText": "2:08:30",
+          "status": "ok",
+          "timeS": 7710,
+          "rank": 6
+        },
+        {
+          "name": "Gössl Thomas",
+          "club": "Cosmopiloten Zwettl",
+          "timeText": "2:10:15",
+          "status": "ok",
+          "timeS": 7815,
+          "rank": 7
+        },
+        {
+          "name": "Kurz Ernst",
+          "club": "vereinslos",
+          "timeText": "3:23:08",
+          "status": "ok",
+          "timeS": 12188,
+          "rank": 8
+        },
+        {
+          "name": "Schüller Wolfgang",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "Fehlstb",
+          "status": "mp"
+        }
+      ]
+    },
+    {
+      "name": "Offen Kurz",
+      "declaredStarters": 19,
+      "results": [
+        {
+          "name": "Baumann Konrad",
+          "club": "OLC Graz",
+          "timeText": "58:21",
+          "status": "ok",
+          "timeS": 3501,
+          "rank": 1
+        },
+        {
+          "name": "Mörth Markus",
+          "club": "vereinslos",
+          "timeText": "58:42",
+          "status": "ok",
+          "timeS": 3522,
+          "rank": 2
+        },
+        {
+          "name": "Stromberger Lena",
+          "club": "OLT Transdanubien",
+          "timeText": "1:01:17",
+          "status": "ok",
+          "timeS": 3677,
+          "rank": 3
+        },
+        {
+          "name": "Wolf Christian",
+          "club": "vereinslos",
+          "timeText": "1:02:28",
+          "status": "ok",
+          "timeS": 3748,
+          "rank": 4
+        },
+        {
+          "name": "Huemer Valentin",
+          "club": "WAT",
+          "timeText": "1:03:42",
+          "status": "ok",
+          "timeS": 3822,
+          "rank": 5
+        },
+        {
+          "name": "Slateff Andreas",
+          "club": "USC Theresianum",
+          "timeText": "1:04:35",
+          "status": "ok",
+          "timeS": 3875,
+          "rank": 6
+        },
+        {
+          "name": "Kasper Birgit",
+          "club": "LZ OMAHA",
+          "timeText": "1:13:20",
+          "status": "ok",
+          "timeS": 4400,
+          "rank": 7
+        },
+        {
+          "name": "Egger Thomas",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "1:15:07",
+          "status": "ok",
+          "timeS": 4507,
+          "rank": 8
+        },
+        {
+          "name": "Kalcher Bernadette",
+          "club": "HSV Pinkafeld",
+          "timeText": "1:15:50",
+          "status": "ok",
+          "timeS": 4550,
+          "rank": 9
+        },
+        {
+          "name": "Nesitka Doris",
+          "club": "vereinslos",
+          "timeText": "1:22:29",
+          "status": "ok",
+          "timeS": 4949,
+          "rank": 10
+        },
+        {
+          "name": "Altmann Robert",
+          "club": "vereinslos",
+          "timeText": "1:28:08",
+          "status": "ok",
+          "timeS": 5288,
+          "rank": 11
+        },
+        {
+          "name": "Kundörfer Rainer",
+          "club": "SU Schöckl Orienteering",
+          "timeText": "1:31:49",
+          "status": "ok",
+          "timeS": 5509,
+          "rank": 12
+        },
+        {
+          "name": "Krischan Rosemarie",
+          "club": "Naturfreunde Linz",
+          "timeText": "1:32:20",
+          "status": "ok",
+          "timeS": 5540,
+          "rank": 13
+        },
+        {
+          "name": "Lechthaler Christina",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "1:49:13",
+          "status": "ok",
+          "timeS": 6553,
+          "rank": 14
+        },
+        {
+          "name": "Skern Tim",
+          "club": "Naturfreunde Wien",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Springer Markus",
+          "club": "vereinslos",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Mack Judith",
+          "club": "Vereinslos",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Strasser Bernhard",
+          "club": "ASKÖ Henndorf",
+          "timeText": "N Ang",
+          "status": "dns"
+        },
+        {
+          "name": "Lechthaler Andreas",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Neulinge",
+      "declaredStarters": 10,
+      "results": [
+        {
+          "name": "Lipp Matthias",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "24:40",
+          "status": "ok",
+          "timeS": 1480,
+          "rank": 1
+        },
+        {
+          "name": "Suingiu David",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "25:56",
+          "status": "ok",
+          "timeS": 1556,
+          "rank": 2
+        },
+        {
+          "name": "Eichhorn Petra",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "46:05",
+          "status": "ok",
+          "timeS": 2765,
+          "rank": 3
+        },
+        {
+          "name": "Dialer Dorian",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "47:47",
+          "status": "ok",
+          "timeS": 2867,
+          "rank": 4
+        },
+        {
+          "name": "Lechthaler Veronika",
+          "club": "Orienteering Klosterneuburg",
+          "timeText": "51:56",
+          "status": "ok",
+          "timeS": 3116,
+          "rank": 5
+        },
+        {
+          "name": "Schwab Silvia",
+          "club": "Naturfreunde Pasching",
+          "timeText": "1:00:46",
+          "status": "ok",
+          "timeS": 3646,
+          "rank": 6
+        },
+        {
+          "name": "Azmann Emanuel",
+          "club": "OLC Graz",
+          "timeText": "1:01:22",
+          "status": "ok",
+          "timeS": 3682,
+          "rank": 7
+        },
+        {
+          "name": "Christ Alfred",
+          "club": "HSV OL Wiener Neustadt",
+          "timeText": "1:28:54",
+          "status": "ok",
+          "timeS": 5334,
+          "rank": 8
+        },
+        {
+          "name": "Jäger Ferdinand",
+          "club": "GO Harzberg",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Egger Lilli",
+          "club": "Laufklub Kompass Innsbruck",
+          "timeText": "Fehlstb",
+          "status": "mp"
+        }
+      ]
+    }
+  ]
+}

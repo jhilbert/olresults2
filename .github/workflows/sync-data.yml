@@ -64,6 +64,9 @@ jobs:
       - name: Refresh private ANNE identity index when stale
         run: python3 ingest/anne_user_index.py --max-age-hours 168
 
+      - name: Summarize normalized parser changes
+        run: python3 build/normalized_diff.py --output "$RUNNER_TEMP/normalized-diff.txt"
+
       - name: Save private ANNE identity index
         run: python3 ingest/identity_state.py push
 
@@ -85,6 +88,13 @@ jobs:
       - name: Build final database with eligibility decisions
         run: python3 build/build_db.py
 
+      - name: Enforce parser quality gate
+        run: |
+          python3 build/quality_report.py \
+            --format json \
+            --output "$RUNNER_TEMP/quality-report.json" \
+            --fail-on-blockers
+
       - name: Validate final database and update health baseline
         run: |
           python3 build/validate_db.py \
@@ -98,7 +108,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sync-health-${{ github.run_id }}
-          path: ${{ runner.temp }}/sync-health.json
+          path: |
+            ${{ runner.temp }}/sync-health.json
+            ${{ runner.temp }}/quality-report.json
+            ${{ runner.temp }}/normalized-diff.txt
           if-no-files-found: error
           retention-days: 30
 

@@ -1,0 +1,655 @@
+{
+  "schemaVersion": 1,
+  "eventId": 3781,
+  "attachmentIndex": 0,
+  "sourceSha256": "2be9b7f2b36304c235c0c597d9b4c8a1b931a7d8fe9388eabcd8b0d6dc599406",
+  "headText": "5.KOLV Cup Ergebnis",
+  "verification": {
+    "method": "macOS Vision OCR plus rendered-page structural review",
+    "pageCount": 3,
+    "declaredRows": 68,
+    "transcribedRows": 68
+  },
+  "categories": [
+    {
+      "name": "D-12",
+      "declaredStarters": 3,
+      "results": [
+        {
+          "name": "Baumer Maria",
+          "club": "HSV OL Villach",
+          "timeText": "20:18",
+          "status": "ok",
+          "timeS": 1218,
+          "rank": 1
+        },
+        {
+          "name": "Zebedin Johanna",
+          "club": "Naturfreunde Villach - Oriente",
+          "timeText": "27:15",
+          "status": "ok",
+          "timeS": 1635,
+          "rank": 2
+        },
+        {
+          "name": "Venhauer Alvina",
+          "club": "OLCU Viktring",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "D-14",
+      "declaredStarters": 1,
+      "results": [
+        {
+          "name": "Zauchner Florentina",
+          "club": "HSV Spittal / Drau",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "D-16",
+      "declaredStarters": 2,
+      "results": [
+        {
+          "name": "Venhauer Laura",
+          "club": "OLCU Viktring",
+          "timeText": "30:14",
+          "status": "ok",
+          "timeS": 1814,
+          "rank": 1
+        },
+        {
+          "name": "Winkler Annika",
+          "club": "SU Klagenfurt",
+          "timeText": "40:46",
+          "status": "ok",
+          "timeS": 2446,
+          "rank": 2
+        }
+      ]
+    },
+    {
+      "name": "D-18",
+      "declaredStarters": 2,
+      "results": [
+        {
+          "name": "Unegg Marlene",
+          "club": "SU Klagenfurt",
+          "timeText": "1:01:45",
+          "status": "ok",
+          "timeS": 3705,
+          "rank": 1
+        },
+        {
+          "name": "Thoman Johanna",
+          "club": "SU Klagenfurt",
+          "timeText": "1:44:10",
+          "status": "ok",
+          "timeS": 6250,
+          "rank": 2
+        }
+      ]
+    },
+    {
+      "name": "D19-",
+      "declaredStarters": 4,
+      "results": [
+        {
+          "name": "Winkler Barbara",
+          "club": "SU Klagenfurt",
+          "timeText": "58:47",
+          "status": "ok",
+          "timeS": 3527,
+          "rank": 1
+        },
+        {
+          "name": "Striednig Nina",
+          "club": "ASKÖ Ebental",
+          "timeText": "1:08:43",
+          "status": "ok",
+          "timeS": 4123,
+          "rank": 2
+        },
+        {
+          "name": "Matitz Laura",
+          "club": "SU Klagenfurt",
+          "timeText": "1:08:44",
+          "status": "ok",
+          "timeS": 4124,
+          "rank": 3
+        },
+        {
+          "name": "Habenicht Regina",
+          "club": "kein Verein",
+          "timeText": "Fehlst",
+          "status": "mp"
+        }
+      ]
+    },
+    {
+      "name": "D35-",
+      "declaredStarters": 2,
+      "results": [
+        {
+          "name": "Striednig Ulrike",
+          "club": "ASKÖ Ebental",
+          "timeText": "1:00:23",
+          "status": "ok",
+          "timeS": 3623,
+          "rank": 1
+        },
+        {
+          "name": "Kelemen Bernadett",
+          "club": "HSV OL Villach",
+          "timeText": "1:18:32",
+          "status": "ok",
+          "timeS": 4712,
+          "rank": 2
+        }
+      ]
+    },
+    {
+      "name": "D45-",
+      "declaredStarters": 4,
+      "results": [
+        {
+          "name": "Steinwender Irmgard",
+          "club": "SU Klagenfurt",
+          "timeText": "46:51",
+          "status": "ok",
+          "timeS": 2811,
+          "rank": 1
+        },
+        {
+          "name": "Pegan Bernadett",
+          "club": "Naturfreunde Villach - Oriente",
+          "timeText": "59:01",
+          "status": "ok",
+          "timeS": 3541,
+          "rank": 2
+        },
+        {
+          "name": "Unegg Christine",
+          "club": "SU Klagenfurt",
+          "timeText": "1:13:35",
+          "status": "ok",
+          "timeS": 4415,
+          "rank": 3
+        },
+        {
+          "name": "Thoman Kerstin",
+          "club": "SU Klagenfurt",
+          "timeText": "1:45:33",
+          "status": "ok",
+          "timeS": 6333,
+          "rank": 4
+        }
+      ]
+    },
+    {
+      "name": "D55-",
+      "declaredStarters": 4,
+      "results": [
+        {
+          "name": "Scherr Hildegard",
+          "club": "HSV Spittal / Drau",
+          "timeText": "38:32",
+          "status": "ok",
+          "timeS": 2312,
+          "rank": 1
+        },
+        {
+          "name": "Irk Karin",
+          "club": "Naturfreunde Villach - Oriente",
+          "timeText": "41:45",
+          "status": "ok",
+          "timeS": 2505,
+          "rank": 2
+        },
+        {
+          "name": "Almas Eszter",
+          "club": "HSV OL Villach",
+          "timeText": "44:27",
+          "status": "ok",
+          "timeS": 2667,
+          "rank": 3
+        },
+        {
+          "name": "Lex Barbara",
+          "club": "OLCU Viktring",
+          "timeText": "52:30",
+          "status": "ok",
+          "timeS": 3150,
+          "rank": 4
+        }
+      ]
+    },
+    {
+      "name": "D65-",
+      "declaredStarters": 2,
+      "results": [
+        {
+          "name": "Prommer Martha",
+          "club": "Naturfreunde St.Veit",
+          "timeText": "51:54",
+          "status": "ok",
+          "timeS": 3114,
+          "rank": 1
+        },
+        {
+          "name": "Venhauer Dieti",
+          "club": "OLCU Viktring",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "HobbyD",
+      "declaredStarters": 6,
+      "results": [
+        {
+          "name": "Primig Helga",
+          "club": "HSV OL Villach",
+          "timeText": "1:02:17",
+          "status": "ok",
+          "timeS": 3737,
+          "rank": 1
+        },
+        {
+          "name": "Matti Kate",
+          "club": "HSV OL Villach",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Kofler Corinna",
+          "club": "HSV OL Villach",
+          "timeText": "Fehlst",
+          "status": "mp"
+        },
+        {
+          "name": "Gotthardt Sigrun",
+          "club": "HSV Spittal / Drau",
+          "timeText": "Aufg",
+          "status": "dnf"
+        },
+        {
+          "name": "Kolmanics Astrid",
+          "club": "HSV OL Villach",
+          "timeText": "Aufg",
+          "status": "dnf"
+        },
+        {
+          "name": "Venhauer-Rass Andrea",
+          "club": "OLCU Viktring",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Neulinge",
+      "declaredStarters": 2,
+      "results": [
+        {
+          "name": "Hierzegger Herwig",
+          "club": "WATV",
+          "timeText": "31:14",
+          "status": "ok",
+          "timeS": 1874,
+          "rank": 1
+        },
+        {
+          "name": "Hierzegger Ute",
+          "club": "WATV",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "Family",
+      "declaredStarters": 1,
+      "results": [
+        {
+          "name": "Matti Franziska",
+          "club": "HSV OL Villach",
+          "timeText": "13:35",
+          "status": "ok",
+          "timeS": 815,
+          "rank": 1
+        }
+      ]
+    },
+    {
+      "name": "H-10",
+      "declaredStarters": 4,
+      "results": [
+        {
+          "name": "Kofler Jonas",
+          "club": "HSV OL Villach",
+          "timeText": "0:00",
+          "status": "ok",
+          "timeS": 0,
+          "rank": 1
+        },
+        {
+          "name": "Matti Jonathan",
+          "club": "HSV OL Villach",
+          "timeText": "13:38",
+          "status": "ok",
+          "timeS": 818,
+          "rank": 2
+        },
+        {
+          "name": "Mair Leo",
+          "club": "kein Verein",
+          "timeText": "16:22",
+          "status": "ok",
+          "timeS": 982,
+          "rank": 3
+        },
+        {
+          "name": "Baumer Niklas",
+          "club": "HSV OL Villach",
+          "timeText": "21:34",
+          "status": "ok",
+          "timeS": 1294,
+          "rank": 4
+        }
+      ]
+    },
+    {
+      "name": "H-12",
+      "declaredStarters": 4,
+      "results": [
+        {
+          "name": "Michenthaler Samuel",
+          "club": "HSV OL Villach",
+          "timeText": "16:31",
+          "status": "ok",
+          "timeS": 991,
+          "rank": 1
+        },
+        {
+          "name": "Chudoba Björn",
+          "club": "OLCU Viktring",
+          "timeText": "19:46",
+          "status": "ok",
+          "timeS": 1186,
+          "rank": 2
+        },
+        {
+          "name": "Kofler Elias",
+          "club": "HSV OL Villach",
+          "timeText": "20:45",
+          "status": "ok",
+          "timeS": 1245,
+          "rank": 3
+        },
+        {
+          "name": "Kolmanics Karl",
+          "club": "HSV OL Villach",
+          "timeText": "28:37",
+          "status": "ok",
+          "timeS": 1717,
+          "rank": 4
+        }
+      ]
+    },
+    {
+      "name": "H19-",
+      "declaredStarters": 5,
+      "results": [
+        {
+          "name": "Venhauer Bernhard",
+          "club": "OLCU Viktring",
+          "timeText": "46:17",
+          "status": "ok",
+          "timeS": 2777,
+          "rank": 1
+        },
+        {
+          "name": "Steinwender Jakob",
+          "club": "SU Klagenfurt",
+          "timeText": "47:55",
+          "status": "ok",
+          "timeS": 2875,
+          "rank": 2
+        },
+        {
+          "name": "Steinwender Maximilian",
+          "club": "SU Klagenfurt",
+          "timeText": "50:10",
+          "status": "ok",
+          "timeS": 3010,
+          "rank": 3
+        },
+        {
+          "name": "Fürnkranz Martin",
+          "club": "Naturfreunde Linz",
+          "timeText": "1:02:48",
+          "status": "ok",
+          "timeS": 3768,
+          "rank": 4
+        },
+        {
+          "name": "Striednig Thomas",
+          "club": "ASKÖ Ebental",
+          "timeText": "1:18:57",
+          "status": "ok",
+          "timeS": 4737,
+          "rank": 5
+        }
+      ]
+    },
+    {
+      "name": "H35-",
+      "declaredStarters": 2,
+      "results": [
+        {
+          "name": "Wenzel Hannes",
+          "club": "OLCU Viktring",
+          "timeText": "50:37",
+          "status": "ok",
+          "timeS": 3037,
+          "rank": 1
+        },
+        {
+          "name": "levstafiev Oleksandr",
+          "club": "kein Verein",
+          "timeText": "51:32",
+          "status": "ok",
+          "timeS": 3092,
+          "rank": 2
+        }
+      ]
+    },
+    {
+      "name": "H45-",
+      "declaredStarters": 8,
+      "results": [
+        {
+          "name": "Unegg Franz",
+          "club": "SU Klagenfurt",
+          "timeText": "52:12",
+          "status": "ok",
+          "timeS": 3132,
+          "rank": 1
+        },
+        {
+          "name": "Scherr Bruno",
+          "club": "HSV Spittal / Drau",
+          "timeText": "54:17",
+          "status": "ok",
+          "timeS": 3257,
+          "rank": 2
+        },
+        {
+          "name": "Zirnig Alexander",
+          "club": "HSV OL Villach",
+          "timeText": "58:11",
+          "status": "ok",
+          "timeS": 3491,
+          "rank": 3
+        },
+        {
+          "name": "Polster Josef",
+          "club": "HSV Spittal / Drau",
+          "timeText": "1:02:52",
+          "status": "ok",
+          "timeS": 3772,
+          "rank": 4
+        },
+        {
+          "name": "Steinwender Michael",
+          "club": "SU Klagenfurt",
+          "timeText": "1:14:07",
+          "status": "ok",
+          "timeS": 4447,
+          "rank": 5
+        },
+        {
+          "name": "Thoman Markus",
+          "club": "SU Klagenfurt",
+          "timeText": "1:17:36",
+          "status": "ok",
+          "timeS": 4656,
+          "rank": 6
+        },
+        {
+          "name": "Kühr Gottfried",
+          "club": "Naturfreunde Villach - Oriente",
+          "timeText": "1:29:06",
+          "status": "ok",
+          "timeS": 5346,
+          "rank": 7
+        },
+        {
+          "name": "Gusel Franz",
+          "club": "HSV Spittal / Drau",
+          "timeText": "N Ang",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "name": "H55-",
+      "declaredStarters": 6,
+      "results": [
+        {
+          "name": "Mikula Dieter",
+          "club": "SU Klagenfurt",
+          "timeText": "39:46",
+          "status": "ok",
+          "timeS": 2386,
+          "rank": 1
+        },
+        {
+          "name": "Chudoba Gregor",
+          "club": "OLCU Viktring",
+          "timeText": "40:59",
+          "status": "ok",
+          "timeS": 2459,
+          "rank": 2
+        },
+        {
+          "name": "Herzog Christian",
+          "club": "OLCU Viktring",
+          "timeText": "49:39",
+          "status": "ok",
+          "timeS": 2979,
+          "rank": 3
+        },
+        {
+          "name": "Scheiber Raimund",
+          "club": "HSV Spittal / Drau",
+          "timeText": "51:21",
+          "status": "ok",
+          "timeS": 3081,
+          "rank": 4
+        },
+        {
+          "name": "Gotthardt Christian",
+          "club": "HSV Spittal / Drau",
+          "timeText": "53:43",
+          "status": "ok",
+          "timeS": 3223,
+          "rank": 5
+        },
+        {
+          "name": "Tanner Helmut",
+          "club": "OLCU Viktring",
+          "timeText": "1:11:30",
+          "status": "ok",
+          "timeS": 4290,
+          "rank": 6
+        }
+      ]
+    },
+    {
+      "name": "H65-",
+      "declaredStarters": 4,
+      "results": [
+        {
+          "name": "Germ Wolfgang",
+          "club": "NF Kühnsdorf",
+          "timeText": "32:35",
+          "status": "ok",
+          "timeS": 1955,
+          "rank": 1
+        },
+        {
+          "name": "Dobnik Günther",
+          "club": "OLCU Viktring",
+          "timeText": "40:27",
+          "status": "ok",
+          "timeS": 2427,
+          "rank": 2
+        },
+        {
+          "name": "Prommer Günther",
+          "club": "Naturfreunde St.Veit",
+          "timeText": "40:43",
+          "status": "ok",
+          "timeS": 2443,
+          "rank": 3
+        },
+        {
+          "name": "Venhauer Otto",
+          "club": "OLCU Viktring",
+          "timeText": "47:02",
+          "status": "ok",
+          "timeS": 2822,
+          "rank": 4
+        }
+      ]
+    },
+    {
+      "name": "HobbyH",
+      "declaredStarters": 2,
+      "results": [
+        {
+          "name": "Simonitsch Dietmar",
+          "club": "HSV OL Villach",
+          "timeText": "1:12:30",
+          "status": "ok",
+          "timeS": 4350,
+          "rank": 1
+        },
+        {
+          "name": "Lohnauer Rudolf",
+          "club": "HSV OL Villach",
+          "timeText": "Fehlst",
+          "status": "mp"
+        }
+      ]
+    }
+  ]
+}

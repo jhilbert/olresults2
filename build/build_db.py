@@ -3143,6 +3143,17 @@ JUNK_DOC_FILENAME_RE = re.compile(r"-split\.|results-after-e\d+", re.I)
 COURSE_VIEW_FILENAME_RE = re.compile(
     r"(?:nach[\s._-]*bahnen|by[\s._-]*courses?)", re.I)
 
+# ANNE describes these historic umbrella events as single-stage even though
+# their independent result documents prove multiple competition dates. Keep
+# the exception explicit: inferred ``docDate`` is often only a publication
+# timestamp, so automatically treating every date disagreement as a stage
+# would duplicate provisional/final and category/course views.
+#
+# 4089, Schul Olympics: full BM result lists dated 24 and 25 May 2023, each
+# with its own complete rankings. Without this override the shared stage-level
+# dedup retained only the first day and silently discarded the second.
+LEGACY_MULTIDAY_EVENT_OVERRIDES = {4089}
+
 
 def map_docs_to_anne_stages(docs):
     """Attach each legacy result file to a specific ANNE stage. ANNE knows the
@@ -3546,7 +3557,10 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
     # plain file's stage as intended, duplicating every result on that date
     multiday_events = {
         eid for eid, e in events.items()
-        if (e.get("stageCount") or 0) >= 2 or (e.get("dateTo") or "")[:10] not in ("", (e.get("dateFrom") or "")[:10])
+        if ((e.get("stageCount") or 0) >= 2
+            or (e.get("dateTo") or "")[:10]
+               not in ("", (e.get("dateFrom") or "")[:10])
+            or eid in LEGACY_MULTIDAY_EVENT_OVERRIDES)
     }
     dates_by_event = defaultdict(set)
     for d in docs:
@@ -3851,9 +3865,13 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                     r.get("outOfCompetition") or
                     bool(OOC_NAME_PREFIX_RE.match(observed_name)))
                 if metadata:
-                    if kind == "team":
+                    if (kind == "team"
+                            and not metadata.get("individual_status")):
                         # A Mannschaft runs together with one SI card: there
                         # is no individual leg classification to invent.
+                        # Scored school teams are also represented as
+                        # ``team`` but can carry a real per-member MP; retain
+                        # that explicit source status.
                         metadata["individual_status"] = None
                     else:
                         individual_raw = metadata.get("individual_status")
@@ -3992,14 +4010,19 @@ def normalize_team_results(cur):
             if match:
                 leg_number = int(match.group(1))
                 leg_count = leg_count or (int(match.group(2)) if match.group(2) else None)
-        individual_status = (individual_status or status) if kind == "relay" else None
+        if kind == "relay":
+            individual_status = individual_status or status
+        # A scored team can retain an explicit per-member status even though
+        # the best-N team result itself remains valid.  A classic one-chip
+        # Mannschaft has no such value and therefore stays NULL.
         scope = list_id or f"{stage_id}:{category}"
         identity = (f"n:{team_number}" if team_number else
                     f"t:{(team_name or '').strip().casefold()}" if team_name else
                     f"legacy:{rank}:{(club or '').strip().casefold()}")
         key = (scope, kind, identity)
         item = {
-            "id": rid, "status": status, "team_status": team_status,
+            "id": rid, "kind": kind, "status": status,
+            "team_status": team_status,
             "individual_status": individual_status, "team_name": team_name,
             "leg_number": leg_number, "leg_count": leg_count,
         }
@@ -4010,7 +4033,8 @@ def normalize_team_results(cur):
         statuses = [m["individual_status"] for m in members if m["individual_status"]]
         declared = aggregate_team_status(
             None, [m["team_status"] or m["status"] for m in members])
-        overall = aggregate_team_status(declared, statuses)
+        overall = (declared if members[0]["kind"] == "team" else
+                   aggregate_team_status(declared, statuses))
         inferred_leg_count = max(
             [m["leg_count"] or 0 for m in members] +
             [m["leg_number"] or 0 for m in members]) or None
@@ -4065,6 +4089,20 @@ KNOWN_SOURCE_VALUE_CORRUPTIONS = {
     (5204, "ht 95"),
 }
 
+# Confirmed defects in the published source itself, not parser output. The
+# PDFs visibly print the same inverted numeric ranks which the parser stores.
+KNOWN_SOURCE_RANK_ANOMALIES = {
+    (1734, "B"),
+    (1941, "Bahn B"),
+    (2839, "HDS"),
+}
+
+# ANNE's migrated payload for this event supplies the literal category
+# ``empty`` for every result and publishes no attachment from which the real
+# classes could be recovered. Keep the rows visible, but report a source
+# limitation instead of sending it to the parser-repair queue.
+KNOWN_ANNE_CATEGORY_OMISSIONS = {3438}
+
 
 def source_value_is_unreadable(event_id, value):
     value = (value or "").strip()
@@ -4109,8 +4147,11 @@ def populate_quality_model(cur):
                 f"Kurzklasse {category!r}: Family-Kategorie oder reguläre Klasse bestätigen.")
         if (persisted_entries > 0
                 and (category or "").strip().casefold() in ("", "empty", "unknown")):
+            missing_category_code = (
+                "source_category_missing" if event_id in KNOWN_ANNE_CATEGORY_OMISSIONS
+                else "anne_missing_category")
             add_audit_issue(
-                cur, list_id, "anne_missing_category", "warning",
+                cur, list_id, missing_category_code, "warning",
                 "Die Quelle enthält Ergebniszeilen, aber keine verwertbare "
                 "Klassenbezeichnung; eine Kategoriezuordnung ist nicht ableitbar.")
         if declared is not None and declared != source_entries:
@@ -4161,8 +4202,13 @@ def populate_quality_model(cur):
         # because the ranking audit only looked for a *partial* rank set.
         # Keep family/team semantics out of this signal: their ranking is
         # represented by their competitor unit and is handled elsewhere.
-        ranking_not_applicable = bool(re.search(
-            r"(?i)\b(?:annulliert|annulled|cancelled|canceled)\b", category_full or ""))
+        ranking_not_applicable = (
+            ranking_basis == "other"
+            or bool(re.search(
+                r"(?i)\b(?:annulliert|annulled|cancelled|canceled)\b",
+                category_full or "",
+            ))
+        )
         course_only_list = bool(re.match(
             r"(?i)^(?:bahn|course)\s+\d+\b", category.strip()))
         if (source_type != "anne-api" and (timed_rows or 0) >= 3
@@ -4233,6 +4279,7 @@ def populate_quality_model(cur):
             for result_id, observed_time in cur.execute(
                     """SELECT id, observed_time FROM result
                        WHERE result_list_id = ? AND status = 'ok'
+                         AND COALESCE(individual_status, 'ok') = 'ok'
                          AND time_s IS NULL
                          AND TRIM(COALESCE(observed_time, '')) != ''""",
                     (list_id,)).fetchall():
@@ -4246,7 +4293,7 @@ def populate_quality_model(cur):
                     continue
                 if (OBSERVED_TIME_RE.fullmatch(value)
                         or re.search(
-                            r"(?i)(?:(?:sehr\s+)?gut|ok|teilg\.?|"
+                            r"(?i)(?:(?:sehr\s+)?gut|super\s+gelaufen!?|ok|teilg\.?|"
                             r"(?:erfolgreich\s+)?teilgenommen)\s*$", value)):
                     continue
                 add_audit_issue(
@@ -4290,7 +4337,7 @@ def populate_quality_model(cur):
             """SELECT rank, MIN(time_s) FROM result
                WHERE result_list_id = ? AND status = 'ok' AND rank IS NOT NULL
                  AND time_s IS NOT NULL AND out_of_competition = 0
-                 AND result_kind NOT IN ('relay', 'family')
+                 AND result_kind NOT IN ('relay', 'team', 'family')
                GROUP BY rank ORDER BY rank""", (list_id,)).fetchall()
         # Score/points races are intentionally ranked by points, often with a
         # time-limit penalty.  A faster elapsed time can therefore have a
@@ -4305,8 +4352,11 @@ def populate_quality_model(cur):
             if best_so_far is False:
                 break
             if best_so_far is not None and time_s < best_so_far:
+                issue_code = ("source_rank_anomaly"
+                              if (event_id, category) in KNOWN_SOURCE_RANK_ANOMALIES
+                              else "rank_time_inversion")
                 add_audit_issue(
-                    cur, list_id, "rank_time_inversion", "warning",
+                    cur, list_id, issue_code, "warning",
                     f"Rang {rank} ist schneller als ein besser gereihter Eintrag.")
                 break
             best_so_far = time_s if best_so_far is None else max(best_so_far, time_s)

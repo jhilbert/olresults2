@@ -1,0 +1,22 @@
+{
+  "ambiguous_family_category": {"rule": "FAMILY-001", "domain": "identity", "owner": "review", "action": "Klasse in der Originalquelle als Family oder reguläre Klasse bestätigen."},
+  "anne_minute_precision": {"rule": "PARSE-004", "domain": "source", "owner": "source", "action": "Wenn vorhanden, eine genauere offizielle Attachment-Quelle bevorzugen."},
+  "anne_missing_category": {"rule": "PARSE-003", "domain": "parsing", "owner": "parser", "action": "Kategorie aus Quelle oder Attachment rekonstruieren."},
+  "entry_count_mismatch": {"rule": "PARSE-001", "domain": "completeness", "owner": "parser", "action": "Quell-Einheiten gegen sichtbare Ergebniszeilen prüfen."},
+  "missing_ranking": {"rule": "RANK-003", "domain": "ranking", "owner": "parser", "action": "Rangspalte und Kategorieart in der Originalquelle prüfen."},
+  "partial_ranking_coverage": {"rule": "RANK-001", "domain": "ranking", "owner": "parser", "action": "Fehlende AK/OOC-Markierung oder verschobene Rangspalte prüfen."},
+  "provisional_championship_identity": {"rule": "IDENT-003", "domain": "identity", "owner": "review", "action": "Personenzuordnung bestätigen oder Identitätskonflikt auflösen."},
+  "rank_time_inversion": {"rule": "RANK-002", "domain": "ranking", "owner": "parser", "action": "Prüfen, ob Zeitwertung vorliegt und Rang beziehungsweise Zeit korrekt gelesen wurde."},
+  "regional_double_assignment": {"rule": "CHAMP-REG-001", "domain": "championship", "owner": "rules", "action": "Quellleistung genau einer Landeswertung zuordnen."},
+  "regional_membership_unresolved": {"rule": "CHAMP-REG-003", "domain": "championship", "owner": "review", "action": "Historische Vereins- oder Quellkennung ergänzen; keine Medaille raten."},
+  "result_value_unparsed": {"rule": "PARSE-004", "domain": "parsing", "owner": "parser", "action": "Quellwert als Zeit, Status oder ausdrücklich unlesbar klassifizieren."},
+  "source_count_anomaly": {"rule": "PARSE-005", "domain": "source", "owner": "source", "action": "Widerspruch im Quellkopf dokumentieren; vollständige Ergebniszeilen nicht löschen."},
+  "source_category_missing": {"rule": "PARSE-002", "domain": "source", "owner": "source", "action": "Quelle enthält keine rekonstruierbare Kategorie; bessere offizielle Quelle suchen, Daten nicht erraten."},
+  "source_declared_omission": {"rule": "PARSE-005", "domain": "source", "owner": "source", "action": "Prüfen, ob gemeldete Nichtstarter in der Quelle tatsächlich nicht angeführt sind."},
+  "source_rank_anomaly": {"rule": "RANK-002", "domain": "source", "owner": "source", "action": "Rang und Zeit wurden quellgetreu übernommen; sichtbaren Widerspruch der Originalquelle dokumentieren."},
+  "source_value_missing": {"rule": "PARSE-002", "domain": "source", "owner": "source", "action": "Leeren Quellwert bestätigen; keinen Status ohne Evidenz ergänzen."},
+  "source_value_unreadable": {"rule": "STATUS-003", "domain": "source", "owner": "source", "action": "Als Quellenlimit dokumentieren oder bessere Quelle suchen."},
+  "stale_verification": {"rule": "VERIFY-001", "domain": "verification", "owner": "review", "action": "Nur bei weiterhin vorhandenem Sachbefund erneut prüfen."},
+  "time_text_unparsed": {"rule": "PARSE-004", "domain": "parsing", "owner": "parser", "action": "Zeitparser korrigieren; sichtbare Zeit muss in Sekunden überführt werden."},
+  "unknown_status": {"rule": "STATUS-001", "domain": "parsing", "owner": "parser", "action": "Quellstatus normalisieren oder als nicht rekonstruierbar belegen."}
+}

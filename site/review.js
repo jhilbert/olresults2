@@ -83,7 +83,7 @@ function isRegional(list, jurisdiction = null) {
 
 function matchesQueueState(list, state) {
   if (state === "open") return !isConfirmed(list);
-  if (state === "quality") return Boolean(list.parser_blockers || list.ranking_warnings);
+  if (state === "quality") return Boolean(list.parser_findings);
   if (state === "issues") return Boolean(list.blockers || list.warnings);
   if (state === "confirmed") return isConfirmed(list);
   return true;
@@ -178,7 +178,7 @@ function renderQueue(eventLists = filteredLists(false).filter(
     return `${sourceChanged ? `<div class="queue-source">${esc(sourceLabel || "Ergebnisquelle")}</div>` : ""}<button class="queue-item ${state} ${list.id === selectedId ? "active" : ""}"
       data-id="${esc(list.id)}">
       <span class="queue-state">${label}</span><span><b>${esc(list.category)}</b>
-      <small>${automatic ? "automatisch bestätigt" : list.parser_blockers ? `${list.parser_blockers} Zeitfehler` : list.ranking_warnings ? "Rangprüfung" : list.blockers || list.warnings ? `${list.blockers || list.warnings} Hinweise` : "ohne automatischen Befund"}</small></span>
+      <small>${automatic ? "automatisch bestätigt" : list.parser_findings ? `${list.parser_findings} Parser-/Rangbefunde` : list.blockers || list.warnings ? `${list.blockers || list.warnings} Hinweise` : "ohne automatischen Befund"}</small></span>
       <span class="queue-count">${list.blockers || list.warnings || ""}</span></button>`;
   }).join("") || `<p class="queue-empty">Keine Kategorien dieses Events in diesem Filter.</p>`;
   $("queue").querySelectorAll("button").forEach((button) => button.addEventListener("click", () => {
@@ -353,7 +353,7 @@ function renderDetail() {
     candidate.source_document_id === list.source_document_id &&
     !candidate.blockers && !candidate.warnings && !isConfirmed(candidate));
   const issueHtml = issues.length ? `<div class="review-issues">${issues.map((i) =>
-    `<div class="review-issue ${esc(i.severity)}"><b>${i.severity === "blocker" ? "Blocker" : "Hinweis"}</b> ${esc(i.message)}</div>`).join("")}</div>` :
+    `<div class="review-issue ${esc(i.severity)}"><b>${i.severity === "blocker" ? "Blocker" : "Hinweis"}</b> ${esc(i.message)} <small>· ${esc(i.code)}</small></div>`).join("")}</div>` :
     `<div class="review-clean">Automatische Prüfungen ohne Befund · automatisch bestätigt.</div>`;
   const sourceUrl = list.snapshot_path ? `/review-source?id=${encodeURIComponent(list.id)}` : list.source_url;
   const parsedUnits = [];
@@ -538,8 +538,7 @@ async function boot() {
            COALESCE(ai.blockers, 0) AS blockers, COALESCE(ai.warnings, 0) AS warnings,
            COALESCE(rr.is_national, 0) AS is_national, COALESCE(rr.family_rows, 0) AS family_rows,
            COALESCE(rr.timed_rows, 0) AS timed_rows, COALESCE(rr.ranked_rows, 0) AS ranked_rows,
-           COALESCE(ai.parser_blockers, 0) AS parser_blockers,
-           COALESCE(ai.ranking_warnings, 0) AS ranking_warnings,
+           COALESCE(ai.parser_findings, 0) AS parser_findings,
            COALESCE(reg.is_regional, 0) AS is_regional,
            COALESCE(reg.regional_jurisdictions, '') AS regional_jurisdictions,
            COALESCE(reg.regional_confirmed, 0) AS regional_confirmed,
@@ -549,8 +548,10 @@ async function boot() {
     JOIN source_document sd ON sd.id = rl.source_document_id
     LEFT JOIN (SELECT result_list_id, SUM(severity='blocker') AS blockers,
                       SUM(severity='warning') AS warnings,
-                      SUM(code='time_text_unparsed') AS parser_blockers,
-                      SUM(code='partial_ranking_coverage') AS ranking_warnings
+                      SUM(code IN ('anne_missing_category','entry_count_mismatch',
+                          'missing_ranking','partial_ranking_coverage',
+                          'rank_time_inversion','result_value_unparsed',
+                          'time_text_unparsed','unknown_status')) AS parser_findings
                FROM audit_issue GROUP BY result_list_id) ai
       ON ai.result_list_id = rl.id
     LEFT JOIN (SELECT result_list_id, MAX(championship IS NOT NULL) AS is_national,

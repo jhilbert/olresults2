@@ -23,6 +23,25 @@ sync_selection = load_module("sync_selection_incremental", "ingest/sync_selectio
 
 
 class AttachmentInventoryTests(unittest.TestCase):
+    def test_calendar_refresh_updates_and_appends_without_dropping_hidden_events(self):
+        existing = [
+            {"id": 1, "shortTitle": "old visible"},
+            {"id": 2, "shortTitle": "private historic"},
+            {"id": 2, "shortTitle": "duplicate historic"},
+        ]
+        fetched = [
+            {"id": 1, "shortTitle": "updated visible"},
+            {"id": 3, "shortTitle": "new visible"},
+            {"id": 3, "shortTitle": "newest duplicate wins"},
+        ]
+
+        merged = anne_sync.merge_event_snapshot(existing, fetched)
+
+        self.assertEqual([event["id"] for event in merged], [1, 2, 3])
+        self.assertEqual(merged[0]["shortTitle"], "updated visible")
+        self.assertEqual(merged[1]["shortTitle"], "private historic")
+        self.assertEqual(merged[2]["shortTitle"], "newest duplicate wins")
+
     def test_merge_keeps_existing_indices_and_only_appends_new_urls(self):
         old = [
             {"url": "https://example.test/a.pdf", "fileName": "old.pdf",
