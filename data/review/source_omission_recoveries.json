@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "events": [
+    {
+      "eventId": 633,
+      "attachmentIndex": 90,
+      "date": "2012-05-09",
+      "title": "ANNE-Meldungen: namentlich belegte Nichtstarter",
+      "sourceUrl": "https://anne-api.oefol.at/v1/event/633/entries",
+      "results": [
+        {
+          "entryId": 56976,
+          "userId": 6988,
+          "name": "Luise Schöller",
+          "yearOfBirth": 2001,
+          "club": "X NMS Furth",
+          "category": "Damen E",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "eventId": 856,
+      "attachmentIndex": 90,
+      "date": "2013-10-09",
+      "title": "ANNE-Meldungen: namentlich belegte Nichtstarter",
+      "sourceUrl": "https://anne-api.oefol.at/v1/event/856/entries",
+      "results": [
+        {
+          "entryId": 75048,
+          "userId": 3683,
+          "name": "Markus Ditz",
+          "yearOfBirth": 2001,
+          "club": "Naturfreunde Wien",
+          "category": "Herren E",
+          "status": "dns"
+        }
+      ]
+    },
+    {
+      "eventId": 4995,
+      "attachmentIndex": 90,
+      "date": "2025-04-05",
+      "title": "ANNE-Meldungen: namentlich belegte Nichtstarter",
+      "sourceUrl": "https://anne-api.oefol.at/v1/event/4995/entries",
+      "results": [
+        {
+          "entryId": 249254,
+          "userId": 2134,
+          "name": "Marina Skern",
+          "yearOfBirth": 1975,
+          "club": "Naturfreunde Wien",
+          "category": "Damen A",
+          "status": "dns"
+        },
+        {
+          "entryId": 249446,
+          "userId": null,
+          "name": "Christina Satke",
+          "yearOfBirth": null,
+          "club": "kein Verein",
+          "category": "Damen B",
+          "status": "dns"
+        },
+        {
+          "entryId": 249173,
+          "userId": 1702,
+          "name": "Michael Grill",
+          "yearOfBirth": 1966,
+          "club": "Naturfreunde Wien",
+          "category": "Herren A",
+          "status": "dns"
+        },
+        {
+          "entryId": 249403,
+          "userId": 2154,
+          "name": "Nikolai Dytlewski",
+          "yearOfBirth": 1954,
+          "club": "Naturfreunde Wien",
+          "category": "Herren B",
+          "status": "dns"
+        },
+        {
+          "entryId": 249048,
+          "userId": null,
+          "name": "Thomas Glatz",
+          "yearOfBirth": null,
+          "club": "kein Verein",
+          "category": "Herren B",
+          "status": "dns"
+        },
+        {
+          "entryId": 248634,
+          "userId": 10009,
+          "name": "Mario Novosel",
+          "yearOfBirth": 1963,
+          "club": "OLG Ströck Wien",
+          "category": "Herren D",
+          "status": "dns"
+        }
+      ]
+    }
+  ]
+}

@@ -38,7 +38,11 @@ DB-Build in Auswahl, Parsing, Normalisierung oder fachlicher Ableitung wirken.
 Die folgenden Fälle wurden direkt im veröffentlichten PDF beziehungsweise HTML
 gegen die normalisierten Einträge geprüft. Die Freigabe gilt nur für das
 angeführte Event, die Kategorie und die konkrete Zählung beziehungsweise Person.
-Ein neuer gleichartiger Fall bleibt deshalb ein Publikationsblocker.
+Ein neuer gleichartiger Fall bleibt deshalb je nach Prüftyp ein
+Publikationsblocker oder eine offene Warnung.
+Die unten angeführten und reproduzierbar geprüften Fälle erscheinen im
+Qualitätsreport nur noch als Information. Dadurch bleiben sie im Audit-Trail,
+ohne erneut als offene Nacharbeit vorgelegt zu werden.
 
 ### Falsche Anzahl im Klassenkopf
 
@@ -86,14 +90,29 @@ wird nur dann als `source_declared_omission` behandelt, wenn jede sichtbare
 Ergebniszeile übernommen wurde. Aus der Kopfzahl allein werden keine
 unbekannten DNS-Personen erzeugt.
 
-- Events `4364` und `4995`: Die sichtbaren Ergebniszeilen wurden vollständig
-  mit der Quelle verglichen; die verbleibenden zwei beziehungsweise sechs
-  Meldungen werden in der Quelle nicht namentlich angeführt. Der Benutzer hat
-  diese sieben Klassen am 23.07.2026 ausdrücklich bestätigt.
+- Events `633` und `856`: Die ANNE-Meldeliste nennt Luise Schöller
+  beziehungsweise Markus Ditz in genau der betroffenen Klasse. Da beide in
+  der vollständigen Ergebnisliste fehlen, werden sie mit Provenienz zur
+  offiziellen Meldeliste als DNS ergänzt.
+- Event `4995`: Die ANNE-Meldeliste schließt alle sechs Differenzen namentlich:
+  Marina Skern, Christina Satke, Michael Grill, Nikolai Dytlewski, Thomas
+  Glatz und Mario Novosel werden als DNS ergänzt.
+- Event `1677`: Der OLD-ANNE-Zwischenzeiten-Anhang führt Lerchegger Bernhard
+  mit 27:34 noch unter H21-E, die endgültige Ergebnisliste dieselbe Leistung
+  bereits unter `Herren18-20`. Es fehlt daher kein Ergebnis; eine Ergänzung in
+  H21-E würde denselben Lauf doppelt zählen.
+- Events `853`, `1114`, `1677`, `1967`, `3366`, `4254` und `4364`: Ergebnislisten,
+  verfügbare ANNE-Meldungen und alternative offizielle Anhänge wurden
+  verglichen. Die verbleibenden 18 Klassendifferenzen enthalten nirgends
+  zusätzliche veröffentlichte Namen. Sie werden als bestätigte
+  Quellenbegrenzung protokolliert und nicht mehr als offene Parserarbeit
+  vorgelegt.
 - Event `3366`: Auch das unabhängige LiveResultat-Archiv enthält nur 34 statt
   36 Herren-Elite- und 18 statt 20 Damen-Elite-Einträge. Die vier nur in der
   Kopfzahl enthaltenen Meldungen lassen sich deshalb nicht namentlich
-  rekonstruieren.
+  rekonstruieren. Die offizielle Startliste enthält ebenfalls nur dieselben
+  34 beziehungsweise 18 sichtbaren Personen; ihre abweichenden Kopfzahlen
+  liefern keine zusätzlichen Identitäten.
 - Event `1909`: Die kompakte Ergebnis-PDF lässt sieben DNS-Zeilen aus. Der
   ebenfalls auf ANNE verlinkte Zwischenzeiten-Anhang nennt sie vollständig:
   Diesenreiter Ben; Haselberger Kevin; Fürnkranz Martin; Wendler Michael;
@@ -112,12 +131,13 @@ unbekannten DNS-Personen erzeugt.
   bleiben getrennte Quellzeilen. Insbesondere wird `Jara Leonhardt (2) – DNS`
   neben ihrem gewerteten D-10-Ergebnis gespeichert.
 
-Die erneute Vollprüfung am 23.07.2026 verglich außerdem die Rohzeilen der
-Events `633`, `853`, `856`, `1114`, `1677`, `1967`, `4254`, `4364` und `4995`
-direkt mit den normalisierten Resultaten. Abgesehen von den oben dokumentierten
-Reparaturen enthält keine dieser Quellen weitere namentliche Ergebniszeilen,
-die der Parser auslässt. Eine bloße Differenz zur Klassenkopfzahl bleibt daher
-ein Quellenhinweis und erzeugt insbesondere keine erfundene DNS-Person.
+Die erneute Vollprüfung am 23.07.2026 verglich die Rohzeilen aller zehn
+betroffenen Events direkt mit den normalisierten Resultaten und zusätzlich
+mit ANNE-Meldelisten, Split-/Teamanhängen, Startlisten und erreichbaren
+LiveResultat-Daten. Acht belegte DNS-Zeilen werden aus den ergänzenden
+Meldelisten rekonstruiert; für die übrigen Differenzen existieren keine
+zusätzlichen Namen. Eine bloße
+Klassenkopfzahl erzeugt daher weiterhin keine erfundene DNS-Person.
 
 ## Nicht rekonstruierbare ANNE-Altimporte
 

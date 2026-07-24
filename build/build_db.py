@@ -2387,6 +2387,8 @@ PARSER_FILES = {
     "club-table": ROOT / "ingest" / "parse_club_table.py",
     "liveresultat": ROOT / "ingest" / "parse_liveresultat.py",
     "sportident-center": ROOT / "ingest" / "parse_sportident_center.py",
+    "anne-entry-recovery": (
+        ROOT / "ingest" / "build_source_omission_recoveries.py"),
     "anne-api": Path(__file__),
 }
 
@@ -4022,9 +4024,19 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                         name, metadata.get("team_name")) or club_value)
                 club_value = KNOWN_RESULT_CLUB_OVERRIDES.get(
                     (eid, name), club_value)
-                pid, identity_basis, identity_confidence, identity_state = persons.from_legacy(
-                    name, r.get("yearOfBirth"), club_value)
-                persons.record(pid, name)
+                uid = anne_user_id(r.get("userId"))
+                if uid:
+                    pid = persons.from_anne(
+                        uid, name, r.get("yearOfBirth"),
+                        r.get("nationality"))
+                    identity_basis, identity_confidence, identity_state = (
+                        "source-oefol-id", 1.0, "resolved")
+                    persons.record(pid, name, authoritative=True)
+                else:
+                    pid, identity_basis, identity_confidence, identity_state = (
+                        persons.from_legacy(
+                            name, r.get("yearOfBirth"), club_value))
+                    persons.record(pid, name)
                 raw_status = r.get("status", "unknown")
                 observed_raw_status = raw_status
                 if doc.get("source") == "liveresultat" and r.get("rawStatusCode") == 5:
@@ -4073,6 +4085,8 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                               result_kind=kind, note=note, source=doc["source"],
                               source_document_id=source_document_id,
                               observed_name=observed_name, observed_club=r.get("club"),
+                              observed_user_id=(
+                                  str(uid) if uid is not None else None),
                               observed_category=cat["name"],
                               observed_rank=str(r.get("rank"))
                               if r.get("rank") is not None else None,
@@ -4270,6 +4284,20 @@ KNOWN_SOURCE_VALUE_CORRUPTIONS = {
     (5204, "ht 95"),
 }
 
+# Exact source values whose visible original and all available official
+# alternatives have been reviewed.  They remain visible as ``unknown`` (or as
+# an unknown relay-leg value), but no longer belong in the open repair queue.
+# A new value that merely looks similar is still emitted as a warning.
+KNOWN_CONFIRMED_SOURCE_UNREADABLE_VALUES = {
+    (2865, "Vereinsmeisterschaft", "Slávka Cahlová", "???"),
+    (4837, "Familie", "Leonhardt Tano", "-32:10"),
+    (5287, "Kerzen", "Emmanuiele", "-11:25:57"),
+    (5287, "Krippe", "Serge", "-11:25:53"),
+    (5287, "Krippe", "Michaela", "-11:23:41"),
+    (5204, "Mixed Staffel bis 17", "Pia Aspalter", "er 11"),
+    (5204, "Mixed Staffel ab 18", "Lisa Habenicht", "ht 95"),
+}
+
 # Confirmed contradictions between a published category header and the number
 # of visible competitor units below it.  Keep this list exact: a newly parsed
 # extra row must block publication until somebody has compared it with the
@@ -4289,15 +4317,50 @@ KNOWN_SOURCE_COUNT_ANOMALIES = {
 # recovering the rows, they automatically return to the unresolved warning
 # queue instead of inheriting a permanent exemption.
 KNOWN_RECOVERED_SOURCE_OMISSIONS = {
+    (633, "Damen E", 5, 4),
+    (856, "Herren E", 9, 8),
     (1909, "Herren Elite", 15, 13),
     (1909, "Herren/Damen -14", 7, 6),
     (1909, "Herren 60", 16, 13),
     (1909, "Herren 70", 4, 3),
+    (4995, "Damen A", 11, 10),
+    (4995, "Damen B", 17, 16),
+    (4995, "Herren A", 32, 31),
+    (4995, "Herren B", 35, 33),
+    (4995, "Herren D", 9, 8),
 }
 
-# Named rows whose official result cell is visibly empty.  No sporting status
-# can safely be inferred from an empty cell, but only these reviewed cases may
-# remain warnings; future blank values return to the parser-repair queue.
+# The complete result source and every official alternative exposed by ANNE
+# were compared for these exact class/count combinations.  The header number
+# has no corresponding named result rows to recover.  Keep the limitation in
+# the audit trail as information, but do not repeatedly present it as open
+# parser work. Any changed count falls out of this exact allowlist and becomes
+# a warning again.
+KNOWN_CONFIRMED_SOURCE_OMISSIONS = {
+    (853, "Ultimate", 63, 62),
+    (1114, "D1", 8, 5),
+    (1114, "D2", 10, 7),
+    (1114, "D3", 10, 7),
+    (1114, "H1", 14, 11),
+    (1114, "H2", 33, 28),
+    (1114, "H3", 5, 3),
+    (1677, "Herren 21-E", 15, 14),
+    (1967, "Damen 2", 16, 15),
+    (1967, "Herren 3", 11, 10),
+    (1967, "Schnupperer", 20, 19),
+    (3366, "Damen 21 Elite", 20, 18),
+    (3366, "Herren 21 Elite", 36, 34),
+    (4254, "H-12–Finale", 7, 6),
+    (4254, "H21-E–B-Finale", 38, 34),
+    (4254, "Offen", 25, 23),
+    (4364, "H 35-", 6, 5),
+    (4364, "H 65-", 4, 3),
+}
+
+# Named rows whose official result cell is visibly empty. No sporting status
+# can safely be inferred from an empty cell. These reviewed cases remain in
+# the audit trail as information; future blank values return to the
+# parser-repair queue.
 KNOWN_SOURCE_MISSING_VALUES = {
     (1672, "Damen 10", "Veitsberger Miriam"),
     (1672, "Herren 10", "Ehrlich Lilly"),
@@ -4327,6 +4390,15 @@ def source_value_is_unreadable(event_id, value):
                 or re.fullmatch(r"-\d{1,3}:\d{2}(?::\d{2})?", value)
                 or
                 (event_id, value) in KNOWN_SOURCE_VALUE_CORRUPTIONS)
+
+
+def source_value_is_confirmed_unreadable(event_id, category, name, value):
+    return (
+        event_id,
+        (category or "").strip(),
+        (name or "").strip(),
+        (value or "").strip(),
+    ) in KNOWN_CONFIRMED_SOURCE_UNREADABLE_VALUES
 
 
 def populate_quality_model(cur):
@@ -4399,8 +4471,16 @@ def populate_quality_model(cur):
                     add_audit_issue(
                         cur, list_id, "source_omission_recovered", "info",
                         f"Die kompakte Quelle enthält {source_entries} von "
-                        f"{declared} Einträgen; der offizielle ANNE-"
-                        "Zwischenzeiten-Anhang ergänzt die fehlenden DNS-Zeilen.")
+                        f"{declared} Einträgen; eine ergänzende offizielle "
+                        "ANNE-Quelle liefert die fehlenden benannten Zeilen.")
+                elif recovery_key in KNOWN_CONFIRMED_SOURCE_OMISSIONS:
+                    add_audit_issue(
+                        cur, list_id, "source_declared_omission_confirmed", "info",
+                        f"Klassenkopf nennt {declared} Meldungen, der vollständige "
+                        f"Ergebnisbereich und die verfügbaren offiziellen "
+                        f"Alternativquellen enthalten {source_entries} benannte "
+                        "Einträge. Für die Differenz sind keine Namen "
+                        "veröffentlicht; es werden keine DNS-Personen erfunden.")
                 else:
                     difference = declared - source_entries
                     add_audit_issue(
@@ -4415,12 +4495,14 @@ def populate_quality_model(cur):
                 # The source itself can print more fully classified rows than
                 # its category header claims (confirmed examples: ``DB-Kurz
                 # (4)`` followed by ranks 1..5, and relay headers omitting an
-                # MP/DNF team). Only exact, visually reviewed contradictions
-                # are warnings; a new occurrence remains a blocker below.
+                # MP/DNF team). Exact, visually reviewed contradictions remain
+                # in the audit trail as information; a new occurrence remains
+                # a blocker below.
                 add_audit_issue(
-                    cur, list_id, "source_count_anomaly", "warning",
+                    cur, list_id, "source_count_anomaly", "info",
                     f"Klassenkopf nennt {declared} Starts, die Quelle enthält aber "
-                    f"{source_entries} vollständig klassifizierte Ergebnis-Einträge.")
+                    f"{source_entries} vollständig klassifizierte Ergebnis-Einträge; "
+                    "der veröffentlichte Quellwiderspruch wurde geprüft.")
             else:
                 add_audit_issue(
                     cur, list_id, "entry_count_mismatch", "blocker",
@@ -4472,11 +4554,19 @@ def populate_quality_model(cur):
             (list_id,)).fetchall()
         for result_id, observed_name, observed_status, observed_time in unknown:
             if source_value_is_unreadable(event_id, observed_time):
+                severity = (
+                    "info"
+                    if source_value_is_confirmed_unreadable(
+                        event_id, category, observed_name, observed_time)
+                    else "warning"
+                )
                 add_audit_issue(
-                    cur, list_id, "source_value_unreadable", "warning",
+                    cur, list_id, "source_value_unreadable", severity,
                     f"Die Quelle zeigt für diesen Ergebniswert nur "
                     f"{(observed_time or '').strip()!r}; ein genauer Status "
-                    "oder Zeitwert ist nicht rekonstruierbar.", result_id)
+                    "oder Zeitwert ist nicht rekonstruierbar"
+                    f"{'; der Quellenfehler wurde geprüft' if severity == 'info' else ''}.",
+                    result_id)
                 continue
             # This is a parser failure, not an ambiguous sporting status: a
             # source time such as 114:08 exists but never became seconds.
@@ -4494,8 +4584,9 @@ def populate_quality_model(cur):
                 # source itself leaves its result cell blank or uses a bare
                 # dash. There is no defensible automatic DNS/MP inference.
                 add_audit_issue(
-                    cur, list_id, "source_value_missing", "warning",
-                    "Die Quelle führt den Eintrag an, lässt Rang, Zeit und Status aber leer.",
+                    cur, list_id, "source_value_missing", "info",
+                    "Die Quelle führt den Eintrag an, lässt Rang, Zeit und Status "
+                    "aber leer; die leere Originalzelle wurde geprüft.",
                     result_id)
                 continue
             if ((observed_status or "").strip().casefold() in ("", "unknown")
@@ -4517,8 +4608,8 @@ def populate_quality_model(cur):
         # ``er 11``). Keep it in the review queue rather than silently showing
         # a ranked result with an empty time.
         if source_type != "anne-api" and ranking_basis == "time":
-            for result_id, observed_time in cur.execute(
-                    """SELECT id, observed_time FROM result
+            for result_id, observed_name, observed_time in cur.execute(
+                    """SELECT id, observed_name, observed_time FROM result
                        WHERE result_list_id = ? AND status = 'ok'
                          AND COALESCE(individual_status, 'ok') = 'ok'
                          AND time_s IS NULL
@@ -4526,11 +4617,19 @@ def populate_quality_model(cur):
                     (list_id,)).fetchall():
                 value = (observed_time or "").strip()
                 if source_value_is_unreadable(event_id, value):
+                    severity = (
+                        "info"
+                        if source_value_is_confirmed_unreadable(
+                            event_id, category, observed_name, value)
+                        else "warning"
+                    )
                     add_audit_issue(
-                        cur, list_id, "source_value_unreadable", "warning",
+                        cur, list_id, "source_value_unreadable", severity,
                         f"Die Quelle zeigt für diesen Ergebniswert nur "
                         f"{value!r}; ein genauer Leg-Zeitwert ist nicht "
-                        "rekonstruierbar.", result_id)
+                        "rekonstruierbar"
+                        f"{'; der Quellenfehler wurde geprüft' if severity == 'info' else ''}.",
+                        result_id)
                     continue
                 if (OBSERVED_TIME_RE.fullmatch(value)
                         or re.search(
@@ -4596,9 +4695,12 @@ def populate_quality_model(cur):
                 issue_code = ("source_rank_anomaly"
                               if (event_id, category) in KNOWN_SOURCE_RANK_ANOMALIES
                               else "rank_time_inversion")
+                severity = (
+                    "info" if issue_code == "source_rank_anomaly" else "warning")
                 add_audit_issue(
-                    cur, list_id, issue_code, "warning",
-                    f"Rang {rank} ist schneller als ein besser gereihter Eintrag.")
+                    cur, list_id, issue_code, severity,
+                    f"Rang {rank} ist schneller als ein besser gereihter Eintrag"
+                    f"{'; der veröffentlichte Quellrang wurde geprüft' if severity == 'info' else ''}.")
                 break
             best_so_far = time_s if best_so_far is None else max(best_so_far, time_s)
 
