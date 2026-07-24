@@ -53,6 +53,7 @@ python3 ingest/run_sync.py             # incremental source sync: parse only new
 python3 ingest/run_sync.py --event-id 4474  # reparse cached sources of one historic event
 python3 ingest/run_sync.py --event-id 4474 --refresh-source  # re-download + reparse it
 python3 ingest/parse_sportsoftware_html.py  # parse tier-2 HTML attachments
+python3 ingest/build_source_omission_recoveries.py  # reviewed ANNE-entry DNS supplements
 python3 ingest/anne_user_index.py      # private complete ANNE /user identity snapshot
 python3 build/build_db.py              # build site/data/results.db (pass 1)
 python3 ingest/anne_user_eligibility.py     # sync ÖM/ÖSTM championship eligibility (needs ANNE_API_KEY)

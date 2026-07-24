@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parent.parent
 COMMANDS = [
     [sys.executable, "ingest/anne_sync.py"],
     [sys.executable, "ingest/build_club_dict.py"],
+    [sys.executable, "ingest/build_source_omission_recoveries.py"],
     [sys.executable, "ingest/parse_sportsoftware_html.py"],
     [sys.executable, "ingest/parse_sportsoftware_pdf.py"],
     [sys.executable, "ingest/parse_sportsoftware_text.py"],

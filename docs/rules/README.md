@@ -28,6 +28,7 @@ sein. Direkte Korrekturen der erzeugten SQLite-Datenbank sind nicht zulässig.
 | `PARSE-003` | confirmed | Seitenkopf, Seitenfuß, wiederholte Spaltenüberschrift, Kategoriename und Streckendaten dürfen keine Person erzeugen. |
 | `PARSE-004` | confirmed | Ein beobachteter Zeittext muss entweder in Sekunden umgewandelt oder als konkreter, prüfbarer Parserbefund ausgewiesen werden. |
 | `PARSE-005` | confirmed | Eine Quellenzahl in Klammern kann Meldungen statt sichtbarer Ergebnisse zählen. Eine Abweichung ist deshalb zu erklären, nicht automatisch als Parserfehler zu behandeln. |
+| `PARSE-006` | confirmed | Eine Person darf aus einer offiziellen Meldeliste nur dann als DNS ergänzt werden, wenn Name und Klasse veröffentlicht sind, die vollständige Ergebnisquelle diese Person nicht enthält und die belegten Ergänzungen die geprüfte Klassendifferenz nicht überschreiten. Die Meldeliste bleibt als eigene Provenienz erhalten. |
 | `EXCEPT-001` | confirmed | Eine quell- oder eventbezogene Ausnahme muss eng begrenzt, mit Quelle und Grund dokumentiert sowie durch einen Regressionstest geschützt sein. Globale Heuristiken dürfen nicht aus einem Einzelfall abgeleitet werden. |
 
 ## Wettkampfjahr und Saison

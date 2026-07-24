@@ -9,6 +9,18 @@ const app = document.getElementById("app");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g,
   (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+// Render a runner link only when the caller can guarantee that the person has
+// personal result rows behind #/runner/:id. Names without an identity (Family,
+// anonymous team members) and roster members with zero results stay visible
+// as plain text instead of leading to an empty or invalid detail page.
+function runnerNameHtml(personId, name, { hasResults = true, className = "" } = {}) {
+  const text = esc(name || "Unbekannt");
+  if (personId == null || !hasResults) {
+    return `<span${className ? ` class="${className}"` : ""}>${text}</span>`;
+  }
+  return `<a href="#/runner/${personId}">${text}</a>`;
+}
+
 // A standalone "Bahn X" ("Bahn 3", "BAHN A") groups every category that ran
 // the same physical course into one list with no age/gender split at all -
 // there's no official ranking behind it, just a shared route. This is
@@ -1045,10 +1057,10 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
                 const r = unit.rows[0], tier = regionalCode ? null : medalTier[r.national_rank];
                 return `<tr class="${isBahn(c.category) && stageHasOfficial ? "bahn-row" : ""} ${tier ? `medal-row-${tier}` : ""}">
                   <td class="num">${placementCell(r, tier)}</td>
-                  <td>${r.person_id == null
-                    ? `<span class="family-name">${esc(r.person_name || "Family")}</span>`
-                    : `<a href="#/runner/${r.person_id}">${esc(r.person_name)}</a>`
-                  }${r.result_kind === "family" ? ` <span class="badge">Family</span>` : ""}${r.note ? `<div class="note">${esc(r.note)}</div>` : ""}</td>
+                  <td>${runnerNameHtml(r.person_id, r.person_name || "Family", {
+                    hasResults: r.result_kind !== "family",
+                    className: r.result_kind === "family" ? "family-name" : "",
+                  })}${r.result_kind === "family" ? ` <span class="badge">Family</span>` : ""}${r.note ? `<div class="note">${esc(r.note)}</div>` : ""}</td>
                   <td class="hide-sm dim">${esc(r.club || "")}</td>
                   <td class="num">${fmtTime(r.time_s)}</td>
                   <td class="num dim">${r.status === "ok" && r.time_behind_s ? "+" + fmtTime(r.time_behind_s) : ""}</td>
@@ -1062,13 +1074,13 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
                 : team.team_status && team.team_status !== "ok" ? `<span class="status">${esc(team.team_status)}</span>` : "";
               return `<tr class="team-summary ${tier ? `medal-row-${tier}` : ""}">
                   <td class="num">${placementCell(team, tier)}</td>
-                  <td><strong>${team.result_kind === "pair" ? unit.rows.map((r) => `<a href="#/runner/${r.person_id}">${esc(r.person_name)}</a>`).join(" + ") : esc(teamLabel)}</strong> <span class="badge">${team.result_kind === "relay" ? "Staffel" : team.result_kind === "pair" ? "Paar" : "Mannschaft"}</span></td>
+                  <td><strong>${team.result_kind === "pair" ? unit.rows.map((r) => runnerNameHtml(r.person_id, r.person_name)).join(" + ") : esc(teamLabel)}</strong> <span class="badge">${team.result_kind === "relay" ? "Staffel" : team.result_kind === "pair" ? "Paar" : "Mannschaft"}</span></td>
                   <td class="hide-sm dim">${esc(team.official_club || team.club || "")}</td>
                   <td class="num">${teamTime}</td>
                   <td class="num dim">${team.status === "ok" && team.time_behind_s ? "+" + fmtTime(team.time_behind_s) : ""}</td>
-                </tr>${team.result_kind === "pair" ? "" : unit.rows.filter((r) => r.person_id != null).map((r) => `<tr class="team-member">
+                </tr>${team.result_kind === "pair" ? "" : unit.rows.map((r) => `<tr class="team-member">
                   <td class="num dim"></td>
-                  <td><a href="#/runner/${r.person_id}">${esc(r.person_name)}</a>${r.result_kind === "relay" ? `<span class="leg-label">Leg ${r.leg_number || "?"}/${r.leg_count || unit.rows.length}</span>` : ""}</td>
+                  <td>${runnerNameHtml(r.person_id, r.person_name)}${r.result_kind === "relay" ? `<span class="leg-label">Leg ${r.leg_number || "?"}/${r.leg_count || unit.rows.length}</span>` : ""}</td>
                   <td class="hide-sm dim"></td><td class="num">${r.result_kind === "relay" ? individualTime(r) : ""}</td><td></td>
                 </tr>`).join("")}`;
             }).join("")}
@@ -1323,7 +1335,7 @@ function renderRankedMedalTable(podiums, { showClub, isOm, capOutput }) {
     <tbody>${shown.length ? shown.map((p) => `
       <tr class="expandable" data-toggle="${p.person_id}">
         <td class="num dim">${p.place}.</td>
-        <td><a href="#/runner/${p.person_id}">${esc(p.person_name)}</a> <span class="expand-icon">▸</span></td>
+        <td>${runnerNameHtml(p.person_id, p.person_name)} <span class="expand-icon">▸</span></td>
         ${showClub ? `<td class="hide-sm dim">${esc(p.club_name || "")}</td>` : ""}
         <td class="num">${p.gold || ""}</td>
         <td class="num">${p.silver || ""}</td>
@@ -1362,9 +1374,10 @@ function renderChronoMedalTable(podiums, { showClub }) {
         <td><a href="#/event/${r.event_id}">${esc(r.event_title)}</a></td>
         <td>${esc(r.category_full || r.category)}${r.championship ? ` <span class="badge">${r.championship}</span>` : ""}${r.result_kind && r.result_kind !== "individual" ? ` <span class="badge">${{ relay: "Staffel", pair: "Paar", team: "Mannschaft" }[r.result_kind] || r.result_kind}</span>` : ""}</td>
         <td class="num"><span class="rank ${r.rank === 1 ? "rank-1" : ""}">${r.rank}</span></td>
-        <td class="hide-sm">${r.person_id == null
-          ? `<span class="family-name">${esc(r.person_name || "Family")}</span>`
-          : `<a href="#/runner/${r.person_id}">${esc(r.person_name)}</a>`}</td>
+        <td class="hide-sm">${runnerNameHtml(r.person_id, r.person_name || "Family", {
+          hasResults: r.result_kind !== "family",
+          className: r.result_kind === "family" ? "family-name" : "",
+        })}</td>
         ${showClub ? `<td class="hide-sm dim">${esc(r.club_name || "")}</td>` : ""}
       </tr>`).join("") : `<tr><td colspan="${showClub ? 6 : 5}" class="dim">Keine Podestplätze</td></tr>`}
     </tbody>
@@ -1480,7 +1493,7 @@ function clubDetailHtml(name, year, medalType, { withChangeButton, hrefBase, vie
         <thead><tr><th>Name</th><th class="num">Jg</th><th class="num">Starts</th></tr></thead>
         <tbody>${roster.map((r) => `
           <tr>
-            <td><a href="#/runner/${r.id}">${esc(r.name)}</a></td>
+            <td>${runnerNameHtml(r.id, r.name, { hasResults: r.n > 0 })}</td>
             <td class="num dim">${r.year_of_birth || ""}</td>
             <td class="num">${r.n}</td>
           </tr>`).join("")}
@@ -1669,7 +1682,7 @@ function viewClubDns(name, yearParam, modeParam) {
           <thead><tr><th>Läufer:in</th><th>Kategorie</th></tr></thead>
           <tbody>${g.entries.map((r) => `
             <tr>
-              <td><a href="#/runner/${r.person_id}">${esc(r.person_name)}</a></td>
+              <td>${runnerNameHtml(r.person_id, r.person_name)}</td>
               <td class="dim">${esc(r.category_full || r.category)}</td>
             </tr>`).join("")}
           </tbody>

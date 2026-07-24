@@ -931,7 +931,7 @@ class AnneIdentityTests(unittest.TestCase):
         build_db.populate_quality_model(cur)
         self.assertEqual(cur.execute(
             "SELECT code || ':' || severity FROM audit_issue"
-        ).fetchone()[0], "source_rank_anomaly:warning")
+        ).fetchone()[0], "source_rank_anomaly:info")
 
     def test_unreadable_source_value_is_not_reported_as_parser_failure(self):
         con = sqlite3.connect(":memory:")
@@ -954,6 +954,31 @@ class AnneIdentityTests(unittest.TestCase):
             result_kind="relay", source="sportsoftware-pdf",
             source_document_id="pdf", observed_name="Pia Aspalter",
             observed_time="er 11")
+        build_db.populate_quality_model(cur)
+        self.assertEqual(cur.execute(
+            "SELECT code || ':' || severity FROM audit_issue"
+        ).fetchone()[0], "source_value_unreadable:info")
+
+    def test_unreviewed_unreadable_source_value_remains_a_warning(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id, title) VALUES (1, 'Neue Quelle')")
+        cur.execute(
+            "INSERT INTO stage (id, event_id, number) VALUES (1, 1, 1)")
+        cur.execute(
+            "INSERT INTO source_document (id,event_id,source_type) "
+            "VALUES ('pdf',1,'sportsoftware-pdf')")
+        cur.execute(
+            """INSERT INTO result_list
+               (id,stage_id,source_document_id,category,parsed_entries,
+                parsed_rows,input_fingerprint)
+               VALUES ('list',1,'pdf','Damen',1,1,'x')""")
+        build_db.insert_result(
+            cur, stage_id=1, result_list_id="list", category="Damen",
+            status="unknown", source="sportsoftware-pdf",
+            source_document_id="pdf", observed_name="Neue Person",
+            observed_status="unknown", observed_time="???")
         build_db.populate_quality_model(cur)
         self.assertEqual(cur.execute(
             "SELECT code || ':' || severity FROM audit_issue"
@@ -1103,7 +1128,7 @@ class AnneIdentityTests(unittest.TestCase):
         build_db.populate_quality_model(cur)
         self.assertEqual(cur.execute(
             "SELECT code || ':' || severity FROM audit_issue"
-        ).fetchone()[0], "source_count_anomaly:warning")
+        ).fetchone()[0], "source_count_anomaly:info")
 
     def test_unreviewed_extra_source_row_remains_a_blocker(self):
         con = sqlite3.connect(":memory:")
@@ -1131,7 +1156,7 @@ class AnneIdentityTests(unittest.TestCase):
             "SELECT code || ':' || severity FROM audit_issue"
         ).fetchone()[0], "entry_count_mismatch:blocker")
 
-    def test_only_reviewed_blank_source_value_is_a_warning(self):
+    def test_only_reviewed_blank_source_value_is_informational(self):
         def issue_for(event_id, category, name):
             con = sqlite3.connect(":memory:")
             con.executescript(build_db.SCHEMA)
@@ -1164,10 +1189,10 @@ class AnneIdentityTests(unittest.TestCase):
 
         self.assertEqual(
             issue_for(1672, "Damen 10", "Veitsberger Miriam"),
-            "source_value_missing:warning")
+            "source_value_missing:info")
         self.assertEqual(
             issue_for(1947, "NO H45", "Schuller Georg"),
-            "source_value_missing:warning")
+            "source_value_missing:info")
         self.assertEqual(
             issue_for(1, "Damen 10", "Neue Leerstelle"),
             "unknown_status:blocker")
@@ -1243,6 +1268,33 @@ class AnneIdentityTests(unittest.TestCase):
             "SELECT code || ':' || severity FROM audit_issue "
             "WHERE result_list_id=?", (primary,)).fetchone()[0],
             "source_omission_recovered:info")
+
+    def test_reviewed_source_omission_is_informational(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id,title) VALUES (4364,'OÖLM Nacht')")
+        cur.execute("INSERT INTO stage (id,event_id,number) VALUES (1,4364,1)")
+        cur.execute(
+            "INSERT INTO source_document (id,event_id,source_type) "
+            "VALUES ('primary',4364,'sportsoftware-pdf')")
+        rows = [
+            {"name": f"Runner {index}", "rank": index, "timeS": 100 + index}
+            for index in range(1, 6)
+        ]
+        list_id = build_db.register_result_list(
+            cur, 1, "primary", "H 35-", "H 35-", 6, rows)
+        for row in rows:
+            build_db.insert_result(
+                cur, stage_id=1, result_list_id=list_id,
+                category="H 35-", rank=row["rank"], status="ok",
+                time_s=row["timeS"], source="sportsoftware-pdf",
+                observed_name=row["name"])
+        build_db.populate_quality_model(cur)
+        self.assertEqual(cur.execute(
+            "SELECT code || ':' || severity FROM audit_issue "
+            "WHERE result_list_id=?", (list_id,)).fetchone()[0],
+            "source_declared_omission_confirmed:info")
 
     def test_normalized_source_count_groups_expanded_team_members(self):
         rows = [
