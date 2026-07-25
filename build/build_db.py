@@ -1321,8 +1321,11 @@ def prepare_verified_member_identities(cur, persons, members, confirmed_aliases=
 def duplicate_identity_merge_edges(persons, verified_member_ids=()):
     """Return safe duplicate/synthetic-id merges grouped by canonical name.
 
-    A verified member id is preferred over an unverified duplicate ANNE
-    account and is never merged into another id.  If several verified ids
+    A club book-of-record id is normally preferred over an unverified duplicate
+    ANNE account.  When that roster id itself belongs to an unverified legacy
+    profile and exactly one same-name/same-year ANNE profile is verified, the
+    verified current profile wins instead; the roster id remains attached as
+    identifier provenance and a redirect. If several protected/verified ids
     share the same name and cannot be separated by birth year, no positive-id
     merge is made; uncertainty is safer than destroying two identities.
     """
@@ -1357,7 +1360,21 @@ def duplicate_identity_merge_edges(persons, verified_member_ids=()):
                     bool(profile.get("anne_is_verified")),
                     -anne_id,
                 )
-            target = protected[0] if protected else max(anne_ids, key=target_quality)
+            verified_profiles = [
+                anne_id for anne_id in anne_ids
+                if persons.anne_profiles.by_id.get(anne_id, {}).get("anne_is_verified")
+            ]
+            protected_verified = [
+                anne_id for anne_id in protected if anne_id in verified_profiles
+            ]
+            if protected and not protected_verified and len(verified_profiles) == 1:
+                # The roster can retain an old ÖFOL account after ANNE has
+                # issued and verified its replacement. Exact name and birth
+                # year agreement (checked by this group) makes that replacement
+                # safe while avoiding stale club memberships from the old id.
+                target = verified_profiles[0]
+            else:
+                target = protected[0] if protected else max(anne_ids, key=target_quality)
             for anne_id in anne_ids:
                 if anne_id != target:
                     merge_map[anne_id] = target
@@ -1379,6 +1396,29 @@ def duplicate_identity_merge_edges(persons, verified_member_ids=()):
                 matches = by_yob.get(synth_yob)
                 if synth_yob is not None and matches and len(matches) == 1:
                     merge_map[synth_id] = matches[0]
+
+    # Result-derived aliases can temporarily place otherwise identical ANNE
+    # profiles into different reconciliation groups.  Re-check stale roster
+    # ids against the clean /user registry itself: an unverified roster profile
+    # may move only when exactly one verified profile has the same canonical
+    # name and birth year. This keeps the rule deterministic and independent
+    # of noisy historical result spellings.
+    registry_groups = defaultdict(list)
+    for anne_id, profile in persons.anne_profiles.by_id.items():
+        registry_groups[(profile.get("name_key"),
+                         profile.get("year_of_birth"))].append(anne_id)
+    for roster_id in verified_member_ids:
+        profile = persons.anne_profiles.by_id.get(roster_id)
+        if not profile or profile.get("anne_is_verified"):
+            continue
+        candidates = [
+            anne_id for anne_id in registry_groups.get(
+                (profile.get("name_key"), profile.get("year_of_birth")), ())
+            if anne_id != roster_id
+            and persons.anne_profiles.by_id[anne_id].get("anne_is_verified")
+        ]
+        if len(candidates) == 1:
+            merge_map[roster_id] = candidates[0]
     return merge_map
 
 

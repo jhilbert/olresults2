@@ -1489,6 +1489,33 @@ class AnneIdentityTests(unittest.TestCase):
 
         self.assertEqual(merges, {3000: 5000})
 
+    def test_verified_anne_replacement_wins_over_unverified_roster_id(self):
+        profiles = build_db.AnneProfileIndex([
+            {"oefol_id": 1735, "first_name": "Brigitte",
+             "last_name": "Lukaseder", "year_of_birth": 1973,
+             "anne_is_verified": False,
+             "active_memberships": [{"club": {"name": "Naturfreunde Wien"},
+                                      "sport_type": "skiOrienteering"}]},
+            {"oefol_id": 10663, "first_name": "Brigitte",
+             "last_name": "Lukaseder", "year_of_birth": 1973,
+             "anne_is_verified": True,
+             "active_memberships": [{"club": {"name": "FUN.O NOe"},
+                                      "sport_type": "footOrienteering"}]},
+        ])
+        persons = build_db.PersonRegistry(profiles)
+        for profile in profiles.by_id.values():
+            persons.from_anne(
+                profile["oefol_id"], profile["name"],
+                profile["year_of_birth"], profile["nationality"])
+        # A crossed historic result can pollute reconciliation aliases even
+        # though both clean registry profiles still identify the same person.
+        persons.by_id[1735] = (
+            "Historical Alias", "alias historical", 1973, None)
+
+        merges = build_db.duplicate_identity_merge_edges(persons, {1735})
+
+        self.assertEqual(merges, {1735: 10663})
+
     def test_real_birth_year_profile_wins_over_anne_1901_placeholder(self):
         profiles = build_db.AnneProfileIndex([
             {"oefol_id": 8137, "first_name": "Herwig", "last_name": "Hierzegger",

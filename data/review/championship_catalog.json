@@ -127,6 +127,13 @@
       "reviewed_at": "2026-07-22T18:24:10.434Z"
     },
     {
+      "id": "champ:8e459e4effc66cf63a7f8c8c",
+      "input_fingerprint": "fb3e02b8751558ac78d446e17d97134ca2ed48afef8a7bae32141977e0498792",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-24T20:06:49.523Z"
+    },
+    {
       "id": "champ:9b31e0696e32aa7d8b6bf710",
       "input_fingerprint": "51c91ffcee13ba08be7e8288e4717cac7746ef2287cce1bac6f790b2e7d3947e",
       "state": "confirmed",
@@ -148,11 +155,25 @@
       "reviewed_at": "2026-07-22T18:25:16.148Z"
     },
     {
+      "id": "champ:bb5dea71cb9af9301f1a7599",
+      "input_fingerprint": "2273e530e1a460a097b3b453229573c71606d079526623997e18395ff3758357",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-24T20:06:46.492Z"
+    },
+    {
       "id": "champ:c4a93920b3c6751bfe24c211",
       "input_fingerprint": "55a88afd4fe6ce30edf05a223ddd808ef9359e7be6a377ee0ee8be9f6b08e7fa",
       "state": "confirmed",
       "reviewer": "local-review",
       "reviewed_at": "2026-07-22T18:25:07.309Z"
+    },
+    {
+      "id": "champ:c65f3900013313ee45791329",
+      "input_fingerprint": "47390990d5cc99fd757ffd1b60091b32deffed3cce4b2432a4643679c4f4b28a",
+      "state": "confirmed",
+      "reviewer": "local-review",
+      "reviewed_at": "2026-07-24T20:04:51.752Z"
     },
     {
       "id": "champ:dd62a406504ea52fb2ebac2f",

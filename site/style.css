@@ -56,6 +56,37 @@ header {
 .refresh:hover { color: var(--accent-dark); border-color: var(--accent); }
 .refresh.spinning { animation: spin .8s linear infinite; pointer-events: none; color: var(--accent); }
 
+.data-notice {
+  position: fixed;
+  z-index: 9;
+  top: 74px;
+  right: max(16px, calc((100vw - 1020px) / 2 + 20px));
+  width: min(330px, calc(100vw - 32px));
+  padding: 20px 30px 18px 20px;
+  border: 1px solid #e1c94e;
+  border-radius: 3px;
+  background: #fff39a;
+  color: #164f91;
+  box-shadow: 0 5px 14px rgba(69, 55, 0, .22);
+  font-size: 13px;
+  line-height: 1.45;
+  transform: rotate(1deg);
+}
+.data-notice[hidden] { display: none; }
+.data-notice a { color: #164f91; font-weight: 700; }
+.data-notice-close {
+  position: absolute;
+  top: 3px;
+  right: 6px;
+  border: 0;
+  background: transparent;
+  color: #164f91;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+.data-notice-close:hover { color: #0a315e; }
+
 /* header lens: just the Disziplin chip now (Verein/Läufer:in moved onto
    their own nav pages, see .page-pick below), opening a small panel
    anchored under the chip */
@@ -381,4 +412,9 @@ footer a { color: var(--accent-dark); text-decoration: none; }
   td, thead th { padding: 7px 8px; }
   .hide-sm { display: none; }
   .page-pick { max-width: none; }
+  .data-notice {
+    top: 108px;
+    right: 16px;
+    font-size: 12.5px;
+  }
 }

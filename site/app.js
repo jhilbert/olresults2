@@ -6,6 +6,25 @@ const app = document.getElementById("app");
 
 /* ---------- helpers ---------- */
 
+function setupDataNotice() {
+  const notice = document.getElementById("data-notice");
+  const close = document.getElementById("data-notice-close");
+  if (!notice || !close) return;
+  try {
+    notice.hidden = sessionStorage.getItem("olr-data-notice-closed") === "1";
+  } catch (_err) {
+    // The notice remains visible when browser storage is unavailable.
+  }
+  close.addEventListener("click", () => {
+    notice.hidden = true;
+    try {
+      sessionStorage.setItem("olr-data-notice-closed", "1");
+    } catch (_err) {
+      // Closing still works for the current page without browser storage.
+    }
+  });
+}
+
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g,
   (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
@@ -70,7 +89,12 @@ const categoryAgeGroup = (cat) => {
 // Vorjahres bis 31. Oktober; November/Dezember gehören daher bereits zur
 // Saison des Folgejahres. Jede Saison-Auswahl der Anwendung verwendet
 // ausschließlich diese Funktion.
-const { seasonYear } = window.OLRDomainRules;
+const {
+  seasonYear,
+  personIdString,
+  compareResultCategories,
+  regionalCategoryLabel,
+} = window.OLRDomainRules;
 
 function fmtTime(s) {
   if (s == null) return "";
@@ -168,8 +192,18 @@ function readIdentity() {
   const params = new URLSearchParams(location.search);
   const urlClub = params.get("club");
   const urlRunner = params.get("runner");
-  if (urlClub || urlRunner) return { club: urlClub || null, runnerId: urlRunner ? +urlRunner : null };
-  return readJSON(localStorage, IDENTITY_KEY) || { club: null, runnerId: null };
+  if (urlClub || urlRunner) {
+    return { club: urlClub || null, runnerId: personIdString(urlRunner) };
+  }
+  const stored = readJSON(localStorage, IDENTITY_KEY) || {};
+  return {
+    club: stored.club || null,
+    // Migrate an old safe numeric selection to text. An already-rounded
+    // unsafe number cannot be repaired, so reject it and let the user select
+    // the runner again.
+    runnerId: typeof stored.runnerId === "number" && !Number.isSafeInteger(stored.runnerId)
+      ? null : personIdString(stored.runnerId),
+  };
 }
 let identity = readIdentity();
 
@@ -222,7 +256,7 @@ function runnerHits(q, limit = 10) {
   const dw = disciplineWhere("e.sport_type");
   return query(
     `WITH candidates AS MATERIALIZED (
-       SELECT p.id, p.name, p.year_of_birth,
+       SELECT CAST(p.id AS TEXT) AS id, p.name, p.year_of_birth,
               COALESCE(
                 MAX(CASE WHEN pi.identifier = CAST(p.id AS TEXT)
                          THEN pi.identifier END),
@@ -249,12 +283,15 @@ function runnerHits(q, limit = 10) {
 // ever persisting a name - and self-heals a redirected id back into
 // identity so a bookmarked link keeps working after a future rebuild.
 function resolveRunner(id) {
+  id = personIdString(id);
   if (id == null) return null;
-  let [p] = query("SELECT id, name FROM person WHERE id = ?", [id]);
+  let [p] = query("SELECT CAST(id AS TEXT) AS id, name FROM person WHERE id = ?", [id]);
   if (!p) {
-    const [redirect] = query("SELECT new_id FROM person_redirect WHERE old_id = ?", [id]);
+    const [redirect] = query(
+      "SELECT CAST(new_id AS TEXT) AS new_id FROM person_redirect WHERE old_id = ?", [id]);
     if (redirect) {
-      [p] = query("SELECT id, name FROM person WHERE id = ?", [redirect.new_id]);
+      [p] = query(
+        "SELECT CAST(id AS TEXT) AS id, name FROM person WHERE id = ?", [redirect.new_id]);
       if (p) setIdentity({ runnerId: p.id });
     }
   }
@@ -379,7 +416,7 @@ function setupIdentity() {
     const runnerOpt = ev.target.closest("[data-runner]");
     if (runnerOpt) {
       const id = runnerOpt.dataset.runner;
-      setIdentity({ runnerId: id === "__none" ? null : +id });
+      setIdentity({ runnerId: id === "__none" ? null : personIdString(id) });
       route(); return;
     }
     const clearBtn = ev.target.closest("[data-clear]");
@@ -555,7 +592,7 @@ function viewEvents(year, omOnly, top3, regionalCode = null) {
   if (top3) {
     const championRows = regionalCode ? query(`
         SELECT DISTINCT ci.stage_id, ci.category, cj.short_name AS championship,
-               ce.regional_rank AS national_rank, p.id AS person_id,
+               ce.regional_rank AS national_rank, CAST(p.id AS TEXT) AS person_id,
                COALESCE(p.name, r.observed_name) AS person_name,
                r.official_club AS club
           FROM championship_instance ci
@@ -625,7 +662,8 @@ function viewEvents(year, omOnly, top3, regionalCode = null) {
 // there, so both show literally the same rows in the same shape.
 function fetchRunnerRows(id, dw) {
   const allRows = query(`
-    SELECT r.*, e.id AS event_id, e.title AS event_title, e.location, e.country,
+    SELECT r.*, CAST(r.person_id AS TEXT) AS person_id,
+           e.id AS event_id, e.title AS event_title, e.location, e.country,
            e.competition_type, e.sport_type, s.date AS stage_date, s.title AS stage_title,
            s.number AS stage_number, e.date_from,
            cs.starters, cs.classified, cs.winner_time_s,
@@ -698,10 +736,19 @@ function renderRunnerResultsTable(rows) {
 // branch build their header through this one function so the two can never
 // drift apart again.
 function runnerHeaderHtml(id, { withChangeButton } = {}) {
-  let [p] = query("SELECT * FROM person WHERE id = ?", [id]);
+  id = personIdString(id);
+  if (id == null) return null;
+  let [p] = query(
+    "SELECT CAST(id AS TEXT) AS id, name, name_key, year_of_birth, nationality "
+    + "FROM person WHERE id = ?", [id]);
   if (!p) {
-    const [redirect] = query("SELECT new_id FROM person_redirect WHERE old_id = ?", [id]);
-    if (redirect) [p] = query("SELECT * FROM person WHERE id = ?", [redirect.new_id]);
+    const [redirect] = query(
+      "SELECT CAST(new_id AS TEXT) AS new_id FROM person_redirect WHERE old_id = ?", [id]);
+    if (redirect) {
+      [p] = query(
+        "SELECT CAST(id AS TEXT) AS id, name, name_key, year_of_birth, nationality "
+        + "FROM person WHERE id = ?", [redirect.new_id]);
+    }
   }
   if (!p) return null;
 
@@ -975,6 +1022,8 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
         ON cs.stage_id = r.stage_id AND cs.category = r.category
       WHERE r.stage_id = ?${medalsOnly ? " AND r.championship IS NOT NULL" : ""}
       GROUP BY r.category ORDER BY r.category`, [st.id]);
+    cats.sort((a, b) => compareResultCategories(
+      a.category_full || a.category, b.category_full || b.category));
     // in the compact medals-only view, a stage with no championship category
     // at all (a plain Austria-Cup leg of an otherwise-championship meet, e.g.
     // "6.AC Mittel" within "ÖM 3Tage-4Läufe") would otherwise render as a bare
@@ -988,7 +1037,8 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
     const stageHasOfficial = cats.some((c) => !isBahn(c.category));
     for (const c of cats) {
       const results = reorderTeamMembers(regionalCode ? query(`
-        SELECT r.*, COALESCE(p.name, r.observed_name) AS person_name,
+        SELECT r.*, CAST(r.person_id AS TEXT) AS person_id,
+               COALESCE(p.name, r.observed_name) AS person_name,
                ce.regional_rank
           FROM championship_entry ce
           JOIN championship_entry_result cer ON cer.championship_entry_id = ce.id
@@ -998,7 +1048,8 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
          ORDER BY ce.regional_rank IS NULL, ce.regional_rank,
                   COALESCE(r.team_number, r.team_name, r.club), r.leg_number, r.time_s`,
         [c.regional_instance_id]) : query(`
-        SELECT r.*, COALESCE(p.name, r.observed_name) AS person_name FROM result r
+        SELECT r.*, CAST(r.person_id AS TEXT) AS person_id,
+               COALESCE(p.name, r.observed_name) AS person_name FROM result r
         LEFT JOIN person p ON p.id = r.person_id
         WHERE r.stage_id = ? AND r.category = ?
           ${medalsOnly ? "AND r.championship IS NOT NULL AND r.national_rank <= 3" : ""}
@@ -1011,10 +1062,11 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
         c.climb ? c.climb + " Hm" : null,
         c.ctrls ? c.ctrls + " Posten" : null,
       ].filter(Boolean).join(" · ");
-      const regionalLabel = regionalCode
-        ? regionalViews.find((view) => view.jurisdiction === regionalCode)?.short_name : null;
-      const catChamp = regionalLabel ? [regionalLabel]
-        : [...new Set(results.map((r) => r.championship).filter(Boolean))];
+      const categoryHeading = regionalCode
+        ? regionalCategoryLabel(regionalCode, c.category)
+        : (c.category_full || c.category);
+      const catChamp = regionalCode
+        ? [] : [...new Set(results.map((r) => r.championship).filter(Boolean))];
       const medalTier = { 1: "gold", 2: "silver", 3: "bronze" };
       const medalName = { 1: "Gold", 2: "Silber", 3: "Bronze" };
       const units = [];
@@ -1046,7 +1098,7 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
       html += `
         <div class="cat-block">
           <div class="cat-head">
-            <h3>${esc(c.category_full || c.category)}${catChamp.map((ch) => ` <span class="badge champ-badge">${esc(ch)}</span>`).join("")}</h3>
+            <h3>${esc(categoryHeading)}${catChamp.map((ch) => ` <span class="badge champ-badge">${esc(ch)}</span>`).join("")}</h3>
             <span class="course">${course}${course ? " · " : ""}${displayedEntries} ${hasTeamUnits ? "Teams" : "Starter"}${isBahn(c.category) && stageHasOfficial ? " · inoffizielle Bahnwertung" : ""}</span>
           </div>
           <table>
@@ -1205,7 +1257,8 @@ function fetchPodiums({ club, personId, dw }) {
     SELECT r.rank, r.national_rank, r.category, r.category_full, r.result_kind, r.championship,
            e.id AS event_id, e.title AS event_title, e.sport_type, s.title AS stage_title,
            s.id AS stage_id, s.number AS stage_number,
-           COALESCE(s.date, e.date_from) AS date, p.id AS person_id,
+           COALESCE(s.date, e.date_from) AS date,
+           CAST(p.id AS TEXT) AS person_id,
            COALESCE(p.name, r.observed_name) AS person_name,
            r.official_club AS club_name
     FROM result r
@@ -1239,7 +1292,8 @@ function fetchRegionalPodiums({ jurisdiction, club, personId, dw }) {
            r.result_kind, cj.short_name AS championship,
            e.id AS event_id, e.title AS event_title, e.sport_type,
            s.title AS stage_title, s.id AS stage_id, s.number AS stage_number,
-           COALESCE(s.date, e.date_from) AS date, p.id AS person_id,
+           COALESCE(s.date, e.date_from) AS date,
+           CAST(p.id AS TEXT) AS person_id,
            COALESCE(p.name, r.observed_name) AS person_name,
            r.official_club AS club_name
       FROM championship_instance ci
@@ -1479,7 +1533,7 @@ function clubDetailHtml(name, year, medalType, { withChangeButton, hrefBase, vie
   if (view === "members") {
     const resultDw = disciplineWhere("e.sport_type");
     const roster = query(`
-      SELECT p.id, p.name, p.year_of_birth,
+      SELECT CAST(p.id AS TEXT) AS id, p.name, p.year_of_birth,
              (SELECT COUNT(*) FROM person_result r
               JOIN stage s ON s.id = r.stage_id JOIN event e ON e.id = s.event_id
               WHERE r.person_id = p.id AND r.result_kind != 'team'${resultDw.sql}) AS n
@@ -1615,7 +1669,7 @@ function viewClubDns(name, yearParam, modeParam) {
     SELECT e.id AS event_id, e.title AS event_title,
            COALESCE(s.date, e.date_from) AS date, e.sport_type,
            r.category, r.category_full,
-           p.id AS person_id, p.name AS person_name
+           CAST(p.id AS TEXT) AS person_id, p.name AS person_name
     FROM result r
     JOIN stage s ON s.id = r.stage_id
     JOIN event e ON e.id = s.event_id
@@ -1718,7 +1772,9 @@ function route() {
   if (!db) return;
   const hash = location.hash || "#/";
   let m;
-  if ((m = hash.match(/^#\/runner\/(-?\d+)(?:\/(\d{4}))?/))) { viewRunner(Number(m[1]), m[2]); setActiveNav(); }
+  if ((m = hash.match(/^#\/runner\/(-?\d+)(?:\/(\d{4}))?/))) {
+    viewRunner(personIdString(m[1]), m[2]); setActiveNav();
+  }
   else if ((m = hash.match(/^#\/event\/(\d+)(?:\/stage\/(\d+))?(?:(?:\/(om))|(?:\/lm\/(WIEN|NOE|BGLD|STMK|OOE|SBG|TIR|KTN|VBG)))?/))) {
     viewEvent(Number(m[1]), m[3] === "om", m[2] != null ? Number(m[2]) : null, m[4] || null); setActiveNav();
   }
@@ -1793,6 +1849,7 @@ async function boot() {
 }
 
 window.addEventListener("hashchange", route);
+setupDataNotice();
 boot().catch((err) => {
   app.innerHTML = `<h1>Fehler</h1><p class="sub">${esc(err.message)}</p>`;
 });
