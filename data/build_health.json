@@ -12,9 +12,9 @@
     "club_jurisdiction": 54,
     "event": 3992,
     "person": 31391,
-    "person_alias": 38206,
-    "person_club_membership": 11811,
-    "person_identifier": 3892,
+    "person_alias": 38205,
+    "person_club_membership": 11808,
+    "person_identifier": 3890,
     "person_redirect": 21989,
     "person_tombstone": 3903,
     "regional_category_mapping": 4352,
@@ -22,13 +22,13 @@
     "result_list": 27238,
     "source_document": 1871,
     "stage": 1683,
-    "verification_assertion": 640
+    "verification_assertion": 710
   },
   "eligibility": {
     "decisions": 1593,
     "people": 133
   },
-  "logical_sha256": "917139a32e5e4ceb4386767ca5e66ce747d98bb6eab375ad7119c6d07cf49cf2",
+  "logical_sha256": "312511da74c1e1083711e44aff9f4968edabb5629bc89c1a0212f7289d0be304",
   "quality": {
     "awards_without_positive_eligibility": 0,
     "duplicate_individual_results": 0,
