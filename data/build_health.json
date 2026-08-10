@@ -10,25 +10,25 @@
     "championship_rule_set": 10,
     "championship_source_entry": 324,
     "club_jurisdiction": 54,
-    "event": 4000,
-    "person": 31411,
-    "person_alias": 38230,
+    "event": 4001,
+    "person": 31413,
+    "person_alias": 38232,
     "person_club_membership": 11816,
     "person_identifier": 3890,
     "person_redirect": 21987,
     "person_tombstone": 3903,
     "regional_category_mapping": 4352,
-    "result": 264204,
-    "result_list": 27334,
-    "source_document": 1875,
-    "stage": 1687,
+    "result": 264278,
+    "result_list": 27357,
+    "source_document": 1876,
+    "stage": 1688,
     "verification_assertion": 710
   },
   "eligibility": {
     "decisions": 1593,
     "people": 133
   },
-  "logical_sha256": "cf51739dc4c9b8f9f4d770345032eef612f0b28af62ff0b6d2752fc047a88c42",
+  "logical_sha256": "48da092e6ed980f988f48d416bba64f836ff53b4c070575af9cf038ec73adc4e",
   "quality": {
     "awards_without_positive_eligibility": 0,
     "duplicate_individual_results": 0,
@@ -51,7 +51,7 @@
   },
   "result_by_kind": {
     "family": 3773,
-    "individual": 236364,
+    "individual": 236438,
     "pair": 2761,
     "relay": 17366,
     "team": 3940
@@ -62,7 +62,7 @@
     "club-table": 690,
     "liveresultat": 1254,
     "sportident-center": 48,
-    "sportsoftware-html": 116286,
+    "sportsoftware-html": 116360,
     "sportsoftware-pdf": 107950,
     "sportsoftware-text": 3805
   },
