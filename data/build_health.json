@@ -13,7 +13,7 @@
     "event": 4029,
     "person": 31498,
     "person_alias": 38358,
-    "person_club_membership": 11810,
+    "person_club_membership": 11814,
     "person_identifier": 3888,
     "person_redirect": 21992,
     "person_tombstone": 3899,
@@ -28,7 +28,7 @@
     "decisions": 1593,
     "people": 133
   },
-  "logical_sha256": "d80b1fc03746a5f76cb91a627b9f4eb6b126ca2bd46015a8d16bee359a140e0c",
+  "logical_sha256": "a7d05edbd2a9914e6b9a48be6746ec4fdf7527bda32c25bfe0afe69dadbb5fe3",
   "quality": {
     "awards_without_positive_eligibility": 0,
     "duplicate_individual_results": 0,
