@@ -1,6 +1,6 @@
 {
   "counts": {
-    "audit_issue": 5324,
+    "audit_issue": 5321,
     "award": 10645,
     "championship_entry": 16293,
     "championship_entry_result": 17832,
@@ -10,9 +10,9 @@
     "championship_rule_set": 10,
     "championship_source_entry": 324,
     "club_jurisdiction": 54,
-    "event": 4038,
-    "person": 31514,
-    "person_alias": 38374,
+    "event": 4040,
+    "person": 31511,
+    "person_alias": 38371,
     "person_club_membership": 11822,
     "person_identifier": 3890,
     "person_redirect": 21986,
@@ -28,7 +28,7 @@
     "decisions": 1619,
     "people": 133
   },
-  "logical_sha256": "08e6f56fae9a3cae8633f33753ab747be1ede390fc71c870fc70b0512ad248d0",
+  "logical_sha256": "ac51a0b90a0b94bbfb82a89246b05d60301e95c1f888919e9e42d98fe00866b4",
   "quality": {
     "awards_without_positive_eligibility": 0,
     "duplicate_individual_results": 0,
