@@ -1,6 +1,6 @@
 {
   "counts": {
-    "audit_issue": 5329,
+    "audit_issue": 5320,
     "award": 10645,
     "championship_entry": 16293,
     "championship_entry_result": 17832,
@@ -13,10 +13,10 @@
     "event": 4062,
     "person": 31533,
     "person_alias": 38397,
-    "person_club_membership": 11834,
-    "person_identifier": 3894,
-    "person_redirect": 21987,
-    "person_tombstone": 3904,
+    "person_club_membership": 11842,
+    "person_identifier": 3896,
+    "person_redirect": 21985,
+    "person_tombstone": 3906,
     "regional_category_mapping": 4352,
     "result": 265819,
     "result_list": 27556,
@@ -28,7 +28,7 @@
     "decisions": 1619,
     "people": 133
   },
-  "logical_sha256": "2acf8236c9789ad50f301c0a3237f6f58c2bc965827ef19840851cabc0edee67",
+  "logical_sha256": "9c2d0de19aeb66d600034be9becffa14f93fe36063daed5ed32a8bb0c3aa3e81",
   "quality": {
     "awards_without_positive_eligibility": 0,
     "duplicate_individual_results": 0,
