@@ -10,25 +10,25 @@
     "championship_rule_set": 10,
     "championship_source_entry": 324,
     "club_jurisdiction": 54,
-    "event": 4070,
-    "person": 31533,
-    "person_alias": 38397,
+    "event": 4072,
+    "person": 31539,
+    "person_alias": 38403,
     "person_club_membership": 11842,
     "person_identifier": 3896,
     "person_redirect": 21985,
     "person_tombstone": 3906,
     "regional_category_mapping": 4352,
-    "result": 265819,
-    "result_list": 27556,
-    "source_document": 1888,
-    "stage": 1700,
+    "result": 265953,
+    "result_list": 27586,
+    "source_document": 1890,
+    "stage": 1702,
     "verification_assertion": 710
   },
   "eligibility": {
     "decisions": 1619,
     "people": 133
   },
-  "logical_sha256": "63c4e9a181356b4d50d3140f705861b86e45af3160817ce177ab31384a7ae3d8",
+  "logical_sha256": "1d4a93dc2a9e8cfe2006437bb6ad0342046ce7451a0937c1cf7b97a876d18c8f",
   "quality": {
     "awards_without_positive_eligibility": 0,
     "duplicate_individual_results": 0,
@@ -50,14 +50,14 @@
     "unmatched_explicit_championship_rows": 0
   },
   "result_by_kind": {
-    "family": 3822,
-    "individual": 237879,
+    "family": 3829,
+    "individual": 238006,
     "pair": 2763,
     "relay": 17415,
     "team": 3940
   },
   "result_by_source": {
-    "anne-api": 35492,
+    "anne-api": 35626,
     "anne-entry-recovery": 8,
     "club-table": 690,
     "liveresultat": 1254,
