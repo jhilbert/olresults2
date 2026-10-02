@@ -10,7 +10,7 @@
     "championship_rule_set": 10,
     "championship_source_entry": 324,
     "club_jurisdiction": 54,
-    "event": 4079,
+    "event": 4080,
     "person": 31689,
     "person_alias": 38606,
     "person_club_membership": 12294,
@@ -28,7 +28,7 @@
     "decisions": 1629,
     "people": 133
   },
-  "logical_sha256": "0be0262a90e4da9d8918c5448b550b92e1778db881e4da89076b520bd8737012",
+  "logical_sha256": "a96e6ab21efec3cbdb586f67440f6be7e08f48f480cc22eeadec2f1eb4c96e2a",
   "quality": {
     "awards_without_positive_eligibility": 0,
     "duplicate_individual_results": 0,
