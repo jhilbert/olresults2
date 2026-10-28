@@ -7542,6 +7542,107 @@ def parse_noe_school_team_pdf(path):
     return [category for category in categories if category["results"]]
 
 
+def parse_oescore_school_pdf(path):
+    """Parse OEScore school-team results with points preceding elapsed time.
+
+    For school teams the first three text fields contain complete names;
+    guest/single entries use the first two fields for surname and forename.
+    Keep the printed text even when a field was clipped in the original PDF.
+    """
+    import pdfplumber
+
+    categories = []
+    current = None
+    with pdfplumber.open(path) as pdf:
+        for page in pdf.pages:
+            for words in group_lines(page.extract_words()):
+                if not words:
+                    continue
+                line = " ".join(w["text"] for w in words)
+                header = re.match(
+                    r"^(Damen|Herren)\s+(Unterstufe|Oberstufe|Gäste)\s+\((\d+)\)",
+                    line, re.I)
+                if words[0]["x0"] < 30 and header:
+                    name = f"{header.group(1)} {header.group(2)}"
+                    if "(Forts.)" not in line:
+                        current = {"name": name, "sourceCategory": name,
+                                   "declaredStarters": int(header.group(3)),
+                                   "rankingBasis": "score", "results": []}
+                        categories.append(current)
+                    continue
+                if current is None:
+                    continue
+
+                # The PDF draws long club names over the bold score column.
+                # Word extraction can fuse their letters and score digits;
+                # the original font and character positions separate them.
+                line_top = words[0]["top"]
+                chars = [c for c in page.chars if abs(c["top"] - line_top) < 2]
+
+                def cell(start, end, bold=False):
+                    return "".join(c["text"] for c in chars
+                                   if start <= c["x0"] < end
+                                   and ("bold" in c.get("fontname", "").lower()) == bold).strip()
+
+                rank_text = cell(30, 49)
+                # PDF drawing order keeps the complete third name before
+                # the club, even when the two fields visually overlap.
+                club_starts = [i for i, c in enumerate(chars)
+                               if abs(c["x0"] - 450) < 0.2
+                               and "bold" not in c.get("fontname", "").lower()]
+                if not club_starts:
+                    continue
+                club_start = club_starts[-1]
+                def field_start(x):
+                    return next((i for i, c in enumerate(chars[:club_start])
+                                 if abs(c["x0"] - x) < 0.2), None)
+
+                first_start, second_start, third_start = (
+                    field_start(x) for x in (50.2, 210.0, 361.5))
+                if first_start is None:
+                    continue
+                def field(start, end):
+                    return "".join(c["text"] for c in chars[start:end]).strip()
+
+                first = field(first_start, second_start or third_start or club_start)
+                second = (field(second_start, third_start or club_start)
+                          if second_start is not None else "")
+                third = (field(third_start, club_start)
+                         if third_start is not None else "")
+                club = "".join(c["text"] for c in chars[club_start:]
+                               if 448 <= c["x0"] < 600
+                               and "bold" not in c.get("fontname", "").lower()).strip()
+                value, time_text = cell(545, 600, bold=True), cell(600, 642)
+                if not first or not club or not value:
+                    continue
+                status = parse_status(value)
+                if not re.fullmatch(r"-?\d+", value) and not status:
+                    continue
+                rank = int(rank_text) if rank_text.isdigit() else None
+                second_first = second.split()[0] if second else ""
+                is_team = bool(second_first and second_first.isupper()
+                               and len(second.split()) >= 2)
+                names = [first, second, third] if is_team else [" ".join(
+                    part for part in (first, second) if part)]
+                names = [name for name in names if name]
+                team_number = f"{current['name']}-{len(current['results']) + 1}"
+                for name in names:
+                    result = {"name": name, "club": club, "rank": rank,
+                              "status": status or "ok", "rankingBasis": "score"}
+                    if status:
+                        result["statusText"] = value
+                    else:
+                        result["scoreText"] = value
+                    if time_text:
+                        result["timeText"] = time_text
+                        result["timeS"] = parse_time_loose(time_text)
+                    if is_team:
+                        result.update({"resultKind": "team", "teamNumber": team_number,
+                                       "teamName": club})
+                    current["results"].append(result)
+    return [category for category in categories if category["results"]]
+
+
 def parse_school_score_team_pdf(path):
     """Parse the wide Wiener Neustadt school score sheet with up to 3 names."""
     import pdfplumber
@@ -9098,6 +9199,10 @@ def main():
                 cats = parse_family_adventure_pdf(pdf_path)
             elif re.search(r"Ergebnisse\s+Knock-Out-Sprint", head_text, re.I):
                 cats = parse_knockout_final_pdf(pdf_path)
+            elif re.search(
+                    r"Pl\s+Nachname\s+Vorname\s+Text1\s+Verein\s+Erg\s+Zeit\s+Pkt\s+Str\s+Xtra",
+                    head_text, re.I):
+                cats = parse_oescore_school_pdf(pdf_path)
             elif re.search(
                     r"Rang\s+Nachname\s+Vorname\s+Name\s+2\s+Name\s+3\s+"
                     r"Schule\s+Zeit\s+Punkte\s+Strafe\s+Ergebnis",
