@@ -7633,6 +7633,7 @@ def parse_oescore_school_pdf(path):
                         result["statusText"] = value
                     else:
                         result["scoreText"] = value
+                        result["note"] = f"Ergebnis: {value} Punkte"
                     if time_text:
                         result["timeText"] = time_text
                         result["timeS"] = parse_time_loose(time_text)

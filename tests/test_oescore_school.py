@@ -44,6 +44,7 @@ class OEScoreSchoolTests(unittest.TestCase):
                          {school["results"][0]["teamNumber"]})
         self.assertEqual((school["results"][0]["scoreText"],
                           school["results"][0]["timeS"]), ("60", 2170))
+        self.assertEqual(school["results"][0]["note"], "Ergebnis: 60 Punkte")
         self.assertEqual([r["status"] for r in school["results"][-2:]], ["dsq", "dsq"])
         self.assertEqual((guests["results"][0]["name"], guests["results"][0]["scoreText"]),
                          ("Name Vorname", "126"))
