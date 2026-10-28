@@ -14,6 +14,11 @@ on:
         required: false
         default: false
         type: boolean
+      diagnostic_only:
+        description: "Diagnose ohne Änderungen an gespeicherten Daten und ohne Deployment"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -68,6 +73,7 @@ jobs:
         run: python3 build/normalized_diff.py --output "$RUNNER_TEMP/normalized-diff.txt"
 
       - name: Save private ANNE identity index
+        if: ${{ !inputs.diagnostic_only }}
         run: python3 ingest/identity_state.py push
 
       - name: Upload source sync log
@@ -102,9 +108,11 @@ jobs:
             --report "$RUNNER_TEMP/sync-health.json"
 
       - name: Save durable eligibility state
+        if: ${{ !inputs.diagnostic_only }}
         run: python3 ingest/eligibility_state.py push
 
       - name: Upload sync health report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: sync-health-${{ github.run_id }}
@@ -112,10 +120,11 @@ jobs:
             ${{ runner.temp }}/sync-health.json
             ${{ runner.temp }}/quality-report.json
             ${{ runner.temp }}/normalized-diff.txt
-          if-no-files-found: error
+          if-no-files-found: ignore
           retention-days: 30
 
       - name: Commit new snapshots
+        if: ${{ !inputs.diagnostic_only }}
         run: |
           git config user.name "olresults-bot"
           git config user.email "actions@github.com"
@@ -127,6 +136,7 @@ jobs:
       # push workflows. Dispatch the independent Pages workflow explicitly so
       # it checks out the just-pushed main HEAD and builds from that snapshot.
       - name: Trigger Pages deployment
+        if: ${{ !inputs.diagnostic_only }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run deploy-pages.yml --ref main
