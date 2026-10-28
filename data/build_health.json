@@ -1,34 +1,34 @@
 {
   "counts": {
-    "audit_issue": 5480,
-    "award": 10733,
-    "championship_entry": 16333,
-    "championship_entry_result": 17872,
-    "championship_instance": 7016,
+    "audit_issue": 5631,
+    "award": 10895,
+    "championship_entry": 16549,
+    "championship_entry_result": 18137,
+    "championship_instance": 7110,
     "championship_jurisdiction": 10,
-    "championship_result": 32639,
+    "championship_result": 33057,
     "championship_rule_set": 10,
     "championship_source_entry": 324,
     "club_jurisdiction": 54,
-    "event": 4080,
-    "person": 31689,
-    "person_alias": 38606,
-    "person_club_membership": 12294,
-    "person_identifier": 4011,
-    "person_redirect": 21914,
-    "person_tombstone": 3980,
-    "regional_category_mapping": 4368,
-    "result": 266939,
-    "result_list": 27674,
-    "source_document": 1893,
-    "stage": 1707,
+    "event": 4111,
+    "person": 32193,
+    "person_alias": 38966,
+    "person_club_membership": 12226,
+    "person_identifier": 4079,
+    "person_redirect": 21845,
+    "person_tombstone": 4049,
+    "regional_category_mapping": 4432,
+    "result": 270912,
+    "result_list": 28099,
+    "source_document": 1921,
+    "stage": 1734,
     "verification_assertion": 710
   },
   "eligibility": {
-    "decisions": 1629,
-    "people": 133
+    "decisions": 1667,
+    "people": 135
   },
-  "logical_sha256": "a96e6ab21efec3cbdb586f67440f6be7e08f48f480cc22eeadec2f1eb4c96e2a",
+  "logical_sha256": "52ce6d781d7dfbb05568a04cfe5072b63fb145dd6f6c1b8d09b9de0422f90e50",
   "quality": {
     "awards_without_positive_eligibility": 0,
     "duplicate_individual_results": 0,
@@ -50,20 +50,20 @@
     "unmatched_explicit_championship_rows": 0
   },
   "result_by_kind": {
-    "family": 3840,
-    "individual": 238981,
-    "pair": 2763,
-    "relay": 17415,
-    "team": 3940
+    "family": 3961,
+    "individual": 242252,
+    "pair": 2789,
+    "relay": 17835,
+    "team": 4075
   },
   "result_by_source": {
-    "anne-api": 36612,
+    "anne-api": 40094,
     "anne-entry-recovery": 8,
     "club-table": 690,
     "liveresultat": 1254,
     "sportident-center": 48,
     "sportsoftware-html": 116469,
-    "sportsoftware-pdf": 108053,
+    "sportsoftware-pdf": 108544,
     "sportsoftware-text": 3805
   },
   "schema_version": 10
