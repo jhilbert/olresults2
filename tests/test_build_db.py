@@ -13,6 +13,35 @@ SPEC.loader.exec_module(build_db)
 
 
 class AnneIdentityTests(unittest.TestCase):
+    def test_verified_member_confirms_only_unambiguous_matching_source_rows(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        members = [dict(ofol_id=8900, name="Annina Urbanek",
+                        name_key=build_db.name_key("Annina Urbanek"),
+                        yob=2011, club="Naturfreunde Wien")]
+        def add(name="Annina Urbanek", club="Naturfreunde Wien", person_id=8900,
+                source_id=None, kind="individual"):
+            build_db.insert_result(cur, stage_id=1, category="Damen bis 14",
+                person_id=person_id, observed_name=name, observed_club=club,
+                observed_user_id=source_id, result_kind=kind, source="test",
+                status="ok", identity_state="candidate")
+        add()
+        add(name="Urbanek Annina", club="NF Wien")
+        add(name="Andere Person")
+        add(club="OLC Graz")
+        add(person_id=9999)
+        add(source_id="9999")
+        add(kind="family")
+        self.assertEqual(build_db.confirm_verified_member_results(cur, members, lambda pid: pid), 2)
+        self.assertEqual([row[0] for row in cur.execute("SELECT identity_state FROM result ORDER BY id")],
+                         ["resolved", "resolved", "candidate", "candidate", "candidate", "candidate", "candidate"])
+        cur.execute("UPDATE result SET identity_state='candidate' WHERE id=1")
+        members.append(dict(ofol_id=8901, name="Annina Urbanek",
+                            name_key=build_db.name_key("Annina Urbanek"),
+                            yob=2012, club="Naturfreunde Wien"))
+        self.assertEqual(build_db.confirm_verified_member_results(cur, members, lambda pid: pid), 0)
+
     def test_national_minimum_counts_dnf_mp_but_excludes_dns_ak_and_guests(self):
         con = sqlite3.connect(":memory:")
         con.executescript(build_db.SCHEMA)

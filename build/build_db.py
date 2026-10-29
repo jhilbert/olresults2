@@ -1206,6 +1206,45 @@ def load_member_mapping():
     return d
 
 
+def confirm_verified_member_results(cur, members, resolve):
+    """Confirm a result, not just a person, using unique roster name + club.
+
+    Legacy rows can already point at a verified roster ID yet retain the
+    provisional state assigned before identity reconciliation. Promote only
+    rows whose observed name and club independently agree with that member.
+    Never override a conflicting source ID, an ambiguous name, or a family.
+    """
+    by_name = defaultdict(list)
+    for member in members:
+        by_name[member["name_key"]].append(member)
+    candidates = cur.execute(
+        """SELECT id, person_id, observed_name, observed_club, observed_user_id
+             FROM result
+            WHERE identity_state = 'candidate' AND result_kind != 'family'
+              AND person_id IS NOT NULL AND observed_name IS NOT NULL
+              AND observed_club IS NOT NULL""").fetchall()
+    updates = []
+    for result_id, person_id, observed_name, observed_club, observed_id in candidates:
+        matches = by_name.get(name_key(clean_name(observed_name)), [])
+        if len(matches) != 1:
+            continue
+        member = matches[0]
+        member_id = member["ofol_id"]
+        if person_id != resolve(member_id):
+            continue
+        if observed_id is not None and str(observed_id).strip() not in ("", str(member_id), str(person_id)):
+            continue
+        source_club = canonicalize_official_club(observed_club, OFFICIAL_CLUBS)
+        if source_club != member["club"]:
+            continue
+        updates.append((result_id,))
+    cur.executemany(
+        """UPDATE result SET identity_basis = 'club-book-of-record-name-club',
+                             identity_confidence = 1.0, identity_state = 'resolved'
+             WHERE id = ?""", updates)
+    return len(updates)
+
+
 def prepare_verified_member_identities(cur, persons, members, confirmed_aliases=None):
     """Repair crossed ANNE source IDs before global name reconciliation.
 
@@ -5909,6 +5948,8 @@ def main():
                    WHERE person_id = ?""", (old,))
         cur.execute("UPDATE result SET person_id = ? WHERE person_id = ?", (new, old))
         persons.by_id.pop(old, None)
+
+    confirm_verified_member_results(cur, members, resolve)
 
     for pid, (name, key, yob, nat) in persons.by_id.items():
         # prefer the API's authoritative 'First Last' spelling; otherwise the
