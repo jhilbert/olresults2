@@ -81,10 +81,20 @@ sein. Direkte Korrekturen der erzeugten SQLite-Datenbank sind nicht zulässig.
 | `CHAMP-AUT-001` | confirmed | ÖM/ÖSTM-Eligibility benötigt positive Evidenz: offizielle Meisterschaftswertung, ÖFOL-ID mit Nationalität AUT oder bei anderer Nationalität `championshipEligibility=true`; historische eventbezogene Entscheidungen werden nicht aus dem heutigen Zustand rückwirkend neu abgeleitet. |
 | `CHAMP-AUT-002` | provisional | Fehlt eine vollständige Wertung, kann Zugehörigkeit zu einem ÖFOL-Verein nur eine vorläufige Eligibility erzeugen. |
 | `CHAMP-AUT-003` | confirmed | OOC/AK, Family und DNS erhalten keine nationale Medaille. Eine veröffentlichte Medaille benötigt positive Eligibility-Evidenz. |
+| `CHAMP-MIN-001` | confirmed | Bei ÖM/ÖSTM und Wiener Meisterschaften sind mindestens drei für die jeweilige Meisterschaft wertungsberechtigte Starter je Kategorie Voraussetzung für Medaillen. DNF, MP und DSQ zählen als gestartet; DNS, AK und nicht wertungsberechtigte Gäste nicht. Ein Paar oder Team zählt als eine Starteinheit. Fehlende Evidenz darf nicht als gesicherte Berechtigung geraten werden. |
 | `CHAMP-REG-001` | confirmed | Eine einzelne Leistung darf höchstens einer Landesmeisterschaftswertung zugeordnet sein. Gemeinsame Bahnen sind keine gemeinsame Medaillenwertung. |
 | `CHAMP-REG-002` | confirmed | Explizite Quellkennungen wie `W`, `NÖ`, `B`, `St` haben Vorrang vor einer Ableitung aus dem heutigen Verein. |
 | `CHAMP-REG-003` | provisional | Ohne explizite Quellkennung ist historische Vereinszugehörigkeit die bevorzugte Evidenz. Heutige Vereinszugehörigkeit allein bleibt prüfpflichtig. |
 | `CHAMP-REG-004` | confirmed | Family und OOC dürfen keine Landesmeisterschaftsmedaille erzeugen. |
+
+## Jugend-Meistertitel und Förderung
+
+| ID | Status | Regel |
+|---|---|---|
+| `YOUTH-GRANT-001` | confirmed | Für die Übersicht zählen ausschließlich Siege in eindeutig nach oben begrenzten Altersklassen von bis 12 bis einschließlich bis 18, etwa −12, −14, −16, −18 oder 15–18. Offene Klassen wie 15− und −20 zählen nicht. |
+| `YOUTH-GRANT-002` | confirmed | Nur ÖM und Wiener Landesmeisterschaft werden getrennt gezählt; je Person wird dieselbe Team- oder Staffelleistung einmal gezählt. Die Saison- und Disziplinfilter gelten auch hier. |
+| `YOUTH-GRANT-003` | confirmed | Pro ÖM-Titel werden 400 € geschätzt; pro Wiener Titel in einer Damenklasse 110 €, in einer Herrenklasse 90 €. Bei gemischter oder unklarer Klasse wird der Wiener Betrag nicht geraten und bleibt offen. |
+| `YOUTH-GRANT-004` | provisional | In die geschätzte Summe fließen nur aufgelöste Personen und Ergebniszeilen mit positiver Berechtigung und direkter Meisterschaftsevidenz ein. Aus Veranstaltungstiteln abgeleitete Kategorien, reine Nat-/Landeskennungen, Rahmen-/B-Klassen und unklare Identitäten erscheinen separat zur Prüfung. Ein Landeskennzeichen belegt die Landeszuordnung, nicht für sich die Meisterschaftskategorie. Direkte Evidenz ersetzt keine vollständige Quellenprüfung oder verbindliche Förderzusage. |
 
 ## Prüfung und Veröffentlichung
 

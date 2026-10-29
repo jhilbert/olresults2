@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "events": {
+    "4879": {
+      "jurisdiction": "WIEN",
+      "event_date": "2025-05-10",
+      "stage_number": 1,
+      "label": "WOLV: Offizielle Ergebnisliste Wiener Sprintmeisterschaft 2025",
+      "url": "http://www.wolv.at/events/2025/Wr.Sprint-MS.pdf",
+      "sha256": "4c17ae783b7026683d9bac2d95a55adf404b86bb598bd715f1863e1a82e5a4a0",
+      "reviewed_on": "2026-10-29",
+      "scope": "Sieger mit ausdrücklich gedrucktem Wiener Meistertitel; keine Bestätigung sämtlicher Platzierungen oder der Förderhöhe",
+      "summary": "Die Liste bestätigt ausdrücklich zehn Titel. D 65- hat zwei Starter und erfüllt damit die Mindestzahl von drei nicht. D-12 ist gegenüber der gemeinsamen ANNE-Klasse unterschiedlich bezeichnet.",
+      "titles": [
+        {"category": "D-12", "result_category": "Wien Damen&Herren -12", "person_id": "8980", "name": "Albert Imriska", "club": "Naturfreunde Wien", "time_s": 532},
+        {"category": "D-14", "result_category": "Wien Damen-14", "person_id": "8506", "name": "Anna Skern", "club": "Naturfreunde Wien", "time_s": 707},
+        {"category": "D 15-", "result_category": "Wien Damen 15-", "person_id": "2710", "name": "Tina Tiefenböck", "club": "Naturfreunde Wien", "time_s": 1092},
+        {"category": "D 45-", "result_category": "Wien Damen 45-", "person_id": "7364", "name": "Barbara Kastner", "club": "Naturfreunde Wien", "time_s": 896},
+        {"category": "D 55-", "result_category": "Wien Damen 55-", "person_id": "2148", "name": "Birgit Gollmann", "club": "Naturfreunde Wien", "time_s": 528},
+        {"category": "H-14", "result_category": "Wien Herren-14", "person_id": "8979", "name": "Adam Imriska", "club": "Naturfreunde Wien", "time_s": 750},
+        {"category": "H 15-", "result_category": "Wien Herren 15-", "person_id": "7926", "name": "Marius Poirson", "club": "WAT-OL", "time_s": 938},
+        {"category": "H 45-", "result_category": "Wien Herren 45-", "person_id": "1206", "name": "Wolfgang Waldhäusl", "club": "Naturfreunde Wien", "time_s": 973},
+        {"category": "H 60-", "result_category": "Wien Herren 60-", "person_id": "1754", "name": "Wolfgang Pietsch", "club": "Naturfreunde Wien", "time_s": 716},
+        {"category": "H 75-", "result_category": "Wien Herren 75-", "person_id": "1127", "name": "Werner Burmann", "club": "OLC Wienerwald", "time_s": 1060}
+      ],
+      "notes": [
+        "Albert Imriska steht in der WOLV-Liste unter D-12, in der ANNE-Liste unter Wien Damen&Herren -12. Die Geschlechtszuordnung und der Fördersatz sind damit nicht belegt.",
+        "D 65-: Herta Pamlitschka steht auf Rang 1; mit zwei Startern wird die bestätigte Mindestzahl von drei nicht erreicht, und die WOLV-Liste nennt keinen Meistertitel.",
+        "D-12: Annika Springer wird in der WOLV-Ergebnisliste auf Rang 8 angeführt; die bestehende Landesvereinsregel der Anwendung ist dadurch nicht automatisch geändert."
+      ]
+    },
+    "4963": {
+      "jurisdiction": "WIEN",
+      "event_date": "2025-10-11",
+      "stage_number": 1,
+      "label": "WOLV: Offizielle Ergebnisliste Wiener Meisterschaft Nacht-OL 2025",
+      "url": "http://www.wolv.at/events/2025/Wr.Nacht-MS.pdf",
+      "sha256": "ae271d4f74eb1bb628f18f3e7e84503e7400df829e34c3a58c0f3b8b6b14d954",
+      "reviewed_on": "2026-10-29",
+      "scope": "Sieger mit ausdrücklich gedrucktem Wiener Meistertitel; die Liste und die bestätigte Mindeststarterregel belegen Klassen mit weniger als drei Startern",
+      "summary": "Die Liste nennt ausdrücklich sechs Meisterklassen. D15-18, H15-18, D19- und H75- erreichen mit je ein oder zwei Startern die Mindestzahl von drei nicht.",
+      "titles": [
+        {"category": "H-14", "result_category": "H-14", "person_id": "10035", "name": "Emil Wally", "club": "WAT-OL", "time_s": 1576},
+        {"category": "H-14", "result_category": "H-14", "person_id": "10052", "name": "Arthur Wally", "club": "WAT-OL", "time_s": 1576},
+        {"category": "H19-", "result_category": "H19-", "person_id": "6912", "name": "Nicolas Kastner", "club": "Naturfreunde Wien", "time_s": 2552},
+        {"category": "H45", "result_category": "H40-(B),H45-(NÖ,St,W)", "person_id": "1760", "name": "Thomas Radon", "club": "Naturfreunde Wien", "time_s": 2607},
+        {"category": "D55-", "result_category": "D55-", "person_id": "7364", "name": "Barbara Kastner", "club": "Naturfreunde Wien", "time_s": 3381},
+        {"category": "H55-", "result_category": "H55-", "person_id": "1141", "name": "Erich Göschl", "club": "OLC Wienerwald", "time_s": 3185},
+        {"category": "H65-", "result_category": "H65-", "person_id": "2021", "name": "Paul Grün", "club": "OLG Ströck Wien", "time_s": 3528}
+      ],
+      "unannotated_winners": [
+        {"category": "D15-18", "result_category": "D15-18", "person_id": "8110", "name": "Maria Beck", "club": "Naturfreunde Wien", "time_s": 4047},
+        {"category": "H15-18", "result_category": "H15-18", "person_id": "9018", "name": "Fabian Kolar", "club": "Naturfreunde Wien", "time_s": 2951},
+        {"category": "D19-", "result_category": "D19-", "person_id": "6704", "name": "Livia Radon", "club": "Naturfreunde Wien", "time_s": 3146},
+        {"category": "H75-", "result_category": "H75-(NÖ,St,W)", "person_id": "1127", "name": "Werner Burmann", "club": "OLC Wienerwald", "time_s": 3736}
+      ],
+      "notes": [
+        "H-14: Emil Wally und Arthur Wally werden als siegreiches Paar ausdrücklich gemeinsam als Wiener Meister ausgewiesen.",
+        "D15-18 und H15-18: Maria Beck und Fabian Kolar sind jeweils Erste, aber jeweils die einzigen Starter. Daher keine Meisterschaftsmedaille.",
+        "D19- und H75-: Je zwei Starter; die Mindestzahl von drei wird nicht erreicht. Ein DNS zählt nicht."
+      ]
+    }
+  }
+}

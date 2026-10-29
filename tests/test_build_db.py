@@ -13,6 +13,86 @@ SPEC.loader.exec_module(build_db)
 
 
 class AnneIdentityTests(unittest.TestCase):
+    def test_national_minimum_counts_dnf_mp_but_excludes_dns_ak_and_guests(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO stage (id, event_id, number) VALUES (1, 1, 1)")
+        cur.execute("CREATE TEMP TABLE ineligible_starter (event_id INTEGER, person_id INTEGER)")
+        def add(cat, pid, status, champion=False, ooc=0, eligibility="eligible"):
+            build_db.insert_result(cur, stage_id=1, category=cat, person_id=pid,
+                observed_name=f"Person {pid}", status=status, out_of_competition=ooc,
+                championship="ÖM" if champion else None, rank=1 if champion else None,
+                championship_eligibility_state=eligibility, result_list_id=f"list-{cat}",
+                source="test")
+        add("three-with-dnf", 1, "ok", True)
+        add("three-with-dnf", 2, "ok")
+        add("three-with-dnf", 3, "dnf")
+        add("three-with-mp", 4, "ok", True)
+        add("three-with-mp", 5, "ok")
+        add("three-with-mp", 6, "mp")
+        add("one-finisher-two-nonfinishers", 15, "ok", True)
+        add("one-finisher-two-nonfinishers", 16, "dnf")
+        add("one-finisher-two-nonfinishers", 17, "mp")
+        add("only-two", 7, "ok", True)
+        add("only-two", 8, "ok")
+        add("only-two", 9, "dns")
+        add("only-two", 10, "ok", ooc=1)
+        add("only-two", 11, "ok")
+        cur.execute("INSERT INTO ineligible_starter VALUES (1, 11)")
+        add("unknown-third", 12, "ok", True)
+        add("unknown-third", 13, "ok")
+        add("unknown-third", 14, "dnf", eligibility="unknown")
+        build_db.apply_national_minimum_starters(cur)
+        self.assertEqual(dict(cur.execute(
+            "SELECT category, state FROM national_minimum_starters")),
+            {"three-with-dnf": "met", "three-with-mp": "met", "one-finisher-two-nonfinishers": "met", "only-two": "insufficient",
+             "unknown-third": "unresolved"})
+        self.assertEqual(cur.execute("SELECT COUNT(*) FROM result WHERE championship = 'ÖM'").fetchone()[0], 5)
+        build_db.compute_national_ranks(cur)
+        self.assertEqual(dict(cur.execute("SELECT category, national_rank FROM result WHERE rank = 1")),
+            {"three-with-dnf": 1, "three-with-mp": 1, "one-finisher-two-nonfinishers": 1,
+             "only-two": None, "unknown-third": None})
+        self.assertEqual(cur.execute("SELECT COUNT(*) FROM audit_issue WHERE code = ?",
+            ("national_minimum_eligibility_unresolved",)).fetchone()[0], 1)
+
+    def test_national_minimum_counts_pairs_not_people_or_clubs(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO stage (id, event_id, number) VALUES (1, 1, 1)")
+        cur.execute("CREATE TEMP TABLE ineligible_starter (event_id INTEGER, person_id INTEGER)")
+        pairs = [("Anna", "Berta"), ("Cleo", "Dora"), ("Emil", "Fritz")]
+        pid = 0
+        for rank, pair in enumerate(pairs, 1):
+            for name, partner in (pair, pair[::-1]):
+                pid += 1
+                build_db.insert_result(cur, stage_id=1, category="D-14", person_id=pid,
+                    observed_name=name, club="Same Club", result_kind="pair", rank=rank,
+                    status="ok", note=f"Partner: {partner}", source="test",
+                    championship_eligibility_state="eligible",
+                    championship="ÖM" if rank == 1 else None)
+        build_db.apply_national_minimum_starters(cur)
+        self.assertEqual(cur.execute("SELECT state FROM national_minimum_starters").fetchone()[0], "met")
+        cur.execute("INSERT INTO ineligible_starter VALUES (1, 6)")
+        build_db.apply_national_minimum_starters(cur)
+        self.assertEqual(cur.execute("SELECT state FROM national_minimum_starters").fetchone()[0], "insufficient")
+        self.assertEqual(cur.execute("SELECT COUNT(*) FROM result WHERE championship = 'ÖM'").fetchone()[0], 2)
+
+    def test_national_minimum_uses_event_specific_eligibility_for_dnf(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO stage (id, event_id, number) VALUES (1, 43, 1)")
+        cur.execute("CREATE TEMP TABLE ineligible_starter (event_id INTEGER, person_id INTEGER)")
+        for pid, status, state in ((1, "ok", "eligible"), (2, "ok", "eligible"), (3, "dnf", "unknown")):
+            build_db.insert_result(cur, stage_id=1, category="H17", person_id=pid,
+                observed_name=f"Starter {pid}", status=status, rank=1 if pid == 1 else None,
+                championship="ÖM" if pid == 1 else None,
+                championship_eligibility_state=state, source="test")
+        build_db.apply_national_minimum_starters(cur, {"3": {"43": True}})
+        self.assertEqual(cur.execute("SELECT state FROM national_minimum_starters").fetchone()[0], "met")
+
     def test_5496_official_wien_h55_replaces_stale_live_h60(self):
         path = ROOT / "data/raw/anne/results/5496.json"
         rows = [row for row in json.loads(path.read_text())

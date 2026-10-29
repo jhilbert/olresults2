@@ -2,6 +2,8 @@
 "use strict";
 
 let db = null;
+let regionalTitleEvidence = {};
+let nationalCategoryEvidence = {};
 const app = document.getElementById("app");
 
 /* ---------- helpers ---------- */
@@ -94,6 +96,9 @@ const {
   personIdString,
   compareResultCategories,
   regionalCategoryLabel,
+  youthTitleCategory,
+  youthTitleGrant,
+  regionalStarterCountsSql,
 } = window.OLRDomainRules;
 
 function fmtTime(s) {
@@ -509,13 +514,15 @@ function preferredRegionalCode(regions) {
   return regions.find((r) => r.code === "WIEN")?.code || regions[0]?.code || null;
 }
 
-function medalGroupRows({ mode, regionalCode, regions, hrefFor, includeAll = false }) {
+function medalGroupRows({ mode, regionalCode, regions, hrefFor, includeAll = false, includeYouth = false }) {
   const defaultRegion = preferredRegionalCode(regions);
   return `<div class="chips">
       ${includeAll ? `<a class="badge champ-badge champ-toggle ${mode === "all" ? "active" : ""}"
         href="${hrefFor("all")}">${mode === "all" ? "✓ " : ""}Alle Medaillen</a>` : ""}
       <a class="badge champ-badge champ-toggle ${mode === "om" ? "active" : ""}"
         href="${hrefFor("om")}">${mode === "om" ? "✓ " : ""}ÖM/ÖSTM</a>
+      ${includeYouth ? `<a class="badge champ-badge champ-toggle ${mode === "youth" ? "active" : ""}"
+        href="${hrefFor("youth")}">${mode === "youth" ? "✓ " : ""}Jugend-Meistertitel</a>` : ""}
       ${defaultRegion ? `<a class="badge champ-badge champ-toggle ${mode === "lm" ? "active" : ""}"
         href="${hrefFor("lm", regionalCode || defaultRegion)}">${mode === "lm" ? "✓ " : ""}Landes MS</a>` : ""}
     </div>
@@ -601,8 +608,11 @@ function viewEvents(year, omOnly, top3, regionalCode = null) {
           JOIN championship_entry_result cer ON cer.championship_entry_id = ce.id
           JOIN result r ON r.id = cer.result_id
           LEFT JOIN person p ON p.id = r.person_id
+          LEFT JOIN (${regionalStarterCountsSql()}) starter_counts
+            ON starter_counts.championship_instance_id = ci.id
          WHERE ci.jurisdiction = ? AND ci.championship_type = 'LMS'
            AND ci.state = 'confirmed' AND ce.eligibility_state = 'eligible'
+           AND (ci.jurisdiction != 'WIEN' OR COALESCE(starter_counts.starter_count, 0) >= 3)
            AND ce.regional_rank <= 3
          ORDER BY ci.stage_id, ci.category, ce.regional_rank`, [regionalCode]) : query(`
         SELECT r.stage_id, r.category, r.championship, r.national_rank, p.name AS person_name, r.club
@@ -915,6 +925,9 @@ function reorderTeamMembers(results) {
 function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
   const [e] = query("SELECT * FROM event WHERE id = ?", [id]);
   if (!e) { app.innerHTML = "<h1>Nicht gefunden</h1>"; return; }
+  const hasNationalStarterChecks = query(
+    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'national_minimum_starters'"
+  ).length > 0;
 
   const allStages = query(
     `SELECT s.* FROM stage s WHERE s.event_id = ?
@@ -995,20 +1008,28 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
         href="#/event/${id}${stageParam}/lm/${view.jurisdiction}">${esc(view.short_name)}</a>`).join("")}
     </div>` : ""}
     ${regionalCode ? `<p class="sub dim">Getrennte Landesmeisterschaftswertung desselben Laufs; die Gesamtleistung wird nicht dupliziert.</p>` : ""}
+    ${regionalCode === "WIEN" && regionalTitleEvidence[String(id)] ? `<p class="sub">Zusätzliche Quelle: <a href="${esc(regionalTitleEvidence[String(id)].url)}" target="_blank" rel="noopener">${esc(regionalTitleEvidence[String(id)].label)} ↗</a>. ${esc(regionalTitleEvidence[String(id)].summary)}</p>` : ""}
+    ${nationalCategoryEvidence[String(id)] && (!stageNum || stageNum === nationalCategoryEvidence[String(id)].stage_number) ? `<p class="sub">ÖM-Kategorien: <a href="${esc(nationalCategoryEvidence[String(id)].url)}" target="_blank" rel="noopener">${esc(nationalCategoryEvidence[String(id)].label)} ↗</a>. Die Ausschreibung belegt die Kategorien, nicht die individuellen Titel oder die Berechtigung.</p>` : ""}
+    ${!hasNationalStarterChecks && !regionalCode ? `<p class="sub">Die Datenbank ist noch nicht mit der aktuellen ÖM-Mindeststarterprüfung neu gebaut; angezeigte Medaillen sind vorläufig.</p>` : ""}
     ${medalsOnly && hasChamp ? `<p class="sub dim">Kompaktübersicht: nur ÖM/ÖSTM-Altersklassen, nur Medaillenränge.</p>` : ""}`;
 
   for (const st of stages) {
     const cats = regionalCode ? query(`
       SELECT ci.id AS regional_instance_id, ci.category, ci.category AS category_full,
+             COALESCE(starter_counts.starter_count, 0) AS championship_starters,
              COUNT(DISTINCT ce.id) AS entries, NULL AS starters, NULL AS classified,
              NULL AS winner_time_s, NULL AS len, NULL AS climb, NULL AS ctrls
         FROM championship_instance ci
         JOIN championship_entry ce ON ce.championship_instance_id = ci.id
+        LEFT JOIN (${regionalStarterCountsSql()}) starter_counts
+          ON starter_counts.championship_instance_id = ci.id
        WHERE ci.stage_id = ? AND ci.jurisdiction = ? AND ci.championship_type = 'LMS'
          AND ci.state = 'confirmed'
-       GROUP BY ci.id, ci.category ORDER BY ci.category`, [st.id, regionalCode]) : query(`
+       GROUP BY ci.id, ci.category, starter_counts.starter_count ORDER BY ci.category`, [st.id, regionalCode]) : query(`
       SELECT r.category, MAX(r.category_full) AS category_full,
              cs.starters, cs.classified, cs.winner_time_s,
+             nms.state AS minimum_state, nms.eligible_starters AS minimum_eligible,
+             nms.unresolved_starters AS minimum_unresolved,
              COUNT(DISTINCT CASE WHEN r.result_kind = 'pair'
                    THEN 'p:' || COALESCE(r.rank, '') || ':' || r.status || ':' ||
                         COALESCE(r.time_s, '') || ':' || COALESCE(r.club, '')
@@ -1020,8 +1041,11 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
              MAX(r.course_controls) AS ctrls
       FROM result r LEFT JOIN category_stats cs
         ON cs.stage_id = r.stage_id AND cs.category = r.category
+      ${hasNationalStarterChecks
+        ? "LEFT JOIN national_minimum_starters nms ON nms.stage_id = r.stage_id AND nms.category = r.category"
+        : "LEFT JOIN (SELECT NULL AS state, NULL AS eligible_starters, NULL AS unresolved_starters) nms ON 1 = 0"}
       WHERE r.stage_id = ?${medalsOnly ? " AND r.championship IS NOT NULL" : ""}
-      GROUP BY r.category ORDER BY r.category`, [st.id]);
+      GROUP BY r.category, nms.state, nms.eligible_starters, nms.unresolved_starters ORDER BY r.category`, [st.id]);
     cats.sort((a, b) => compareResultCategories(
       a.category_full || a.category, b.category_full || b.category));
     // in the compact medals-only view, a stage with no championship category
@@ -1063,7 +1087,7 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
         c.ctrls ? c.ctrls + " Posten" : null,
       ].filter(Boolean).join(" · ");
       const categoryHeading = regionalCode
-        ? regionalCategoryLabel(regionalCode, c.category)
+        ? regionalCategoryLabel(regionalCode, c.category, results[0]?.category)
         : (c.category_full || c.category);
       const catChamp = regionalCode
         ? [] : [...new Set(results.map((r) => r.championship).filter(Boolean))];
@@ -1099,8 +1123,11 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
         <div class="cat-block">
           <div class="cat-head">
             <h3>${esc(categoryHeading)}${catChamp.map((ch) => ` <span class="badge champ-badge">${esc(ch)}</span>`).join("")}</h3>
-            <span class="course">${course}${course ? " · " : ""}${displayedEntries} ${hasTeamUnits ? "Teams" : "Starter"}${isBahn(c.category) && stageHasOfficial ? " · inoffizielle Bahnwertung" : ""}</span>
+            <span class="course">${course}${course ? " · " : ""}${displayedEntries} ${regionalCode ? (hasTeamUnits ? "Team-Einträge" : "Einträge") : (hasTeamUnits ? "Teams" : "Starter")}${isBahn(c.category) && stageHasOfficial ? " · inoffizielle Bahnwertung" : ""}</span>
           </div>
+          ${regionalCode === "WIEN" && c.championship_starters < 3 ? `<p class="sub dim">Keine Medaillen ausgewiesen: ${c.championship_starters} wertungsberechtigte Starter im Datenstand; mindestens 3 erforderlich. Unvollständige Daten sind zu prüfen.</p>` : ""}
+          ${!regionalCode && c.minimum_state === "insufficient" ? `<p class="sub dim">Keine ÖM-/ÖSTM-Medaillen: weniger als drei wertungsberechtigte Starter im Datenstand.</p>` : ""}
+          ${!regionalCode && c.minimum_state === "unresolved" ? `<p class="sub dim">ÖM-/ÖSTM-Medaillen offen: ${c.minimum_eligible} Starter sicher berechtigt, ${c.minimum_unresolved} ungeklärt; mindestens drei erforderlich.</p>` : ""}
           <table>
             <thead><tr><th class="num">Pl</th><th>Name</th><th class="hide-sm">Verein</th>
               <th class="num">Zeit</th><th class="num">Diff</th></tr></thead>
@@ -1255,6 +1282,9 @@ function fetchPodiums({ club, personId, dw }) {
   // themselves instead, since there's no one to attribute them to there.
   return query(`
     SELECT r.rank, r.national_rank, r.category, r.category_full, r.result_kind, r.championship,
+           r.status, r.out_of_competition,
+           r.championship_source_scope, r.championship_eligibility_state, r.identity_state,
+           r.result_list_id,
            e.id AS event_id, e.title AS event_title, e.sport_type, s.title AS stage_title,
            s.id AS stage_id, s.number AS stage_number,
            COALESCE(s.date, e.date_from) AS date,
@@ -1280,6 +1310,7 @@ function fetchRegionalPodiums({ jurisdiction, club, personId, dw }) {
     `ci.championship_type = 'LMS'`,
     `ci.state = 'confirmed'`,
     `ce.eligibility_state = 'eligible'`,
+    `(ci.jurisdiction != 'WIEN' OR COALESCE(starter_counts.starter_count, 0) >= 3)`,
     `ce.regional_rank BETWEEN 1 AND 3`,
   ];
   const params = [jurisdiction];
@@ -1288,8 +1319,10 @@ function fetchRegionalPodiums({ jurisdiction, club, personId, dw }) {
   return query(`
     SELECT DISTINCT ce.id AS regional_entry_id,
            ce.regional_rank AS rank, ce.regional_rank AS national_rank,
-           ci.category, ci.category AS category_full,
-           r.result_kind, cj.short_name AS championship,
+           ci.category, ci.category AS category_full, ci.detection_basis,
+           r.category AS source_category, r.category_full AS source_category_full,
+           r.identity_state, r.result_list_id,
+           r.result_kind, r.status, r.out_of_competition, r.time_s, cj.short_name AS championship,
            e.id AS event_id, e.title AS event_title, e.sport_type,
            s.title AS stage_title, s.id AS stage_id, s.number AS stage_number,
            COALESCE(s.date, e.date_from) AS date,
@@ -1301,6 +1334,8 @@ function fetchRegionalPodiums({ jurisdiction, club, personId, dw }) {
       JOIN championship_entry ce ON ce.championship_instance_id = ci.id
       JOIN championship_entry_result cer ON cer.championship_entry_id = ce.id
       JOIN result r ON r.id = cer.result_id
+      LEFT JOIN (${regionalStarterCountsSql()}) starter_counts
+        ON starter_counts.championship_instance_id = ci.id
       JOIN stage s ON s.id = ci.stage_id
       JOIN event e ON e.id = s.event_id
       LEFT JOIN person p ON p.id = r.person_id
@@ -1480,6 +1515,99 @@ function renderClubMedalTable(podiums, { isOm }) {
   </table>`;
 }
 
+// This is an estimate from existing results, not a grant decision. Require
+// explicit championship evidence and resolved identity; inferred categories
+// remain visible separately for review instead of inflating the totals.
+function regionalTitleMatch(r, field) {
+  const source = regionalTitleEvidence[String(r.event_id)];
+  if (!source || source.jurisdiction !== "WIEN" || source.event_date !== r.date
+      || (source.stage_number != null && source.stage_number !== r.stage_number)
+      || r.national_rank !== 1) return null;
+  const title = (source[field] || []).find((t) => t.person_id === r.person_id
+    && t.time_s === r.time_s && t.club === r.club_name
+    && t.result_category === (r.source_category || r.category));
+  return title ? { source, title } : null;
+}
+
+function renderYouthTitleTable(national, vienna) {
+  const people = new Map(), pending = [], seen = new Set();
+  const rows = [
+    ...national.filter((r) => r.championship === "ÖM" && r.national_rank === 1)
+      .map((r) => ({ ...r, kind: "om" })),
+    ...vienna.filter((r) => r.national_rank === 1).map((r) => ({ ...r, kind: "wien" })),
+  ];
+  for (const r of rows) {
+    if (r.status !== "ok" || r.out_of_competition || r.result_kind === "family") continue;
+    const category = r.source_category_full || r.source_category || r.category_full || r.category;
+    const age = youthTitleCategory(category)
+      || (!/\d/.test(category) ? youthTitleCategory(r.source_category || r.category) : null);
+    if (!age || r.person_id == null || isFamilyPlaceholderName(r.person_name)) continue;
+    const key = `${r.kind}:${r.regional_entry_id || r.result_list_id}:${r.person_id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const reasons = [];
+    if (r.identity_state !== "resolved") reasons.push("Personenzuordnung prüfen");
+    if (r.kind === "om") {
+      if (r.championship_eligibility_state !== "eligible") reasons.push("ÖM-Berechtigung prüfen");
+      const source = nationalCategoryEvidence[String(r.event_id)];
+      const listed = source && source.event_date === r.date
+        && source.stage_number === r.stage_number && r.result_kind === "individual"
+        && source.categories.includes(r.category);
+      if (!['full_field', 'medal_places_only', 'winner_only'].includes(r.championship_source_scope) && !listed)
+        reasons.push("ÖM-Kategorie nur abgeleitet");
+    } else {
+      const title = regionalTitleMatch(r, "titles");
+      const unannotated = regionalTitleMatch(r, "unannotated_winners");
+      if (unannotated) {
+        reasons.push("WOLV nennt Rang 1, aber keinen Meistertitel");
+      // A Nat/W field identifies the athlete's state, not whether the class
+      // itself is an official championship class. An exact independent WOLV
+      // champion annotation can resolve that for the specific performance.
+      } else if (!title && (!["category", "document"].includes(r.detection_basis)
+                 || /\b(?:ASKÖ|Rahmen|Kurz|B-Klasse)\b|\d\s*B(?:\b|$)/i.test(category))) {
+        reasons.push("Wiener Meisterschaftskategorie prüfen");
+      }
+    }
+    const entry = { ...r, display_category: category, grant: youthTitleGrant(r.kind, age.gender), reasons };
+    if (reasons.length) { pending.push(entry); continue; }
+    if (!people.has(r.person_id)) people.set(r.person_id, {
+      person_id: r.person_id, person_name: r.person_name, om: 0, wien: 0,
+      euros: 0, unknown: 0, entries: [],
+    });
+    const person = people.get(r.person_id);
+    person[r.kind]++;
+    if (entry.grant == null) person.unknown++; else person.euros += entry.grant;
+    person.entries.push(entry);
+  }
+  const ordered = [...people.values()].sort((a, b) =>
+    b.om + b.wien - a.om - a.wien || a.person_name.localeCompare(b.person_name, "de-AT"));
+  const totals = ordered.reduce((t, p) => ({ om: t.om + p.om, wien: t.wien + p.wien,
+    euros: t.euros + p.euros, unknown: t.unknown + p.unknown }),
+    { om: 0, wien: 0, euros: 0, unknown: 0 });
+  const euro = (amount) => `${amount.toLocaleString("de-AT")} €`;
+  const eventLink = (r) => `<a href="#/event/${r.event_id}/stage/${r.stage_number}${r.kind === "wien" ? "/lm/WIEN" : ""}">${esc(r.event_title)}${r.stage_title && r.stage_title !== r.event_title ? ` · ${esc(r.stage_title)}` : ""}</a>`;
+  const sourceEvidence = (r) => {
+    if (r.kind === "om") {
+      const source = nationalCategoryEvidence[String(r.event_id)];
+      if (!source || source.event_date !== r.date || source.stage_number !== r.stage_number
+          || r.result_kind !== "individual" || !source.categories.includes(r.category)) return "";
+      return ` · <a href="${esc(source.url)}" target="_blank" rel="noopener">ÖM-Kategorie laut Ausschreibung ↗</a>`;
+    }
+    const match = regionalTitleMatch(r, "titles");
+    if (match) return ` · <a href="${esc(match.source.url)}" target="_blank" rel="noopener">WOLV-Meistertitel bestätigt (${esc(match.title.category)}) ↗</a>`;
+    const unannotated = regionalTitleMatch(r, "unannotated_winners");
+    return unannotated ? ` · <a href="${esc(unannotated.source.url)}" target="_blank" rel="noopener">WOLV: Rang 1, Titel nicht ausgewiesen ↗</a>` : "";
+  };
+  const detail = (r) => `${r.kind === "om" ? "ÖM" : "Wiener MS"}: ${eventLink(r)} · ${esc(r.display_category)} · ${fmtDate(r.date)}${sourceEvidence(r)}${r.grant == null ? " · Fördersatz offen" : ""}`;
+  return `<p class="sub">Nur Gold in eindeutig begrenzten Jugendklassen 12 bis 18, je Person und Teamleistung einmal. ÖM: 400 €; Wiener MS: Damen 110 €, Herren 90 €.</p>
+    <p class="sub dim">Berechnung aus den verfügbaren Ergebnisdaten; keine amtlich bestätigte Fördersumme. Nur Kategorien mit direktem Meisterschaftsnachweis und aufgelöster Identität werden gezählt. Die Ergebnisprüfung kann trotzdem noch offen sein.</p>
+    <table><thead><tr><th>Person</th><th class="num">ÖM<br><small>Σ ${totals.om}</small></th><th class="num">Wiener MS<br><small>Σ ${totals.wien}</small></th><th class="num">Förderung<br><small>Σ ${euro(totals.euros)}${totals.unknown ? " + offen" : ""}</small></th></tr></thead>
+    <tbody>${ordered.length ? ordered.map((p) => `<tr><td>${runnerNameHtml(p.person_id, p.person_name)}</td><td class="num">${p.om}</td><td class="num">${p.wien}</td><td class="num">${euro(p.euros)}${p.unknown ? ` + ${p.unknown} offen` : ""}</td></tr>
+      <tr class="detail-row"><td colspan="4"><ul class="medal-events">${p.entries.map((r) => `<li>${detail(r)}</li>`).join("")}</ul></td></tr>`).join("") : `<tr><td colspan="4" class="dim">Keine Titel mit ausreichendem Meisterschaftsnachweis.</td></tr>`}</tbody></table>
+    ${totals.unknown ? `<p class="sub dim">Für ${totals.unknown} Titel in gemischten oder nicht eindeutig zuordenbaren Kategorien ist der Wiener Fördersatz offen und nicht in der Summe enthalten.</p>` : ""}
+    ${pending.length ? `<details><summary>${pending.length} mögliche Jugendtitel noch prüfen – nicht mitgezählt</summary><ul class="medal-events">${pending.map((r) => `<li>${runnerNameHtml(r.person_id, r.person_name)} · ${detail(r)} · <b>${esc(r.reasons.join(", "))}</b></li>`).join("")}</ul></details>` : ""}`;
+}
+
 // A club's own detail content (info line, Gold/Silber/Bronze tiles, "Nicht
 // angetreten" link, Alle-Medaillen/ÖM toggle, own season chips, table) -
 // shared by the direct #/club/:name link and the Vereine nav page when
@@ -1512,10 +1640,10 @@ function clubDetailHtml(name, year, medalType, { withChangeButton, hrefBase, vie
   const isOm = medalType === "om";
   const regions = regionalJurisdictions({ club: name });
   if (regionalCode && !regions.some((r) => r.code === regionalCode)) regionalCode = null;
-  const mode = regionalCode ? "lm" : (isOm ? "om" : "all");
+  const mode = regionalCode ? "lm" : (medalType === "youth" ? "youth" : isOm ? "om" : "all");
   const dw = disciplineWhere("e.sport_type");
 
-  const modeSuffix = mode === "lm" ? `/lm/${regionalCode}` : (mode === "om" ? "/om" : "");
+  const modeSuffix = mode === "lm" ? `/lm/${regionalCode}` : (mode === "om" ? "/om" : mode === "youth" ? "/youth" : "");
 
   const membersHref = `${base}${year ? "/" + year : ""}/members`;
   const resultsHref = `${base}${year ? "/" + year : ""}${modeSuffix}`;
@@ -1555,6 +1683,24 @@ function clubDetailHtml(name, year, medalType, { withChangeButton, hrefBase, vie
       </table>`;
   }
 
+  if (mode === "youth") {
+    const national = fetchPodiums({ club: name, dw });
+    const vienna = fetchRegionalPodiums({ jurisdiction: "WIEN", club: name, dw });
+    const potentialTitles = [...national.filter((r) => r.championship === "ÖM" && r.national_rank === 1),
+      ...vienna.filter((r) => r.national_rank === 1)]
+      .filter((r) => youthTitleCategory(r.source_category_full || r.source_category || r.category_full || r.category));
+    const years = [...new Set(potentialTitles.map((r) => seasonYear(r.date, r.sport_type)).filter(Boolean))]
+      .sort((a, b) => b.localeCompare(a));
+    const yearChip = (val, label) => `<a class="chip ${(!year && !val) || year === val ? "active" : ""}"
+      href="${base}${val ? "/" + val : ""}/youth">${label}</a>`;
+    const hrefFor = (targetMode, code = null) => `${base}${year ? "/" + year : ""}${
+      targetMode === "lm" ? `/lm/${code || preferredRegionalCode(regions)}` : targetMode === "om" ? "/om" : targetMode === "youth" ? "/youth" : ""}`;
+    const inSeason = (r) => !year || seasonYear(r.date, r.sport_type) === year;
+    return header + medalGroupRows({ mode, regionalCode, regions, hrefFor, includeAll: true, includeYouth: true })
+      + `<div class="chips">${yearChip(null, "Alle")}${years.map((y) => yearChip(y, y)).join("")}</div>`
+      + renderYouthTitleTable(national.filter(inSeason), vienna.filter(inSeason));
+  }
+
   const allPodiums = mode === "lm"
     ? fetchRegionalPodiums({ jurisdiction: regionalCode, club: name, dw })
     : fetchPodiums({ club: name, dw });
@@ -1571,14 +1717,14 @@ function clubDetailHtml(name, year, medalType, { withChangeButton, hrefBase, vie
   const yearChip = (val, label) => `<a class="chip ${(!year && !val) || year === val ? "active" : ""}"
       href="${base}${val ? "/" + val : ""}${modeSuffix}">${label}</a>`;
   const hrefFor = (targetMode, code = null) => `${base}${year ? "/" + year : ""}${
-    targetMode === "lm" ? `/lm/${code || preferredRegionalCode(regions)}` : (targetMode === "om" ? "/om" : "")}`;
+    targetMode === "lm" ? `/lm/${code || preferredRegionalCode(regions)}` : (targetMode === "om" ? "/om" : targetMode === "youth" ? "/youth" : "")}`;
 
   const tableHtml = mode === "om" || mode === "lm"
     ? renderRankedMedalTable(podiums, { showClub: false, isOm: true })
     : renderChronoMedalTable(podiums, { showClub: false });
 
   return header + `
-    ${medalGroupRows({ mode, regionalCode, regions, hrefFor, includeAll: true })}
+    ${medalGroupRows({ mode, regionalCode, regions, hrefFor, includeAll: true, includeYouth: true })}
     <div class="chips">
       ${yearChip(null, "Alle")}
       ${years.map((y) => yearChip(y, y)).join("")}
@@ -1781,6 +1927,9 @@ function route() {
   else if ((m = hash.match(/^#\/club\/([^/]+)\/dns(?:\/(\d{4}|alle))?(?:\/(event|runner))?/))) {
     viewClubDns(decodeURIComponent(m[1]), m[2], m[3]); setActiveNav();
   }
+  else if ((m = hash.match(/^#\/club\/([^/]+)(?:\/(\d{4}))?\/youth\/?$/))) {
+    viewClub(decodeURIComponent(m[1]), m[2], "youth"); setActiveNav();
+  }
   else if ((m = hash.match(/^#\/club\/([^/]+)(?:\/(\d{4}))?\/lm\/(WIEN|NOE|BGLD|STMK|OOE|SBG|TIR|KTN|VBG)\/?$/))) {
     viewClub(decodeURIComponent(m[1]), m[2], null, null, m[3]); setActiveNav();
   }
@@ -1789,6 +1938,9 @@ function route() {
   }
   else if ((m = hash.match(/^#\/clubs(?:\/(\d{4}))?\/lm\/(WIEN|NOE|BGLD|STMK|OOE|SBG|TIR|KTN|VBG)\/?$/))) {
     viewClubsPage(m[1], null, null, m[2]); setActiveNav("clubs");
+  }
+  else if ((m = hash.match(/^#\/clubs(?:\/(\d{4}))?\/youth\/?$/))) {
+    viewClubsPage(m[1], "youth"); setActiveNav("clubs");
   }
   else if ((m = hash.match(/^#\/clubs(?:\/(\d{4}))?(?:\/(om))?(?:\/(members))?/))) {
     viewClubsPage(m[1], m[2], m[3]); setActiveNav("clubs");
@@ -1842,6 +1994,20 @@ async function boot() {
     locateFile: (f) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/${f}`,
   });
   await loadDb(sqlEngine);
+  const readEvidence = async (file) => {
+    try {
+      const response = await fetch(`data/${file}?v=${window.OLR_BUILD || "dev"}`);
+      if (!response.ok) return {};
+      const data = await response.json();
+      return data.schema_version === 1 ? data.events || {} : {};
+    } catch (err) {
+      console.warn("Zusätzliche Meisterschaftsquelle nicht verfügbar", err);
+      return {};
+    }
+  };
+  [regionalTitleEvidence, nationalCategoryEvidence] = await Promise.all([
+    readEvidence("regional-title-evidence.json"), readEvidence("national-category-evidence.json"),
+  ]);
   setupIdentity();
   syncIdentityURL();  // reflect a localStorage-seeded filter into the address bar too, so it's always a shareable link
   document.getElementById("refresh").addEventListener("click", refreshData);

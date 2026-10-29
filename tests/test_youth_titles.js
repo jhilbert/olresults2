@@ -1,0 +1,123 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const test = require("node:test");
+const vm = require("node:vm");
+const rules = require("../site/domain_rules.js");
+
+// Exercise the actual renderer without booting sql.js or a browser.
+const source = fs.readFileSync(path.join(__dirname, "../site/app.js"), "utf8");
+const bootIndex = source.indexOf('window.addEventListener("hashchange", route);');
+assert.ok(bootIndex > 0);
+const context = vm.createContext({
+  window: { OLRDomainRules: rules },
+  document: { getElementById: () => ({}) },
+  location: { search: "" },
+  localStorage: { getItem: () => null },
+  URLSearchParams,
+});
+vm.runInContext(source.slice(0, bootIndex) + "\nglobalThis.renderYouth = renderYouthTitleTable;", context);
+
+test("youth table counts only evidenced winners and makes unknowns visible", () => {
+  const base = { person_id: "1", person_name: "Anna", category: "D-14",
+    category_full: "Damen -14", result_list_id: "list1", stage_id: 1,
+    stage_number: 1, event_id: 1, event_title: "Wettkampf", date: "2025-01-01",
+    national_rank: 1, status: "ok", out_of_competition: 0,
+    identity_state: "resolved", championship: "ÖM",
+    championship_eligibility_state: "eligible", championship_source_scope: "winner_only" };
+  const regional = { ...base, regional_entry_id: "region1", detection_basis: "category",
+    source_category: "D-14 Wien", source_category_full: "Damen -14 Wien" };
+  const inferred = { ...base, person_id: "2", person_name: "Zweite", result_list_id: "list2",
+    championship_source_scope: "inferred" };
+  const mixed = { ...regional, person_id: "3", person_name: "Dritte", regional_entry_id: "region2",
+    source_category: "DH-12 Wien", source_category_full: "Damen+Herren -12 Wien" };
+  const notWinner = { ...base, person_id: "4", person_name: "Vierte", national_rank: 2 };
+  const wrongAge = { ...base, person_id: "5", person_name: "Fünfte", category_full: "Damen -20" };
+  const ooc = { ...base, person_id: "7", person_name: "Siebte", out_of_competition: 1 };
+  const noEvidence = { ...regional, person_id: "6", person_name: "Sechste", regional_entry_id: "region3",
+    detection_basis: "event_title" };
+  const natOnly = { ...regional, person_id: "8", person_name: "Achte", regional_entry_id: "region4",
+    detection_basis: "source_nat" };
+  const html = context.renderYouth([base, inferred, notWinner, wrongAge, ooc], [regional, regional, mixed, noEvidence, natOnly]);
+  assert.match(html, /Σ 1<\/small><\/th><th class="num">Wiener MS<br><small>Σ 2/);
+  assert.match(html, /Σ 510 € \+ offen/);
+  assert.match(html, /3 mögliche Jugendtitel noch prüfen/);
+  assert.match(html, /ÖM-Kategorie nur abgeleitet/);
+  assert.match(html, /Wiener Meisterschaftskategorie prüfen/);
+  assert.doesNotMatch(html, /Vierte/);
+  assert.doesNotMatch(html, /Fünfte/);
+  assert.doesNotMatch(html, /Siebte/);
+  assert.match(html, /Fördersatz offen/);
+});
+
+test("WOLV evidence requires matching event, date, person, club and time", () => {
+  const source = JSON.parse(fs.readFileSync(
+    path.join(__dirname, "../site/data/regional-title-evidence.json"), "utf8"));
+  assert.equal(source.events["4879"].titles.length, 10);
+  context.sourceFixture = source.events;
+  vm.runInContext("regionalTitleEvidence = sourceFixture", context);
+  const winner = { person_id: "8980", person_name: "Albert Imriska", category: "DH -12",
+    source_category: "Wien Damen&Herren -12", source_category_full: "Wien Damen&Herren -12", regional_entry_id: "w1", detection_basis: "category",
+    result_list_id: "list1", stage_number: 1, event_id: 4879, event_title: "Sprint MS",
+    date: "2025-05-10", national_rank: 1, identity_state: "resolved", status: "ok",
+    out_of_competition: 0, time_s: 532, club_name: "Naturfreunde Wien" };
+  const matched = context.renderYouth([], [winner]);
+  assert.match(matched, /WOLV-Meistertitel bestätigt \(D-12\)/);
+  assert.match(matched, /Fördersatz offen/);
+  for (const changed of [{ time_s: 533 }, { date: "2025-05-11" },
+    { club_name: "Anderer Verein" }, { person_id: "1" }, { event_id: 1234 },
+    { source_category: "andere Klasse" }]) {
+    assert.doesNotMatch(context.renderYouth([], [{ ...winner, ...changed }]), /WOLV-Meistertitel bestätigt/);
+  }
+});
+
+test("WOLV night list confirms both winners in the pair but not unannotated ranks", () => {
+  const source = JSON.parse(fs.readFileSync(
+    path.join(__dirname, "../site/data/regional-title-evidence.json"), "utf8"));
+  assert.equal(source.events["4963"].titles.length, 7);
+  context.sourceFixture = source.events;
+  vm.runInContext("regionalTitleEvidence = sourceFixture", context);
+  const base = { category: "H-14", source_category_full: "H-14", detection_basis: "source_nat",
+    regional_entry_id: "pair", result_list_id: "list1", stage_number: 1, event_id: 4963,
+    event_title: "Nacht MS", date: "2025-10-11", national_rank: 1,
+    identity_state: "resolved", status: "ok", result_kind: "pair", out_of_competition: 0,
+    time_s: 1576, club_name: "WAT-OL" };
+  const emil = { ...base, person_id: "10035", person_name: "Emil Wally" };
+  const arthur = { ...base, person_id: "10052", person_name: "Arthur Wally" };
+  const maria = { ...base, person_id: "8110", person_name: "Maria Beck", category: "D15-18",
+    source_category_full: "D15-18", regional_entry_id: "maria", result_kind: "individual",
+    time_s: 4047, club_name: "Naturfreunde Wien" };
+  const html = context.renderYouth([], [emil, arthur, maria]);
+  assert.match(html, /Wiener MS<br><small>Σ 2/);
+  assert.match(html, /Σ 180 €/);
+  assert.equal((html.match(/WOLV-Meistertitel bestätigt \(H-14\)/g) || []).length, 2);
+  assert.match(html, /1 mögliche Jugendtitel noch prüfen/);
+  assert.match(html, /WOLV nennt Rang 1, aber keinen Meistertitel/);
+  assert.match(html, /WOLV: Rang 1, Titel nicht ausgewiesen/);
+});
+
+test("ÖM invitation confirms only its listed event classes, not a person's eligibility", () => {
+  const source = JSON.parse(fs.readFileSync(
+    path.join(__dirname, "../site/data/national-category-evidence.json"), "utf8"));
+  context.nationalFixture = source.events;
+  vm.runInContext("nationalCategoryEvidence = nationalFixture", context);
+  const winner = { person_id: "8900", person_name: "Annina Urbanek", category: "Damen bis 14",
+    category_full: "Damen bis 14", result_list_id: "list3", result_kind: "individual",
+    stage_number: 1, event_id: 4830, event_title: "ÖM Mittel", date: "2025-09-21",
+    national_rank: 1, identity_state: "resolved", status: "ok", out_of_competition: 0,
+    championship: "ÖM", championship_eligibility_state: "eligible", championship_source_scope: "inferred" };
+  assert.match(context.renderYouth([winner], []), /ÖM-Kategorie laut Ausschreibung/);
+  assert.match(context.renderYouth([winner], []), /Σ 400 €/);
+  for (const changed of [{ event_id: 4831 }, { date: "2025-09-22" }, { stage_number: 2 },
+    { category: "Damen ab 15 bis 18", category_full: "Damen ab 15 bis 18" },
+    { result_kind: "relay" }]) {
+    const html = context.renderYouth([{ ...winner, ...changed }], []);
+    assert.doesNotMatch(html, /ÖM-Kategorie laut Ausschreibung/);
+    assert.doesNotMatch(html, /Σ 400 €/);
+  }
+  const unclearEligibility = context.renderYouth([{ ...winner, championship_eligibility_state: "provisional" }], []);
+  assert.match(unclearEligibility, /ÖM-Berechtigung prüfen/);
+  assert.doesNotMatch(unclearEligibility, /Σ 400 €/);
+});

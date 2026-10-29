@@ -39,6 +39,7 @@ FINGERPRINT_ORDER = {
     "regional_category_mapping": "id",
     "championship_entry": "id",
     "championship_entry_result": "championship_entry_id, result_id",
+    "national_minimum_starters": "stage_id, category",
     "award": "id",
 }
 
@@ -91,7 +92,7 @@ def collect(db_path, eligibility_path):
         for table in ("championship_rule_set", "championship_jurisdiction",
                       "club_jurisdiction", "championship_instance",
                       "regional_category_mapping", "championship_entry",
-                      "championship_entry_result", "award"):
+                      "championship_entry_result", "award", "national_minimum_starters"):
             counts[table] = scalar(con, f"SELECT COUNT(*) FROM {table}")
         missing_provenance = scalar(
             con, "SELECT COUNT(*) FROM result WHERE source_document_id IS NULL")
@@ -220,6 +221,19 @@ def collect(db_path, eligibility_path):
         if awards_without_positive_eligibility:
             raise RuntimeError(
                 f"{awards_without_positive_eligibility} medals lack positive eligibility evidence")
+        invalid_minimum = scalar(con, """SELECT COUNT(*) FROM national_minimum_starters
+            WHERE eligible_starters < 0 OR unresolved_starters < 0
+               OR state NOT IN ('met', 'insufficient', 'unresolved')
+               OR (state = 'met' AND eligible_starters < 3)
+               OR (state = 'insufficient' AND eligible_starters + unresolved_starters >= 3)
+               OR (state = 'unresolved' AND (eligible_starters >= 3 OR eligible_starters + unresolved_starters < 3))""")
+        if invalid_minimum:
+            raise RuntimeError(f"{invalid_minimum} national minimum-starter checks are inconsistent")
+        medals_without_minimum = scalar(con, """SELECT COUNT(*) FROM result r
+            JOIN national_minimum_starters m ON m.stage_id = r.stage_id AND m.category = r.category
+            WHERE m.state != 'met' AND r.national_rank IS NOT NULL""")
+        if medals_without_minimum:
+            raise RuntimeError(f"{medals_without_minimum} national ranks were assigned without the minimum")
         identifier_conflicts = scalar(
             con,
             """SELECT COUNT(*) FROM (

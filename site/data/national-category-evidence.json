@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "events": {
+    "4830": {
+      "event_date": "2025-09-21",
+      "stage_number": 1,
+      "label": "Ausschreibung ÖM Mitteldistanz 2025, Seite 2",
+      "url": "https://anne-cdn.oefol.at/public/legacy/event_4830_ausschreibung-21-9-om-mittel-hsvried-v4.pdf",
+      "sha256": "c3d240c5b26fccfb2640e23b94059da0836443943a3db0f7ddc95a648f9cd482",
+      "reviewed_on": "2026-10-29",
+      "scope": "Ausgeschriebene ÖM-Kategorien; kein Nachweis von tatsächlichem Titel, Platzierung oder persönlicher Meisterschaftsberechtigung",
+      "categories": [
+        "Damen bis 12", "Herren bis 12",
+        "Damen bis 14", "Herren bis 14",
+        "Damen bis 16 Elite", "Herren bis 16 Elite",
+        "Damen bis 18 Elite", "Herren bis 18 Elite",
+        "Damen ab 35", "Herren ab 35", "Damen ab 40", "Herren ab 40",
+        "Damen ab 45", "Herren ab 45", "Damen ab 50", "Herren ab 50",
+        "Damen ab 55", "Herren ab 55", "Damen ab 60", "Herren ab 60",
+        "Damen ab 65", "Herren ab 65", "Damen ab 70", "Herren ab 70",
+        "Damen ab 75", "Herren ab 75", "Herren ab 80"
+      ],
+      "non_championship_categories": [
+        "Damen ab 15 bis 18", "Herren ab 15 bis 18",
+        "Damen ab 21 Elite", "Herren ab 21 Elite",
+        "Damen ab 21 Kurz", "Herren ab 21 Kurz",
+        "Damen ab 21 Lang", "Herren ab 21 Lang",
+        "Damen Hobby", "Herren Hobby", "Damen bis 10", "Herren bis 10",
+        "Offen Kurz", "Offen Lang", "Neulinge", "Familie"
+      ],
+      "notes": [
+        "Die Ausschreibung bezeichnet die U20-Klasse wörtlich als DH-20E; deren genaue Zuordnung zu getrennten D/H-Klassen ist nicht Gegenstand dieses Nachweises.",
+        "D/H 15-18 sind als Austria-Cup-Klassen und nicht als ÖM-Klassen ausgeschrieben.",
+        "Die Ausschreibung belegt keine tatsächliche Siegerehrung oder individuelle Meisterschaftsberechtigung."
+      ]
+    }
+  }
+}

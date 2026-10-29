@@ -55,6 +55,42 @@
     return 2;
   };
 
+  // Only age classes with a clear upper bound between 12 and 18 count.
+  // In particular, 15- is an open adult class, not the youth class 15-18.
+  const youthTitleCategory = (category) => {
+    const text = String(category || "").replace(/[–—−]/g, "-").trim();
+    const range = text.match(/(?:^|\D)(\d{1,2})\s*(?:-|bis)\s*(\d{1,2})(?!\d)/i);
+    const ceiling = text.match(/(?:\bbis\s*|(^|[^\d])-\s*)(1[2-8])(?!\d)/i);
+    const compact = text.match(/(?:^|\s)(?:D|H|DH)\s*(12|14|16|18)(?![\d-])(?:\s|$)/i);
+    const maxAge = range ? Number(range[2]) : ceiling ? Number(ceiling[2])
+      : compact ? Number(compact[1]) : null;
+    if (maxAge == null || maxAge < 12 || maxAge > 18) return null;
+    const mixed = /(?:damen|frauen)\s*(?:\+|&|und)\s*(?:herren|männer)|(?:herren|männer)\s*(?:\+|&|und)\s*(?:damen|frauen)|(?:^|\s)DH(?=\s|-|\d)|\bmixed\b|\bnachwuchs\b/i.test(text);
+    const female = /\b(?:damen|frauen)(?=\b|\d)|(?:^|\s)D(?=\s|-|\d)/i.test(text);
+    const male = /\b(?:herren|männer)(?=\b|\d)|(?:^|\s)H(?=\s|-|\d)/i.test(text);
+    return { maxAge, gender: mixed || (female && male) ? null : female ? "D" : male ? "H" : null };
+  };
+
+  const youthTitleGrant = (kind, gender) => kind === "om" ? 400
+    : kind === "wien" && gender === "D" ? 110
+    : kind === "wien" && gender === "H" ? 90 : null;
+
+  // One championship_entry represents one competing person, pair or team.
+  // A started competitor counts even with DNF, MP or DSQ; DNS and unknown
+  // statuses cannot establish a start. Do not restrict this to the displayed
+  // club/person: the minimum applies to the full championship category.
+  const regionalStarterCountsSql = () => `
+    SELECT starter.championship_instance_id, COUNT(*) AS starter_count
+      FROM championship_entry starter
+     WHERE starter.eligibility_state = 'eligible'
+       AND EXISTS (
+         SELECT 1 FROM championship_entry_result starter_result
+         JOIN result started ON started.id = starter_result.result_id
+          WHERE starter_result.championship_entry_id = starter.id
+            AND started.out_of_competition = 0
+            AND started.status IN ('ok', 'dnf', 'mp', 'dsq'))
+     GROUP BY starter.championship_instance_id`;
+
   // Fachliche Ergebnisreihenfolge: zuerst Damen, dann Herren, danach
   // gemischte/offene/Rahmenklassen; innerhalb eines Blocks jung nach alt.
   const compareResultCategories = (left, right) => {
@@ -69,7 +105,7 @@
     return ageDiff || a.localeCompare(b, "de", { numeric: true, sensitivity: "base" });
   };
 
-  const regionalCategoryLabel = (jurisdiction, category) => {
+  const regionalCategoryLabel = (jurisdiction, category, sourceCategory = "") => {
     const prefix = REGIONAL_CATEGORY_PREFIX[jurisdiction] || jurisdiction || "";
     const source = String(category || "").trim().replace(/\s+/g, " ");
     const match = source.match(/^(DH|D|H)(?=\s|-|\d|$)\s*(.*)$/i);
@@ -80,7 +116,11 @@
     const exactAge = ageClass.match(/^(\d{1,3})$/);
     if (exactAge) {
       const age = Number(exactAge[1]);
-      ageClass = age <= 18 ? `-${age}` : `${age}-`;
+      // The canonical category key discards the dash. Preserve an explicit
+      // lower-bound source such as "Damen 15-", including after "Wien".
+      const source = String(sourceCategory || "");
+      const explicitMinimum = new RegExp(`(?:\\bab\\s*${age}(?!\\d)|(?:^|[^0-9-])${age}\\s*-(?!\\s*\\d))`, "i").test(source);
+      ageClass = age <= 18 && !explicitMinimum ? `-${age}` : `${age}-`;
     }
     ageClass = ageClass
       .replace(/^-\s+/, "-")
@@ -94,5 +134,8 @@
     personIdString,
     compareResultCategories,
     regionalCategoryLabel,
+    youthTitleCategory,
+    youthTitleGrant,
+    regionalStarterCountsSql,
   };
 }));

@@ -7,12 +7,36 @@ const {
   personIdString,
   compareResultCategories,
   regionalCategoryLabel,
+  youthTitleCategory,
+  youthTitleGrant,
 } = require("../site/domain_rules.js");
 
 test("calendar disciplines use January through December", () => {
   assert.equal(seasonYear("2025-01-01", "footOrienteering"), "2025");
   assert.equal(seasonYear("2025-12-31", "mountainbikeOrienteering"), "2025");
   assert.equal(seasonYear("2025-11-01", "trailOrienteering"), "2025");
+});
+
+test("youth grant ages require an explicit youth upper bound", () => {
+  for (const name of ["Damen -12", "H-14", "Herren bis 16", "D 18",
+    "D15-18", "Herren 13 bis 14", "Mixed Staffel bis 16"]) {
+    assert.ok(youthTitleCategory(name), name);
+  }
+  for (const name of ["Damen -10", "Damen -20", "D 15-", "Damen ab 15",
+    "Herren 21-", "Damen ab 165", "Offen"]) {
+    assert.equal(youthTitleCategory(name), null, name);
+  }
+  assert.equal(youthTitleCategory("Wien Damen -14").gender, "D");
+  assert.equal(youthTitleCategory("W H-14").gender, "H");
+  assert.equal(youthTitleCategory("Damen+Herren -12 W").gender, null);
+  assert.equal(youthTitleCategory("Nachwuchs -16").gender, null);
+});
+
+test("youth grants never guess the Wiener rate for mixed categories", () => {
+  assert.equal(youthTitleGrant("om", null), 400);
+  assert.equal(youthTitleGrant("wien", "D"), 110);
+  assert.equal(youthTitleGrant("wien", "H"), 90);
+  assert.equal(youthTitleGrant("wien", null), null);
 });
 
 test("Ski-O season runs from November through October", () => {
@@ -54,4 +78,7 @@ test("regional categories use readable jurisdiction and age labels", () => {
   assert.equal(regionalCategoryLabel("WIEN", "H 45"), "Wien Herren 45-");
   assert.equal(regionalCategoryLabel("BGLD", "DH -14"),
     "Burgenland Damen und Herren -14");
+  assert.equal(regionalCategoryLabel("WIEN", "D 15", "Wien Damen 15-"), "Wien Damen 15-");
+  assert.equal(regionalCategoryLabel("WIEN", "H 15", "Wien Herren ab 15"), "Wien Herren 15-");
+  assert.equal(regionalCategoryLabel("WIEN", "D 14", "Wien Damen -14"), "Wien Damen -14");
 });

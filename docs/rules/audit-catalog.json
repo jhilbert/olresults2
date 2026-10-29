@@ -4,6 +4,7 @@
   "anne_missing_category": {"rule": "PARSE-003", "domain": "parsing", "owner": "parser", "action": "Kategorie aus Quelle oder Attachment rekonstruieren."},
   "entry_count_mismatch": {"rule": "PARSE-001", "domain": "completeness", "owner": "parser", "action": "Quell-Einheiten gegen sichtbare Ergebniszeilen prüfen."},
   "missing_ranking": {"rule": "RANK-003", "domain": "ranking", "owner": "parser", "action": "Rangspalte und Kategorieart in der Originalquelle prüfen."},
+  "national_minimum_eligibility_unresolved": {"rule": "CHAMP-MIN-001", "domain": "championship", "owner": "review", "action": "Start und Meisterschaftsberechtigung weiterer Personen oder Teams anhand der Quelle prüfen."},
   "partial_ranking_coverage": {"rule": "RANK-001", "domain": "ranking", "owner": "parser", "action": "Fehlende AK/OOC-Markierung oder verschobene Rangspalte prüfen."},
   "provisional_championship_identity": {"rule": "IDENT-003", "domain": "identity", "owner": "review", "action": "Personenzuordnung bestätigen oder Identitätskonflikt auflösen."},
   "rank_time_inversion": {"rule": "RANK-002", "domain": "ranking", "owner": "parser", "action": "Prüfen, ob Zeitwertung vorliegt und Rang beziehungsweise Zeit korrekt gelesen wurde."},

@@ -323,6 +323,14 @@ CREATE TABLE award (
     state TEXT NOT NULL,              -- derived|provisional|verified
     UNIQUE (championship_instance_id, result_id)
 );
+CREATE TABLE national_minimum_starters (
+    stage_id INTEGER NOT NULL REFERENCES stage(id),
+    category TEXT NOT NULL,
+    eligible_starters INTEGER NOT NULL,
+    unresolved_starters INTEGER NOT NULL,
+    state TEXT NOT NULL,              -- met|insufficient|unresolved
+    PRIMARY KEY (stage_id, category)
+);
 CREATE INDEX idx_result_person ON result(person_id);
 CREATE INDEX idx_result_stage_cat ON result(stage_id, category);
 CREATE INDEX idx_result_official_club ON result(official_club);
@@ -5437,6 +5445,85 @@ def populate_regional_championships(cur, catalog, club_jurisdictions):
             previous_order, previous_rank = order, regional_rank
 
 
+def apply_national_minimum_starters(cur, event_eligibility=None):
+    """Record whether a national class has three eligible starter units.
+
+    DNF, MP and DSQ prove a start; DNS and unknown do not. A pair or team is
+    one starter, and an explicitly ineligible/AK member disqualifies its
+    unit. Pair identities use partner names so distinct pairs from the same
+    club do not collapse into one starter. Unknown eligibility is not a
+    confirmed eligible start and creates a review finding when relevant.
+    """
+    event_eligibility = event_eligibility or {}
+    cur.execute("""WITH national_categories AS (
+                       SELECT DISTINCT stage_id, category FROM result
+                        WHERE championship IS NOT NULL
+                   )
+                   SELECT r.stage_id, r.category, r.id, r.person_id, r.result_kind,
+                          r.team_number, r.team_name, r.club, r.rank, r.time_s,
+                          r.note, COALESCE(p.name, r.observed_name), r.status,
+                          r.out_of_competition, s.event_id, p.nationality,
+                          r.championship_eligibility_state, r.result_list_id,
+                          EXISTS (SELECT 1 FROM person_identifier pi
+                                   WHERE pi.person_id = r.person_id AND pi.scheme = 'oefol_id'
+                                     AND pi.identifier_state IN ('authoritative', 'independently_confirmed')),
+                          EXISTS (SELECT 1 FROM ineligible_starter i
+                                   WHERE i.event_id = s.event_id AND i.person_id = r.person_id)
+                     FROM national_categories nc
+                     JOIN result r ON r.stage_id = nc.stage_id AND r.category = nc.category
+                     JOIN stage s ON s.id = r.stage_id
+                     LEFT JOIN person p ON p.id = r.person_id
+                  """)
+    units = defaultdict(dict)
+    list_ids = defaultdict(set)
+    for (stage, category, rid, person, kind, number, team, club, rank, time_s,
+         note, name, status, ooc, event_id, nationality, eligibility_state,
+         list_id, has_oefol_id, ineligible) in cur.fetchall():
+        if list_id:
+            list_ids[(stage, category)].add(list_id)
+        if kind == "individual":
+            if person is None:
+                continue
+            key = f"person:{person}"
+        elif kind == "pair":
+            partners = note[len("Partner: "):].split(", ") if note and note.startswith("Partner: ") else []
+            if partners and name:
+                key = "pair:" + "|".join(sorted(name_key(n) for n in [name, *partners]))
+            elif number:
+                key = f"pair:number:{number}"
+            else:
+                # No member list: use the source team label and placing/time;
+                # an unranked pair with no time remains conservatively grouped.
+                key = f"pair:source:{team or club or ''}:{rank}:{time_s}"
+        elif kind in {"relay", "team"}:
+            key = f"{kind}:" + (f"number:{number}" if number else
+                               f"team:{team}" if team else f"club:{club or ''}")
+        else:
+            continue
+        unit = units[(stage, category)].setdefault(
+            key, {"started": False, "ineligible": False, "unknown": False})
+        unit["started"] |= status in {"ok", "dnf", "mp", "dsq"}
+        unit["ineligible"] |= bool(ooc or ineligible or eligibility_state == "ineligible")
+        event_ok = event_eligibility.get(str(person), {}).get(str(event_id)) is True
+        known_eligible = (eligibility_state == "eligible" or event_ok
+                          or (has_oefol_id and str(nationality or "").upper() == "AUT"))
+        unit["unknown"] |= not known_eligible
+
+    for (stage, category), category_units in units.items():
+        count = sum(unit["started"] and not unit["ineligible"] and not unit["unknown"]
+                    for unit in category_units.values())
+        uncertain = sum(unit["started"] and not unit["ineligible"] and unit["unknown"]
+                        for unit in category_units.values())
+        state = "met" if count >= 3 else "unresolved" if count + uncertain >= 3 else "insufficient"
+        cur.execute("INSERT OR REPLACE INTO national_minimum_starters VALUES (?,?,?,?,?)",
+                    (stage, category, count, uncertain, state))
+        if state == "unresolved":
+            for list_id in list_ids[(stage, category)]:
+                add_audit_issue(cur, list_id, "national_minimum_eligibility_unresolved", "warning",
+                    f"Nur {count} wertungsberechtigte Starter sicher; {uncertain} weitere ungeklärt. "
+                    "ÖM-Mindestzahl und Medaillenvergabe anhand der Quelle prüfen.")
+
+
 def compute_national_ranks(cur):
     """Rank only competitors with positive championship evidence.
 
@@ -5474,6 +5561,10 @@ def compute_national_ranks(cur):
               AND r2.rank IS NOT NULL AND r2.rank < result.rank)
         WHERE championship IS NOT NULL AND status = 'ok' AND rank IS NOT NULL
           AND championship_eligibility_state IN ('eligible', 'provisional')
+          AND NOT EXISTS (SELECT 1 FROM national_minimum_starters minimum
+                           WHERE minimum.stage_id = result.stage_id
+                             AND minimum.category = result.category
+                             AND minimum.state != 'met')
     """)
     cur.execute("DROP TABLE pair_unit")
 
@@ -6178,47 +6269,10 @@ def main():
                           WHERE i.event_id = s2.event_id AND i.person_id = r2.person_id))
     """)
 
-    # A podium needs at least 3 ELIGIBLE starters - fewer than that and no
-    # official ÖM/ÖSTM medal is awarded at all, gold included (confirmed
-    # real: event 4884, "Damen bis 17" had only 2 starters total, no
-    # medals). "Starters", not "finishers": a DNF/MP/DSQ still counts (they
-    # started), only DNS (never started at all) doesn't (confirmed real:
-    # event 4306, H17 - Anton Greiner/AUT DNF still counts as one of the 3
-    # eligible starters alongside Ochenbauer and Urbanek, even without a
-    # rank of his own). "Eligible", not "raw": every exclusion collected
-    # above applies here too - none of the ineligible_starter rows count
-    # toward the 3, so a category still clears the threshold on its
-    # remaining real Austrians even if the excluded ones were part of its
-    # nominal field.
-    # This rule applies to every result_kind, relay/team/pair included -
-    # confirmed real: event 4829's "Herren ab 210" relay only LOOKS like it
-    # has 2 starting teams if you count distinct ranks (a DNF team gets no
-    # rank at all), but it genuinely had 3 teams on the start line
-    # (Naturfreunde Wien 1, OLG Ströck Wien 1, and ASKÖ Henndorf
-    # Orienteering 1 - whose own member mispunched, DNF, no rank), clearing
-    # the threshold same as any individual category would. The unit being
-    # counted just isn't the same for every kind: one "starter" is one
-    # PERSON for an individual race, but one TEAM for relay/team/pair (its
-    # members all share one identical `club` value, so COUNT(DISTINCT
-    # person_id) would count a single team as 2-4 "starters" instead of 1 -
-    # counting DISTINCT club_ instead of DISTINCT person_id for those kinds
-    # fixes that).
-    cur.execute("""
-        UPDATE result SET championship = NULL
-        WHERE championship IS NOT NULL
-          AND (stage_id, category) IN (
-            SELECT r.stage_id, r.category FROM result r JOIN stage s ON s.id = r.stage_id
-            WHERE r.status IN ('ok', 'dnf', 'mp', 'dsq')
-              AND NOT EXISTS (SELECT 1 FROM ineligible_starter i
-                              WHERE i.event_id = s.event_id AND i.person_id = r.person_id)
-            GROUP BY r.stage_id, r.category
-            HAVING COUNT(DISTINCT CASE
-                       WHEN r.result_kind = 'individual' THEN 'p:' || r.person_id
-                       WHEN r.result_kind IN ('relay', 'team') THEN
-                            COALESCE('n:' || r.team_number,
-                                     't:' || r.team_name, 'c:' || r.club)
-                       ELSE 'c:' || r.club END) < 3)
-    """)
+    # Championship medals require three eligible starters, not finishers.
+    # See e.g. event 4306 H17: two finishers and one DNF started.
+    eligibility_by_event = json.loads(USER_ELIGIBILITY_PATH.read_text()) if USER_ELIGIBILITY_PATH.exists() else {}
+    apply_national_minimum_starters(cur, eligibility_by_event)
     cur.execute("DROP TABLE ineligible_starter")
 
     # national_rank: placement among ONLY the finishers still championship-
@@ -6291,7 +6345,7 @@ def main():
     populate_championship_model(cur)
     populate_quality_model(cur)
 
-    cur.execute("PRAGMA user_version = 10")
+    cur.execute("PRAGMA user_version = 11")
     con.commit()
     for table in ("event", "stage", "person", "person_identifier", "person_club_membership", "person_alias",
                   "person_redirect", "person_tombstone", "source_document", "result_list", "result",

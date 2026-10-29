@@ -270,3 +270,42 @@ stillschweigend vertauscht werden.
 
 `build/audit_event_coverage.py` zählt auch Zeilen innerhalb von
 `stageDocuments`; diese vier Anhänge sind deshalb keine Parserlücken mehr.
+
+## Zusätzliche Landesmeisterschaftsquellen
+
+- Event `4879`, Wiener Sprintmeisterschaft 2025: Die offizielle WOLV-Liste
+  `http://www.wolv.at/events/2025/Wr.Sprint-MS.pdf` wurde am 29.10.2026
+  vollständig mit den Wiener Siegern abgeglichen (SHA-256
+  `4c17ae783b7026683d9bac2d95a55adf404b86bb598bd715f1863e1a82e5a4a0`).
+  Zehn Sieger sind dort ausdrücklich mit Wiener Meistertitel bezeichnet;
+  sie stehen mit Quellkategorie, ÖFOL-ID, Verein und Zeit in
+  `site/data/regional-title-evidence.json`. Die Quelle bestätigt weder die
+  übrigen Personenplatzierungen noch einen geschlechtsspezifischen Fördersatz.
+  Albert Imriska steht im PDF in `D-12`, in der ANNE-Quelle in der
+  gemeinsamen Klasse `Damen&Herren -12`. In `D 65-` ist Herta Pamlitschka
+  Erste; die Quelle zeigt nur zwei Starter, daher wird gemäß bestätigter
+  Drei-Starter-Regel keine Medaille vergeben. Die WOLV-Liste führt Annika Springer als Achte;
+  die bestehende Vereinszuordnungsregel wird dadurch nicht verändert.
+- Event `4963`, Wiener Nachtmeisterschaft 2025: Die offizielle WOLV-Liste
+  `http://www.wolv.at/events/2025/Wr.Nacht-MS.pdf` wurde am 29.10.2026 mit
+  den Wiener Siegerleistungen abgeglichen (SHA-256
+  `ae271d4f74eb1bb628f18f3e7e84503e7400df829e34c3a58c0f3b8b6b14d954`).
+  Sechs Klassen tragen einen ausdrücklichen Titelvermerk. In H−14 sind Emil
+  und Arthur Wally als Siegerpaar genannt; die übrigen fünf Titel gehören
+  Einzelpersonen. In D15–18, H15–18, D19− und H75− sind erste Ränge ohne
+  ausdrücklichen Titelhinweis verzeichnet; die Quelle zeigt jeweils nur einen
+  oder zwei Starter und nach der bestätigten Drei-Starter-Regel keine Medaille.
+  Titel und nicht ausdrücklich
+  bezeichnete Sieger sind separat in `site/data/regional-title-evidence.json`
+  dokumentiert. Eine übereinstimmende Titelzeile belegt die konkrete
+  Leistung, nicht automatisch andere Platzierungen oder den Fördersatz.
+- Event `4830`, ÖM Mitteldistanz 2025: Die offizielle Ausschreibung auf
+  ANNE führt auf Seite 2 die ÖM-Klassen und die separaten Austria-Cup- und
+  Rahmenklassen auf. Der genaue, mit den Ergebnis-Klassennamen abgeglichene
+  Auszug liegt in `site/data/national-category-evidence.json` (SHA-256 der
+  Ausschreibung: `c3d240c5b26fccfb2640e23b94059da0836443943a3db0f7ddc95a648f9cd482`).
+  D/H bis 12, 14, 16 Elite und 18 Elite sind ÖM; D/H 15–18 sind bei diesem
+  Einzelbewerb nur Austria Cup. Die Formulierung `DH-20E` bleibt wörtlich
+  dokumentiert und wird hier nicht als Nachweis einer einzelnen D/H-Klasse
+  interpretiert. Die Ausschreibung belegt ausschließlich die Klasse, nicht
+  Sieger, Titelvergabe oder individuelle Startberechtigung.
