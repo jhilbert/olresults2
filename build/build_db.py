@@ -4204,16 +4204,17 @@ def stale_verification_requires_review(cur, list_id, assertion_state):
 
     A confirmed category whose row fingerprint changed but still passes every
     deterministic blocker/warning gate is covered by the UI's reproducible
-    automatic confirmation.  Keeping a synthetic stale blocker there would
-    contradict that model and force a no-op click.  Manual flags and lists
-    with any current finding remain open for an explicit re-check.
+    automatic confirmation.  Identity and eligibility findings remain visible
+    independently; they must not turn an old source confirmation into a
+    separate release blocker. Manual flags and source findings still block.
     """
     if assertion_state == "flagged":
         return True
     return bool(cur.execute(
         """SELECT 1 FROM audit_issue
             WHERE result_list_id = ? AND severity IN ('blocker', 'warning')
-              AND code != 'provisional_championship_identity'
+              AND code NOT IN ('provisional_championship_identity',
+                               'national_minimum_eligibility_unresolved')
             LIMIT 1""", (list_id,)).fetchone())
 
 

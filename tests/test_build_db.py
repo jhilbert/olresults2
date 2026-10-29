@@ -1123,6 +1123,13 @@ class AnneIdentityTests(unittest.TestCase):
         self.assertFalse(build_db.stale_verification_requires_review(
             cur, "list", "confirmed"))
         build_db.add_audit_issue(
+            cur, "list", "national_minimum_eligibility_unresolved", "warning",
+            "Mindeststarterzahl prüfen")
+        self.assertFalse(build_db.stale_verification_requires_review(
+            cur, "list", "confirmed"))
+        self.assertTrue(build_db.stale_verification_requires_review(
+            cur, "list", "flagged"))
+        build_db.add_audit_issue(
             cur, "list", "source_problem", "warning", "Quelle prüfen")
         self.assertTrue(build_db.stale_verification_requires_review(
             cur, "list", "confirmed"))
