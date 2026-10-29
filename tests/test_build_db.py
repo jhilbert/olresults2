@@ -1,5 +1,6 @@
 import collections
 import importlib.util
+import json
 import sqlite3
 import unittest
 from pathlib import Path
@@ -12,6 +13,50 @@ SPEC.loader.exec_module(build_db)
 
 
 class AnneIdentityTests(unittest.TestCase):
+    def test_5496_official_wien_h55_replaces_stale_live_h60(self):
+        path = ROOT / "data/raw/anne/results/5496.json"
+        rows = [row for row in json.loads(path.read_text())
+                if build_db.is_active_anne_result(row)]
+        selected = build_db.select_anne_authoritative_rows(
+            rows, {"competitionType": "single", "stageCount": 0})
+        self.assertFalse(any(row.get("categoryShortTitle") == "H 60- W"
+                             for row in selected))
+        official = [row for row in selected
+                    if row.get("categoryShortTitle") == "H 55- W"]
+        self.assertEqual(len(official), 8)
+        self.assertEqual([(row["rank"], row["lastName"]) for row in official
+                          if row.get("rank")],
+                         [(1, "Kastner-Jirka"), (2, "Waldhäusl"),
+                          (3, "Täuber"), (4, "Zapletal"), (5, "Kroupa"),
+                          (6, "Schiefer"), (7, "Hilbert")])
+
+    def test_stale_live_category_does_not_override_official_person(self):
+        def row(kind, category, user, stage=None):
+            return {"resultType": kind, "categoryShortTitle": category,
+                    "userId": user, "eventStageId": stage}
+
+        rows = [row("live", "H60 W", 42), row("official", "H55 W", 42),
+                row("live", "H60 W", 43), row("live", "H60 W", None),
+                row("live", "H60 W", 42, 2)]
+        selected = build_db.select_anne_authoritative_rows(
+            rows, {"competitionType": "single", "stageCount": 0})
+        self.assertEqual(selected, rows[1:])
+        # Team competitions and stages without an unambiguous stage id must
+        # not merge potentially separate performances.
+        self.assertEqual(build_db.select_anne_authoritative_rows(
+            rows, {"competitionType": "relay", "stageCount": 0}), rows)
+        self.assertEqual(build_db.select_anne_authoritative_rows(
+            rows, {"competitionType": "single", "stageCount": 2}), rows)
+
+    def test_anne_same_category_prefers_official_and_keeps_other_starters(self):
+        rows = [
+            {"resultType": "live", "categoryShortTitle": "H55", "userId": 1},
+            {"resultType": "official", "categoryShortTitle": "H55", "userId": 1},
+            {"resultType": "live", "categoryShortTitle": "H60", "userId": 2},
+        ]
+        self.assertEqual(build_db.select_anne_authoritative_rows(
+            rows, {"competitionType": "single"}), rows[1:])
+
     def test_repeated_person_row_in_one_source_list_is_not_deduplicated(self):
         seen = set()
         occurrences = collections.defaultdict(set)

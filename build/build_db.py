@@ -496,6 +496,45 @@ def is_active_anne_result(row):
     return True
 
 
+def select_anne_authoritative_rows(rows, event):
+    """Prefer official rows and discard identifiable stale category changes.
+
+    ANNE can retain a live row in a former category even after publishing the
+    same person's official result in another category. Only suppress that
+    row for an individual competition when the same positive ANNE user ID
+    exists in an official row on the same unambiguous stage. Never infer a
+    match from names, and retain live-only starters and team/relay events.
+    """
+    priority = {"official": 0, "unofficial": 1, "live": 2}
+    best = {}
+    for row in rows:
+        key = (row.get("eventStageId"), row.get("categoryShortTitle"))
+        best[key] = min(best.get(key, 3), priority.get(row.get("resultType"), 3))
+    selected = [row for row in rows
+                if priority.get(row.get("resultType"), 3) == best[
+                    (row.get("eventStageId"), row.get("categoryShortTitle"))]]
+    if event.get("competitionType") != "single":
+        return selected
+
+    official = defaultdict(set)
+    for row in selected:
+        user_id = row.get("userId")
+        stage_id = row.get("eventStageId")
+        if (row.get("resultType") == "official" and str(user_id or "").isdigit()
+                and int(user_id) > 0
+                and (stage_id is not None or (event.get("stageCount") or 0) <= 1)):
+            official[(stage_id, int(user_id))].add(row.get("categoryShortTitle"))
+
+    def stale_live(row):
+        user_id = row.get("userId")
+        if row.get("resultType") != "live" or not str(user_id or "").isdigit():
+            return False
+        categories = official.get((row.get("eventStageId"), int(user_id)), set())
+        return len(categories) == 1 and row.get("categoryShortTitle") not in categories
+
+    return [row for row in selected if not stale_live(row)]
+
+
 def deduplicate_anne_rows(rows):
     """Remove byte-semantic duplicates returned under different ANNE ids.
 
@@ -2965,17 +3004,7 @@ def load_anne_results(cur, events, persons, stage_ids):
                 row["_timePrecisionNote"] = "ANNE-Altimport: Zeit nur minutengenau"
                 converted.append(row)
             rows = converted
-        # the API can return live and official lists side by side:
-        # keep only the most authoritative type per stage+category
-        priority = {"official": 0, "unofficial": 1, "live": 2}
-        best = {}
-        for r in rows:
-            key = (r.get("eventStageId"), r.get("categoryShortTitle"))
-            p = priority.get(r.get("resultType"), 3)
-            best[key] = min(best.get(key, 3), p)
-        rows = [r for r in rows
-                if priority.get(r.get("resultType"), 3)
-                == best[(r.get("eventStageId"), r.get("categoryShortTitle"))]]
+        rows = select_anne_authoritative_rows(rows, event)
         list_ids = {}
         rows_by_list = defaultdict(list)
         for row in rows:
