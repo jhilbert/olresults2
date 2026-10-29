@@ -153,3 +153,29 @@ test("ÖM invitation confirms only its listed event classes, not a person's elig
   assert.match(unclearEligibility, /ÖM-Berechtigung prüfen/);
   assert.doesNotMatch(unclearEligibility, /Σ 400 €/);
 });
+
+test("2026 ÖM sprint invitation confirms both U18 elite winners only on stage 2", () => {
+  const source = JSON.parse(fs.readFileSync(
+    path.join(__dirname, "../site/data/national-category-evidence.json"), "utf8"));
+  context.nationalFixture = source.events;
+  vm.runInContext("nationalCategoryEvidence = nationalFixture", context);
+  const base = { result_kind: "individual", stage_number: 2, event_id: 5278,
+    event_title: "ÖM 3Tage-4Läufe", date: "2026-05-02", national_rank: 1,
+    identity_state: "resolved", status: "ok", out_of_competition: 0,
+    championship: "ÖM", championship_eligibility_state: "eligible",
+    championship_source_scope: "inferred" };
+  const mika = { ...base, person_id: "9209", person_name: "Mika Asenbauer",
+    category: "D18-E", category_full: "Damen bis 18 Elite", result_list_id: "d18" };
+  const lauri = { ...base, person_id: "8901", person_name: "Lauri Urbanek",
+    category: "H18-E", category_full: "Herren bis 18 Elite", result_list_id: "h18" };
+  const html = context.renderYouth([mika, lauri], []);
+  assert.match(html, /Σ 800 €/);
+  assert.equal((html.match(/ÖM-Kategorie laut Ausschreibung/g) || []).length, 2);
+  assert.doesNotMatch(html, /noch prüfen/);
+  for (const changed of [{ stage_number: 3 }, { date: "2026-05-03" },
+    { category: "D15-18" }, { championship_eligibility_state: "provisional" },
+    { identity_state: "candidate" }, { result_kind: "relay" }]) {
+    const invalid = context.renderYouth([{ ...mika, ...changed }], []);
+    assert.doesNotMatch(invalid, /Σ 400 €/);
+  }
+});

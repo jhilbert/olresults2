@@ -33,6 +33,20 @@
         "D/H 15-18 sind als Austria-Cup-Klassen und nicht als ÖM-Klassen ausgeschrieben.",
         "Die Ausschreibung belegt keine tatsächliche Siegerehrung oder individuelle Meisterschaftsberechtigung."
       ]
+    },
+    "5278": {
+      "event_date": "2026-05-02",
+      "stage_number": 2,
+      "label": "Ausschreibung ÖM Sprint 2026, Seite 3",
+      "url": "https://anne-cdn.oefol.at/public/2026/01/fbqPIDdNFkOwhu703OTM9sDYVYoLQKiJG4zN0Lzt.pdf",
+      "sha256": "66e4a2f3a05cf92c9409b203dc770d5fb2fcad6e87d2356a351e73a06d7f3710",
+      "reviewed_on": "2026-10-29",
+      "scope": "Nachweis der ausgeschriebenen U18-Elite-ÖM-Kategorien für Etappe 2; kein Nachweis von Platzierung oder persönlicher Meisterschaftsberechtigung",
+      "categories": ["D18-E", "H18-E"],
+      "notes": [
+        "Die Ausschreibung führt D/H-18E als ÖM-Kategorien für Etappe 2 am 2. Mai 2026. Der Sparkassensprint an diesem Tag ist Etappe 3 und kein Teil dieses Nachweises.",
+        "Die Ergebnisse von Mika Asenbauer und Lauri Urbanek sind separat auf Rang, Identität, Berechtigung und Mindeststarterzahl geprüft."
+      ]
     }
   }
 }
