@@ -4,6 +4,7 @@
 let db = null;
 let regionalTitleEvidence = {};
 let nationalCategoryEvidence = {};
+let youthTitleConfirmations = {};
 const app = document.getElementById("app");
 
 /* ---------- helpers ---------- */
@@ -1282,7 +1283,7 @@ function fetchPodiums({ club, personId, dw }) {
   // themselves instead, since there's no one to attribute them to there.
   return query(`
     SELECT r.rank, r.national_rank, r.category, r.category_full, r.result_kind, r.championship,
-           r.status, r.out_of_competition,
+           r.status, r.out_of_competition, r.time_s, r.team_number,
            r.championship_source_scope, r.championship_eligibility_state, r.identity_state,
            r.result_list_id,
            e.id AS event_id, e.title AS event_title, e.sport_type, s.title AS stage_title,
@@ -1529,6 +1530,18 @@ function regionalTitleMatch(r, field) {
   return title ? { source, title } : null;
 }
 
+function confirmedYouthTitleMatch(r) {
+  const confirmation = youthTitleConfirmations[String(r.event_id)];
+  if (!confirmation || confirmation.source !== "user-confirmed"
+      || confirmation.date !== r.date || confirmation.stage_number !== r.stage_number
+      || r.championship !== "ÖM" || r.national_rank !== 1) return null;
+  return (confirmation.entries || []).find((entry) => entry.person_id === r.person_id
+    && entry.club === r.club_name && entry.category === r.category
+    && entry.result_kind === r.result_kind && entry.result_list_id === r.result_list_id
+    && entry.time_s === r.time_s
+    && (entry.team_number == null || entry.team_number === r.team_number)) || null;
+}
+
 function renderYouthTitleTable(national, vienna) {
   const people = new Map(), pending = [], seen = new Set();
   const rows = [
@@ -1547,6 +1560,7 @@ function renderYouthTitleTable(national, vienna) {
     seen.add(key);
     const reasons = [];
     const verifiedRegionalTitle = r.kind === "wien" ? regionalTitleMatch(r, "titles") : null;
+    const confirmedYouthTitle = r.kind === "om" ? confirmedYouthTitleMatch(r) : null;
     if (r.identity_state !== "resolved") reasons.push("Personenzuordnung prüfen");
     if (r.kind === "om") {
       if (r.championship_eligibility_state !== "eligible") reasons.push("ÖM-Berechtigung prüfen");
@@ -1554,7 +1568,7 @@ function renderYouthTitleTable(national, vienna) {
       const listed = source && source.event_date === r.date
         && source.stage_number === r.stage_number && r.result_kind === "individual"
         && source.categories.includes(r.category);
-      if (!['full_field', 'medal_places_only', 'winner_only'].includes(r.championship_source_scope) && !listed)
+      if (!['full_field', 'medal_places_only', 'winner_only'].includes(r.championship_source_scope) && !listed && !confirmedYouthTitle)
         reasons.push("ÖM-Kategorie nur abgeleitet");
     } else {
       const unannotated = regionalTitleMatch(r, "unannotated_winners");
@@ -1592,10 +1606,12 @@ function renderYouthTitleTable(national, vienna) {
   const eventLink = (r) => `<a href="#/event/${r.event_id}/stage/${r.stage_number}${r.kind === "wien" ? "/lm/WIEN" : ""}">${esc(r.event_title)}${r.stage_title && r.stage_title !== r.event_title ? ` · ${esc(r.stage_title)}` : ""}</a>`;
   const sourceEvidence = (r) => {
     if (r.kind === "om") {
+      const manualConfirmation = confirmedYouthTitleMatch(r)
+        ? " · ÖM-Titel vom Nutzer bestätigt" : "";
       const source = nationalCategoryEvidence[String(r.event_id)];
       if (!source || source.event_date !== r.date || source.stage_number !== r.stage_number
-          || r.result_kind !== "individual" || !source.categories.includes(r.category)) return "";
-      return ` · <a href="${esc(source.url)}" target="_blank" rel="noopener">ÖM-Kategorie laut Ausschreibung ↗</a>`;
+          || r.result_kind !== "individual" || !source.categories.includes(r.category)) return manualConfirmation;
+      return ` · <a href="${esc(source.url)}" target="_blank" rel="noopener">ÖM-Kategorie laut Ausschreibung ↗</a>${manualConfirmation}`;
     }
     const match = regionalTitleMatch(r, "titles");
     if (match) {
@@ -1610,7 +1626,7 @@ function renderYouthTitleTable(national, vienna) {
   };
   const detail = (r) => `${r.kind === "om" ? "ÖM" : "Wiener MS"}: ${eventLink(r)} · ${esc(r.display_category)} · ${fmtDate(r.date)}${sourceEvidence(r)}${r.grant == null ? " · Fördersatz offen" : ""}`;
   return `<p class="sub">Nur Gold in eindeutig begrenzten Jugendklassen 12 bis 18, je Person und Teamleistung einmal. ÖM: 400 €; Wiener MS: Damen 110 €, Herren 90 €.</p>
-    <p class="sub dim">Berechnung aus den verfügbaren Ergebnisdaten; keine amtlich bestätigte Fördersumme. Nur Kategorien mit direktem Meisterschaftsnachweis und aufgelöster Identität werden gezählt. Die Ergebnisprüfung kann trotzdem noch offen sein.</p>
+    <p class="sub dim">Berechnung aus den verfügbaren Ergebnisdaten; keine amtlich bestätigte Fördersumme. Gezählt werden nur Titel mit direktem Meisterschaftsnachweis oder deiner Bestätigung und aufgelöster Identität. Die Ergebnisprüfung kann trotzdem noch offen sein.</p>
     <table><thead><tr><th>Person</th><th class="num">ÖM<br><small>Σ ${totals.om}</small></th><th class="num">Wiener MS<br><small>Σ ${totals.wien}</small></th><th class="num">Förderung<br><small>Σ ${euro(totals.euros)}${totals.unknown ? " + offen" : ""}</small></th></tr></thead>
     <tbody>${ordered.length ? ordered.map((p) => `<tr><td>${runnerNameHtml(p.person_id, p.person_name)}</td><td class="num">${p.om}</td><td class="num">${p.wien}</td><td class="num">${euro(p.euros)}${p.unknown ? ` + ${p.unknown} offen` : ""}</td></tr>
       <tr class="detail-row"><td colspan="4"><ul class="medal-events">${p.entries.map((r) => `<li>${detail(r)}</li>`).join("")}</ul></td></tr>`).join("") : `<tr><td colspan="4" class="dim">Keine Titel mit ausreichendem Meisterschaftsnachweis.</td></tr>`}</tbody></table>
@@ -2015,8 +2031,9 @@ async function boot() {
       return {};
     }
   };
-  [regionalTitleEvidence, nationalCategoryEvidence] = await Promise.all([
+  [regionalTitleEvidence, nationalCategoryEvidence, youthTitleConfirmations] = await Promise.all([
     readEvidence("regional-title-evidence.json"), readEvidence("national-category-evidence.json"),
+    readEvidence("youth-title-confirmations.json"),
   ]);
   setupIdentity();
   syncIdentityURL();  // reflect a localStorage-seeded filter into the address bar too, so it's always a shareable link

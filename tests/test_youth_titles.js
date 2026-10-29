@@ -179,3 +179,30 @@ test("2026 ÖM sprint invitation confirms both U18 elite winners only on stage 2
     assert.doesNotMatch(invalid, /Σ 400 €/);
   }
 });
+
+test("user-confirmed 2024 youth titles are exact and do not override other checks", () => {
+  const source = JSON.parse(fs.readFileSync(
+    path.join(__dirname, "../site/data/youth-title-confirmations.json"), "utf8"));
+  context.confirmationFixture = source.events;
+  vm.runInContext("youthTitleConfirmations = confirmationFixture", context);
+  const rows = Object.entries(source.events).flatMap(([eventId, event]) => event.entries.map((e) => ({
+    ...e, event_id: Number(eventId), event_title: "ÖM", date: event.date,
+    stage_number: event.stage_number, person_name: e.name, club_name: e.club,
+    category_full: e.category, national_rank: 1, status: "ok", out_of_competition: 0,
+    identity_state: "resolved", championship: "ÖM", championship_eligibility_state: "eligible",
+    championship_source_scope: "inferred" })));
+  assert.equal(rows.length, 9);
+  const html = context.renderYouth(rows, []);
+  assert.match(html, /Σ 3[.\s\u00a0]600 €/);
+  assert.equal((html.match(/ÖM-Titel vom Nutzer bestätigt/g) || []).length, 9);
+  assert.doesNotMatch(html, /noch prüfen/);
+  const individual = rows[0], relay = rows.find((r) => r.result_kind === "relay");
+  for (const changed of [{ event_id: 4000 }, { date: "2024-06-09" }, { stage_number: 2 },
+    { person_id: "1" }, { club_name: "Anderer Verein" }, { category: "Herren bis 14" },
+    { result_list_id: "other" }, { time_s: individual.time_s + 1 },
+    { result_kind: "relay" }, { identity_state: "candidate" },
+    { championship_eligibility_state: "unknown" }]) {
+    assert.doesNotMatch(context.renderYouth([{ ...individual, ...changed }], []), /Σ 400 €/);
+  }
+  assert.doesNotMatch(context.renderYouth([{ ...relay, team_number: "999" }], []), /Σ 400 €/);
+});

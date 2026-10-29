@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "events": {
+    "4434": {
+      "date": "2024-06-08",
+      "stage_number": 1,
+      "source": "user-confirmed",
+      "confirmed_on": "2026-10-29",
+      "scope": "Der Nutzer bestätigt diese drei vorgeschlagenen ÖM-Jugendtitel; Identität, Berechtigung, Rang und Mindeststarterzahl bleiben gesondert zu prüfen.",
+      "entries": [
+        {"person_id": "8506", "name": "Anna Skern", "club": "Naturfreunde Wien", "category": "Damen bis 14 / W14", "result_kind": "individual", "result_list_id": "list:88b23d43127722ffbd8eba6d", "time_s": 572},
+        {"person_id": "9210", "name": "Sona Asenbauer", "club": "Naturfreunde Wien", "category": "Damen bis 16 Elite / W16E / AAOC W16", "result_kind": "individual", "result_list_id": "list:fc8dd92bbe4039b7e3377ed2", "time_s": 687},
+        {"person_id": "8901", "name": "Lauri Urbanek", "club": "Naturfreunde Wien", "category": "Herren bis 16 Elite / M16E / AAOC M16", "result_kind": "individual", "result_list_id": "list:fb4e2e60779131009d84913d", "time_s": 771}
+      ]
+    },
+    "4588": {
+      "date": "2024-09-07",
+      "stage_number": 1,
+      "source": "user-confirmed",
+      "confirmed_on": "2026-10-29",
+      "scope": "Der Nutzer bestätigt diese sechs vorgeschlagenen ÖM-Jugendstaffeltitel; Identität, Berechtigung, Rang und Mindeststarterzahl bleiben gesondert zu prüfen.",
+      "entries": [
+        {"person_id": "9018", "name": "Fabian Kolar", "club": "Naturfreunde Wien", "category": "Herren ab 15 bis 18", "result_kind": "relay", "result_list_id": "list:c311aa4d45c82d5b77c47f51", "team_number": "103", "time_s": 2543},
+        {"person_id": "8901", "name": "Lauri Urbanek", "club": "Naturfreunde Wien", "category": "Herren ab 15 bis 18", "result_kind": "relay", "result_list_id": "list:c311aa4d45c82d5b77c47f51", "team_number": "103", "time_s": 2776},
+        {"person_id": "9209", "name": "Mika Asenbauer", "club": "Naturfreunde Wien", "category": "Herren ab 15 bis 18", "result_kind": "relay", "result_list_id": "list:c311aa4d45c82d5b77c47f51", "team_number": "103", "time_s": 3096},
+        {"person_id": "8979", "name": "Adam Imriska", "club": "Naturfreunde Wien", "category": "Herren bis 14", "result_kind": "relay", "result_list_id": "list:edeaa89a4e6a6f33f03b99d1", "team_number": "16", "time_s": 1978},
+        {"person_id": "8506", "name": "Anna Skern", "club": "Naturfreunde Wien", "category": "Herren bis 14", "result_kind": "relay", "result_list_id": "list:edeaa89a4e6a6f33f03b99d1", "team_number": "16", "time_s": 1857},
+        {"person_id": "8900", "name": "Annina Urbanek", "club": "Naturfreunde Wien", "category": "Herren bis 14", "result_kind": "relay", "result_list_id": "list:edeaa89a4e6a6f33f03b99d1", "team_number": "16", "time_s": 2025}
+      ]
+    }
+  }
+}
