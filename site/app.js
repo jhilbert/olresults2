@@ -1546,6 +1546,7 @@ function renderYouthTitleTable(national, vienna) {
     if (seen.has(key)) continue;
     seen.add(key);
     const reasons = [];
+    const verifiedRegionalTitle = r.kind === "wien" ? regionalTitleMatch(r, "titles") : null;
     if (r.identity_state !== "resolved") reasons.push("Personenzuordnung prüfen");
     if (r.kind === "om") {
       if (r.championship_eligibility_state !== "eligible") reasons.push("ÖM-Berechtigung prüfen");
@@ -1556,19 +1557,22 @@ function renderYouthTitleTable(national, vienna) {
       if (!['full_field', 'medal_places_only', 'winner_only'].includes(r.championship_source_scope) && !listed)
         reasons.push("ÖM-Kategorie nur abgeleitet");
     } else {
-      const title = regionalTitleMatch(r, "titles");
       const unannotated = regionalTitleMatch(r, "unannotated_winners");
       if (unannotated) {
         reasons.push("WOLV nennt Rang 1, aber keinen Meistertitel");
       // A Nat/W field identifies the athlete's state, not whether the class
       // itself is an official championship class. An exact independent WOLV
       // champion annotation can resolve that for the specific performance.
-      } else if (!title && (!["category", "document"].includes(r.detection_basis)
+      } else if (!verifiedRegionalTitle && (!["category", "document"].includes(r.detection_basis)
                  || /\b(?:ASKÖ|Rahmen|Kurz|B-Klasse)\b|\d\s*B(?:\b|$)/i.test(category))) {
         reasons.push("Wiener Meisterschaftskategorie prüfen");
       }
     }
-    const entry = { ...r, display_category: category, grant: youthTitleGrant(r.kind, age.gender), reasons };
+    const confirmation = verifiedRegionalTitle?.title?.grant_confirmation;
+    const confirmedGrant = confirmation?.source === "user-confirmed"
+      && [90, 110].includes(confirmation.amount_eur) ? confirmation.amount_eur : null;
+    const entry = { ...r, display_category: category,
+      grant: confirmedGrant ?? youthTitleGrant(r.kind, age.gender), reasons };
     if (reasons.length) { pending.push(entry); continue; }
     if (!people.has(r.person_id)) people.set(r.person_id, {
       person_id: r.person_id, person_name: r.person_name, om: 0, wien: 0,
@@ -1594,7 +1598,13 @@ function renderYouthTitleTable(national, vienna) {
       return ` · <a href="${esc(source.url)}" target="_blank" rel="noopener">ÖM-Kategorie laut Ausschreibung ↗</a>`;
     }
     const match = regionalTitleMatch(r, "titles");
-    if (match) return ` · <a href="${esc(match.source.url)}" target="_blank" rel="noopener">WOLV-Meistertitel bestätigt (${esc(match.title.category)}) ↗</a>`;
+    if (match) {
+      const confirmation = match.title.grant_confirmation;
+      const confirmedRate = confirmation?.source === "user-confirmed"
+        && [90, 110].includes(confirmation.amount_eur)
+        ? ` · Fördersatz ${confirmation.amount_eur} € bestätigt` : "";
+      return ` · <a href="${esc(match.source.url)}" target="_blank" rel="noopener">WOLV-Meistertitel bestätigt (${esc(match.title.category)}) ↗</a>${confirmedRate}`;
+    }
     const unannotated = regionalTitleMatch(r, "unannotated_winners");
     return unannotated ? ` · <a href="${esc(unannotated.source.url)}" target="_blank" rel="noopener">WOLV: Rang 1, Titel nicht ausgewiesen ↗</a>` : "";
   };

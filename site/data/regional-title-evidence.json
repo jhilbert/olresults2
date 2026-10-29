@@ -12,7 +12,7 @@
       "scope": "Sieger mit ausdrücklich gedrucktem Wiener Meistertitel; keine Bestätigung sämtlicher Platzierungen oder der Förderhöhe",
       "summary": "Die Liste bestätigt ausdrücklich zehn Titel. D 65- hat zwei Starter und erfüllt damit die Mindestzahl von drei nicht. D-12 ist gegenüber der gemeinsamen ANNE-Klasse unterschiedlich bezeichnet.",
       "titles": [
-        {"category": "D-12", "result_category": "Wien Damen&Herren -12", "person_id": "8980", "name": "Albert Imriska", "club": "Naturfreunde Wien", "time_s": 532},
+        {"category": "D-12", "result_category": "Wien Damen&Herren -12", "person_id": "8980", "name": "Albert Imriska", "club": "Naturfreunde Wien", "time_s": 532, "grant_confirmation": {"amount_eur": 90, "source": "user-confirmed", "confirmed_on": "2026-10-29"}},
         {"category": "D-14", "result_category": "Wien Damen-14", "person_id": "8506", "name": "Anna Skern", "club": "Naturfreunde Wien", "time_s": 707},
         {"category": "D 15-", "result_category": "Wien Damen 15-", "person_id": "2710", "name": "Tina Tiefenböck", "club": "Naturfreunde Wien", "time_s": 1092},
         {"category": "D 45-", "result_category": "Wien Damen 45-", "person_id": "7364", "name": "Barbara Kastner", "club": "Naturfreunde Wien", "time_s": 896},
@@ -24,7 +24,7 @@
         {"category": "H 75-", "result_category": "Wien Herren 75-", "person_id": "1127", "name": "Werner Burmann", "club": "OLC Wienerwald", "time_s": 1060}
       ],
       "notes": [
-        "Albert Imriska steht in der WOLV-Liste unter D-12, in der ANNE-Liste unter Wien Damen&Herren -12. Die Geschlechtszuordnung und der Fördersatz sind damit nicht belegt.",
+        "Albert Imriska steht in der WOLV-Liste unter D-12, in der ANNE-Liste unter Wien Damen&Herren -12. Der Fördersatz von 90 EUR wurde für diesen Titel vom Nutzer bestätigt, nicht aus der WOLV-Liste abgeleitet.",
         "D 65-: Herta Pamlitschka steht auf Rang 1; mit zwei Startern wird die bestätigte Mindestzahl von drei nicht erreicht, und die WOLV-Liste nennt keinen Meistertitel.",
         "D-12: Annika Springer wird in der WOLV-Ergebnisliste auf Rang 8 angeführt; die bestehende Landesvereinsregel der Anwendung ist dadurch nicht automatisch geändert."
       ]

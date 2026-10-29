@@ -65,11 +65,16 @@ test("WOLV evidence requires matching event, date, person, club and time", () =>
     out_of_competition: 0, time_s: 532, club_name: "Naturfreunde Wien" };
   const matched = context.renderYouth([], [winner]);
   assert.match(matched, /WOLV-Meistertitel bestätigt \(D-12\)/);
-  assert.match(matched, /Fördersatz offen/);
+  assert.match(matched, /Fördersatz 90 € bestätigt/);
+  assert.match(matched, /Σ 90 €/);
+  assert.doesNotMatch(matched, /Fördersatz offen/);
   for (const changed of [{ time_s: 533 }, { date: "2025-05-11" },
     { club_name: "Anderer Verein" }, { person_id: "1" }, { event_id: 1234 },
     { source_category: "andere Klasse" }]) {
-    assert.doesNotMatch(context.renderYouth([], [{ ...winner, ...changed }]), /WOLV-Meistertitel bestätigt/);
+    const html = context.renderYouth([], [{ ...winner, ...changed }]);
+    assert.doesNotMatch(html, /WOLV-Meistertitel bestätigt/);
+    assert.doesNotMatch(html, /Fördersatz 90 € bestätigt/);
+    assert.doesNotMatch(html, /Σ 90 €/);
   }
 });
 
