@@ -1569,7 +1569,7 @@ function renderYouthTitleTable(national, vienna) {
       }
     }
     const confirmation = verifiedRegionalTitle?.title?.grant_confirmation;
-    const confirmedGrant = confirmation?.source === "user-confirmed"
+    const confirmedGrant = ["user-confirmed", "official-title-gender"].includes(confirmation?.source)
       && [90, 110].includes(confirmation.amount_eur) ? confirmation.amount_eur : null;
     const entry = { ...r, display_category: category,
       grant: confirmedGrant ?? youthTitleGrant(r.kind, age.gender), reasons };
@@ -1600,7 +1600,7 @@ function renderYouthTitleTable(national, vienna) {
     const match = regionalTitleMatch(r, "titles");
     if (match) {
       const confirmation = match.title.grant_confirmation;
-      const confirmedRate = confirmation?.source === "user-confirmed"
+      const confirmedRate = ["user-confirmed", "official-title-gender"].includes(confirmation?.source)
         && [90, 110].includes(confirmation.amount_eur)
         ? ` · Fördersatz ${confirmation.amount_eur} € bestätigt` : "";
       return ` · <a href="${esc(match.source.url)}" target="_blank" rel="noopener">WOLV-Meistertitel bestätigt (${esc(match.title.category)}) ↗</a>${confirmedRate}`;

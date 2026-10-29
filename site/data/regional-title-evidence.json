@@ -29,6 +29,36 @@
         "D-12: Annika Springer wird in der WOLV-Ergebnisliste auf Rang 8 angeführt; die bestehende Landesvereinsregel der Anwendung ist dadurch nicht automatisch geändert."
       ]
     },
+    "4847": {
+      "jurisdiction": "WIEN",
+      "event_date": "2025-05-24",
+      "stage_number": 1,
+      "label": "WOLV: Offizielle Ergebnisliste Wiener Meisterschaft Mitteldistanz 2025",
+      "url": "http://www.wolv.at/events/2025/Wr.MS%20Mittel.pdf",
+      "sha256": "f9ea682c51ad7fed20d578e5bd22b85c589cf12fc96fc0585527b0479473f288",
+      "reviewed_on": "2026-10-29",
+      "scope": "Sieger mit ausdrücklich gedrucktem Wiener Meistertitel; Fördersätze folgen den hinterlegten Regeln, nicht der Ergebnisliste",
+      "summary": "Acht ausdrücklich ausgewiesene Meistertitel; Damen 13-14, Herren 13-14 und Damen 65 haben weniger als drei Starter und keinen ausgewiesenen Titel.",
+      "titles": [
+        {"category": "Herren+Damen - 12W", "result_category": "Herren+Damen - 12W", "person_id": "10345", "name": "Lihuen Le Blanc", "club": "Naturfreunde Wien", "time_s": 2392, "grant_confirmation": {"amount_eur": 110, "source": "official-title-gender", "evidence": "Wiener Meisterin 2025"}},
+        {"category": "Damen 15-W", "result_category": "Damen 15-W", "person_id": "2710", "name": "Tina Tiefenböck", "club": "Naturfreunde Wien", "time_s": 2407},
+        {"category": "Damen 45-W", "result_category": "Damen 45-W", "person_id": "4731", "name": "Herlinde Hinterplattner", "club": "MTV Hernals", "time_s": 2389},
+        {"category": "Damen 55-W", "result_category": "Damen 55-W", "person_id": "1177", "name": "Guni Palme", "club": "OLC Wienerwald", "time_s": 1885},
+        {"category": "Herren 15-W", "result_category": "Herren 15-W", "person_id": "2314", "name": "Franz Wareyka-Glaner", "club": "WAT-OL", "time_s": 2355},
+        {"category": "Herren 45-W", "result_category": "Herren 45-W", "person_id": "1760", "name": "Thomas Radon", "club": "Naturfreunde Wien", "time_s": 2379},
+        {"category": "Herren 60-W", "result_category": "Herren 60-W", "person_id": "1655", "name": "Axel Biel", "club": "Naturfreunde Wien", "time_s": 1676},
+        {"category": "Herren 75-W", "result_category": "Herren 75-W", "person_id": "1127", "name": "Werner Burmann", "club": "OLC Wienerwald", "time_s": 2354}
+      ],
+      "unannotated_winners": [
+        {"category": "Damen 13-14W", "result_category": "Damen 13-14W", "person_id": "8506", "name": "Anna Skern", "club": "Naturfreunde Wien", "time_s": 1871},
+        {"category": "Herren 13-14W", "result_category": "Herren 13-14W", "person_id": "7699", "name": "Fabian Strauß", "club": "OLG Ströck Wien", "time_s": 3929},
+        {"category": "Damen 65-W", "result_category": "Damen 65-W", "person_id": "1860", "name": "Herta Pamlitschka", "club": "WAT-OL", "time_s": 2817}
+      ],
+      "notes": [
+        "Lihuen Le Blanc wird in der gemeinsamen U12-Klasse ausdrücklich als Wiener Meisterin bezeichnet; daraus folgt nach der hinterlegten Förderregel der Damen-Satz von 110 EUR. Die WOLV-Liste nennt selbst keinen Förderbetrag.",
+        "Damen 13-14: zwei Starterinnen; Herren 13-14 und Damen 65: jeweils ein Starter. Rang 1 ist in der WOLV-Liste nicht als Meistertitel ausgewiesen und die Mindestzahl von drei ist nicht erfüllt."
+      ]
+    },
     "4963": {
       "jurisdiction": "WIEN",
       "event_date": "2025-10-11",

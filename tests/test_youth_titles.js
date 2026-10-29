@@ -103,6 +103,33 @@ test("WOLV night list confirms both winners in the pair but not unannotated rank
   assert.match(html, /WOLV: Rang 1, Titel nicht ausgewiesen/);
 });
 
+test("WOLV middle list establishes the mixed U12 winner's female title and grant", () => {
+  const source = JSON.parse(fs.readFileSync(
+    path.join(__dirname, "../site/data/regional-title-evidence.json"), "utf8"));
+  assert.equal(source.events["4847"].titles.length, 8);
+  context.sourceFixture = source.events;
+  vm.runInContext("regionalTitleEvidence = sourceFixture", context);
+  const winner = { person_id: "10345", person_name: "Lihuen Le Blanc", category: "DH - 12",
+    source_category: "Herren+Damen - 12W", source_category_full: "Herren+Damen - 12W",
+    regional_entry_id: "mittel-u12", detection_basis: "category", result_kind: "individual",
+    result_list_id: "list1", stage_number: 1, event_id: 4847, event_title: "Mittel MS",
+    date: "2025-05-24", national_rank: 1, identity_state: "resolved", status: "ok",
+    out_of_competition: 0, time_s: 2392, club_name: "Naturfreunde Wien" };
+  const html = context.renderYouth([], [winner]);
+  assert.match(html, /WOLV-Meistertitel bestätigt/);
+  assert.match(html, /Σ 110 €/);
+  assert.match(html, /Fördersatz 110 € bestätigt/);
+  assert.doesNotMatch(html, /Fördersatz offen/);
+  const other = context.renderYouth([], [{ ...winner, person_id: "2" }]);
+  assert.doesNotMatch(other, /Σ 110 €/);
+  assert.match(other, /Fördersatz offen/);
+  const noTitle = context.renderYouth([], [{ ...winner, person_id: "8506",
+    person_name: "Anna Skern", category: "D 13-14W", source_category: "Damen 13-14W",
+    source_category_full: "Damen 13-14W", time_s: 1871 }]);
+  assert.match(noTitle, /WOLV nennt Rang 1, aber keinen Meistertitel/);
+  assert.doesNotMatch(noTitle, /Σ 110 €/);
+});
+
 test("ÖM invitation confirms only its listed event classes, not a person's eligibility", () => {
   const source = JSON.parse(fs.readFileSync(
     path.join(__dirname, "../site/data/national-category-evidence.json"), "utf8"));
