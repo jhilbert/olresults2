@@ -41,6 +41,21 @@ test("youth-title view is restricted to Naturfreunde Wien including old direct l
   assert.match(ownDeep, /Jugend-Meistertitel/);
 });
 
+test("2024 Vienna D14 winner with dated club mapping counts toward youth title", () => {
+  const row = { person_id: "9030", person_name: "Matilda Buschek", event_id: 4251,
+    date: "2024-04-20", stage_number: 1, result_list_id: "list-d14", stage_id: 1,
+    event_title: "NÖ + W Mitteldistanz", club_name: "Naturfreunde Wien",
+    category: "D-14", category_full: "D-14", source_category: "W D-14",
+    source_category_full: "W D-14", regional_entry_id: "regional-matilda",
+    detection_basis: "invitation", identity_state: "resolved", result_kind: "individual",
+    status: "ok", out_of_competition: 0, time_s: 1686, national_rank: 1 };
+  const html = context.renderYouth([], [row]);
+  assert.match(html, /Matilda Buschek/);
+  assert.match(html, /Wiener MS<br><small>Σ 1/);
+  assert.match(html, /110\s*€/);
+  assert.match(html, /event\/4251/);
+});
+
 test("youth table counts only evidenced winners and makes unknowns visible", () => {
   const base = { person_id: "1", person_name: "Anna", category: "D-14",
     category_full: "Damen -14", result_list_id: "list1", stage_id: 1,

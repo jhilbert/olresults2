@@ -211,6 +211,14 @@ CREATE TABLE result (
     observed_nation TEXT             -- raw PDF/HTML Nat/Country cell; in a
                                       -- joint Landes-MS this can be W/NÖ/B/St
 );
+CREATE TABLE result_club_evidence (
+    result_id INTEGER PRIMARY KEY REFERENCES result(id),
+    official_club TEXT NOT NULL,
+    basis TEXT NOT NULL,
+    membership_valid_from TEXT NOT NULL,
+    membership_valid_to TEXT,
+    membership_observed_at TEXT
+);
 CREATE TABLE championship_source_entry (
     id TEXT PRIMARY KEY,
     stage_id INTEGER NOT NULL REFERENCES stage(id),
@@ -2169,6 +2177,67 @@ def club_match_key(name):
     value = unicodedata.normalize("NFKD", name or "")
     value = "".join(c for c in value if not unicodedata.combining(c))
     return re.sub(r"[^a-z0-9]", "", value.casefold())
+
+
+def resolve_result_clubs_from_anne_memberships(cur, club_overrides=None):
+    """Resolve ambiguous source club labels using dated ANNE identity evidence.
+
+    The exact result name and independently resolved ÖFOL identity must agree;
+    a compatible, sufficiently long source prefix and a single dated club for
+    the event's sport are required. Never rewrite a known result club, infer
+    backwards before membership began, or use a snapshot after its observation
+    date as proof of an open-ended membership. Keep explicit manual overrides.
+    """
+    overrides = club_overrides or {}
+    rows = cur.execute("""SELECT r.id,r.person_id,r.observed_name,r.club,
+                  r.observed_club,COALESCE(NULLIF(s.date,''),e.date_from),
+                  p.name_key,m.club,m.valid_from,m.valid_to,m.observed_at,m.active
+             FROM result r JOIN stage s ON s.id=r.stage_id
+             JOIN event e ON e.id=s.event_id JOIN person p ON p.id=r.person_id
+             JOIN person_club_membership m ON m.person_id=r.person_id
+                  AND m.sport_type=e.sport_type AND m.source='anne-user-registry'
+            WHERE r.official_club IS NULL AND r.identity_state='resolved'
+              AND r.result_kind='individual' AND r.club IS NOT NULL
+              AND EXISTS (SELECT 1 FROM person_identifier i
+                           WHERE i.person_id=r.person_id AND i.scheme='oefol_id'
+                             AND i.source='anne-user-registry' AND i.identifier_state='authoritative')
+              AND (r.observed_user_id IS NULL OR TRIM(r.observed_user_id)=''
+                   OR EXISTS (SELECT 1 FROM person_identifier i
+                               WHERE i.person_id=r.person_id AND i.scheme='oefol_id'
+                                 AND i.identifier=TRIM(r.observed_user_id)))""").fetchall()
+    candidates = defaultdict(dict)
+    for (result_id, _person_id, observed_name, source_club, observed_club, race_date,
+         person_key, club, valid_from, valid_to, observed_at, active) in rows:
+        if not observed_name or name_key(observed_name) != person_key or person_key in overrides:
+            continue
+        race = str(race_date or "")[:10]
+        start, end, snapshot = (str(value or "")[:10]
+                                for value in (valid_from, valid_to, observed_at))
+        if not all(re.fullmatch(r"\d{4}-\d{2}-\d{2}", value) for value in (race, start)):
+            continue
+        if (start > race or not snapshot or snapshot < race
+                or (end and end < race) or (not end and not active)):
+            continue
+        if club not in OFFICIAL_CLUBS:
+            continue
+        club_key = club_match_key(club)
+        raw_keys = [club_match_key(value) for value in (source_club, observed_club) if value]
+        if not raw_keys or any(len(key) < 10 or not club_key.startswith(key) for key in raw_keys):
+            continue
+        proof = (start, end or None, snapshot or None)
+        current = candidates[result_id].get(club)
+        if current is None or proof[0] > current[0]:
+            candidates[result_id][club] = proof
+    updates, evidence = [], []
+    for result_id, clubs in sorted(candidates.items()):
+        if len(clubs) != 1:
+            continue
+        club, proof = next(iter(clubs.items()))
+        updates.append((club, result_id))
+        evidence.append((result_id, club, "anne-id-dated-membership-and-source-prefix", *proof))
+    cur.executemany("UPDATE result SET official_club=? WHERE id=? AND official_club IS NULL", updates)
+    cur.executemany("INSERT INTO result_club_evidence VALUES (?,?,?,?,?,?)", evidence)
+    return len(updates)
 
 
 def relay_club_match_key(name):
@@ -6300,6 +6369,10 @@ def main():
             f"{len(registry_merge_conflicts)} incompatible ANNE /user identity merges: "
             + examples)
 
+    resolved_clubs = resolve_result_clubs_from_anne_memberships(
+        cur, member_ledger.get("club_override", {}))
+    print(f"dated ANNE membership club mappings: {resolved_clubs}")
+
     for pid, counts in final_names.items():
         if pid not in surviving_people:
             continue
@@ -6618,7 +6691,7 @@ def main():
     populate_championship_model(cur)
     populate_quality_model(cur)
 
-    cur.execute("PRAGMA user_version = 11")
+    cur.execute("PRAGMA user_version = 12")
     con.commit()
     for table in ("event", "stage", "person", "person_identifier", "person_club_membership", "person_alias",
                   "person_redirect", "person_tombstone", "source_document", "result_list", "result",

@@ -64,6 +64,7 @@ Korrekturen der erzeugten SQLite-Datenbank sind nicht zulässig.
 | `IDENT-003` | confirmed | Mehrdeutige oder widersprüchliche Evidenz erzeugt einen Prüf- oder Konfliktstatus und darf keine automatische Personenverschmelzung auslösen. |
 | `IDENT-004` | confirmed | Ein sichtbares Ergebnis ohne verwendbaren Personenbezeichner (zum Beispiel eine SI-Kartennummer im Namensfeld) bleibt als personlose Quellleistung erhalten, erzeugt aber weder Läuferprofil noch Meisterschaftswertung. |
 | `CLUB-001` | confirmed | Quellschreibweisen dürfen auf einen bestätigten kanonischen Verein normalisiert werden; beobachteter Vereinsname und kanonischer Verein bleiben getrennt nachvollziehbar. |
+| `CLUB-002` | confirmed | Ein nicht eindeutig aufgelöster, mindestens zehn Zeichen langer Vereinspräfix darf bei einem Einzelergebnis durch eine zum Wettkampftag und zur Disziplin passende ANNE-Mitgliedschaft ergänzt werden, wenn die Person samt ÖFOL-ID sicher aufgelöst ist, der Quellname zur Person passt und genau ein passender offizieller Verein belegt ist. Team- und Paareinträge werden dabei nicht automatisch zugeordnet. Der Wettkampf darf nicht nach dem Beobachtungsdatum des Registers liegen; eine inaktive Mitgliedschaft ohne Enddatum ist keine ausreichende Evidenz. Fehlende Daten, widersprüchliche Quell-IDs oder manuelle Vereinskorrekturen verhindern die automatische Zuordnung. Bestehende Vereine werden nicht überschrieben; der rohe Quellwert bleibt erhalten und `result_club_evidence` dokumentiert die Grundlage. |
 
 ## Paar, Mannschaft und Staffel
 

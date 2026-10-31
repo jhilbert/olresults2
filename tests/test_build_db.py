@@ -13,6 +13,62 @@ SPEC.loader.exec_module(build_db)
 
 
 class AnneIdentityTests(unittest.TestCase):
+    def test_ambiguous_result_club_requires_matching_dated_anne_membership(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id,title,sport_type) VALUES (1,'Wien','footOrienteering')")
+        for sid, date in ((1, "2024-04-20"), (2, "2018-01-01"), (3, "2027-01-01")):
+            cur.execute("INSERT INTO stage (id,event_id,number,date) VALUES (?,1,?,?)", (sid, sid, date))
+        cur.execute("INSERT INTO person VALUES (9030,'Matilda Buschek',?,2011,'AUT')",
+                    (build_db.name_key("Matilda Buschek"),))
+        cur.execute("INSERT INTO person_identifier VALUES ('oefol_id','9030',9030,'authoritative','anne-user-registry',NULL)")
+        cur.execute("INSERT INTO person_club_membership VALUES (9030,'Naturfreunde Wien','footOrienteering','2019-03-25',NULL,1,'anne-user-registry','2026-07-19')")
+        def add(stage=1, name="Buschek Matilda", source_club="Naturfreunde", **kw):
+            build_db.insert_result(cur, stage_id=stage, category="D14", person_id=9030,
+                observed_name=name, club=source_club, observed_club=source_club,
+                identity_state=kw.pop("identity_state", "resolved"),
+                official_club=kw.pop("official_club", None), status="ok", source="test", **kw)
+        add()
+        add(stage=2)  # before membership
+        add(stage=3)  # after open-ended membership snapshot
+        add(source_club="Naturfreunde Villach")  # contradictory source
+        add(name="Andere Person")  # source identity does not agree
+        add(identity_state="candidate")
+        add(observed_user_id="9999")  # conflicting source identifier
+        add(official_club="WAT-OL")  # never override a source club
+        add(result_kind="relay")  # team label need not be the person's club
+        self.assertEqual(build_db.resolve_result_clubs_from_anne_memberships(cur), 1)
+        rows = cur.execute("SELECT official_club,observed_club FROM result ORDER BY id").fetchall()
+        self.assertEqual(rows[0], ("Naturfreunde Wien", "Naturfreunde"))
+        self.assertTrue(all(row[0] is None for row in rows[1:7]))
+        self.assertEqual(rows[7][0], "WAT-OL")
+        self.assertIsNone(rows[8][0])
+        self.assertEqual(cur.execute("SELECT basis,membership_valid_from FROM result_club_evidence").fetchone(),
+                         ("anne-id-dated-membership-and-source-prefix", "2019-03-25"))
+
+    def test_club_membership_mapping_never_guesses_conflicts_or_manual_override(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id,title,sport_type) VALUES (1,'Wien','footOrienteering')")
+        cur.execute("INSERT INTO stage (id,event_id,number,date) VALUES (1,1,1,'2024-04-20')")
+        key = build_db.name_key("Matilda Buschek")
+        cur.execute("INSERT INTO person VALUES (9030,'Matilda Buschek',?,2011,'AUT')", (key,))
+        cur.execute("INSERT INTO person_identifier VALUES ('oefol_id','9030',9030,'authoritative','anne-user-registry',NULL)")
+        for club in ("Naturfreunde Wien", "Naturfreunde Kitzbühel"):
+            cur.execute("INSERT INTO person_club_membership VALUES (9030,?,'footOrienteering','2019-01-01',NULL,1,'anne-user-registry','2026-07-19')", (club,))
+        build_db.insert_result(cur, stage_id=1, category="D14", person_id=9030,
+            observed_name="Buschek Matilda", club="Naturfreunde", observed_club="Naturfreunde",
+            identity_state="resolved", status="ok", source="test")
+        self.assertEqual(build_db.resolve_result_clubs_from_anne_memberships(cur), 0)
+        cur.execute("DELETE FROM person_club_membership WHERE club='Naturfreunde Kitzbühel'")
+        cur.execute("UPDATE person_club_membership SET active=0")
+        self.assertEqual(build_db.resolve_result_clubs_from_anne_memberships(cur), 0)
+        cur.execute("UPDATE person_club_membership SET active=1")
+        self.assertEqual(build_db.resolve_result_clubs_from_anne_memberships(cur, {key: None}), 0)
+        self.assertIsNone(cur.execute("SELECT official_club FROM result").fetchone()[0])
+
     def test_5496_user_confirms_hilbert_in_wien_h55(self):
         evidence = build_db.load_regional_source_classes()["5496"]["jurisdictions"]["WIEN"]
         split = evidence["categories"]["H 55- W"]

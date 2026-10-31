@@ -30,6 +30,7 @@ FINGERPRINT_ORDER = {
     "championship_source_entry": "id",
     "result_list": "id",
     "result": "id",
+    "result_club_evidence": "result_id",
     "audit_issue": "id",
     "verification_assertion": "scope_type, scope_key, dimension",
     "championship_rule_set": "id",
@@ -86,7 +87,7 @@ def collect(db_path, eligibility_path):
         if fk_errors:
             raise RuntimeError(f"SQLite foreign_key_check found {len(fk_errors)} errors")
         counts = {table: scalar(con, f"SELECT COUNT(*) FROM {table}") for table in CORE_COUNTS}
-        for table in ("source_document", "championship_source_entry",
+        for table in ("source_document", "championship_source_entry", "result_club_evidence",
                       "person_identifier", "person_club_membership", "person_alias", "person_redirect",
                       "person_tombstone", "result_list", "audit_issue", "verification_assertion"):
             counts[table] = scalar(con, f"SELECT COUNT(*) FROM {table}")
@@ -253,6 +254,12 @@ def collect(db_path, eligibility_path):
         if memberships_without_registry:
             raise RuntimeError(
                 f"{memberships_without_registry} club memberships lack an ANNE /user identity")
+        club_evidence_mismatch = scalar(
+            con, """SELECT COUNT(*) FROM result_club_evidence evidence
+                    JOIN result r ON r.id=evidence.result_id
+                    WHERE r.official_club IS NULL OR r.official_club != evidence.official_club""")
+        if club_evidence_mismatch:
+            raise RuntimeError(f"{club_evidence_mismatch} result club mappings contradict their evidence")
         by_source = dict(con.execute(
             "SELECT source, COUNT(*) FROM result GROUP BY source ORDER BY source"))
         by_kind = dict(con.execute(
@@ -285,6 +292,7 @@ def collect(db_path, eligibility_path):
                 "awards_without_positive_eligibility": awards_without_positive_eligibility,
                 "identifier_conflicts": identifier_conflicts,
                 "memberships_without_registry": memberships_without_registry,
+                "club_evidence_mismatch": club_evidence_mismatch,
             },
         }
     finally:
