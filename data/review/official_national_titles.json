@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "titles": [
+    {
+      "event_id": 4515,
+      "date": "2024-06-01",
+      "stage_number": 1,
+      "category": "Damen bis 14",
+      "result_list_id": "list:f5ffca2bb989d0a832c18076",
+      "result_kind": "pair",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien",
+      "time_s": 2629,
+      "person_ids": [8506, 9220, 9030],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_4515_einladung-ausschreibung-om-mannschaft2024-update.pdf",
+      "invitation_sha256": "0c03f35e697a4a3f0a05624ac01c6ae79372ee4a05dc4493ac75db687827a354",
+      "note": "Ausschreibung Seite 2: D-14 ÖM Mannschaft; ÖFOL-Meistertafel 2024: Anna Skern, Cleo Machold, Matilda Buschek. Der offizielle Sieg ist belegt; die Identität und Berechtigung einer anderen Mannschaft bleibt ungeklärt."
+    }
+  ]
+}

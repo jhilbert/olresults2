@@ -1,6 +1,17 @@
 {
   "schema_version": 1,
   "events": {
+    "4245": {
+      "event_date": "2024-04-13",
+      "stage_number": 1,
+      "label": "Ausschreibung ÖM Mitteldistanz 2024, Seite 2",
+      "url": "https://www.oefol.at/anne/files/uploaded/event_4245_ausschreibung-ac-2024-hartberg-bulletin1-vers-feber24.pdf",
+      "sha256": "7ab9b4c979629b4f0ced257a5f2c72be173d0abc0ea2dd2447b80af0fa86a67d",
+      "reviewed_on": "2026-10-31",
+      "scope": "Nachweis der ausgeschriebenen D16-E-ÖM-Kategorie; Ergebnis und Berechtigung sind gesondert geprüft.",
+      "categories": ["D16-E"],
+      "notes": ["Die ÖFOL-Meistertafel 2024 bestätigt Mika Asenbauer als Meisterin bis 16."]
+    },
     "4830": {
       "event_date": "2025-09-21",
       "stage_number": 1,

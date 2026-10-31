@@ -56,6 +56,27 @@ test("2024 Vienna D14 winner with dated club mapping counts toward youth title",
   assert.match(html, /event\/4251/);
 });
 
+test("compact elite U16 classes and official team champions are counted with evidence", () => {
+  assert.equal(rules.youthTitleCategory("D16-E").maxAge, 16);
+  assert.equal(rules.youthTitleCategory("H18E").maxAge, 18);
+  assert.equal(rules.youthTitleCategory("D16-"), null);
+  const base = { category: "D16-E", category_full: "D16-E", result_list_id: "list1",
+    stage_number: 1, event_id: 4245, event_title: "ÖM Mittel", date: "2024-04-13",
+    person_id: "9209", person_name: "Mika Asenbauer", national_rank: 1, status: "ok",
+    out_of_competition: 0, identity_state: "resolved", result_kind: "individual",
+    championship: "ÖM", championship_eligibility_state: "eligible", championship_source_scope: "winner_only" };
+  const team = { ...base, category: "Damen bis 14", category_full: "Damen bis 14", person_id: "9030",
+    person_name: "Matilda Buschek", event_id: 4515, date: "2024-06-01", result_kind: "pair",
+    result_list_id: "list2", championship_source_scope: "inferred",
+    official_national_title_url: "https://www.orienteeringaustria.at/termine/meistertafel/" };
+  const html = context.renderYouth([base, team], []);
+  assert.match(html, /Mika Asenbauer/);
+  assert.match(html, /Matilda Buschek/);
+  assert.match(html, /ÖFOL-Meistertafel bestätigt/);
+  assert.match(html, /Σ 800 €/);
+  assert.match(context.renderYouth([{...team, official_national_title_url: null}], []), /ÖM-Kategorie nur abgeleitet/);
+});
+
 test("youth table counts only evidenced winners and makes unknowns visible", () => {
   const base = { person_id: "1", person_name: "Anna", category: "D-14",
     category_full: "Damen -14", result_list_id: "list1", stage_id: 1,
@@ -231,6 +252,7 @@ test("user-confirmed 2024 youth titles are exact and do not override other check
   const html = context.renderYouth(rows, []);
   assert.match(html, /Σ 3[.\s\u00a0]600 €/);
   assert.equal((html.match(/ÖM-Titel vom Nutzer bestätigt/g) || []).length, 9);
+  assert.equal((html.match(/H15–18 ohne Eintrag/g) || []).length, 3);
   assert.doesNotMatch(html, /noch prüfen/);
   const individual = rows[0], relay = rows.find((r) => r.result_kind === "relay");
   for (const changed of [{ event_id: 4000 }, { date: "2024-06-09" }, { stage_number: 2 },

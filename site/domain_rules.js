@@ -61,7 +61,8 @@
     const text = String(category || "").replace(/[–—−]/g, "-").trim();
     const range = text.match(/(?:^|\D)(\d{1,2})\s*(?:-|bis)\s*(\d{1,2})(?!\d)/i);
     const ceiling = text.match(/(?:\bbis\s*|(^|[^\d])-\s*)(1[2-8])(?!\d)/i);
-    const compact = text.match(/(?:^|\s)(?:D|H|DH)\s*(12|14|16|18)(?![\d-])(?:\s|$)/i);
+    // D16-E / H18-E are elite youth classes, not the open-ended D16-.
+    const compact = text.match(/(?:^|\s)(?:D|H|DH)\s*(12|14|16|18)(?:-?E)?(?=\s|$|\/)/i);
     const maxAge = range ? Number(range[2]) : ceiling ? Number(ceiling[2])
       : compact ? Number(compact[1]) : null;
     if (maxAge == null || maxAge < 12 || maxAge > 18) return null;

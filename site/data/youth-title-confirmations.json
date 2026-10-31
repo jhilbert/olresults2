@@ -19,6 +19,11 @@
       "source": "user-confirmed",
       "confirmed_on": "2026-10-29",
       "scope": "Der Nutzer bestätigt diese sechs vorgeschlagenen ÖM-Jugendstaffeltitel; Identität, Berechtigung, Rang und Mindeststarterzahl bleiben gesondert zu prüfen.",
+      "cross_checks": [{
+        "category": "Herren ab 15 bis 18",
+        "url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+        "note": "ÖFOL-Meistertafel 2024: H15–18 ohne Eintrag; Ausschreibung und Ergebnis führen die ÖM-Klasse und den ersten Rang."
+      }],
       "entries": [
         {"person_id": "9018", "name": "Fabian Kolar", "club": "Naturfreunde Wien", "category": "Herren ab 15 bis 18", "result_kind": "relay", "result_list_id": "list:c311aa4d45c82d5b77c47f51", "team_number": "103", "time_s": 2543},
         {"person_id": "8901", "name": "Lauri Urbanek", "club": "Naturfreunde Wien", "category": "Herren ab 15 bis 18", "result_kind": "relay", "result_list_id": "list:c311aa4d45c82d5b77c47f51", "team_number": "103", "time_s": 2776},

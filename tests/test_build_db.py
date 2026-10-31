@@ -13,6 +13,30 @@ SPEC.loader.exec_module(build_db)
 
 
 class AnneIdentityTests(unittest.TestCase):
+    def test_official_champion_resolves_only_exact_winner_without_inventing_starters(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id,title,date_from) VALUES (4515,'ÖM','2024-06-01')")
+        cur.execute("INSERT INTO stage (id,event_id,number,date) VALUES (1,4515,1,'2024-06-01')")
+        cur.execute("INSERT INTO national_minimum_starters VALUES (1,'Damen bis 14',2,1,'unresolved')")
+        for pid in (8506, 9220, 9030):
+            cur.execute("INSERT INTO person (id,name,name_key) VALUES (?,?,?)", (pid,str(pid),str(pid)))
+            build_db.insert_result(cur, stage_id=1, category='Damen bis 14', person_id=pid,
+                result_kind='pair', team_name='Naturfreunde Wien', official_club='Naturfreunde Wien',
+                rank=1, time_s=2629, status='ok', source='test', identity_state='resolved',
+                championship='ÖM', championship_eligibility_state='eligible')
+        cur.execute("UPDATE result SET result_list_id='list:f5ffca2bb989d0a832c18076'")
+        item = json.loads(build_db.OFFICIAL_NATIONAL_TITLES_PATH.read_text())['titles'][0]
+        build_db.apply_official_national_titles(cur, [{**item, 'time_s': 2630}])
+        self.assertEqual(cur.execute('SELECT COUNT(*) FROM official_national_title').fetchone()[0], 0)
+        build_db.apply_official_national_titles(cur, [{**item, 'person_ids': [8506, 9220]}])
+        self.assertEqual(cur.execute('SELECT COUNT(*) FROM official_national_title').fetchone()[0], 0)
+        build_db.apply_official_national_titles(cur, [item])
+        self.assertEqual(cur.execute('SELECT COUNT(*) FROM result WHERE national_rank=1').fetchone()[0], 3)
+        self.assertEqual(cur.execute('SELECT eligible_starters,unresolved_starters,state FROM national_minimum_starters').fetchone(), (2,1,'unresolved'))
+        self.assertEqual(cur.execute('SELECT COUNT(*) FROM official_national_title').fetchone()[0], 3)
+
     def test_ambiguous_result_club_requires_matching_dated_anne_membership(self):
         con = sqlite3.connect(":memory:")
         con.executescript(build_db.SCHEMA)

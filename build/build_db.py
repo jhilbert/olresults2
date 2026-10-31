@@ -28,6 +28,7 @@ CHAMPIONSHIP_CATALOG_PATH = ROOT / "data" / "review" / "championship_catalog.jso
 CLUB_JURISDICTIONS_PATH = ROOT / "data" / "club_jurisdictions.json"
 REGIONAL_SOURCE_CLASSES_PATH = ROOT / "data" / "review" / "regional_source_classes.json"
 EXCLUDED_EVENTS_PATH = ROOT / "data" / "review" / "excluded_events.json"
+OFFICIAL_NATIONAL_TITLES_PATH = ROOT / "data" / "review" / "official_national_titles.json"
 
 
 def load_event_exclusions(path=EXCLUDED_EVENTS_PATH):
@@ -344,6 +345,13 @@ CREATE TABLE national_minimum_starters (
     unresolved_starters INTEGER NOT NULL,
     state TEXT NOT NULL,              -- met|insufficient|unresolved
     PRIMARY KEY (stage_id, category)
+);
+CREATE TABLE official_national_title (
+    result_id INTEGER PRIMARY KEY REFERENCES result(id),
+    source_url TEXT NOT NULL,
+    invitation_url TEXT NOT NULL,
+    invitation_sha256 TEXT NOT NULL,
+    evidence_note TEXT NOT NULL
 );
 CREATE INDEX idx_result_person ON result(person_id);
 CREATE INDEX idx_result_stage_cat ON result(stage_id, category);
@@ -5909,6 +5917,36 @@ def compute_national_ranks(cur):
     cur.execute("DROP TABLE pair_unit")
 
 
+def apply_official_national_titles(cur, titles):
+    """Recognise only exact official champions; never manufacture starter counts.
+
+    An official winner can resolve an otherwise *unresolved* minimum check,
+    but cannot establish other teams' eligibility or their podium places.
+    All source observations and the full roster must still match.
+    """
+    for item in titles:
+        rows = cur.execute("""SELECT r.id,r.person_id FROM result r
+            JOIN stage s ON s.id=r.stage_id JOIN event e ON e.id=s.event_id
+            JOIN national_minimum_starters m ON m.stage_id=r.stage_id AND m.category=r.category
+            WHERE e.id=? AND COALESCE(s.date,e.date_from)=? AND s.number=?
+              AND r.category=? AND r.result_list_id=? AND r.result_kind=?
+              AND r.official_club=? AND r.team_name=? AND r.time_s=?
+              AND r.rank=1 AND r.status='ok' AND r.out_of_competition=0
+              AND r.championship='ÖM' AND r.identity_state='resolved'
+              AND r.championship_eligibility_state='eligible'
+              AND m.state IN ('met','unresolved')""",
+            (item['event_id'], item['date'], item['stage_number'], item['category'],
+             item['result_list_id'], item['result_kind'], item['club'], item['team_name'],
+             item['time_s'])).fetchall()
+        if len(rows) != len(item['person_ids']) or {r[1] for r in rows} != set(item['person_ids']):
+            continue
+        for result_id, _ in rows:
+            cur.execute("INSERT INTO official_national_title VALUES (?,?,?,?,?)",
+                        (result_id, item['source_url'], item['invitation_url'],
+                         item['invitation_sha256'], item['note']))
+            cur.execute("UPDATE result SET national_rank=1 WHERE id=?", (result_id,))
+
+
 def compute_time_behind(cur):
     """Derive a non-negative gap only for classified time rankings.
 
@@ -6683,6 +6721,9 @@ def main():
     # erroring - a bare championship-tagged, unranked row would otherwise
     # get national_rank = 1, "beating" everyone, since COUNT(...) = 0 + 1).
     compute_national_ranks(cur)
+    if OFFICIAL_NATIONAL_TITLES_PATH.exists():
+        official_titles = json.loads(OFFICIAL_NATIONAL_TITLES_PATH.read_text()).get('titles', [])
+        apply_official_national_titles(cur, official_titles)
 
     # Compute source-faithful time gaps only where a time ranking makes them
     # meaningful. Score lists, OOC rows and unranked rows remain without a gap.
@@ -6691,7 +6732,7 @@ def main():
     populate_championship_model(cur)
     populate_quality_model(cur)
 
-    cur.execute("PRAGMA user_version = 12")
+    cur.execute("PRAGMA user_version = 13")
     con.commit()
     for table in ("event", "stage", "person", "person_identifier", "person_club_membership", "person_alias",
                   "person_redirect", "person_tombstone", "source_document", "result_list", "result",

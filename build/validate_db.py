@@ -31,6 +31,7 @@ FINGERPRINT_ORDER = {
     "result_list": "id",
     "result": "id",
     "result_club_evidence": "result_id",
+    "official_national_title": "result_id",
     "audit_issue": "id",
     "verification_assertion": "scope_type, scope_key, dimension",
     "championship_rule_set": "id",
@@ -87,7 +88,7 @@ def collect(db_path, eligibility_path):
         if fk_errors:
             raise RuntimeError(f"SQLite foreign_key_check found {len(fk_errors)} errors")
         counts = {table: scalar(con, f"SELECT COUNT(*) FROM {table}") for table in CORE_COUNTS}
-        for table in ("source_document", "championship_source_entry", "result_club_evidence",
+        for table in ("source_document", "championship_source_entry", "result_club_evidence", "official_national_title",
                       "person_identifier", "person_club_membership", "person_alias", "person_redirect",
                       "person_tombstone", "result_list", "audit_issue", "verification_assertion"):
             counts[table] = scalar(con, f"SELECT COUNT(*) FROM {table}")
@@ -233,7 +234,9 @@ def collect(db_path, eligibility_path):
             raise RuntimeError(f"{invalid_minimum} national minimum-starter checks are inconsistent")
         medals_without_minimum = scalar(con, """SELECT COUNT(*) FROM result r
             JOIN national_minimum_starters m ON m.stage_id = r.stage_id AND m.category = r.category
-            WHERE m.state != 'met' AND r.national_rank IS NOT NULL""")
+            WHERE m.state != 'met' AND r.national_rank IS NOT NULL
+              AND NOT (m.state = 'unresolved' AND r.national_rank = 1 AND EXISTS
+                (SELECT 1 FROM official_national_title t WHERE t.result_id=r.id))""")
         if medals_without_minimum:
             raise RuntimeError(f"{medals_without_minimum} national ranks were assigned without the minimum")
         identifier_conflicts = scalar(

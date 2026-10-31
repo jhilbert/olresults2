@@ -1288,7 +1288,7 @@ function fetchPodiums({ club, personId, dw }) {
     SELECT r.rank, r.national_rank, r.category, r.category_full, r.result_kind, r.championship,
            r.status, r.out_of_competition, r.time_s, r.team_number,
            r.championship_source_scope, r.championship_eligibility_state, r.identity_state,
-           r.result_list_id,
+           r.result_list_id, ont.source_url AS official_national_title_url,
            e.id AS event_id, e.title AS event_title, e.sport_type, s.title AS stage_title,
            s.id AS stage_id, s.number AS stage_number,
            COALESCE(s.date, e.date_from) AS date,
@@ -1299,6 +1299,7 @@ function fetchPodiums({ club, personId, dw }) {
     JOIN stage s ON s.id = r.stage_id
     JOIN event e ON e.id = s.event_id
     LEFT JOIN person p ON p.id = r.person_id
+    LEFT JOIN official_national_title ont ON ont.result_id = r.id
     WHERE ${conds.join(" AND ")}${dw.sql}
     ORDER BY date DESC`, [...params, ...dw.params]);
 }
@@ -1572,7 +1573,7 @@ function renderYouthTitleTable(national, vienna) {
       const listed = source && source.event_date === r.date
         && source.stage_number === r.stage_number && r.result_kind === "individual"
         && source.categories.includes(r.category);
-      if (!['full_field', 'medal_places_only', 'winner_only'].includes(r.championship_source_scope) && !listed && !confirmedYouthTitle)
+      if (!['full_field', 'medal_places_only', 'winner_only'].includes(r.championship_source_scope) && !listed && !confirmedYouthTitle && !r.official_national_title_url)
         reasons.push("ÖM-Kategorie nur abgeleitet");
     } else {
       const unannotated = regionalTitleMatch(r, "unannotated_winners");
@@ -1610,12 +1611,18 @@ function renderYouthTitleTable(national, vienna) {
   const eventLink = (r) => `<a href="#/event/${r.event_id}/stage/${r.stage_number}${r.kind === "wien" ? "/lm/WIEN" : ""}">${esc(r.event_title)}${r.stage_title && r.stage_title !== r.event_title ? ` · ${esc(r.stage_title)}` : ""}</a>`;
   const sourceEvidence = (r) => {
     if (r.kind === "om") {
+      const officialTitle = r.official_national_title_url
+        ? ` · <a href="${esc(r.official_national_title_url)}" target="_blank" rel="noopener">ÖFOL-Meistertafel bestätigt ↗</a>` : "";
+      const crossCheck = confirmedYouthTitleMatch(r)
+        ? youthTitleConfirmations[String(r.event_id)]?.cross_checks?.find((c) => c.category === r.category) : null;
+      const conflict = crossCheck
+        ? ` · <a href="${esc(crossCheck.url)}" target="_blank" rel="noopener">${esc(crossCheck.note)} ↗</a>` : "";
       const manualConfirmation = confirmedYouthTitleMatch(r)
         ? " · ÖM-Titel vom Nutzer bestätigt" : "";
       const source = nationalCategoryEvidence[String(r.event_id)];
       if (!source || source.event_date !== r.date || source.stage_number !== r.stage_number
-          || r.result_kind !== "individual" || !source.categories.includes(r.category)) return manualConfirmation;
-      return ` · <a href="${esc(source.url)}" target="_blank" rel="noopener">ÖM-Kategorie laut Ausschreibung ↗</a>${manualConfirmation}`;
+          || r.result_kind !== "individual" || !source.categories.includes(r.category)) return officialTitle + manualConfirmation + conflict;
+      return ` · <a href="${esc(source.url)}" target="_blank" rel="noopener">ÖM-Kategorie laut Ausschreibung ↗</a>${officialTitle}${manualConfirmation}${conflict}`;
     }
     const match = regionalTitleMatch(r, "titles");
     if (match) {
