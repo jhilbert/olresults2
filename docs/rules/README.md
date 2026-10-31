@@ -108,6 +108,7 @@ WOLV-Kategorieneinteilung ab 10.10.2022 steht in
 | `YOUTH-GRANT-002` | confirmed | Nur ÖM und Wiener Landesmeisterschaft werden getrennt gezählt; je Person wird dieselbe Team- oder Staffelleistung einmal gezählt. Die Saison- und Disziplinfilter gelten auch hier. |
 | `YOUTH-GRANT-003` | confirmed | Pro ÖM-Titel werden 400 € geschätzt; pro Wiener Titel in einer Damenklasse 110 €, in einer Herrenklasse 90 €. Bei gemischter oder unklarer Klasse wird der Wiener Betrag nicht geraten und bleibt offen. |
 | `YOUTH-GRANT-004` | provisional | In die geschätzte Summe fließen nur aufgelöste Personen und Ergebniszeilen mit positiver Berechtigung und direkter Meisterschaftsevidenz ein. Aus Veranstaltungstiteln abgeleitete Kategorien, reine Nat-/Landeskennungen, Rahmen-/B-Klassen und unklare Identitäten erscheinen separat zur Prüfung. Ein Landeskennzeichen belegt die Landeszuordnung, nicht für sich die Meisterschaftskategorie. Direkte Evidenz ersetzt keine vollständige Quellenprüfung oder verbindliche Förderzusage. |
+| `YOUTH-GRANT-005` | confirmed | Für die Wiener Mixed-Sprint-Staffel Nachwuchs −16 vom 21.06.2026 hat der Nutzer für das belegte Siegerteam die Beträge Adam Imriska 90 €, Annina Urbanek 110 € und Albert Imriska 90 € bestätigt. Diese Einzelbestätigung ist keine allgemeine Regel für andere Mixed-Bewerbe. Quellenwidersprüche bleiben sichtbar; ein Titel ohne zuordenbare Ergebniszeile wird nicht zur Summe addiert. |
 
 ## Prüfung und Veröffentlichung
 

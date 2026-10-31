@@ -1328,7 +1328,7 @@ function fetchRegionalPodiums({ jurisdiction, club, personId, dw }) {
            ci.category, ci.category AS category_full, ci.detection_basis,
            r.category AS source_category, r.category_full AS source_category_full,
            r.identity_state, r.result_list_id,
-           r.result_kind, r.status, r.out_of_competition, r.time_s, cj.short_name AS championship,
+           r.result_kind, r.team_number, r.status, r.out_of_competition, r.time_s, cj.short_name AS championship,
            e.id AS event_id, e.title AS event_title, e.sport_type,
            s.title AS stage_title, s.id AS stage_id, s.number AS stage_number,
            COALESCE(s.date, e.date_from) AS date,
@@ -1531,7 +1531,9 @@ function regionalTitleMatch(r, field) {
       || r.national_rank !== 1) return null;
   const title = (source[field] || []).find((t) => t.person_id === r.person_id
     && t.time_s === r.time_s && t.club === r.club_name
-    && t.result_category === (r.source_category || r.category));
+    && t.result_category === (r.source_category || r.category)
+    && (t.result_kind == null || t.result_kind === r.result_kind)
+    && (t.team_number == null || t.team_number === r.team_number));
   return title ? { source, title } : null;
 }
 
@@ -1547,7 +1549,15 @@ function confirmedYouthTitleMatch(r) {
     && (entry.team_number == null || entry.team_number === r.team_number)) || null;
 }
 
-function renderYouthTitleTable(national, vienna) {
+function nationalCategoryMatch(r) {
+  const source = nationalCategoryEvidence[String(r.event_id)];
+  if (!source || source.event_date !== r.date || source.stage_number !== r.stage_number
+      || !(source.result_kinds || ["individual"]).includes(r.result_kind)
+      || !source.categories.includes(r.category)) return null;
+  return source;
+}
+
+function renderYouthTitleTable(national, vienna, { year = null, club = null } = {}) {
   const people = new Map(), pending = [], seen = new Set();
   const rows = [
     ...national.filter((r) => r.championship === "ÖM" && r.national_rank === 1)
@@ -1569,10 +1579,7 @@ function renderYouthTitleTable(national, vienna) {
     if (r.identity_state !== "resolved") reasons.push("Personenzuordnung prüfen");
     if (r.kind === "om") {
       if (r.championship_eligibility_state !== "eligible") reasons.push("ÖM-Berechtigung prüfen");
-      const source = nationalCategoryEvidence[String(r.event_id)];
-      const listed = source && source.event_date === r.date
-        && source.stage_number === r.stage_number && r.result_kind === "individual"
-        && source.categories.includes(r.category);
+      const listed = nationalCategoryMatch(r);
       if (!['full_field', 'medal_places_only', 'winner_only'].includes(r.championship_source_scope) && !listed && !confirmedYouthTitle && !r.official_national_title_url)
         reasons.push("ÖM-Kategorie nur abgeleitet");
     } else {
@@ -1619,10 +1626,11 @@ function renderYouthTitleTable(national, vienna) {
         ? ` · <a href="${esc(crossCheck.url)}" target="_blank" rel="noopener">${esc(crossCheck.note)} ↗</a>` : "";
       const manualConfirmation = confirmedYouthTitleMatch(r)
         ? " · ÖM-Titel vom Nutzer bestätigt" : "";
-      const source = nationalCategoryEvidence[String(r.event_id)];
-      if (!source || source.event_date !== r.date || source.stage_number !== r.stage_number
-          || r.result_kind !== "individual" || !source.categories.includes(r.category)) return officialTitle + manualConfirmation + conflict;
-      return ` · <a href="${esc(source.url)}" target="_blank" rel="noopener">ÖM-Kategorie laut Ausschreibung ↗</a>${officialTitle}${manualConfirmation}${conflict}`;
+      const source = nationalCategoryMatch(r);
+      if (!source) return officialTitle + manualConfirmation + conflict;
+      const resultLink = source.result_url ? ` · <a href="${esc(source.result_url)}" target="_blank" rel="noopener">Ergebnis ↗</a>` : "";
+      const crossCheckLink = source.cross_check_url ? ` · <a href="${esc(source.cross_check_url)}" target="_blank" rel="noopener">ÖFOL-Meistertafel ↗</a>` : "";
+      return ` · <a href="${esc(source.url)}" target="_blank" rel="noopener">ÖM-Kategorie laut Ausschreibung ↗</a>${resultLink}${crossCheckLink}${officialTitle}${manualConfirmation}${conflict}`;
     }
     const match = regionalTitleMatch(r, "titles");
     if (match) {
@@ -1633,8 +1641,18 @@ function renderYouthTitleTable(national, vienna) {
       return ` · <a href="${esc(match.source.url)}" target="_blank" rel="noopener">WOLV-Meistertitel bestätigt (${esc(match.title.category)}) ↗</a>${confirmedRate}`;
     }
     const unannotated = regionalTitleMatch(r, "unannotated_winners");
-    return unannotated ? ` · <a href="${esc(unannotated.source.url)}" target="_blank" rel="noopener">WOLV: Rang 1, Titel nicht ausgewiesen ↗</a>` : "";
+    if (unannotated) return ` · <a href="${esc(unannotated.source.url)}" target="_blank" rel="noopener">WOLV: Rang 1, Titel nicht ausgewiesen ↗</a>`;
+    const conflict = regionalTitleMatch(r, "conflicted_winners");
+    return conflict ? ` · <a href="${esc(conflict.source.url)}" target="_blank" rel="noopener">${esc(conflict.title.note)} ↗</a> · <a href="${esc(conflict.title.result_url)}" target="_blank" rel="noopener">Veranstalter-Ergebnis ↗</a>` : "";
   };
+  // A claim with no result row must remain an independent source warning;
+  // never synthesize a result, medal, person association or grant from it.
+  const openClaims = club ? Object.entries(regionalTitleEvidence).flatMap(([eventId, evidence]) =>
+    (evidence.open_claims || []).filter((claim) => claim.club === club
+      && disciplineFilter.has(claim.sport_type)
+      && (!year || seasonYear(evidence.event_date, claim.sport_type) === String(year)))
+      .map((claim) => ({ ...claim, eventId, evidence }))) : [];
+  const openClaimsHtml = openClaims.length ? `<details open><summary>${openClaims.length} möglicher Titel mit Quellenwiderspruch – nicht mitgezählt</summary><ul class="medal-events">${openClaims.map((c) => `<li>${runnerNameHtml(c.person_id, c.name)} · <a href="#/event/${esc(c.eventId)}/stage/${esc(c.evidence.stage_number)}/lm/WIEN">Wiener MS · ${fmtDate(c.evidence.event_date)} · ${esc(c.category)}</a> · ${esc(c.note)} · <a href="${esc(c.evidence.url)}" target="_blank" rel="noopener">WOLV-Jahresliste ↗</a> · <a href="${esc(c.result_url)}" target="_blank" rel="noopener">Veranstalter-Ergebnis ↗</a></li>`).join("")}</ul></details>` : "";
   const detail = (r) => `${r.kind === "om" ? "ÖM" : "Wiener MS"}: ${eventLink(r)} · ${esc(r.display_category)} · ${fmtDate(r.date)}${sourceEvidence(r)}${r.grant == null ? " · Fördersatz offen" : ""}`;
   return `<p class="sub">Nur Gold in eindeutig begrenzten Jugendklassen 12 bis 18, je Person und Teamleistung einmal. ÖM: 400 €; Wiener MS: Damen 110 €, Herren 90 €.</p>
     <p class="sub dim">Berechnung aus den verfügbaren Ergebnisdaten; keine amtlich bestätigte Fördersumme. Gezählt werden nur Titel mit direktem Meisterschaftsnachweis oder deiner Bestätigung und aufgelöster Identität. Die Ergebnisprüfung kann trotzdem noch offen sein.</p>
@@ -1642,7 +1660,7 @@ function renderYouthTitleTable(national, vienna) {
     <tbody>${ordered.length ? ordered.map((p) => `<tr><td>${runnerNameHtml(p.person_id, p.person_name)}</td><td class="num">${p.om}</td><td class="num">${p.wien}</td><td class="num">${euro(p.euros)}${p.unknown ? ` + ${p.unknown} offen` : ""}</td></tr>
       <tr class="detail-row"><td colspan="4"><ul class="medal-events">${p.entries.map((r) => `<li>${detail(r)}</li>`).join("")}</ul></td></tr>`).join("") : `<tr><td colspan="4" class="dim">Keine Titel mit ausreichendem Meisterschaftsnachweis.</td></tr>`}</tbody></table>
     ${totals.unknown ? `<p class="sub dim">Für ${totals.unknown} Titel in gemischten oder nicht eindeutig zuordenbaren Kategorien ist der Wiener Fördersatz offen und nicht in der Summe enthalten.</p>` : ""}
-    ${pending.length ? `<details><summary>${pending.length} mögliche Jugendtitel noch prüfen – nicht mitgezählt</summary><ul class="medal-events">${pending.map((r) => `<li>${runnerNameHtml(r.person_id, r.person_name)} · ${detail(r)} · <b>${esc(r.reasons.join(", "))}</b></li>`).join("")}</ul></details>` : ""}`;
+    ${pending.length ? `<details><summary>${pending.length} mögliche Jugendtitel noch prüfen – nicht mitgezählt</summary><ul class="medal-events">${pending.map((r) => `<li>${runnerNameHtml(r.person_id, r.person_name)} · ${detail(r)} · <b>${esc(r.reasons.join(", "))}</b></li>`).join("")}</ul></details>` : ""}${openClaimsHtml}`;
 }
 
 // A club's own detail content (info line, Gold/Silber/Bronze tiles, "Nicht
@@ -1738,7 +1756,7 @@ function clubDetailHtml(name, year, medalType, { withChangeButton, hrefBase, vie
     const inSeason = (r) => !year || seasonYear(r.date, r.sport_type) === year;
     return header + medalGroupRows({ mode, regionalCode, regions, hrefFor, includeAll: true, includeYouth: true })
       + `<div class="chips">${yearChip(null, "Alle")}${years.map((y) => yearChip(y, y)).join("")}</div>`
-      + renderYouthTitleTable(national.filter(inSeason), vienna.filter(inSeason));
+      + renderYouthTitleTable(national.filter(inSeason), vienna.filter(inSeason), { year, club: name });
   }
 
   const allPodiums = mode === "lm"

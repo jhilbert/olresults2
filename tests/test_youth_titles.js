@@ -187,6 +187,74 @@ test("WOLV middle list establishes the mixed U12 winner's female title and grant
   assert.doesNotMatch(noTitle, /Σ 110 €/);
 });
 
+test("2026 mixed relay grants are confirmed only for the exact winning team members", () => {
+  const source = JSON.parse(fs.readFileSync(path.join(__dirname, "../site/data/regional-title-evidence.json"), "utf8"));
+  context.sourceFixture = source.events;
+  vm.runInContext("regionalTitleEvidence = sourceFixture", context);
+  const base = { category: "Mixed bis 16", source_category: "W Nachw-16", source_category_full: "Wien Nachwuchs -16",
+    regional_entry_id: "team", result_list_id: "list", stage_number: 1, event_id: 5382,
+    event_title: "Mixed-Staffel", date: "2026-06-21", national_rank: 1, team_number: "5",
+    identity_state: "resolved", status: "ok", result_kind: "relay", out_of_competition: 0,
+    club_name: "Naturfreunde Wien", detection_basis: "invitation" };
+  const rows = [
+    {...base, person_id:"8979", person_name:"Adam Imriska", time_s:511},
+    {...base, person_id:"8900", person_name:"Annina Urbanek", time_s:681},
+    {...base, person_id:"8980", person_name:"Albert Imriska", time_s:635},
+  ];
+  const html = context.renderYouth([], rows);
+  assert.match(html, /Wiener MS<br><small>Σ 3/);
+  assert.match(html, /Σ 290 €/);
+  assert.equal((html.match(/Fördersatz 90 € bestätigt/g) || []).length, 2);
+  assert.equal((html.match(/Fördersatz 110 € bestätigt/g) || []).length, 1);
+  assert.doesNotMatch(html, /Fördersatz offen/);
+  for (const changed of [{team_number:"6"}, {time_s:512}, {person_id:"7"},
+    {club_name:"WAT-OL"}, {date:"2026-06-22"}, {result_kind:"individual"}]) {
+    const invalid = context.renderYouth([], [{...rows[0], ...changed}]);
+    assert.doesNotMatch(invalid, /Fördersatz 90 € bestätigt/);
+    assert.doesNotMatch(invalid, /Σ 90 €/);
+  }
+});
+
+test("source conflicts remain visible without fabricating or double-counting results", () => {
+  const source = JSON.parse(fs.readFileSync(path.join(__dirname, "../site/data/regional-title-evidence.json"), "utf8"));
+  context.sourceFixture = source.events;
+  vm.runInContext("regionalTitleEvidence = sourceFixture", context);
+  const empty = context.renderYouth([], [], {year:"2025", club:"Naturfreunde Wien"});
+  assert.match(empty, /Anna Skern/);
+  assert.match(empty, /möglicher Titel mit Quellenwiderspruch – nicht mitgezählt/);
+  assert.match(empty, /Veranstalter-Ergebnis/);
+  assert.match(empty, /Σ 0 €/);
+  assert.doesNotMatch(context.renderYouth([], [], {year:"2026", club:"Naturfreunde Wien"}), /möglicher Titel mit Quellenwiderspruch/);
+  assert.doesNotMatch(context.renderYouth([], [], {year:"2025", club:"WAT-OL"}), /Anna Skern/);
+  const winner = {person_id:"8980", person_name:"Albert Imriska", category:"H-14",
+    source_category:"H -14", source_category_full:"H -14", regional_entry_id:"h14", detection_basis:"invitation",
+    result_list_id:"list", stage_number:1, event_id:5391, event_title:"Mitteldistanz",
+    date:"2026-04-26", national_rank:1, identity_state:"resolved", status:"ok", result_kind:"individual",
+    out_of_competition:0, time_s:1566, club_name:"Naturfreunde Wien"};
+  const html = context.renderYouth([], [winner], {year:"2026", club:"Naturfreunde Wien"});
+  assert.match(html, /Quellenwiderspruch: Veranstalter-Ergebnis und ANNE nennen Albert/);
+  assert.match(html, /Σ 90 €/);
+  assert.doesNotMatch(context.renderYouth([], [{...winner, time_s:1567}]), /Quellenwiderspruch: Veranstalter/);
+});
+
+test("2026 audited national team evidence is restricted to event, date, category and kind", () => {
+  const source = JSON.parse(fs.readFileSync(path.join(__dirname, "../site/data/national-category-evidence.json"), "utf8"));
+  context.nationalFixture = source.events;
+  vm.runInContext("nationalCategoryEvidence = nationalFixture", context);
+  const row = {person_id:"9030", person_name:"Matilda Buschek", category:"D15-18", category_full:"Damen 15 bis 18",
+    result_list_id:"list", result_kind:"relay", stage_number:1, event_id:5340, event_title:"ÖM Mannschaft",
+    date:"2026-10-26", national_rank:1, identity_state:"resolved", status:"ok", out_of_competition:0,
+    championship:"ÖM", championship_eligibility_state:"eligible", championship_source_scope:"inferred"};
+  const html = context.renderYouth([row], []);
+  assert.match(html, /ÖM-Kategorie laut Ausschreibung/);
+  assert.match(html, /Ergebnis ↗/);
+  assert.match(html, /Σ 400 €/);
+  for (const changed of [{event_id:5341}, {date:"2026-10-25"}, {stage_number:2},
+    {category:"H15-18"}, {result_kind:"individual"}]) {
+    assert.doesNotMatch(context.renderYouth([{...row,...changed}], []), /ÖM-Kategorie laut Ausschreibung/);
+  }
+});
+
 test("ÖM invitation confirms only its listed event classes, not a person's eligibility", () => {
   const source = JSON.parse(fs.readFileSync(
     path.join(__dirname, "../site/data/national-category-evidence.json"), "utf8"));

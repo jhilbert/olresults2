@@ -1,6 +1,57 @@
 {
   "schema_version": 1,
   "events": {
+    "5065": {
+      "event_date":"2025-09-12", "stage_number":1,
+      "label":"Ausschreibung ÖM Nacht 2025, Seite 2",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_5065_01-1-lac-ausschreibung-omnacht-2025-09-12.pdf",
+      "sha256":"71b083137668185dd283904a65151871a82589e941cd99f7c3a9ab8ff2fafd62",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_5065_ergebnisse.html",
+      "cross_check_url":"https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_kinds":["pair"], "categories":["Damen bis 14"],
+      "scope":"D−14 paarweise ist ÖM; Meistertafel nennt Anna Skern und Annina Urbanek."
+    },
+    "5132": {
+      "event_date":"2025-10-18", "stage_number":1,
+      "label":"Ausschreibung ÖM Sprint 2025, Seite 2",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_5132_ausschreibung-st-polten-2025-sa-v1-1.pdf",
+      "sha256":"120e53197c33c28193978b597de01b4535ddec329e82895583c76abac14245fa",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_5132_ergebnisse-sprint.html",
+      "cross_check_url":"https://www.orienteeringaustria.at/termine/meistertafel/",
+      "categories":["Damen bis 18 Elite"], "scope":"D−18E; ÖFOL-Meistertafel nennt Mika Asenbauer."
+    },
+    "5300": {
+      "event_date":"2026-05-23", "stage_number":1,
+      "label":"Ausschreibung ÖM Staffel 2026, Seite 2",
+      "url":"https://anne-cdn.oefol.at/public/2026/05/GvkrMOWkN0APtnJdVTn5SBbI3NTEafwwYqERFZHO.pdf",
+      "sha256":"ea1430c22f23d2e406760c45511924e543510563d7611e9ce0c93b4c1ec761d4",
+      "result_url":"https://anne-cdn.oefol.at/public/2026/05/FvC3TeNj0jgJP6JvCEdZwgznP3ALN9qEP4rOzSpk.pdf",
+      "result_kinds":["relay"], "categories":["D15-18"], "scope":"ÖM-Staffel bis 18; drei Mitglieder."
+    },
+    "5301": {
+      "event_date":"2026-05-24", "stage_number":1,
+      "label":"Ausschreibung ÖM Langdistanz 2026, Seite 2",
+      "url":"https://anne-cdn.oefol.at/public/2026/05/Fc5LaTWAjOj8qtncmXRo9aBazAsfot21OaXh2vIp.pdf",
+      "sha256":"ea1430c22f23d2e406760c45511924e543510563d7611e9ce0c93b4c1ec761d4",
+      "result_url":"https://anne-cdn.oefol.at/public/2026/05/tZaC8UDjCWvnR6ywtQENKpofRNiReHfEp0FHRqWI.pdf",
+      "categories":["D18-E","H18-E"], "scope":"ÖM-Langdistanz bis 18 Elite."
+    },
+    "5128": {
+      "event_date":"2026-09-13", "stage_number":1,
+      "label":"Ausschreibung ÖM Mitteldistanz 2026, Seite 3",
+      "url":"https://anne-cdn.oefol.at/public/2026/09/q0rwLcxIWclJ1irwvpHvNoREKJnxPAI8RAl4zH3M.pdf",
+      "sha256":"49b5052ccb2a307b7eae932f346c95c430127fc04ffd881220edaa81790a0de3",
+      "result_url":"https://anne-cdn.oefol.at/public/2026/09/mj4e4f4OgQDWHdZyZnLcuanYyPzDBC4vcWBIp91T.pdf",
+      "categories":["D18-E"], "scope":"ÖM-Mitteldistanz bis 18 Elite am Sonntag, nicht die Langdistanz am Samstag."
+    },
+    "5340": {
+      "event_date":"2026-10-26", "stage_number":1,
+      "label":"Ausschreibung ÖM Mannschaft 2026, Seite 2",
+      "url":"https://anne-cdn.oefol.at/public/2026/09/nbPdJkspyAd5Z1DrNqDRX9hqW8fCxyDW0Fuy8Jip.pdf",
+      "sha256":"b3f76d66313bf8c08a72c8b7025e7e9738badc053296a31cecdf2283cf7acf1a",
+      "result_url":"https://anne-cdn.oefol.at/public/2026/10/CjE982qJVqBu4b6cAT4bk0zeYmAuznRzEc7EmaWI.pdf",
+      "result_kinds":["team","pair","relay"], "categories":["D15-18"], "scope":"ÖM Mannschaft D15–18; drei Mitglieder. Die Datenbank führt die Mannschaft derzeit technisch als relay."
+    },
     "4245": {
       "event_date": "2024-04-13",
       "stage_number": 1,
@@ -18,6 +69,8 @@
       "label": "Ausschreibung ÖM Mitteldistanz 2025, Seite 2",
       "url": "https://anne-cdn.oefol.at/public/legacy/event_4830_ausschreibung-21-9-om-mittel-hsvried-v4.pdf",
       "sha256": "c3d240c5b26fccfb2640e23b94059da0836443943a3db0f7ddc95a648f9cd482",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_4830_9ac-om-mittel-ergebnisse.pdf",
+      "cross_check_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
       "reviewed_on": "2026-10-29",
       "scope": "Ausgeschriebene ÖM-Kategorien; kein Nachweis von tatsächlichem Titel, Platzierung oder persönlicher Meisterschaftsberechtigung",
       "categories": [
@@ -51,6 +104,7 @@
       "label": "Ausschreibung ÖM Sprint 2026, Seite 3",
       "url": "https://anne-cdn.oefol.at/public/2026/01/fbqPIDdNFkOwhu703OTM9sDYVYoLQKiJG4zN0Lzt.pdf",
       "sha256": "66e4a2f3a05cf92c9409b203dc770d5fb2fcad6e87d2356a351e73a06d7f3710",
+      "result_url": "https://anne-cdn.oefol.at/public/2026/05/IugK1vReamEQwtSojrgNv83jpJGTiclQVZaFJAa5.pdf",
       "reviewed_on": "2026-10-29",
       "scope": "Nachweis der ausgeschriebenen U18-Elite-ÖM-Kategorien für Etappe 2; kein Nachweis von Platzierung oder persönlicher Meisterschaftsberechtigung",
       "categories": ["D18-E", "H18-E"],

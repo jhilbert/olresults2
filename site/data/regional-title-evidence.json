@@ -59,6 +59,75 @@
         "Damen 13-14: zwei Starterinnen; Herren 13-14 und Damen 65: jeweils ein Starter. Rang 1 ist in der WOLV-Liste nicht als Meistertitel ausgewiesen und die Mindestzahl von drei ist nicht erfüllt."
       ]
     },
+    "4848": {
+      "jurisdiction": "WIEN",
+      "event_date": "2025-05-25",
+      "stage_number": 1,
+      "label": "WOLV: Medaillenliste 2025",
+      "url": "http://www.wolv.at/docs/med25.pdf",
+      "sha256": "c7cd28be4cb71648a71c37b6e0c7ab134e1fe6adc1bd1d39fad2884c0a500150",
+      "reviewed_on": "2026-10-31",
+      "scope": "Offener Widerspruch: Jahresliste nennt Titel, Veranstalter-Ergebnis enthält die Klasse nicht.",
+      "summary": "Fabian Kolar ist als H15–18-Meister genannt. D13–14: Jahresliste und Veranstalter-Ergebnis widersprechen einander; die Klasse bleibt gesondert offen.",
+      "titles": [{"category":"H15-18","result_category":"Herren 15-18W","person_id":"9018","name":"Fabian Kolar","club":"Naturfreunde Wien","time_s":2971}],
+      "open_claims": [{
+        "person_id": "8506", "name": "Anna Skern", "club": "Naturfreunde Wien",
+        "category": "D13–14", "sport_type": "footOrienteering",
+        "note": "WOLV-Jahresliste nennt Anna Skern als Siegerin; die veröffentlichte Ergebnisliste enthält keine entsprechende D13–14-Klasse. Titel nicht gezählt; Klärung durch WOLV/Veranstalter erforderlich.",
+        "result_url": "https://anne-cdn.oefol.at/public/legacy/event_4848_ergebnis-wr-no-nw-sen.pdf",
+        "result_sha256": "b610965d685a900e68b0df075051c8f3053f8d2ca5e6c1b9a73b4dd832db5ec0"
+      }]
+    },
+    "5370": {
+      "jurisdiction":"WIEN", "event_date":"2026-04-25", "stage_number":1,
+      "label":"WOLV: Medaillenliste 2026", "url":"http://www.wolv.at/docs/med26.pdf",
+      "sha256":"d7aaba1ea954e6fc32b66b42808d263394729fed2e00b586cde7f4179e60e6b1",
+      "invitation_url":"https://anne-cdn.oefol.at/public/2026/02/csBAqlJc9kCkOZPBBdeFY7nV1tRweQNS86yUrGJf.pdf",
+      "result_url":"https://anne-cdn.oefol.at/public/2026/04/6o7nmbomx1vv7Hhe79bZH4w90fU76R3zT724PYtw.pdf",
+      "summary":"WOLV bestätigt H15–18; D15–18 hat keine Wertung.",
+      "titles":[{"category":"H15-18","result_category":"H15-18","person_id":"9018","name":"Fabian Kolar","club":"Naturfreunde Wien","time_s":1374}]
+    },
+    "5357": {
+      "jurisdiction":"WIEN", "event_date":"2026-06-21", "stage_number":1,
+      "label":"WOLV: Medaillenliste 2026", "url":"http://www.wolv.at/docs/med26.pdf",
+      "sha256":"d7aaba1ea954e6fc32b66b42808d263394729fed2e00b586cde7f4179e60e6b1",
+      "invitation_url":"https://anne-cdn.oefol.at/public/2026/05/TakLpUtde0fx9SA5Y9w3QRkopR0Mh8oVQz6BXM0A.pdf",
+      "summary":"WOLV bestätigt die Wiener Sprintklasse H13–14.",
+      "titles":[{"category":"H13-14","result_category":"W H-14","person_id":"8980","name":"Albert Imriska","club":"Naturfreunde Wien","time_s":778}]
+    },
+    "5496": {
+      "jurisdiction":"WIEN", "event_date":"2026-10-11", "stage_number":1,
+      "label":"WOLV: Medaillenliste 2026", "url":"http://www.wolv.at/docs/med26.pdf",
+      "sha256":"d7aaba1ea954e6fc32b66b42808d263394729fed2e00b586cde7f4179e60e6b1",
+      "invitation_url":"https://anne-cdn.oefol.at/public/2026/08/x2uAt5lq5t2Kx0OSgf2GRNUfR3l2bPwAmFHpA6es.pdf",
+      "summary":"WOLV bestätigt D15–18 bei der Nachwuchsmeisterschaft.",
+      "titles":[{"category":"D15-18","result_category":"D-18 W","person_id":"8900","name":"Annina Urbanek","club":"Naturfreunde Wien","time_s":3892}]
+    },
+    "5382": {
+      "jurisdiction": "WIEN", "event_date": "2026-06-21", "stage_number": 1,
+      "label": "WOLV: Medaillenliste 2026, Mixed Sprint Staffel", "url": "http://www.wolv.at/docs/med26.pdf",
+      "sha256": "d7aaba1ea954e6fc32b66b42808d263394729fed2e00b586cde7f4179e60e6b1",
+      "invitation_url": "https://anne-cdn.oefol.at/public/2026/05/oIsKgnzVygvPdyZxQmba0fckJpWmnPb0dhcS90zi.pdf",
+      "invitation_sha256": "a342f877cbc29bcc9935336acb5262bf5b3018637aadb30773e88fcde3d213c5",
+      "reviewed_on": "2026-10-31", "summary": "WOLV bestätigt das dreiköpfige Wiener Nachwuchs-Siegerteam.",
+      "titles": [
+        {"category":"Nachwuchs -16","result_category":"W Nachw-16","result_kind":"relay","team_number":"5","person_id":"8979","name":"Adam Imriska","club":"Naturfreunde Wien","time_s":511,"grant_confirmation":{"amount_eur":90,"source":"user-confirmed","confirmed_on":"2026-10-31"}},
+        {"category":"Nachwuchs -16","result_category":"W Nachw-16","result_kind":"relay","team_number":"5","person_id":"8900","name":"Annina Urbanek","club":"Naturfreunde Wien","time_s":681,"grant_confirmation":{"amount_eur":110,"source":"user-confirmed","confirmed_on":"2026-10-31"}},
+        {"category":"Nachwuchs -16","result_category":"W Nachw-16","result_kind":"relay","team_number":"5","person_id":"8980","name":"Albert Imriska","club":"Naturfreunde Wien","time_s":635,"grant_confirmation":{"amount_eur":90,"source":"user-confirmed","confirmed_on":"2026-10-31"}}
+      ]
+    },
+    "5391": {
+      "jurisdiction":"WIEN", "event_date":"2026-04-26", "stage_number":1,
+      "label":"WOLV: Medaillenliste 2026", "url":"http://www.wolv.at/docs/med26.pdf",
+      "sha256":"d7aaba1ea954e6fc32b66b42808d263394729fed2e00b586cde7f4179e60e6b1",
+      "invitation_url":"https://anne-cdn.oefol.at/public/2026/02/UOYUAEpqmtPnYjJXpCZ9mKS6R9ALBNSBTFJbGLzl.pdf",
+      "invitation_sha256":"3be3dd2bbd0c5815e56059a26e74da4cc64e860cbee9e3beafdd546c05821229",
+      "reviewed_on":"2026-10-31", "summary":"H−14: Ergebnis und WOLV-Jahresliste unterscheiden sich beim Vornamen; Zuordnung bleibt vorläufig.",
+      "conflicted_winners":[{"category":"H-14","result_category":"H -14","person_id":"8980","name":"Albert Imriska","club":"Naturfreunde Wien","time_s":1566,
+        "note":"Quellenwiderspruch: Veranstalter-Ergebnis und ANNE nennen Albert; WOLV-Jahresliste nennt Adam. Bitte beim WOLV klären.",
+        "result_url":"https://anne-cdn.oefol.at/public/2026/04/b2G2wOhbgabGXVqZonbBcBMJmmz9V8imguVZsXlf.pdf",
+        "result_sha256":"81e3fc9867b613573be575d352510ce2d8816df226b0c83b957a72a74b290f76"}]
+    },
     "4963": {
       "jurisdiction": "WIEN",
       "event_date": "2025-10-11",
