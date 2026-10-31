@@ -20,6 +20,7 @@ konkreten Regressionstest oder einen Golden-Fall.
 | Quellrang | `KNOWN_SOURCE_RANK_ANOMALIES` in `build/build_db.py` | Die veröffentlichte Rangfolge widerspricht der ebenfalls veröffentlichten Zeit. |
 | Sportart/Stage | `EVENT_SPORT_TYPE_OVERRIDES` und die Stage-Zuordnung in `build/build_db.py` | Fehlende oder widersprüchliche ANNE-Metadaten werden nur für den konkreten bestätigten Event korrigiert. |
 | Eventausschluss | `data/review/excluded_events.json` | Ein Event ohne belastbare Ergebnisquelle bleibt samt Begründung im Quellarchiv, wird aber nicht in die veröffentlichte DB übernommen. |
+| Landesmeisterschaftsklassen | `data/review/regional_source_classes.json` | Je Event, Etappe und Bundesland durch Ausschreibung oder offizielle Landesliste belegte Quellklassen einschließlich ausdrücklich gemeinsamer Wertungen. |
 
 ## Pflichtangaben für neue Ausnahmen
 
@@ -273,6 +274,160 @@ stillschweigend vertauscht werden.
 
 ## Zusätzliche Landesmeisterschaftsquellen
 
+- Die offiziellen WOLV-Jahreslisten 2024–2026 sind auf
+  `http://www.wolv.at/download.php` verlinkt. Ein quellentreuer maschineller
+  Auszug ihrer Tabellenzellen steht in
+  `data/review/wolv_annual_medal_tables_2024_2026.json`, einschließlich
+  Quell-URL, SHA-256, Seiten- und Zellposition sowie Nichtwertungen. Er kann
+  mit `build/extract_wolv_annual.py` reproduziert werden. Da Kategorien in
+  verbundenen Zellen stehen und Staffeln mehrere Personen enthalten, ist der
+  Auszug ausdrücklich nur Prüfmaterial: Er ist noch nicht auf Events oder
+  Personen gemappt und bestätigt keine Titel automatisch.
+- Event `4404`, Wiener Nachtmeisterschaft 2024: Die offizielle WOLV-Liste
+  `http://www.wolv.at/events/2024/Wr.%20Meisterschaften%202024_Nacht.pdf`
+  (SHA-256 `92fc35f6467f5cf652c80aa67233c0f5b4874f5cf89f0bd24ecde848a7f688d2`)
+  weist H45−/H50− und H65−/H70− getrennt aus. Diese expliziten
+  Personenlisten werden übernommen, ohne nach Altersregeln selbst zu teilen.
+  H35− wird in H19− gewertet. In H45− druckt WOLV die Ränge 1, 3 und 4;
+  wir erhalten diese als Quellränge und markieren die fehlende 2 zur Prüfung.
+  Die vier eindeutig veröffentlichten Wiener Jugendpaare sind jeweils zwei
+  Personen mit einem gemeinsamen Ergebnis; die ungeteilte Namenszelle bleibt
+  als Quellenbeobachtung erhalten.
+- Event `4847`, Mittel 2025: Die WOLV-Jahresliste `http://www.wolv.at/docs/med25.pdf`
+  bestätigt auch die Wiener Klassen D/H13–14. Die Klassen dürfen nicht mit
+  gleichnamigen niederösterreichischen Klassen zusammengeführt werden; für
+  Klassen ohne ausreichende Starterzahl wird keine Medaille erfunden.
+- Event `4848`, Nachwuchs/Senioren 2025: Die offizielle Liste
+  `http://www.wolv.at/events/2025/Wr.NW+Sen.-MS.pdf` (SHA-256
+  `9b4f4be9794e464ad3701a77229ee9ff2d89ef53c67b82ab95b7111254831f19`)
+  teilt D45−/D50−, D55−/D60− und H55−/H60− tatsächlich nach namentlich
+  veröffentlichten Wertungen. Ausschließlich diese konkreten Zuordnungen
+  werden übernommen. D60− und H35− erhalten keine Medaille: Gestartet sind
+  jeweils nur Läuferinnen bzw. Läufer eines Vereins. Die WOLV-Jahresliste
+  nennt zusätzlich D13–14 mit Anna Skern, Matilda Buschek und Annina
+  Urbanek, die weder in dieser offiziellen Tagesliste noch in der
+  ANNE-Tagesliste erscheinen; dieser Quellenwiderspruch bleibt offen und
+  wird nicht automatisch als Wettkampfergebnis eingefügt.
+- Event `5156`, Wiener Staffel 2025: In H15− sind laut WOLV drei Staffeln
+  eines einzigen Vereins gestartet; trotz vorhandener Rangfolge wird kein
+  Wiener Meistertitel vergeben. Die einzelnen Legs werden bei der
+  Startzählung als eine Mannschaft pro Team zusammengefasst. Das in diesem
+  Event verkürzte Teamlabel „Naturfreunde“ wird anhand der vom WOLV
+  veröffentlichten Teamaufstellungen und der verifizierten Mitgliederliste
+  eventbezogen Naturfreunde Wien zugeordnet; dieselbe Abkürzung wird nicht
+  pauschal bei anderen Veranstaltungen aufgelöst.
+- Event `5496`, Nachwuchs/Senioren 2026: Die offizielle WOLV-Liste
+  `http://www.wolv.at/events/2026/Wr.NW%20u.Sen-MS%2026.pdf` (SHA-256
+  `3b06a7c5c5f6555dd2cfae1251059dc5de2d5d0c434f2d63f50e80da5b2032cd`)
+  weist D55−/D60− und H45−/H50− getrennt aus; nur die dort namentlich
+  dokumentierten Zuordnungen werden verwendet. Nicht zuordenbare DNS und
+  in der Wiener Wertung nicht enthaltene Gäste werden nicht einsortiert.
+  H55−: Josef Hilbert erscheint im ANNE-Ergebnis, jedoch nicht in der
+  WOLV-Tagesliste. Am 31.10.2026 hat der Nutzer ausdrücklich bestätigt,
+  dass die ANNE-Wertung mit Josef Hilbert gilt. Sein Ergebnis wird daher
+  als nutzerbestätigte Ergänzung in H55− übernommen; der Unterschied zur
+  WOLV-Tagesliste bleibt als Quellenhistorie dokumentiert.
+  H65−: WOLV führt Johannes Juraszovich als AK, ANNE als regulär gewertet;
+  auch diese Abweichung bleibt ein Prüfhinweis. Die allgemeinen
+  Klassen D/H19− sind bei dieser Nachwuchs-/Seniorenmeisterschaft laut
+  Tagesliste keine Meisterschaftsklassen.
+- Event `5391`, Mittel 2026: Die WOLV-Tagesliste nennt Albert Imriska als
+  Meister H−14; die WOLV-Jahresliste nennt an der entsprechenden Stelle
+  Adam Imriska, obwohl Adam laut Tagesliste in H15− startete. Keine
+  automatische Personenvertauschung allein aufgrund der Jahresübersicht.
+- Event `4251`, NÖ und Wiener Mitteldistanzmeisterschaft am 20.04.2024:
+  Die vom Nutzer benannte Ausschreibung
+  `https://anne-cdn.oefol.at/public/legacy/event_4251_ausschreibung-no-w-ms24-mittel.pdf`
+  (SHA-256 `0e8d64ae496c7209f87405f43e98693cdc4a2a7e39422de5bb679832c56f3e26`)
+  nennt auf Seite 1 beide Landesmeisterschaften und getrennte Klassen. NÖ:
+  D/H−12, −14, −18, 19−, 35−, 45−, 55− und 65−. Wien: D+H−12,
+  D/H−14, D/H15−, D/H45−, D55−, H60−, D65− und H75−. Familie,
+  Neulinge, Offen und Kinderfähnchen sind Rahmenbewerbe. Die separate
+  Ergebnisquelle `event_4251_erg200424.pdf` verwendet dafür die Präfixe
+  `N` und `W`. Die Ausschreibung ist derzeit nicht im lokalen Ergebnis-
+  Attachment-Inventar enthalten. Die belegten Klassen werden über
+  `regional_source_classes.json` der jeweiligen Landeswertung zugeordnet;
+  persönliche Berechtigung und Mindeststarter bleiben gesondert zu prüfen.
+  Die unabhängige WOLV-Liste `http://www.wolv.at/events/2024/Wr.MS_mittel_24.pdf`
+  belegt darüber hinaus für die im Quelleintrag verkürzten Namen die zwei
+  unterschiedlichen Personen Sabine und Franz Wareyka-Glaner sowie für
+  Nick Dytlewski den Verein Naturfreunde Wien. Die Korrekturen gelten nur für
+  diese Quellzeilen; der ursprüngliche Parserwert bleibt beobachtbar.
+- Event `4300`, NÖ/W Mixed-Sprintstaffel am 30.06.2024: Die Ausschreibung
+  `https://anne-cdn.oefol.at/public/legacy/event_4300_ausschreibung-ol-sprint-und-mixsprint-30-06-2024-mit-29-05-2024.pdf`
+  (SHA-256 `d4e43ac12aa201b795be3a446f6d91cca3d1dd8bcd6a24a02fbc56612ea83c6d`)
+  nennt auf Seite 3 für Wien `W-16`, `W Allg Klasse`, `W-35`, `W50-`
+  und für NÖ `N-14`, `N15-`, `N50-` als Meisterschaftsklassen. Das W in
+  `W-16` bezeichnet hier Wien und nicht die internationale Frauenklasse.
+  Die Klassen werden über den expliziten Quellnachweis zugeordnet; die
+  erforderliche Mindestzahl der wertungsberechtigten Teams ist getrennt zu
+  prüfen. Die Ergebnisquelle enthält in `W-16` nur zwei Teams.
+- Event `4589`, 7. Austria Cup am 08.09.2024: Die Ausschreibung
+  `https://anne-cdn.oefol.at/public/legacy/event_4589_ausschreibung-7-austria-cup-2024-v1-2.pdf`
+  (SHA-256 `2eafb6f5d9c74172ff0b40471c6cf2ab6e745b58e70c9e85c7ada36f770ddf58`)
+  sagt auf Seite 1 ausdrücklich, dass NÖ/W-Jugend- und Seniorenmeisterschaften
+  auf den Austria-Cup-Ergebnissen beruhen. Die genaue Zuordnung der
+  Meisterschaftsklassen und Wertungsberechtigten sind separat zu prüfen;
+  nicht alle ursprünglichen Wiener Klassenkandidaten sind Meisterschaftsklassen.
+  Die konkrete Zusammenlegung und Reihung ist durch die offizielle
+  WOLV-Ergebnisliste `http://www.wolv.at/events/2024/Wr.%20Meisterschaften%202024_NW%2BSen.pdf`
+  (SHA-256 `5782274e94ee7f88f6feedd168b86303bfa94ae9857a3a5a1d99deca1fc45a90`)
+  belegt; die dort zusammengeführten identischen Bahnen werden über die Zeit
+  und nicht über die getrennten Austria-Cup-Ränge gereiht.
+- Event `4588`, Staffel am 07.09.2024: Die Ausschreibung
+  `https://anne-cdn.oefol.at/public/legacy/event_4588_ausschreibung-o-stm-staffel-2024-v1-2.pdf`
+  (SHA-256 `18feb6f1289ec3cd132096a0549b160e0e1ad224e93f6989db626fbb4464b58e`)
+  legt auf Seite 2 fest, dass nur die Herrenstaffeln für Wien gewertet
+  werden; die Damenmeisterschaft wird am 27.10. getrennt ausgetragen.
+  Die offizielle WOLV-Ergebnisliste ist
+  `http://www.wolv.at/events/2024/Wr.%20Meisterschaften%202024_Staffel.pdf`.
+- Event `4617`, Wiener Damenstaffel am 27.10.2024: Die Ausschreibung
+  `https://anne-cdn.oefol.at/public/legacy/event_4617_ausschreibung-wr-staffel-ms-damen-27-10-2024-003.pdf`
+  (SHA-256 `c1cbe416e97403220b0862bc935cf1e29dd46ae30dda9571279831ac7a0da600`)
+  nennt D−14, D15−, D80−, D100− und D120− als Klassen und regelt bei zu
+  geringer Teilnahme die Zusammenlegung von Seniorenklassen; sie nennt dabei
+  drei Staffeln aus zwei verschiedenen Vereinen. Die tatsächlich ausgetragenen
+  Klassen D15−, D80− und D100− sind in der offiziellen, über die
+  WOLV-Meisterschaftsübersicht verlinkten Ergebnisliste belegt; die allgemeine
+  Mindeststarterprüfung ersetzt keine Prüfung der in
+  dieser Ausschreibung genannten zusätzlichen Vereinsbedingung.
+- Event `4915`, Wiener/NÖ Langdistanz am 28.09.2025: Die Ausschreibung
+  `https://anne-cdn.oefol.at/public/legacy/event_4915_ausschreibung-wr-no-staffel-und-lang-update-05-09-25.pdf`
+  (SHA-256 `5434de0aae16ea4f56b925c7227b7f56f75e25762fc62d8dde56b8f3eaba0399`)
+  unterscheidet auf Seite 2 für die allgemeine Landesmeisterschaft nur
+  D/H19− in Wien und NÖ; die übrigen Altersklassen sind Rahmenbewerbe und
+  zugleich separat für die Wiener ASKÖ-Meisterschaft ausgeschrieben. Die
+  bestehenden Kandidaten anderer Altersklassen sind deshalb nicht allein
+  aufgrund des Veranstaltungstitels als Wiener MS zu bestätigen.
+- Event `5247`, Landesmeisterschaften Lang am 28.03.2026: Die Ausschreibung
+  `https://anne-cdn.oefol.at/public/2026/01/DszDn13qt8Ly4OYeN2F2X2zKiWxxAZrsBpQIt3PB.pdf`
+  (SHA-256 `6ae034ed50420b1af0e63f1ad1825b6a1b7ebc613f7998ce412a341cbcddaedc`)
+  nennt auf Seite 1 für Wien nur D/H19 als allgemeine Meisterschaft und
+  bezeichnet alle Jugend- und Seniorenklassen für Wien als Rahmenbewerbe.
+  D/H19 werden als Wiener Klassen zugeordnet; die übrigen Wiener Kandidaten
+  sind keine Wiener Meisterschaftsklassen und werden nicht bestätigt.
+- Event `5370`, Nacht-LM am 25.04.2026: Die Ausschreibung
+  `https://anne-cdn.oefol.at/public/2026/02/csBAqlJc9kCkOZPBBdeFY7nV1tRweQNS86yUrGJf.pdf`
+  (SHA-256 `1bc27fe51c146de56ac3a7efa138323e5dc36cd8c631853daa4d5d615ef7aee5`)
+  und die Wiener Liste `http://www.wolv.at/events/2026/Wr.Nacht-MS%2026.pdf`
+  belegen die Wiener Klassen. In D19− führt WOLV drei Platzierte, aber keinen
+  Titelvermerk. Die offizielle Jahres-Medaillenliste
+  `http://www.wolv.at/docs/med26.pdf` klärt den Grund ausdrücklich: Alle drei
+  Starterinnen waren vom selben Verein; deshalb gab es keine Wertung. Die
+  Rangliste bleibt sichtbar, aber es werden keine Medaillen vergeben. ANNE
+  stellt die Namen der Nacht-Paare in zwei durch
+  Schrägstriche begrenzten Namensfeldern bereit: Nur eindeutig lesbare Paare
+  dieses Events werden in zwei Personen mit gemeinsamer Startnummer und Zeit
+  aufgeteilt; verklebte, nicht eindeutig lesbare Namen bleiben offen.
+- Events `5382` und `5391`, Mixed-Sprintstaffel am 21.06.2026 und Mittel-LM
+  am 26.04.2026: Die ANNE-Ausschreibungen
+  `https://anne-cdn.oefol.at/public/2026/05/oIsKgnzVygvPdyZxQmba0fckJpWmnPb0dhcS90zi.pdf`
+  (SHA-256 `a342f877cbc29bcc9935336acb5262bf5b3018637aadb30773e88fcde3d213c5`)
+  und `https://anne-cdn.oefol.at/public/2026/02/UOYUAEpqmtPnYjJXpCZ9mKS6R9ALBNSBTFJbGLzl.pdf`
+  (SHA-256 `3be3dd2bbd0c5815e56059a26e74da4cc64e860cbee9e3beafdd546c05821229`)
+  belegen die im Quellenregister erfassten Wiener Klassen. In 5391 werden
+  die getrennten D/H−12-Quelldaten gemäß der offiziellen gemeinsamen Wiener
+  Ergebnisliste nach Zeit als eine D/H−12-Wertung zusammengeführt.
 - Event `4879`, Wiener Sprintmeisterschaft 2025: Die offizielle WOLV-Liste
   `http://www.wolv.at/events/2025/Wr.Sprint-MS.pdf` wurde am 29.10.2026
   vollständig mit den Wiener Siegern abgeglichen (SHA-256

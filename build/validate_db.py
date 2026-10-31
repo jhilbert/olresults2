@@ -39,6 +39,7 @@ FINGERPRINT_ORDER = {
     "regional_category_mapping": "id",
     "championship_entry": "id",
     "championship_entry_result": "championship_entry_id, result_id",
+    "regional_award_hold": "championship_instance_id",
     "national_minimum_starters": "stage_id, category",
     "award": "id",
 }
@@ -92,7 +93,7 @@ def collect(db_path, eligibility_path):
         for table in ("championship_rule_set", "championship_jurisdiction",
                       "club_jurisdiction", "championship_instance",
                       "regional_category_mapping", "championship_entry",
-                      "championship_entry_result", "award", "national_minimum_starters"):
+                      "championship_entry_result", "regional_award_hold", "award", "national_minimum_starters"):
             counts[table] = scalar(con, f"SELECT COUNT(*) FROM {table}")
         missing_provenance = scalar(
             con, "SELECT COUNT(*) FROM result WHERE source_document_id IS NULL")

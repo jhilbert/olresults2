@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "events": {
+    "4251": {
+      "date": "2024-04-20", "stage_number": 1,
+      "jurisdictions": {
+        "WIEN": {
+          "url": "https://anne-cdn.oefol.at/public/legacy/event_4251_ausschreibung-no-w-ms24-mittel.pdf",
+          "sha256": "0e8d64ae496c7209f87405f43e98693cdc4a2a7e39422de5bb679832c56f3e26",
+          "categories": {"W D H-12": "DH-12", "W D-14": "D-14", "W H-14": "H-14", "W D 15-": "D15-", "W H 15-": "H15-", "W D 45-": "D45-", "W H 45-": "H45-", "W D 55-": "D55-", "W H 60-": "H60-", "W D 65-": "D65-", "W H 75-": "H75-"}
+        },
+        "NOE": {
+          "url": "https://anne-cdn.oefol.at/public/legacy/event_4251_ausschreibung-no-w-ms24-mittel.pdf",
+          "sha256": "0e8d64ae496c7209f87405f43e98693cdc4a2a7e39422de5bb679832c56f3e26",
+          "categories": {"N D-12": "D-12", "N H-12": "H-12", "N D-14": "D-14", "N H-14": "H-14", "N D-18": "D-18", "N H-18": "H-18", "N D 19-": "D19-", "N H 19-": "H19-", "N D 35-": "D35-", "N H 35-": "H35-", "N D 45-": "D45-", "N H 45-": "H45-", "N D 55-": "D55-", "N H 55-": "H55-", "N D 65-": "D65-", "N H 65-": "H65-"}
+        }
+      }
+    },
+    "4300": {
+      "date": "2024-06-30", "stage_number": 1,
+      "jurisdictions": {
+        "WIEN": {
+          "url": "https://anne-cdn.oefol.at/public/legacy/event_4300_ausschreibung-ol-sprint-und-mixsprint-30-06-2024-mit-29-05-2024.pdf",
+          "sha256": "d4e43ac12aa201b795be3a446f6d91cca3d1dd8bcd6a24a02fbc56612ea83c6d",
+          "categories": {"W-16": "Mixed bis 16", "W Allg Klasse": "Mixed Allgemein", "W35-": "Mixed ab 35", "W50-": "Mixed ab 50"}
+        },
+        "NOE": {
+          "url": "https://anne-cdn.oefol.at/public/legacy/event_4300_ausschreibung-ol-sprint-und-mixsprint-30-06-2024-mit-29-05-2024.pdf",
+          "sha256": "d4e43ac12aa201b795be3a446f6d91cca3d1dd8bcd6a24a02fbc56612ea83c6d",
+          "categories": {"N-14": "Mixed bis 14", "N15-": "Mixed ab 15", "N50-": "Mixed ab 50"}
+        }
+      }
+    },
+    "4404": {
+      "date": "2024-09-06", "stage_number": 1,
+      "jurisdictions": {"WIEN": {
+        "url": "http://www.wolv.at/events/2024/Wr.%20Meisterschaften%202024_Nacht.pdf",
+        "sha256": "92fc35f6467f5cf652c80aa67233c0f5b4874f5cf89f0bd24ecde848a7f688d2",
+        "evidence_kind": "official-results",
+        "time_ranked_categories": ["H19-"],
+        "official_ranks": {"H45-": {"Radon Thomas": 1, "Kolar Hannes": 3, "Ballik Thomas": 4}},
+        "review_notes": {"W H 45-": "Die offizielle WOLV-Teilwertung nennt die Ränge 1, 3 und 4; Platz 2 fehlt in der Quelle."},
+        "categories": {
+          "W D-14 *": "D-14", "W H-14 *": "H-14", "W H-18": "H15-18", "W D 19-": "D19-", "W H 19-": "H19-", "W H 35-": "H19-", "W D 45-": "D45-", "W D 55-": "D55-", "W H 55-": "H55-", "W H 75-": "H75-",
+          "W H 45-": {
+            "H45-": ["Radon Thomas", "Kolar Hannes", "Ballik Thomas", "Rittler Alexander"],
+            "H50-": ["Veitsberger Martin", "Kroupa Günther", "Marksteiner Martin"]
+          },
+          "W H 65-": {
+            "H65-": ["Purgathofer Werner", "Huemer Martin", "Huemer Thomas", "Norden Christian", "Genevois Frederic", "Zapletal Josef"],
+            "H70-": ["Grün Paul", "Huemer Meinrad", "Schuster Helmut"]
+          }
+        }
+      }}
+    },
+    "4588": {
+      "date": "2024-09-07", "stage_number": 1,
+      "jurisdictions": {"WIEN": {
+        "url": "https://anne-cdn.oefol.at/public/legacy/event_4588_ausschreibung-o-stm-staffel-2024-v1-2.pdf",
+        "sha256": "18feb6f1289ec3cd132096a0549b160e0e1ad224e93f6989db626fbb4464b58e",
+        "categories": {"Herren ab 19": "H19-", "Herren bis 12": "H-12", "Herren bis 14": "H-14", "Herren ab 15 bis 18": "H15-18", "Herren ab 120": "H120-", "Herren ab 150": "H150-", "Herren ab 180": "H180-", "Herren ab 210": "H210-"}
+      }}
+    },
+    "4589": {
+      "date": "2024-09-08", "stage_number": 1,
+      "jurisdictions": {"WIEN": {
+        "url": "http://www.wolv.at/events/2024/Wr.%20Meisterschaften%202024_NW%2BSen.pdf",
+        "sha256": "5782274e94ee7f88f6feedd168b86303bfa94ae9857a3a5a1d99deca1fc45a90",
+        "evidence_kind": "official-results",
+        "time_ranked_categories": ["DH-12", "D15-18", "H15-18", "D35-", "H35-", "D55-", "H75-"],
+        "categories": {"Damen bis 12": "DH-12", "Herren bis 12": "DH-12", "Damen bis 14": "D-14", "Herren bis 14": "H-14", "Damen bis 16 Elite": "D15-18", "Damen bis 18 Elite": "D15-18", "Herren bis 16 Elite": "H15-18", "Herren bis 18 Elite": "H15-18", "Damen ab 35": "D35-", "Damen ab 40": "D35-", "Herren ab 35": "H35-", "Herren ab 40": "H35-", "Damen ab 45": "D45-", "Herren ab 45": "H45-", "Damen ab 50": "D50-", "Herren ab 50": "H50-", "Damen ab 55": "D55-", "Damen ab 60": "D55-", "Herren ab 55": "H55-", "Herren ab 60": "H60-", "Herren ab 65": "H65-", "Herren ab 70": "H70-", "Herren ab 75": "H75-", "Herren ab 80": "H75-", "Damen ab 65": "D65-"}
+      }}
+    },
+    "4617": {
+      "date": "2024-10-27", "stage_number": 1,
+      "jurisdictions": {"WIEN": {
+        "url": "https://anne-cdn.oefol.at/public/legacy/event_4617_ausschreibung-wr-staffel-ms-damen-27-10-2024-003.pdf",
+        "sha256": "c1cbe416e97403220b0862bc935cf1e29dd46ae30dda9571279831ac7a0da600",
+        "categories": {"Damen 15-": "D15-", "Damen 80-": "D80-", "Damen 100-": "D100-"}
+      }}
+    },
+    "4847": {
+      "date": "2025-05-24", "stage_number": 1,
+      "jurisdictions": {"WIEN": {
+        "url": "http://www.wolv.at/docs/med25.pdf",
+        "sha256": "c7cd28be4cb71648a71c37b6e0c7ab134e1fe6adc1bd1d39fad2884c0a500150",
+        "evidence_kind": "official-results",
+        "categories": {"Herren+Damen - 12W": "DH-12", "Damen 13-14W": "D13-14", "Herren 13-14W": "H13-14", "Damen 15-W": "D15-", "Herren 15-W": "H15-", "Damen 45-W": "D45-", "Herren 45-W": "H45-", "Damen 55-W": "D55-", "Herren 60-W": "H60-", "Damen 65-W": "D65-", "Herren 75-W": "H75-"}
+      }}
+    },
+    "4848": {
+      "date": "2025-05-25", "stage_number": 1,
+      "jurisdictions": {"WIEN": {
+        "url": "http://www.wolv.at/events/2025/Wr.NW+Sen.-MS.pdf",
+        "sha256": "9b4f4be9794e464ad3701a77229ee9ff2d89ef53c67b82ab95b7111254831f19",
+        "evidence_kind": "official-results",
+        "award_holds": {
+          "D60-": {"reason": "Laut offizieller WOLV-Liste keine Meisterschaftswertung; drei Gestartete aus nur einem Verein.", "url": "http://www.wolv.at/events/2025/Wr.NW+Sen.-MS.pdf"},
+          "H35-": {"reason": "Laut WOLV keine Meisterschaftswertung; drei Gestartete aus nur einem Verein.", "url": "http://www.wolv.at/docs/med25.pdf"}
+        },
+        "categories": {
+          "Herren+Damen - 12W": "DH-12", "Herren 13-14W": "H13-14", "Damen 15-18W": "D15-18", "Herren 15-18W": "H15-18", "Damen 35-W": "D35-", "Herren 35-W": "H35-", "Damen 65-W": "D65-", "Herren 45-W": "H45-", "Herren 65-W": "H65-", "Herren 75-W": "H75-",
+          "Damen 45-W": {
+            "D45-": ["Michaela Gigon", "Natalia Machold", "Sandra Ujvari"],
+            "D50-": ["Marina Skern", "Heike Davitt", "Barbara Kastner", "Elisabeth Gaudernak", "Margit Kovacs", "Herlinde Hinterplattner"]
+          },
+          "Damen 55-W": {
+            "D55-": ["Guni Palme", "Sonja Wlcek", "Riki Tiefenböck", "Eva Tagesen", "Renate Biel-Pretting", "Karin Zettl"],
+            "D60-": ["Birgit Gollmann", "Irene Gassner", "Sabine Hilbert"]
+          },
+          "Herren 55-W": {
+            "H55-": ["Ferri Gassner", "Boris Kastner-Jirka", "Thomas Täuber", "Josef Hilbert", "Michael Grill"],
+            "H60-": ["Axel Biel", "Wilhelm Tiefenböck", "Andreas Cart", "Manfred Hampl", "Elmar Blaschek", "Mario Schiefer"]
+          }
+        }
+      }}
+    },
+    "5156": {
+      "date": "2025-09-27", "stage_number": 1,
+      "jurisdictions": {"WIEN": {
+        "url": "http://www.wolv.at/docs/med25.pdf",
+        "sha256": "c7cd28be4cb71648a71c37b6e0c7ab134e1fe6adc1bd1d39fad2884c0a500150",
+        "evidence_kind": "official-results",
+        "award_holds": {"H15-": {"reason": "Keine Wertung laut WOLV: drei gestartete Staffeln aus nur einem Verein.", "url": "http://www.wolv.at/docs/med25.pdf"}},
+        "categories": {"D14 W": "D-14", "D15 W": "D15-", "D80 W": "D80-", "D100 W": "D100-", "H15 W": "H15-", "H150 W": "H150-", "H180 W": "H180-"}
+      }}
+    },
+    "5247": {
+      "date": "2026-03-28", "stage_number": 1,
+      "jurisdictions": {"WIEN": {
+        "url": "https://anne-cdn.oefol.at/public/2026/01/DszDn13qt8Ly4OYeN2F2X2zKiWxxAZrsBpQIt3PB.pdf",
+        "sha256": "6ae034ed50420b1af0e63f1ad1825b6a1b7ebc613f7998ce412a341cbcddaedc",
+        "categories": {"D19A": "D19-", "H19A": "H19-"}
+      }}
+    },
+    "5370": {
+      "date": "2026-04-25", "stage_number": 1,
+      "jurisdictions": {"WIEN": {
+        "url": "https://anne-cdn.oefol.at/public/2026/02/csBAqlJc9kCkOZPBBdeFY7nV1tRweQNS86yUrGJf.pdf",
+        "sha256": "1bc27fe51c146de56ac3a7efa138323e5dc36cd8c631853daa4d5d615ef7aee5",
+        "award_holds": {"D19-": {"reason": "Keine Wertung laut WOLV: drei Starterinnen aus nur einem Verein.", "url": "http://www.wolv.at/docs/med26.pdf"}},
+        "categories": {"D -14": "D-14", "H -14": "H-14", "D15-18": "D15-18", "H15-18": "H15-18", "D19-": "D19-", "H19-": "H19-", "D35-": "D35-", "H35-": "H35-", "D40-(B),D45-": "D45-", "H40-(B),H45-": "H45-", "D55-": "D55-", "H55-": "H55-", "D65-": "D65-", "H65-": "H65-", "H75": "H75-"}
+      }}
+    },
+    "5382": {
+      "date": "2026-06-21", "stage_number": 1,
+      "jurisdictions": {"WIEN": {
+        "url": "https://anne-cdn.oefol.at/public/2026/05/oIsKgnzVygvPdyZxQmba0fckJpWmnPb0dhcS90zi.pdf",
+        "sha256": "a342f877cbc29bcc9935336acb5262bf5b3018637aadb30773e88fcde3d213c5",
+        "categories": {"W Nachw-16": "Mixed bis 16", "W Allg 17-": "Mixed ab 17", "W Sen 35-": "Mixed ab 35", "W Sen 50-": "Mixed ab 50"}
+      }}
+    },
+    "5391": {
+      "date": "2026-04-26", "stage_number": 1,
+      "jurisdictions": {"WIEN": {
+        "url": "https://anne-cdn.oefol.at/public/2026/02/UOYUAEpqmtPnYjJXpCZ9mKS6R9ALBNSBTFJbGLzl.pdf",
+        "sha256": "3be3dd2bbd0c5815e56059a26e74da4cc64e860cbee9e3beafdd546c05821229",
+        "time_ranked_categories": ["DH-12"],
+        "categories": {"D -12": "DH-12", "H -12": "DH-12", "D -14": "D-14", "H -14": "H-14", "D 15-": "D15-", "H 15-": "H15-", "D 45-": "D45-", "H 45-": "H45-", "D 55-": "D55-", "H 60-": "H60-", "D 65-": "D65-", "H 75-": "H75-"}
+      }}
+    },
+    "5496": {
+      "date": "2026-10-11", "stage_number": 1,
+      "jurisdictions": {"WIEN": {
+        "url": "http://www.wolv.at/events/2026/Wr.NW%20u.Sen-MS%2026.pdf",
+        "sha256": "3b06a7c5c5f6555dd2cfae1251059dc5de2d5d0c434f2d63f50e80da5b2032cd",
+        "evidence_kind": "official-results",
+        "review_notes": {"H 65- W": "Johannes Juraszovich ist in der WOLV-Liste AK, im ANNE-Ergebnis aber regulär klassifiziert; Status prüfen."},
+        "user_confirmations": {"H55-": {"name": "Josef Hilbert", "source": "ANNE-Ergebnis 5496", "decision": "Wiener H55-Wertung übernehmen", "confirmed_on": "2026-10-31"}},
+        "categories": {
+          "D-12 W": "D-12", "H-12 W": "H-12", "H-14 W": "H-14", "D-18 W": "D-18", "H-18 W": "H-18", "D 35- W": "D35-", "H 35- W": "H35-", "D 45- W": "D45-", "D 65- W": "D65-", "H 75- W": "H75-",
+          "H 55- W": {
+            "H55-": ["Boris Kastner-Jirka", "Wolfgang Waldhäusl", "Thomas Täuber", "Josef Zapletal", "Günther Kroupa", "Mario Schiefer", "Josef Hilbert"],
+            "__unassigned__": ["Oliver Frings"]
+          },
+          "H 65- W": {
+            "H65-": ["Paul Grün", "Johannes Mayer", "Werner Purgathofer", "Meinrad Huemer", "Tim Skern", "Helmut Grassinger"],
+            "__unassigned__": ["Rudolf Hochwarter", "Johannes Juraszovich", "Nikolai Dytlewski"]
+          },
+          "D 55- W": {
+            "D55-": ["Guni Palme", "Riki Tiefenböck", "Eva Tagesen"],
+            "D60-": ["Birgit Gollmann", "Irene Gassner", "Roswitha Micko"],
+            "__unassigned__": ["Christa Lassl"]
+          },
+          "H 45- W": {
+            "H45-": ["Thomas Radon", "Milan Rovenský", "Dmitry Osadchuk", "Robert Brettner-Messler", "Hannes Kolar", "Michael Praschinger", "Kristijan Mitrovic"],
+            "H50-": ["Alexander Srb", "Thomas Ballik", "Martin Veitsberger", "Quanah James Hudson", "Wilhelm Tiefenböck"],
+            "__unassigned__": ["Georg Dobler", "Philipp Haider"]
+          }
+        }
+      }}
+    }
+  }
+}

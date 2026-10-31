@@ -13,9 +13,12 @@ Codekommentar allein ist keine neue Fachregel.
 - `draft`: geplant, aber noch nicht produktiv anzuwenden.
 - `deprecated`: nur noch für die Herkunft alter Daten dokumentiert.
 
-Eine Regeländerung umfasst immer Regeltext, Code und mindestens einen Test.
-Quell- oder eventbezogene Ausnahmen müssen eng begrenzt, begründet und getestet
-sein. Direkte Korrekturen der erzeugten SQLite-Datenbank sind nicht zulässig.
+Eine Änderung des produktiven Datenverhaltens umfasst Regeltext, Code und
+mindestens einen Test. Reine Arbeits- und Prüfprozessregeln können vor einer
+Automatisierung dokumentiert werden; ihr Implementierungsstand muss dabei
+ausdrücklich erkennbar bleiben. Quell- oder eventbezogene Ausnahmen in der
+Verarbeitung müssen eng begrenzt, begründet und getestet sein. Direkte
+Korrekturen der erzeugten SQLite-Datenbank sind nicht zulässig.
 
 ## Datenherkunft und Parser
 
@@ -76,6 +79,10 @@ sein. Direkte Korrekturen der erzeugten SQLite-Datenbank sind nicht zulässig.
 
 ## Meisterschaften
 
+Die vollständige, nach Disziplinen und Fußnoten gegliederte Übertragung der
+WOLV-Kategorieneinteilung ab 10.10.2022 steht in
+[Wiener Meisterschaften ab 2022](wiener-meisterschaften-ab-2022.md).
+
 | ID | Status | Regel |
 |---|---|---|
 | `CHAMP-AUT-001` | confirmed | ÖM/ÖSTM-Eligibility benötigt positive Evidenz: offizielle Meisterschaftswertung, ÖFOL-ID mit Nationalität AUT oder bei anderer Nationalität `championshipEligibility=true`; historische eventbezogene Entscheidungen werden nicht aus dem heutigen Zustand rückwirkend neu abgeleitet. |
@@ -86,6 +93,10 @@ sein. Direkte Korrekturen der erzeugten SQLite-Datenbank sind nicht zulässig.
 | `CHAMP-REG-002` | confirmed | Explizite Quellkennungen wie `W`, `NÖ`, `B`, `St` haben Vorrang vor einer Ableitung aus dem heutigen Verein. |
 | `CHAMP-REG-003` | provisional | Ohne explizite Quellkennung ist historische Vereinszugehörigkeit die bevorzugte Evidenz. Heutige Vereinszugehörigkeit allein bleibt prüfpflichtig. |
 | `CHAMP-REG-004` | confirmed | Family und OOC dürfen keine Landesmeisterschaftsmedaille erzeugen. |
+| `CHAMP-REG-005` | confirmed | Für ein konkret geprüftes Event dürfen Ausschreibung oder offizielle Landesergebnisliste die Zuordnung einzelner Quellklassen zu Landesklassen belegen. Eine ausdrücklich dokumentierte Zusammenlegung gleicher Bahnen wird anhand der Zeiten gereiht; individuelle Landeszugehörigkeit und Mindeststarter bleiben gesonderte Prüfungen. Besteht ein ungeklärter Widerspruch zur offiziellen Titelvergabe, bleibt die Rangliste sichtbar, die Medaillenvergabe aber offen. |
+| `CHAMP-WIEN-001` | confirmed; Umsetzung offen | Gemäß WOLV-Kategorieneinteilung, gültig ab 10.10.2022, benötigt eine Wiener Meisterschaftswertung grundsätzlich mindestens drei tatsächlich gestartete Wertungsberechtigte aus mindestens zwei verschiedenen Vereinen. Aufgabe und Disqualifikation zählen als Start. **Ausnahmen:** Für die in der WOLV-Tabelle mit Fußnote (12) bezeichneten Kategorien und die in Fußnote (11) geregelte Trennung von H+D−12 gilt die Zwei-Vereine-Voraussetzung nicht; die Mindestzahl von drei bleibt bestehen. Die Kategorien und der zum Wettkampfzeitpunkt gültige Regelstand sind konkret zu prüfen, nicht pauschal auf alle Jahre zu übertragen. Quelle: [WOLV-Kategorieneinteilung, A2 und Fußnoten 11–12](http://www.wolv.at/docs/kat22neu.pdf). |
+| `CHAMP-WIEN-002` | confirmed; Abgleich ausstehend | Die vom WOLV veröffentlichten jährlichen Meister- und Medaillenlisten sind ein eigenständiger amtlicher Nachweis für die tatsächlich vergebenen Wiener Titel und ihre Kategorien. Aus einem Ergebnisrang allein folgt kein Titel; offizielle Nichtwertungen und Zusammenlegungen sind ebenfalls zu beachten. Bei Unterschieden zur berechneten Wertung ist der konkrete Fall samt Quelle zu prüfen, nicht durch unsichere Namens- oder Vereinszuordnung automatisch zu überschreiben. Quellen: [WOLV-Downloads](http://www.wolv.at/download.php), insbesondere die Medaillenlisten des jeweiligen Jahres. |
+| `CHAMP-WIEN-003` | confirmed | Eine Klassenteilung wird anhand der veröffentlichten Ergebnis- bzw. offiziellen Meisterschaftswertung übernommen. Die Anwendung entscheidet sie nicht anhand von Jahrgängen, Starterzahlen oder Vereinsanzahl und teilt niemanden selbständig neu zu. Ein ausreichend belegter Regelwiderspruch darf als Hinweis zur manuellen Prüfung erscheinen, verändert die offizielle Wertung jedoch nicht automatisch. |
 
 ## Jugend-Meistertitel und Förderung
 
@@ -103,6 +114,7 @@ sein. Direkte Korrekturen der erzeugten SQLite-Datenbank sind nicht zulässig.
 | `VERIFY-001` | confirmed | Prüfeinheit ist eine Kategorie aus genau einem Quelldokument. Jede Entscheidung ist an deren Eingabefingerprint gebunden. |
 | `VERIFY-002` | confirmed | Eine Liste ohne Blocker, Warnung, offene Landeszuordnung oder manuelle Markierung gilt deterministisch als automatisch bestätigt. |
 | `VERIFY-003` | confirmed | Manuelle Bestätigung dokumentiert Quelltreue; sie repariert weder Parserwerte noch Identitäten und überstimmt Befunde nur ausdrücklich sichtbar. |
+| `VERIFY-004` | confirmed | Bei der Prüfung von Meisterschaften wird für jedes Event beziehungsweise jede Etappe gezielt die zugehörige Ausschreibung auf der ANNE-Eventseite beziehungsweise in deren Anhängen gesucht und für Meisterschaftsart, Bundesland, Disziplin und ausdrücklich ausgeschriebene Klassen geprüft. Eine Ausschreibung belegt die Ausschreibung dieser Klassen, nicht allein den tatsächlichen Start, die persönliche Wertungsberechtigung, die Platzierung oder eine vergebene Medaille. Fehlt sie oder ist sie mehrdeutig, bleibt dieser Nachweis offen; das bestehende Ergebnis-Attachment-Inventar ist kein vollständiger Ausschreibungskatalog. |
 | `RELEASE-001` | confirmed | Vor Veröffentlichung laufen Parser-Golden-Tests, vollständige Tests, DB-Integritäts- und Fachinvarianten sowie ein Qualitätsreport. Parserblocker stoppen die Veröffentlichung. |
 | `RELEASE-002` | confirmed | Parseränderungen werden zunächst als normalisierter Diff geprüft; mehrere Reparaturen dürfen anschließend gemeinsam in einem reproduzierbaren DB-Build validiert werden. |
 
@@ -117,6 +129,7 @@ sein. Direkte Korrekturen der erzeugten SQLite-Datenbank sind nicht zulässig.
 - Parser-Golden-Fälle: `tests/fixtures/parser/`, `tests/test_parser_golden.py`
 - Auditcode-Zuordnung: [`audit-catalog.json`](audit-catalog.json)
 - Quellbezogene Ausnahmen: [`source-exceptions.md`](source-exceptions.md)
+- Belegte Landesklassen: `data/review/regional_source_classes.json`
 
 Die technischen Hintergründe bleiben ergänzend in
 [`../identity-provenance.md`](../identity-provenance.md) und

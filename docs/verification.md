@@ -70,6 +70,33 @@ Landesjurisdiktionen. `award` ist die gemeinsame Grundlage der nationalen und
 regionalen Medaillenspiegel. Die verbindlichen Regeln und noch provisorischen
 Ableitungen stehen im [OLRESULTS2-Regelwerk](rules/README.md).
 
+### Meisterschaft gegen Ausschreibung prüfen
+
+Für **jeden Meisterschaftsbewerb beziehungsweise jede Etappe** die passende
+Ausschreibung auf der ANNE-Eventseite oder in den dortigen Anhängen suchen und
+gegen Ergebnisliste und Datenbank halten. Dabei Datum und Etappe, Meisterschaft
+und beteiligte Bundesländer, Disziplin sowie die konkret ausgeschriebenen
+Meisterschafts-, Gäste- und Rahmenklassen unterscheiden. Bei kombinierten
+Veranstaltungen können dieselben Bahnen unterschiedliche Klassen oder
+getrennte Landeswertungen enthalten; nicht automatisch jede Bahn als
+Meisterschaftsklasse behandeln.
+
+Quelle mit Event-ID, URL, gegebenenfalls Version/Datum und Dateihash sowie den
+konkret belegten Klassen nachvollziehbar dokumentieren. Die Ausschreibung
+belegt die ausgeschriebene Wertung, nicht allein einen tatsächlichen Start,
+die persönliche Berechtigung, die Reihenfolge oder die Medaillenvergabe. Diese
+weiterhin separat anhand von Ergebnisquelle und Meisterschaftsregeln prüfen.
+Ist eine Ausschreibung nicht auffindbar, nicht lesbar oder widersprüchlich,
+den fehlenden Nachweis als offen ausweisen statt eine Wertung zu erfinden.
+
+Das lokale `data/raw/anne/attachments.json` enthält derzeit überwiegend
+Ergebnis-Anhänge; Ausschreibungen werden bei der Auswahl nicht zuverlässig
+übernommen. Deshalb seine Leere oder das Fehlen eines Dokuments nicht als
+Beweis werten, dass auf ANNE keine Ausschreibung existiert. Die Eventseite und
+gegebenenfalls den vollständigen Attachment-Endpunkt gezielt prüfen. Diese
+Vorgehensregel ist dokumentiert, aber noch kein automatisch vollständiger
+Ausschreibungs-Sync oder Parser.
+
 ## Sechsstufiger QA-Ablauf
 
 Parseränderungen werden gesammelt und anschließend gemeinsam geprüft, damit

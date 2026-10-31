@@ -20,6 +20,27 @@ const context = vm.createContext({
 });
 vm.runInContext(source.slice(0, bootIndex) + "\nglobalThis.renderYouth = renderYouthTitleTable;", context);
 
+test("youth-title view is restricted to Naturfreunde Wien including old direct links", () => {
+  const isolated = vm.createContext({
+    window: { OLRDomainRules: rules }, document: { getElementById: () => ({}) },
+    location: { search: "" }, localStorage: { getItem: () => null }, URLSearchParams,
+  });
+  vm.runInContext(source.slice(0, bootIndex) + `
+    query = () => [{ n: 1, runners: 1 }];
+    regionalJurisdictions = () => [];
+    fetchPodiums = () => [];
+    fetchRegionalPodiums = () => [];
+    globalThis.clubHtml = clubDetailHtml;`, isolated);
+  const other = isolated.clubHtml("WAT-OL", "2025", "youth", {});
+  assert.doesNotMatch(other, /Jugend-Meistertitel/);
+  assert.doesNotMatch(other, /\/youth/);
+  assert.match(other, /Alle Medaillen/);
+  const own = isolated.clubHtml("Naturfreunde Wien", "2025", null, {});
+  assert.match(own, /Jugend-Meistertitel/);
+  const ownDeep = isolated.clubHtml("Naturfreunde Wien", "2025", "youth", {});
+  assert.match(ownDeep, /Jugend-Meistertitel/);
+});
+
 test("youth table counts only evidenced winners and makes unknowns visible", () => {
   const base = { person_id: "1", person_name: "Anna", category: "D-14",
     category_full: "Damen -14", result_list_id: "list1", stage_id: 1,

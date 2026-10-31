@@ -10,6 +10,7 @@
   "rank_time_inversion": {"rule": "RANK-002", "domain": "ranking", "owner": "parser", "action": "Prüfen, ob Zeitwertung vorliegt und Rang beziehungsweise Zeit korrekt gelesen wurde."},
   "regional_double_assignment": {"rule": "CHAMP-REG-001", "domain": "championship", "owner": "rules", "action": "Quellleistung genau einer Landeswertung zuordnen."},
   "regional_membership_unresolved": {"rule": "CHAMP-REG-003", "domain": "championship", "owner": "review", "action": "Historische Vereins- oder Quellkennung ergänzen; keine Medaille raten."},
+  "regional_official_discrepancy": {"rule": "CHAMP-WIEN-002", "domain": "championship", "owner": "review", "action": "ANNE-Ergebnis und offizielle Landeswertung vergleichen; Abweichung nicht automatisch entscheiden."},
   "result_value_unparsed": {"rule": "PARSE-004", "domain": "parsing", "owner": "parser", "action": "Quellwert als Zeit, Status oder ausdrücklich unlesbar klassifizieren."},
   "source_count_anomaly": {"rule": "PARSE-005", "domain": "source", "owner": "source", "action": "Widerspruch im Quellkopf dokumentieren; vollständige Ergebniszeilen nicht löschen."},
   "source_category_missing": {"rule": "PARSE-002", "domain": "source", "owner": "source", "action": "Quelle enthält keine rekonstruierbare Kategorie; bessere offizielle Quelle suchen, Daten nicht erraten."},

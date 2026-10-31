@@ -1,0 +1,2280 @@
+{
+  "schema_version": 1,
+  "purpose": "Review evidence only; no automatic event, person or award matching.",
+  "documents": [
+    {
+      "year": 2024,
+      "source_url": "http://www.wolv.at/docs/med24.pdf",
+      "sha256": "7607aba56af0c3b6eb369bd0701be9be06187ec5e21aa175507178212d5e7e54",
+      "extraction_status": "unmatched_review_only",
+      "cells": [
+        {
+          "page": 1,
+          "row": 2,
+          "column": 1,
+          "row_heading": "H -12 /\nH+D -12",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "1) IMRISKA Albert NF Wien\n2) IMRISKA Adam NF Wien\n3) HINTERPLATTNER Karla MTV Hernals (3)",
+          "first_place_text": "IMRISKA Albert NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 2,
+          "column": 2,
+          "row_heading": "H -12 /\nH+D -12",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "20.4.2024; Grünbach / NÖ",
+          "cell": "nicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 2,
+          "column": 3,
+          "row_heading": "H -12 /\nH+D -12",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "30.6.2024; Neulengbach / NÖ",
+          "cell": "keine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 2,
+          "column": 4,
+          "row_heading": "H -12 /\nH+D -12",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "6.9.2024; Altendorf / NÖ",
+          "cell": "H -14:\n1) HINTERPLATTNER Oskar / HINTERPLATTNER Karla MTV Hernals\n2) IMRISKA Adam / IMRISKA Albert NF Wien\n3) STRAUSS Fabian / STRAUSS Daniel OLG Ströck Wien\n(3)",
+          "first_place_text": "HINTERPLATTNER Oskar / HINTERPLATTNER Karla MTV Hernals"
+        },
+        {
+          "page": 1,
+          "row": 2,
+          "column": 5,
+          "row_heading": "H -12 /\nH+D -12",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "Herrenbewerbe: 7.9.2024; Saubersdorf / NÖ\nDamenbewerbe: 27.10.2024; Maurerwald / Wien",
+          "cell": "H -14:\nkeine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 3,
+          "column": 1,
+          "row_heading": "H 13-14",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "1) HINTERPLATTNER Oskar MTV Hernals\n2) WALTER David WAT-OL\n3) STRAUSS Fabian OLG Ströck Wien (5)",
+          "first_place_text": "HINTERPLATTNER Oskar MTV Hernals"
+        },
+        {
+          "page": 1,
+          "row": 3,
+          "column": 2,
+          "row_heading": "H 13-14",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "20.4.2024; Grünbach / NÖ",
+          "cell": "1) HINTERPLATTNER Oskar MTV Hernals\n2) WALTER David WAT-OL\n3) STRAUSS Fabian OLG Ströck Wien (3)",
+          "first_place_text": "HINTERPLATTNER Oskar MTV Hernals"
+        },
+        {
+          "page": 1,
+          "row": 3,
+          "column": 3,
+          "row_heading": "H 13-14",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "30.6.2024; Neulengbach / NÖ",
+          "cell": "keine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 4,
+          "column": 1,
+          "row_heading": "H 15-16",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "H 15-18:\n1) URBANEK Lauri NF Wien\n2) BALLIK Simon WAT-OL\n3) KOLAR Fabian NF Wien\n(4)",
+          "first_place_text": "URBANEK Lauri NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 4,
+          "column": 2,
+          "row_heading": "H 15-16",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "20.4.2024; Grünbach / NÖ",
+          "cell": "H 15-:\n1) BUSCHEK Anton NF Wien\n2) WAREYKA-GLANER Franz WAT-OL\n3) SIEGERT Wolfgang WAT-OL\n(8)",
+          "first_place_text": "BUSCHEK Anton NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 4,
+          "column": 3,
+          "row_heading": "H 15-16",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "30.6.2024; Neulengbach / NÖ",
+          "cell": "H 15-:\n1) KASTNER Nicolas NF Wien\n2) SIMKOVICS Erik OLC Wienerwald\n3) WAREYKA-GLANER Franz WAT-OL\n(8)",
+          "first_place_text": "KASTNER Nicolas NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 4,
+          "column": 4,
+          "row_heading": "H 15-16",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "6.9.2024; Altendorf / NÖ",
+          "cell": "H 15-18:\n1) URBANEK Lauri NF Wien\n2) BALLIK Simon WAT-OL\n3) KOLAR Fabian NF Wien\n(4)",
+          "first_place_text": "URBANEK Lauri NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 4,
+          "column": 5,
+          "row_heading": "H 15-16",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "Herrenbewerbe: 7.9.2024; Saubersdorf / NÖ\nDamenbewerbe: 27.10.2024; Maurerwald / Wien",
+          "cell": "H 15-:\nkeine Wertung\n(2 + 1)\nAnmerkung: da statt der an diesem Termin und Ort fixierten Wr. Staffel MS vom ÖFOL kurzfristig die ÖSTM/ÖM\nStaffel ausgetragen wurde aber dort mit den Kategorien H 15-18 (2 Wr. Staffeln) und\nH19- (1 Wr. Staffel) andere Kategorien als bei einer Wr. Staffel MS gelten, konnte aus dem Ergebnis der\nÖM Staffel nicht die Wertung für eine Wr. Staffel MS der Kategorie H 15- herausgerechnet werden.",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 6,
+          "column": 1,
+          "row_heading": "H 19-20",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "nicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 6,
+          "column": 4,
+          "row_heading": "H 19-20",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "6.9.2024; Altendorf / NÖ",
+          "cell": "H 19-:\n1) SIEGERT Wolfgang WAT-OL\n2) BICHL Daniel WAT-OL\n3) IMRISKA Samuel NF Wien\n(3)",
+          "first_place_text": "SIEGERT Wolfgang WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 7,
+          "column": 1,
+          "row_heading": "H 21- /\nH 19-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "1) SIEGERT Wolfgang WAT-OL\n2) BICHL Daniel WAT-OL\n3) FABIAN Thomas WAT-OL (10)",
+          "first_place_text": "SIEGERT Wolfgang WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 8,
+          "column": 1,
+          "row_heading": "H 35-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "H 35-:\n1) SIEGERT Wolfgang WAT-OL\n2) BICHL Daniel WAT-OL\n3) IMRISKA Samuel NF Wien\n(3)",
+          "first_place_text": "SIEGERT Wolfgang WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 8,
+          "column": 4,
+          "row_heading": "H 35-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "6.9.2024; Altendorf / NÖ",
+          "cell": "H 35-:\nnicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 8,
+          "column": 5,
+          "row_heading": "H 35-",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "Herrenbewerbe: 7.9.2024; Saubersdorf / NÖ\nDamenbewerbe: 27.10.2024; Maurerwald / Wien",
+          "cell": "H 120:\nkeine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 10,
+          "column": 1,
+          "row_heading": "H 45-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "1) BALLIK Thomas WAT-OL\n2) RADON Thomas NF Wien\n3) KOLAR Hannes NF Wien (5)",
+          "first_place_text": "BALLIK Thomas WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 10,
+          "column": 2,
+          "row_heading": "H 45-",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "20.4.2024; Grünbach / NÖ",
+          "cell": "H 45-:\n1) RADON Thomas NF Wien\n2) BALLIK Thomas WAT-OL\n3) VEITSBERGER Martin OLT Transdanubien\n(14)",
+          "first_place_text": "RADON Thomas NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 10,
+          "column": 3,
+          "row_heading": "H 45-",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "30.6.2024; Neulengbach / NÖ",
+          "cell": "H 45-:\n1) GASSNER Ferri NF Wien\n2) RADON Thomas NF Wien\n3) KOLAR Hannes NF Wien\n(17)",
+          "first_place_text": "GASSNER Ferri NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 10,
+          "column": 4,
+          "row_heading": "H 45-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "6.9.2024; Altendorf / NÖ",
+          "cell": "1) RADON Thomas NF Wien\n2) KOLAR Hannes NF Wien\n3) BALLIK Thomas WAT-OL (4)",
+          "first_place_text": "RADON Thomas NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 11,
+          "column": 1,
+          "row_heading": "H 50-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "1) VEITSBERGER Martin OLT Transdanubien\n2) SCHNEIDER Hartmut MTV Hernals\n3) PUCHEGGER Stephan WAT-OL (7)",
+          "first_place_text": "VEITSBERGER Martin OLT Transdanubien"
+        },
+        {
+          "page": 1,
+          "row": 11,
+          "column": 4,
+          "row_heading": "H 50-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "6.9.2024; Altendorf / NÖ",
+          "cell": "1) VEITSBERGER Martin OLT Transdanubien\n2) KROUPA Günther NF Wien\n3) MARKSTEINER Martin WAT-OL (3)",
+          "first_place_text": "VEITSBERGER Martin OLT Transdanubien"
+        },
+        {
+          "page": 1,
+          "row": 11,
+          "column": 5,
+          "row_heading": "H 50-",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "Herrenbewerbe: 7.9.2024; Saubersdorf / NÖ\nDamenbewerbe: 27.10.2024; Maurerwald / Wien",
+          "cell": "H 150-:\n1) NF Wien: HLOSTA Thomas - KOLAR Hannes - KROUPA Günther\n2) OLT Transdanubien: ROVENSKY Milan - VEITSBERGER Martin - TÄUBER Thomas\n3) NTV Hernals: SCHNEIDER Hartmut - SCHWARZ Holger - DOBLER Georg\n(3)",
+          "first_place_text": "NF Wien: HLOSTA Thomas - KOLAR Hannes - KROUPA Günther"
+        },
+        {
+          "page": 1,
+          "row": 12,
+          "column": 1,
+          "row_heading": "H 55-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "1) GASSNER Ferri NF Wien\n2) HOFSTÄTTER Felix NF Wien\n3) HLOSTA Thomas NF Wien (10)",
+          "first_place_text": "GASSNER Ferri NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 12,
+          "column": 4,
+          "row_heading": "H 55-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "6.9.2024; Altendorf / NÖ",
+          "cell": "H 55-:\n1) GASSNER Ferri NF Wien\n2) HLOSTA Thomas NF Wien\n3) GÖSCHL Erich OLC Wienerwald\n(7)",
+          "first_place_text": "GASSNER Ferri NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 13,
+          "column": 1,
+          "row_heading": "H 60-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "1) BONEK Peter NF Wien\n2) ARBTER Roland NF Wien\n3) PIETSCH Wolfgang NF Wien (8)",
+          "first_place_text": "BONEK Peter NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 13,
+          "column": 2,
+          "row_heading": "H 60-",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "20.4.2024; Grünbach / NÖ",
+          "cell": "H 60-:\n1) BONEK Peter NF Wien\n2) PIETSCH Wolfgang NF Wien\n3) BIEL Axel NF Wien\n. (16)",
+          "first_place_text": "BONEK Peter NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 13,
+          "column": 3,
+          "row_heading": "H 60-",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "30.6.2024; Neulengbach / NÖ",
+          "cell": "H 60-:\n1) BONEK Peter NF Wien\n2) ZAPLETAL Josef NF Wien\n3) BIEL Axel NF Wien\n(15)",
+          "first_place_text": "BONEK Peter NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 13,
+          "column": 5,
+          "row_heading": "H 60-",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "Herrenbewerbe: 7.9.2024; Saubersdorf / NÖ\nDamenbewerbe: 27.10.2024; Maurerwald / Wien",
+          "cell": "H 180-:\n1) NF Wien: BIEL Axel - PIETSCH Wolfgang - ZAPLETAL Josef\n2) NF Wien: BONEK Ernst - ARBTER Roland - BONEK Peter\n3) NF Wien: HILBERT Josef - WIESINGER Georg - GENEVOIS Frederic\n(3)",
+          "first_place_text": "NF Wien: BIEL Axel - PIETSCH Wolfgang - ZAPLETAL Josef"
+        },
+        {
+          "page": 1,
+          "row": 14,
+          "column": 1,
+          "row_heading": "H 65-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "1) ZAPLETAL Josef NF Wien\n2) HUEMER Martin WAT-OL\n3) GRASSINGER Helmut OLG Ströck Wien (7)",
+          "first_place_text": "ZAPLETAL Josef NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 14,
+          "column": 4,
+          "row_heading": "H 65-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "6.9.2024; Altendorf / NÖ",
+          "cell": "1) PURGATHOFER Werner OLG Ströck Wien\n2) HUEMER Martin WAT-OL\n3) HUEMER Thomas WAT-OL (6)",
+          "first_place_text": "PURGATHOFER Werner OLG Ströck Wien"
+        },
+        {
+          "page": 1,
+          "row": 15,
+          "column": 1,
+          "row_heading": "H 70-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "1) GRÜN Paul OLG Ströck Wien\n2) DYTLEWSKI Nick NF Wien\n3) BOSINA Martin NF Wien (5)",
+          "first_place_text": "GRÜN Paul OLG Ströck Wien"
+        },
+        {
+          "page": 1,
+          "row": 15,
+          "column": 4,
+          "row_heading": "H 70-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "6.9.2024; Altendorf / NÖ",
+          "cell": "1) GRÜN Paul OLG Ströck Wien\n2) HUEMER Meinrad WAT-OL\n3) SCHUSTER Helmut OLT Transdanubien (3)",
+          "first_place_text": "GRÜN Paul OLG Ströck Wien"
+        },
+        {
+          "page": 1,
+          "row": 16,
+          "column": 1,
+          "row_heading": "H 75-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "1) SIEGERT Reinhard WAT-OL\n2) BONEK Ernst NF Wien\n3) KOCHMANN Günther WAT-OL (5)",
+          "first_place_text": "SIEGERT Reinhard WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 16,
+          "column": 2,
+          "row_heading": "H 75-",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "20.4.2024; Grünbach / NÖ",
+          "cell": "H 75-\n1) BONEK Ernst NF Wien\n2) BURMANN Werner OLC Wienerwald\n3) SIEGERT Reinhard WAT-OL\n(3)",
+          "first_place_text": "BONEK Ernst NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 16,
+          "column": 3,
+          "row_heading": "H 75-",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "30.6.2024; Neulengbach / NÖ",
+          "cell": "H 75-\n1) BONEK Ernst NF Wien\n2) SIEGERT Reinhard WAT-OL\n3) RADIL Klaus WAT-OL\n(6)",
+          "first_place_text": "BONEK Ernst NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 16,
+          "column": 4,
+          "row_heading": "H 75-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "6.9.2024; Altendorf / NÖ",
+          "cell": "H 75-:\nkeine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 17,
+          "column": 1,
+          "row_heading": "H 80-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "nicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 18,
+          "column": 1,
+          "row_heading": "D -12",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "D -12 zusammen mit H -12 als H+D -12 gewertet",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 18,
+          "column": 2,
+          "row_heading": "D -12",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "20.4.2024; Grünbach / NÖ",
+          "cell": "keine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 18,
+          "column": 3,
+          "row_heading": "D -12",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "30.6.2024; Neulengbach / NÖ",
+          "cell": "nicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 18,
+          "column": 4,
+          "row_heading": "D -12",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "6.9.2024; Altendorf / NÖ",
+          "cell": "D -14:\nkeine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 18,
+          "column": 5,
+          "row_heading": "D -12",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "Herrenbewerbe: 7.9.2024; Saubersdorf / NÖ\nDamenbewerbe: 27.10.2024; Maurerwald / Wien",
+          "cell": "D -14:\nnicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 19,
+          "column": 1,
+          "row_heading": "D 13-14",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "1) SKERN Anna NF Wien\n2) BUSCHEK Matilda NF Wien\n3) URBANEK Annina NF Wien (3)",
+          "first_place_text": "SKERN Anna NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 19,
+          "column": 2,
+          "row_heading": "D 13-14",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "20.4.2024; Grünbach / NÖ",
+          "cell": "1) BUSCHEK Matilda NF Wien\n2) MACHOLD Cleo NF Wien\n3) SKERN Anna NF Wien (3)",
+          "first_place_text": "BUSCHEK Matilda NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 19,
+          "column": 3,
+          "row_heading": "D 13-14",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "30.6.2024; Neulengbach / NÖ",
+          "cell": "1) BUSCHEK Matilda NF Wien\n2) ALTMANN Sophie OLC Wienerwald\n3) URBANEK Annina NF Wien (4)",
+          "first_place_text": "BUSCHEK Matilda NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 20,
+          "column": 1,
+          "row_heading": "D 15-16",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "D 15-18:\n1) PISKORZ Kiara-Sophie WAT-OL\n2) ASENBAUER Mika NF Wien\n3) ASENBAUER Sona NF Wien\n(5)",
+          "first_place_text": "PISKORZ Kiara-Sophie WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 20,
+          "column": 2,
+          "row_heading": "D 15-16",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "20.4.2024; Grünbach / NÖ",
+          "cell": "D 15-:\n1) ARBTER Anja NF Wien\n2) BUCHBERGER Lina NF Wien\n3) BIEL Corinna NF Wien\n(9)",
+          "first_place_text": "ARBTER Anja NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 20,
+          "column": 3,
+          "row_heading": "D 15-16",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "30.6.2024; Neulengbach / NÖ",
+          "cell": "D 15-:\n1) TIEFENBÖCK Tina NF Wien\n2) ASENBAUER Mika NF Wien\n3) PERAC Sladjana OLC Wienerwald\n(8)",
+          "first_place_text": "TIEFENBÖCK Tina NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 20,
+          "column": 4,
+          "row_heading": "D 15-16",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "6.9.2024; Altendorf / NÖ",
+          "cell": "D 15-18::\nnicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 20,
+          "column": 5,
+          "row_heading": "D 15-16",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "Herrenbewerbe: 7.9.2024; Saubersdorf / NÖ\nDamenbewerbe: 27.10.2024; Maurerwald / Wien",
+          "cell": "D 15-:\n1) NF Wien: BIEL Corinna - SKERN Marina\n2) OLT Transdanubien: HNILICA Jana - GIGON Michaela\n3) NF Wien: MACHOLD Cleo - BECK Maria\n(4)",
+          "first_place_text": "NF Wien: BIEL Corinna - SKERN Marina"
+        },
+        {
+          "page": 1,
+          "row": 22,
+          "column": 1,
+          "row_heading": "D 19-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "1) PISKORZ Kiara-Sophie WAT-OL\n2) BIEL Corinna NF Wien\n3) PAIER Paula NF Wien (3)",
+          "first_place_text": "PISKORZ Kiara-Sophie WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 22,
+          "column": 4,
+          "row_heading": "D 19-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "6.9.2024; Altendorf / NÖ",
+          "cell": "1) ZETTL Ines OLT Transdanubien\n2) BIEL Corinna NF Wien\n3) PISKORZ Kiara-Sophie WAT-OL (5)",
+          "first_place_text": "ZETTL Ines OLT Transdanubien"
+        },
+        {
+          "page": 1,
+          "row": 23,
+          "column": 1,
+          "row_heading": "D 35-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "D 35-:\nkeine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 23,
+          "column": 4,
+          "row_heading": "D 35-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "6.9.2024; Altendorf / NÖ",
+          "cell": "D 35-:\nn ic h t a u s g e t r a g e n",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 24,
+          "column": 5,
+          "row_heading": "D 40-",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "Herrenbewerbe: 7.9.2024; Saubersdorf / NÖ\nDamenbewerbe: 27.10.2024; Maurerwald / Wien",
+          "cell": "D 80-:\n1) WAT-OL: WLCEK Sonja - HALANEK Nicole\n2) NF Wien: CALVET Christine - UJVARI Sandra\n3) - - - -\n(3)",
+          "first_place_text": "WAT-OL: WLCEK Sonja - HALANEK Nicole"
+        },
+        {
+          "page": 1,
+          "row": 25,
+          "column": 1,
+          "row_heading": "D 45-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "1) KASTNER Barbara NF Wien\n2) SKERN Marina NF Wien\n3) HINTERPLATTNER Herlinde MTV Hernals (4)",
+          "first_place_text": "KASTNER Barbara NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 25,
+          "column": 2,
+          "row_heading": "D 45-",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "20.4.2024; Grünbach / NÖ",
+          "cell": "D 45-:\n1) KASTNER Barbara NF Wien\n2) ARBTER Vera NF Wien\n3) URBANEK Dinah NF Wien\n(8)",
+          "first_place_text": "KASTNER Barbara NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 25,
+          "column": 3,
+          "row_heading": "D 45-",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "30.6.2024; Neulengbach / NÖ",
+          "cell": "D 45-:\n1) KASTNER Barbara NF Wien\n2) MACHOLD Natalia NF Wien\n3) CALVET Christine NF Wien\n(7)",
+          "first_place_text": "KASTNER Barbara NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 25,
+          "column": 4,
+          "row_heading": "D 45-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "6.9.2024; Altendorf / NÖ",
+          "cell": "D 45-:\n1) KASTNER Barbara NF Wien\n2) CALVET Christine NF Wien\n3) LYATOSHINSKY Polina OLC Wienerwald\n(5)",
+          "first_place_text": "KASTNER Barbara NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 26,
+          "column": 1,
+          "row_heading": "D 50-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "1) URBANEK Dinah NF Wien\n2) LYATOSHINSKY Polina OLC Wienerwald\n3) ZETTL Karin OLT Transdanubien (6)",
+          "first_place_text": "URBANEK Dinah NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 26,
+          "column": 5,
+          "row_heading": "D 50-",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "Herrenbewerbe: 7.9.2024; Saubersdorf / NÖ\nDamenbewerbe: 27.10.2024; Maurerwald / Wien",
+          "cell": "D 100-:\n1) NF Wien: GOLLMANN Birgit - BIEL-PRETTING Renate\n2) OLT Transdanubien: ZETTL Karin - KOVACS Margit\n3) OLC Wienerwald: FINDER Gaby - MICKO Roswitha\n(4)",
+          "first_place_text": "NF Wien: GOLLMANN Birgit - BIEL-PRETTING Renate"
+        },
+        {
+          "page": 1,
+          "row": 27,
+          "column": 1,
+          "row_heading": "D 55-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "D 55-:\n1) BONEK Claudia NF Wien\n2) ARBTER Vera NF Wien\n3) PALME Guni OLC Wienerwald\n(11)",
+          "first_place_text": "BONEK Claudia NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 27,
+          "column": 2,
+          "row_heading": "D 55-",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "20.4.2024; Grünbach / NÖ",
+          "cell": "D 55-:\n1) BONEK Claudia NF Wien\n2) WLCEK Sonja WAT-OL\n3) PALME Guni OLC Wienerwald\n(12)",
+          "first_place_text": "BONEK Claudia NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 27,
+          "column": 3,
+          "row_heading": "D 55-",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "30.6.2024; Neulengbach / NÖ",
+          "cell": "D 55-:\n1) WLCEK Sonja WAT-OL\n2) TIEFENBÖCK Riki NF Wien\n3) PALME Guni OLC Wienerwald\n(7)",
+          "first_place_text": "WLCEK Sonja WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 27,
+          "column": 4,
+          "row_heading": "D 55-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "6.9.2024; Altendorf / NÖ",
+          "cell": "D 55-:\n1) TAGESEN Eva WAT-OL\n2) BIEL-PRETTING Renate NF Wien\n3) PAMLITSCHKA Herta WAT-OL\n(5)",
+          "first_place_text": "TAGESEN Eva WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 28,
+          "column": 5,
+          "row_heading": "D 60-",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "Herrenbewerbe: 7.9.2024; Saubersdorf / NÖ\nDamenbewerbe: 27.10.2024; Maurerwald / Wien",
+          "cell": "D 120-:\nnicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 29,
+          "column": 1,
+          "row_heading": "D 65-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 21.4.2024; Höflein a.d. Hohen Wand / NÖ\nNachw.+Sen MS : 8.9.2024; Saubersdorf / NÖ",
+          "cell": "D 65-:\nkeine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 29,
+          "column": 2,
+          "row_heading": "D 65-",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "20.4.2024; Grünbach / NÖ",
+          "cell": "D 65-:\nkeine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 29,
+          "column": 3,
+          "row_heading": "D 65-",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "30.6.2024; Neulengbach / NÖ",
+          "cell": "D 65-:\nkeine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 29,
+          "column": 4,
+          "row_heading": "D 65-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "6.9.2024; Altendorf / NÖ",
+          "cell": "D 65-:\nnicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 2,
+          "row": 1,
+          "column": 0,
+          "row_heading": "Nachwuchs - 16:",
+          "discipline_heading": "MIXED SPRINT STAFFEL - OL\n30.6.2024; Neulengbach / NÖ",
+          "event_heading": "MIXED SPRINT STAFFEL - OL\n30.6.2024; Neulengbach / NÖ",
+          "cell": "Nachwuchs - 16:\nkeine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 2,
+          "row": 2,
+          "column": 0,
+          "row_heading": "Allgemeine Kategorie:",
+          "discipline_heading": "MIXED SPRINT STAFFEL - OL\n30.6.2024; Neulengbach / NÖ",
+          "event_heading": "MIXED SPRINT STAFFEL - OL\n30.6.2024; Neulengbach / NÖ",
+          "cell": "Allgemeine Kategorie:\n1) NF Wien: URBANEK Lauri - TIEFENBÖCK Tina - KASTNER Nicolas\n2) OLC Wienerwald: SIMKOVICS Erik - PERAC Sladjana - SATRAPA Vito\n3) WAT-OL: WAREYKA-GLANER Franz - WAREYKA-GLANER Sabine -\n- SIEGERT Wolfgang\n(3)",
+          "first_place_text": "NF Wien: URBANEK Lauri - TIEFENBÖCK Tina - KASTNER Nicolas"
+        },
+        {
+          "page": 2,
+          "row": 3,
+          "column": 0,
+          "row_heading": "Senioren 35-:",
+          "discipline_heading": "MIXED SPRINT STAFFEL - OL\n30.6.2024; Neulengbach / NÖ",
+          "event_heading": "MIXED SPRINT STAFFEL - OL\n30.6.2024; Neulengbach / NÖ",
+          "cell": "Senioren 35-:\n1) MTV Hernals: SCHNEIDER Hartmut - HINTERPLATTNER Herlinde -\n- DOBLER Georg\n2) NF Wien: HILBERT Josef - GASSNER Irene - GENEVOIS Frederic\n3) - - - -\n(3)",
+          "first_place_text": "MTV Hernals: SCHNEIDER Hartmut - HINTERPLATTNER Herlinde - - DOBLER Georg"
+        },
+        {
+          "page": 2,
+          "row": 4,
+          "column": 0,
+          "row_heading": "Senioren 50 -:",
+          "discipline_heading": "MIXED SPRINT STAFFEL - OL\n30.6.2024; Neulengbach / NÖ",
+          "event_heading": "MIXED SPRINT STAFFEL - OL\n30.6.2024; Neulengbach / NÖ",
+          "cell": "Senioren 50 -:\n1) NF Wien: KROUPA Günther - KASTNER Barbara - KASTNER-JIRKA Boris\n2) NF Wien: BIEL Axel - GOLLMANN Birgit - ZAPLETAL Josef\n3) OLC Wienerwald: ALTMANN Robert - PALME Guni - GÖSCHL Erich\n(18)",
+          "first_place_text": "NF Wien: KROUPA Günther - KASTNER Barbara - KASTNER-JIRKA Boris"
+        }
+      ]
+    },
+    {
+      "year": 2025,
+      "source_url": "http://www.wolv.at/docs/med25.pdf",
+      "sha256": "c7cd28be4cb71648a71c37b6e0c7ab134e1fe6adc1bd1d39fad2884c0a500150",
+      "extraction_status": "unmatched_review_only",
+      "cells": [
+        {
+          "page": 1,
+          "row": 2,
+          "column": 1,
+          "row_heading": "H -12 /\nH+D -12",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "keine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 2,
+          "column": 2,
+          "row_heading": "H -12 /\nH+D -12",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "24.5.2025; Mauerbach / NÖ",
+          "cell": "1) LE BLANC Lihuen NF Wien\n2) KRAIL Timna WAT OL\n3) DOBLER Oskar MTV Hernals (3)",
+          "first_place_text": "LE BLANC Lihuen NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 2,
+          "column": 3,
+          "row_heading": "H -12 /\nH+D -12",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "10.5.2025; Seestadt Aspern / Wien",
+          "cell": "keine eigene Wertung, da nur 2 Läufer am Start\n(mit den Damen als H+D -12 mitgewertet)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 2,
+          "column": 4,
+          "row_heading": "H -12 /\nH+D -12",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "11.10.2025; St. Lorenzen/Wechsel / Stmk",
+          "cell": "H -14:\n1) WALLY Emil / WALLY Arthur WAT-OL\n2) STRAUSS Fabian / WITZANI Luis OLG Ströck Wien\n3) DOBLER Oskar / LIEBENTRITT Jonathan MTV Hernals\n(3)",
+          "first_place_text": "WALLY Emil / WALLY Arthur WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 2,
+          "column": 5,
+          "row_heading": "H -12 /\nH+D -12",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "27.9.2025; Purkersdorf-Roppersberg / NÖ",
+          "cell": "H -14:\nkeine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 3,
+          "column": 1,
+          "row_heading": "H 13-14",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "keine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 3,
+          "column": 2,
+          "row_heading": "H 13-14",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "24.5.2025; Mauerbach / NÖ",
+          "cell": "keine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 3,
+          "column": 3,
+          "row_heading": "H 13-14",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "10.5.2025; Seestadt Aspern / Wien",
+          "cell": "1) IMRISKA Adam NF Wien\n2) STRAUSS Fabian OLG Ströck Wien\n3) STRAUSS Daniel OLG Ströck Wien (3)",
+          "first_place_text": "IMRISKA Adam NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 4,
+          "column": 1,
+          "row_heading": "H 15-16",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "H 15-18:\n1) KOLAR Fabian NF Wien\n2) HINTERPLATTNER Oskar MTV Hernals\n3) WALTER David WAT-OL\n(6)",
+          "first_place_text": "KOLAR Fabian NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 4,
+          "column": 2,
+          "row_heading": "H 15-16",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "24.5.2025; Mauerbach / NÖ",
+          "cell": "H 15-:\n1) WAREYKA-GLANER Franz WAT-OL\n2) SULZ Henrik OLC Wienerwald\n3) GASSNER Ferri NF Wien\n(16)",
+          "first_place_text": "WAREYKA-GLANER Franz WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 4,
+          "column": 3,
+          "row_heading": "H 15-16",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "10.5.2025; Seestadt Aspern / Wien",
+          "cell": "H 15-:\n1) POIRSON Marius WAT-OL\n2) SIMKOVICS Erik OLC Wienerwald\n3) WAREYKA-GLANER Franz WAT-OL\n(25)",
+          "first_place_text": "POIRSON Marius WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 4,
+          "column": 4,
+          "row_heading": "H 15-16",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "11.10.2025; St. Lorenzen/Wechsel / Stmk",
+          "cell": "H 15-18:\nkeine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 4,
+          "column": 5,
+          "row_heading": "H 15-16",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "27.9.2025; Purkersdorf-Roppersberg / NÖ",
+          "cell": "H 15-:\nkeine Wertung, da nur 3 Staffeln aus einem Verein (WAT-OL) am Start\n. (3)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 6,
+          "column": 1,
+          "row_heading": "H 19-20",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "nicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 6,
+          "column": 4,
+          "row_heading": "H 19-20",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "11.10.2025; St. Lorenzen/Wechsel / Stmk",
+          "cell": "H 19-:\n1) KASTNER Nicolas NF Wien\n2) SIEGERT Wolfgang WAT-OL\n3) WALLY Bernhard WAT-OL\n(3)",
+          "first_place_text": "KASTNER Nicolas NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 7,
+          "column": 1,
+          "row_heading": "H 21- /\nH 19-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "1) SIMKOVICS Erik OLC Wienerwald\n2) SIEGERT Wolfgang WAT-OL\n3) BICHL Daniel WAT-OL (11)",
+          "first_place_text": "SIMKOVICS Erik OLC Wienerwald"
+        },
+        {
+          "page": 1,
+          "row": 8,
+          "column": 1,
+          "row_heading": "H 35-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "H 35-:\nkeine Wertung, da nur 3 Läufer aus einem Verein (WAT-OL)\nam Start\n(3)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 8,
+          "column": 4,
+          "row_heading": "H 35-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "11.10.2025; St. Lorenzen/Wechsel / Stmk",
+          "cell": "H 35-:\nnicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 8,
+          "column": 5,
+          "row_heading": "H 35-",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "27.9.2025; Purkersdorf-Roppersberg / NÖ",
+          "cell": "H 120-:\nkeine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 10,
+          "column": 1,
+          "row_heading": "H 45-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "H 45-:\n1) WALDHÄUSL Wolfgang NF Wien\n2) RADON Thomas NF Wien\n3) BALLIK Thomas WAT-OL\n(7)",
+          "first_place_text": "WALDHÄUSL Wolfgang NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 10,
+          "column": 2,
+          "row_heading": "H 45-",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "24.5.2025; Mauerbach / NÖ",
+          "cell": "H 45-:\n1) RADON Thomas NF Wien\n2) WALDHÄUSL Wolfgang NF Wien\n3) DOBLER Georg MTV Hernals\n(11)",
+          "first_place_text": "RADON Thomas NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 10,
+          "column": 3,
+          "row_heading": "H 45-",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "10.5.2025; Seestadt Aspern / Wien",
+          "cell": "H 45-:\n1) WALDHÄUSL Wolfgang NF Wien\n2) BALLIK Thomas WAT-OL\n3) KOLAR Hannes NF Wien\n(17)",
+          "first_place_text": "WALDHÄUSL Wolfgang NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 10,
+          "column": 4,
+          "row_heading": "H 45-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "11.10.2025; St. Lorenzen/Wechsel / Stmk",
+          "cell": "H 45-:\n1) RADON Thomas NF Wien\n2) VEITSBERGER Martin OLT Transdanubien\n3) DOBLER Georg MTV Hernals\n(5)",
+          "first_place_text": "RADON Thomas NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 11,
+          "column": 5,
+          "row_heading": "H 50-",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "27.9.2025; Purkersdorf-Roppersberg / NÖ",
+          "cell": "H 150-:\n1) NF Wien: KASTNER-JIRKA Boris - BRETTNER-MESSLER Robert - WALDHÄUSL Wolfgang\n2) NF Wien: HLOSTA Thomas - GOLLMANN Birgit - KÜHNEL Ralf\n3) - - - -\n(3)",
+          "first_place_text": "NF Wien: KASTNER-JIRKA Boris - BRETTNER-MESSLER Robert - WALDHÄUSL Wolfgang"
+        },
+        {
+          "page": 1,
+          "row": 12,
+          "column": 1,
+          "row_heading": "H 55-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "1) GASSNER Ferri NF Wien\n2) KASTNER-JIRKA Boris NF Wien\n3) TÄUBER Thomas OLT Transdanubien (4)",
+          "first_place_text": "GASSNER Ferri NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 12,
+          "column": 4,
+          "row_heading": "H 55-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "11.10.2025; St. Lorenzen/Wechsel / Stmk",
+          "cell": "H 55-:\n1) GÖSCHL Erich OLC Wienerwald\n2) TÄUBER Thomas OLT Transdanubien\n3) GRILL Michael NF Wien\n(4)",
+          "first_place_text": "GÖSCHL Erich OLC Wienerwald"
+        },
+        {
+          "page": 1,
+          "row": 13,
+          "column": 1,
+          "row_heading": "H 60-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "1) BIEL Axel NF Wien\n2) TIEFENBÖCK Wilhelm NF Wien\n3) CART Andreas OLC Wienerwald (5)",
+          "first_place_text": "BIEL Axel NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 13,
+          "column": 2,
+          "row_heading": "H 60-",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "24.5.2025; Mauerbach / NÖ",
+          "cell": "H 60-:\n1) BIEL Axel NF Wien\n2) TIEFENBÖCK Wilhelm NF Wien\n3) GRÜN Paul OLG Ströck Wien\n. (11)",
+          "first_place_text": "BIEL Axel NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 13,
+          "column": 3,
+          "row_heading": "H 60-",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "10.5.2025; Seestadt Aspern / Wien",
+          "cell": "H 60-:\n1) PIETSCH Wolfgang NF Wien\n2) PURGATHOFER Werner OLG Ströck Wien\n3) TIEFENBÖCK Wilhelm NF Wien\n(11)",
+          "first_place_text": "PIETSCH Wolfgang NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 13,
+          "column": 5,
+          "row_heading": "H 60-",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "27.9.2025; Purkersdorf-Roppersberg / NÖ",
+          "cell": "H 180-:\n1) NF Wien: BONEK Ernst - BIEL Axel - ZAPLETAL Josef\n2) OLG Ströck Wien: GRÜN Paul - GRASSINGER Helmut - PURGATHOFER Werner\n3) WAT-OL: HUEMER Martin - SIEGERT Reinhard - HUEMER Meinrad\n(6)",
+          "first_place_text": "NF Wien: BONEK Ernst - BIEL Axel - ZAPLETAL Josef"
+        },
+        {
+          "page": 1,
+          "row": 14,
+          "column": 1,
+          "row_heading": "H 65-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "H 65-:\n1) BOSINA Martin NF Wien\n2) GRASSINGER Helmut OLG Ströck Wien\n3) GRÜN Paul OLG Ströck Wien\n(6)",
+          "first_place_text": "BOSINA Martin NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 14,
+          "column": 4,
+          "row_heading": "H 65-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "11.10.2025; St. Lorenzen/Wechsel / Stmk",
+          "cell": "H 65-:\n1) GRÜN Paul OLG Ströck Wien\n2) PURGATHOFER Werner OLG Ströck Wien\n3) HUEMER Meinrad WAT-OL\n(5)",
+          "first_place_text": "GRÜN Paul OLG Ströck Wien"
+        },
+        {
+          "page": 1,
+          "row": 16,
+          "column": 1,
+          "row_heading": "H 75-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "1) BURMANN Werner OLC Wienerwald\n2) BONEK Ernst NF Wien\n3) SIEGERT Reinhard WAT-OL (3)",
+          "first_place_text": "BURMANN Werner OLC Wienerwald"
+        },
+        {
+          "page": 1,
+          "row": 16,
+          "column": 2,
+          "row_heading": "H 75-",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "24.5.2025; Mauerbach / NÖ",
+          "cell": "H 75-\n1) BURMANN Werner OLC Wienerwald\n2) BONEK Ernst NF Wien\n3) SIEGERT Reinhard WAT-OL\n(3)",
+          "first_place_text": "BURMANN Werner OLC Wienerwald"
+        },
+        {
+          "page": 1,
+          "row": 16,
+          "column": 3,
+          "row_heading": "H 75-",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "10.5.2025; Seestadt Aspern / Wien",
+          "cell": "H 75-\n1) BURMANN Werner OLC Wienerwald\n2) BONEK Ernst NF Wien\n3) SIEGERT Reinhard WAT-OL\n(7)",
+          "first_place_text": "BURMANN Werner OLC Wienerwald"
+        },
+        {
+          "page": 1,
+          "row": 16,
+          "column": 4,
+          "row_heading": "H 75-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "11.10.2025; St. Lorenzen/Wechsel / Stmk",
+          "cell": "H 75-:\nkeine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 17,
+          "column": 1,
+          "row_heading": "H 80-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "nicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 18,
+          "column": 1,
+          "row_heading": "D -12 /\nH+D -12",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "D -12 zusammen mit H -12 als H+D -12 gewertet",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 18,
+          "column": 2,
+          "row_heading": "D -12 /\nH+D -12",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "24.5.2025; Mauerbach / NÖ",
+          "cell": "D -12 zusammen mit H -12 als H+D -12 gewertet",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 18,
+          "column": 3,
+          "row_heading": "D -12 /\nH+D -12",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "10.5.2025; Seestadt Aspern / Wien",
+          "cell": "1) IMRISKA Albert NF Wien\n2) LE BLANC Lihuen NF Wien\n3) CHIRINOS-UJVARI Lucia NF Wien (7)",
+          "first_place_text": "IMRISKA Albert NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 18,
+          "column": 4,
+          "row_heading": "D -12 /\nH+D -12",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "11.10.2025; St. Lorenzen/Wechsel / Stmk",
+          "cell": "D -14:\nnicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 18,
+          "column": 5,
+          "row_heading": "D -12 /\nH+D -12",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "27.9.2025; Purkersdorf-Roppersberg / NÖ",
+          "cell": "D -14:\nkeine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 19,
+          "column": 1,
+          "row_heading": "D 13-14",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "1) SKERN Anna NF Wien\n2) BUSCHEK Matilda NF Wien\n3) URBANEK Annina NF Wien (3)",
+          "first_place_text": "SKERN Anna NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 19,
+          "column": 2,
+          "row_heading": "D 13-14",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "24.5.2025; Mauerbach / NÖ",
+          "cell": "keine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 19,
+          "column": 3,
+          "row_heading": "D 13-14",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "10.5.2025; Seestadt Aspern / Wien",
+          "cell": "1) SKERN Anna NF Wien\n2) URBANEK Annina NF Wien\n3) ALTMANN Sophie OLC Wienerwald (3)",
+          "first_place_text": "SKERN Anna NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 20,
+          "column": 1,
+          "row_heading": "D 15-16",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "D 15-18:\nkeine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 20,
+          "column": 2,
+          "row_heading": "D 15-16",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "24.5.2025; Mauerbach / NÖ",
+          "cell": "D 15-:\n1) TIEFENBÖCK Tina NF Wien\n2) PISKORZ Kiara-Sophie WAT-OL\n3) ENGLMAIER Gudrun OLC Wienerwald\n(9)",
+          "first_place_text": "TIEFENBÖCK Tina NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 20,
+          "column": 3,
+          "row_heading": "D 15-16",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "10.5.2025; Seestadt Aspern / Wien",
+          "cell": "D 15-:\n1) TIEFENBÖCK Tina NF Wien\n2) ASENBAUER Mika NF Wien\n3) PISKORZ Kiara-Sophie WAT-OL\n(14)",
+          "first_place_text": "TIEFENBÖCK Tina NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 20,
+          "column": 4,
+          "row_heading": "D 15-16",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "11.10.2025; St. Lorenzen/Wechsel / Stmk",
+          "cell": "D 15-18:\nkeine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 20,
+          "column": 5,
+          "row_heading": "D 15-16",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "27.9.2025; Purkersdorf-Roppersberg / NÖ",
+          "cell": "D 15-:\n1) WAT-OL: PISKORZ Kiara-Sophie - PAIER Paula\n2) NF Wien: TIEFENBÖCK Tina - RADON Livia\n3) NF Wien: BIEL Corinna - MACHOLD Cleo\n(3)",
+          "first_place_text": "WAT-OL: PISKORZ Kiara-Sophie - PAIER Paula"
+        },
+        {
+          "page": 1,
+          "row": 22,
+          "column": 1,
+          "row_heading": "D 19-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "1) TIEFENBÖCK Tina NF Wien\n2) SIMKOVICS Anna OLC Wienerwald\n3) PISKORZ Kiara-Sophie WAT-OL (6)",
+          "first_place_text": "TIEFENBÖCK Tina NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 22,
+          "column": 4,
+          "row_heading": "D 19-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "11.10.2025; St. Lorenzen/Wechsel / Stmk",
+          "cell": "keine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 23,
+          "column": 1,
+          "row_heading": "D 35-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "D 35-:\nkeine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 23,
+          "column": 4,
+          "row_heading": "D 35-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "11.10.2025; St. Lorenzen/Wechsel / Stmk",
+          "cell": "D 35-:\nn ic h t a u s g e t r a g e n",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 24,
+          "column": 5,
+          "row_heading": "D 40-",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "27.9.2025; Purkersdorf-Roppersberg / NÖ",
+          "cell": "D 80-:\n1) WAT-OL: WLCEK Sonja - WAREYKA-GLANER Sabine\n2) - - - -\n3) - - - -\n(3)",
+          "first_place_text": "WAT-OL: WLCEK Sonja - WAREYKA-GLANER Sabine"
+        },
+        {
+          "page": 1,
+          "row": 25,
+          "column": 1,
+          "row_heading": "D 45-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "1) GIGON Michaela OLT Transdanubien\n2) MACHOLD Natalia NF Wien\n3) - - - - (3)",
+          "first_place_text": "GIGON Michaela OLT Transdanubien"
+        },
+        {
+          "page": 1,
+          "row": 25,
+          "column": 2,
+          "row_heading": "D 45-",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "24.5.2025; Mauerbach / NÖ",
+          "cell": "D 45-:\n1) HINTERPLATTNER Herlinde MTV Hernals\n2) KASTNER Barbara NF Wien\n3) SKERN Marina NF Wien\n(8)",
+          "first_place_text": "HINTERPLATTNER Herlinde MTV Hernals"
+        },
+        {
+          "page": 1,
+          "row": 25,
+          "column": 3,
+          "row_heading": "D 45-",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "10.5.2025; Seestadt Aspern / Wien",
+          "cell": "D 45-:\n1) KASTNER Barbara NF Wien\n2) SKERN Marina NF Wien\n3) HINTERPLATTNER Herlinde MTV Hernals\n(10)",
+          "first_place_text": "KASTNER Barbara NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 25,
+          "column": 4,
+          "row_heading": "D 45-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "11.10.2025; St. Lorenzen/Wechsel / Stmk",
+          "cell": "D 45-:\nnicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 26,
+          "column": 1,
+          "row_heading": "D 50-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "1) SKERN Marina NF Wien\n2) DAVITT Heike NF Wien\n3) KASTNER Barbara NF Wien (6)",
+          "first_place_text": "SKERN Marina NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 26,
+          "column": 5,
+          "row_heading": "D 50-",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "27.9.2025; Purkersdorf-Roppersberg / NÖ",
+          "cell": "D 100-:\n1) NF Wien: SKERN Marina - KASTNER Barbara\n2) NF Wien: CALVET Christine - MACHOLD Natalia\n3) OLT Transdanubien: GAUDERNAK Elisabeth - ZETTL Karin\n(4)",
+          "first_place_text": "NF Wien: SKERN Marina - KASTNER Barbara"
+        },
+        {
+          "page": 1,
+          "row": 27,
+          "column": 1,
+          "row_heading": "D 55-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "D 55-:\n1) PALME Guni OLC Wienerwald\n2) WLCEK Sonja WAT-OL\n3) TIEFENBÖCK Riki NF Wien\n(6)",
+          "first_place_text": "PALME Guni OLC Wienerwald"
+        },
+        {
+          "page": 1,
+          "row": 27,
+          "column": 2,
+          "row_heading": "D 55-",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "24.5.2025; Mauerbach / NÖ",
+          "cell": "D 55-:\n1) PALME Guni OLC Wienerwald\n2) TAGESEN Eva WAT-OL\n3) GASSNER Katja NF Wien\n(7)",
+          "first_place_text": "PALME Guni OLC Wienerwald"
+        },
+        {
+          "page": 1,
+          "row": 27,
+          "column": 3,
+          "row_heading": "D 55-",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "10.5.2025; Seestadt Aspern / Wien",
+          "cell": "D 55-:\n1) GOLLMANN Birgit NF Wien\n2) BIEL-PRETTING Renate NF Wien\n3) PALME Guni OLC Wienerwald\n(6)",
+          "first_place_text": "GOLLMANN Birgit NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 27,
+          "column": 4,
+          "row_heading": "D 55-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "11.10.2025; St. Lorenzen/Wechsel / Stmk",
+          "cell": "D 55-:\n1) KASTNER Barbara NF Wien\n2) GOLLMANN Birgit NF Wien\n3) EXLER Doris OLT Transdanubien\n(3)",
+          "first_place_text": "KASTNER Barbara NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 28,
+          "column": 5,
+          "row_heading": "D 60-",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "27.9.2025; Purkersdorf-Roppersberg / NÖ",
+          "cell": "D 120-:\nnicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 29,
+          "column": 1,
+          "row_heading": "D 65-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
+          "cell": "D 65-:\nkeine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 29,
+          "column": 2,
+          "row_heading": "D 65-",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "24.5.2025; Mauerbach / NÖ",
+          "cell": "D 65-:\nkeine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 29,
+          "column": 3,
+          "row_heading": "D 65-",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "10.5.2025; Seestadt Aspern / Wien",
+          "cell": "D 65-:\nkeine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 29,
+          "column": 4,
+          "row_heading": "D 65-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "11.10.2025; St. Lorenzen/Wechsel / Stmk",
+          "cell": "D 65-:\nnicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 2,
+          "row": 1,
+          "column": 0,
+          "row_heading": "Nachwuchs - 16:",
+          "discipline_heading": "MIXED SPRINT STAFFEL - OL\n10.5.2025; Seestadt Aspern / Wien",
+          "event_heading": "MIXED SPRINT STAFFEL - OL\n10.5.2025; Seestadt Aspern / Wien",
+          "cell": "Nachwuchs - 16:\nnicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 2,
+          "row": 2,
+          "column": 0,
+          "row_heading": "Allgemeine Kategorie:",
+          "discipline_heading": "MIXED SPRINT STAFFEL - OL\n10.5.2025; Seestadt Aspern / Wien",
+          "event_heading": "MIXED SPRINT STAFFEL - OL\n10.5.2025; Seestadt Aspern / Wien",
+          "cell": "Allgemeine Kategorie:\n1) NF Wien: WALDHÄUSL Wolfgang - TIEFENBÖCK Tina - URBANEK Lauri\n2) WAT-OL: SAMEC Fabian - PISKORZ Kiara-Sophie - WAREYKA-GLANER Franz\n3) OLC Wienerwald: SIMKOVICS Erik - SEELMANN Isabel - SULZ Henrik\n(7)",
+          "first_place_text": "NF Wien: WALDHÄUSL Wolfgang - TIEFENBÖCK Tina - URBANEK Lauri"
+        },
+        {
+          "page": 2,
+          "row": 3,
+          "column": 0,
+          "row_heading": "Senioren 35-:",
+          "discipline_heading": "MIXED SPRINT STAFFEL - OL\n10.5.2025; Seestadt Aspern / Wien",
+          "event_heading": "MIXED SPRINT STAFFEL - OL\n10.5.2025; Seestadt Aspern / Wien",
+          "cell": "Senioren 35-:\n1) NF Wien: RADON Thomas - SKERN Marina - KOLAR Hannes\n2) WAT-OL: BICHL Daniel - PISKORZ Veronika - MARKSTEINER Martin\n3) OLT Transdanubien: ROVENSKÝ Milan - GIGON Michaela - GINZEL Marianne\n(6)",
+          "first_place_text": "NF Wien: RADON Thomas - SKERN Marina - KOLAR Hannes"
+        },
+        {
+          "page": 2,
+          "row": 4,
+          "column": 0,
+          "row_heading": "Senioren 50 -:",
+          "discipline_heading": "MIXED SPRINT STAFFEL - OL\n10.5.2025; Seestadt Aspern / Wien",
+          "event_heading": "MIXED SPRINT STAFFEL - OL\n10.5.2025; Seestadt Aspern / Wien",
+          "cell": "Senioren 50 -:\n1) NF Wien: KASTNER-JIRKA Boris - KASTNER Barbara - KROUPA Günther\n2) OLC Wienerwald: POELL Matthias - PALME Guni - GÖSCHL Erich\n3) NF Wien: HLOSTA Thomas - CALVET Christine - HILBERT Josef\n(7)",
+          "first_place_text": "NF Wien: KASTNER-JIRKA Boris - KASTNER Barbara - KROUPA Günther"
+        }
+      ]
+    },
+    {
+      "year": 2026,
+      "source_url": "http://www.wolv.at/docs/med26.pdf",
+      "sha256": "d7aaba1ea954e6fc32b66b42808d263394729fed2e00b586cde7f4179e60e6b1",
+      "extraction_status": "unmatched_review_only",
+      "cells": [
+        {
+          "page": 1,
+          "row": 2,
+          "column": 1,
+          "row_heading": "H -12 /\nH+D -12",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "1) JÄGER Leonhart OLC Wienerwald\n2) PRASCHINGER Gregor WAT-OL\n3) - - - - (3)",
+          "first_place_text": "JÄGER Leonhart OLC Wienerwald"
+        },
+        {
+          "page": 1,
+          "row": 2,
+          "column": 2,
+          "row_heading": "H -12 /\nH+D -12",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "26.4.2026; Oberhöflein / NÖ",
+          "cell": "1) STRAUß Daniel OLG Ströck Wien\n2) SCHWEIFER Lotte-Augusta NF Wien\n3) CHIRINOS-UJVARI Lucia NF Wien (3)",
+          "first_place_text": "STRAUß Daniel OLG Ströck Wien"
+        },
+        {
+          "page": 1,
+          "row": 2,
+          "column": 3,
+          "row_heading": "H -12 /\nH+D -12",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "21.6.2026; Maria Enzersdorf / NÖ",
+          "cell": "1) STELZENEDER Marco WAT-OL\n2) FRITZE Lorin NF Wien\n3) DOBLER Oskar MTV Hernals (3)",
+          "first_place_text": "STELZENEDER Marco WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 2,
+          "column": 4,
+          "row_heading": "H -12 /\nH+D -12",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "25.04.2026; Neunkirchen / NÖ",
+          "cell": "H -14:\nkeine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 2,
+          "column": 5,
+          "row_heading": "H -12 /\nH+D -12",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "10.10.2026; Kobersdorf / NÖ",
+          "cell": "H -14:\nkeine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 3,
+          "column": 1,
+          "row_heading": "H 13-14",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "keine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 3,
+          "column": 2,
+          "row_heading": "H 13-14",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "26.4.2026; Oberhöflein / NÖ",
+          "cell": "1) IMRISKA Adam NF Wien\n2) FRITZE Reto NF Wien\n3) DOBLER Oskar MTV Hernals (4)",
+          "first_place_text": "IMRISKA Adam NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 3,
+          "column": 3,
+          "row_heading": "H 13-14",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "21.6.2026; Maria Enzersdorf / NÖ",
+          "cell": "1) IMRISKA Albert NF Wien\n2) FRITZE Reto NF Wien\n3) STRAUß Daniel OLG Ströck Wien (4)",
+          "first_place_text": "IMRISKA Albert NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 4,
+          "column": 1,
+          "row_heading": "H 15-16",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "H 15-18:\n1) BALLIK Elias WAT-OL\n2) KOLAR Fabian NF Wien\n3) HINTERPLATTNER Oskar MTV Hernals\n(6)",
+          "first_place_text": "BALLIK Elias WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 4,
+          "column": 2,
+          "row_heading": "H 15-16",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "26.4.2026; Oberhöflein / NÖ",
+          "cell": "H 15-:\n1) SIEGERT Wolfgang WAT-OL\n2) WAREYKA-GLANER Franz WAT-OL\n3) BICHL Daniel WAT-OL\n(16)",
+          "first_place_text": "SIEGERT Wolfgang WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 4,
+          "column": 3,
+          "row_heading": "H 15-16",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "21.6.2026; Maria Enzersdorf / NÖ",
+          "cell": "H 15-:\n1) WAREYKA-GLANER Franz WAT-OL\n2) BICHL Daniel WAT-OL\n3) BALLIK Elias WAT-OL\n(18)",
+          "first_place_text": "WAREYKA-GLANER Franz WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 4,
+          "column": 4,
+          "row_heading": "H 15-16",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "25.04.2026; Neunkirchen / NÖ",
+          "cell": "H 15-18:\n1) KOLAR Fabian NF Wien\n2) WALTER David WAT-OL\n3) STRAUß Fabian OLG Ströck Wien\n(3)",
+          "first_place_text": "KOLAR Fabian NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 4,
+          "column": 5,
+          "row_heading": "H 15-16",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "10.10.2026; Kobersdorf / NÖ",
+          "cell": "H 15-:\n1) WAT-OL: SAMEC Fabian - PISKORZ Kiara-Sophie - SIEGERT Wolfgang\n2) NF Wien: BONEK Peter - KOLAR Hannes - KOLAR Fabian\n3) WAT-OL: WAREYKA-GLANER Franz - WALTER David - BALLIK Elias\n. (4)",
+          "first_place_text": "WAT-OL: SAMEC Fabian - PISKORZ Kiara-Sophie - SIEGERT Wolfgang"
+        },
+        {
+          "page": 1,
+          "row": 6,
+          "column": 1,
+          "row_heading": "H 19-20",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "nicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 6,
+          "column": 4,
+          "row_heading": "H 19-20",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "25.04.2026; Neunkirchen / NÖ",
+          "cell": "H 19-:\n1) GIDL Florian NF Wien\n2) SATRAPA Vito OLC Wienerwald\n3) DOBLER Georg MTV Hernals\n(4)",
+          "first_place_text": "GIDL Florian NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 7,
+          "column": 1,
+          "row_heading": "H 21- /\nH 19-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "1) SIMKOVICS Erik OLC Wienerwald\n2) SIEGERT Wolfgang WAT-OL\n3) ARBTER Roland NF Wien (7)",
+          "first_place_text": "SIMKOVICS Erik OLC Wienerwald"
+        },
+        {
+          "page": 1,
+          "row": 8,
+          "column": 1,
+          "row_heading": "H 35-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "H 35-:\nkeine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 8,
+          "column": 4,
+          "row_heading": "H 35-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "25.04.2026; Neunkirchen / NÖ",
+          "cell": "H 35-:\nnicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 8,
+          "column": 5,
+          "row_heading": "H 35-",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "10.10.2026; Kobersdorf / NÖ",
+          "cell": "H 120-:\nnicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 10,
+          "column": 1,
+          "row_heading": "H 45-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "1) RADON Thomas NF Wien\n2) ROVENSKÝ Milan OLT Transdanubien\n3) OSADCHUK Dmitry OLC Wienerwald (7)",
+          "first_place_text": "RADON Thomas NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 10,
+          "column": 2,
+          "row_heading": "H 45-",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "26.4.2026; Oberhöflein / NÖ",
+          "cell": "H 45-:\n1) RADON Thomas NF Wien\n2) JESCHKE Stefan OLG Ströck Wien\n3) WALDHÄUSL Wolfgang NF Wien\n(10)",
+          "first_place_text": "RADON Thomas NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 10,
+          "column": 3,
+          "row_heading": "H 45-",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "21.6.2026; Maria Enzersdorf / NÖ",
+          "cell": "H 45-:\n1) RADON Thomas NF Wien\n2) KROUPA Günther NF Wien\n3) ROVENSKÝ Milan OLT Transdanubien\n(8)",
+          "first_place_text": "RADON Thomas NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 10,
+          "column": 4,
+          "row_heading": "H 45-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "25.04.2026; Neunkirchen / NÖ",
+          "cell": "H 45-:\n1) RADON Thomas NF Wien\n2) OSADCHUK Dmitry OLC Wienerwald\n3) SRB Alexander WAT-OL\n(6)",
+          "first_place_text": "RADON Thomas NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 11,
+          "column": 1,
+          "row_heading": "H 50-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "1) SRB Alexander WAT-OL\n2) BALLIK Thomas WAT-OL\n3) VEITSBERGER Martin OLT Transdanubien (4)",
+          "first_place_text": "SRB Alexander WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 11,
+          "column": 5,
+          "row_heading": "H 50-",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "10.10.2026; Kobersdorf / NÖ",
+          "cell": "H 150-:\n1) NF Wien: KROUPA Günther - RADON Thomas - BRETTNER-MESSLER Robert\n2) OLT Transdanubien: ROVENSKÝ Milan - VEITSBERGER Martin - TÄUBER Thomas\n3) NF Wien: HLOSTA Thomas - GRILL Michael - PIETSCH Wolfgang\n(4)",
+          "first_place_text": "NF Wien: KROUPA Günther - RADON Thomas - BRETTNER-MESSLER Robert"
+        },
+        {
+          "page": 1,
+          "row": 12,
+          "column": 1,
+          "row_heading": "H 55-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "H 55-:\n1) KASTNER-JIRKA Boris NF Wien\n2) WALDHÄUSL Wolfgang NF Wien\n3) TÄUBER Thomas OLT Transdanubien\n(6)",
+          "first_place_text": "KASTNER-JIRKA Boris NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 12,
+          "column": 4,
+          "row_heading": "H 55-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "25.04.2026; Neunkirchen / NÖ",
+          "cell": "H 55-:\n1) WALDHÄUSL Wolfgang NF Wien\n2) KASTNER-JIRKA Boris NF Wien\n3) GÖSCHL Erich OLC Wienerwald\n(10)",
+          "first_place_text": "WALDHÄUSL Wolfgang NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 13,
+          "column": 2,
+          "row_heading": "H 60-",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "26.4.2026; Oberhöflein / NÖ",
+          "cell": "H 60-:\n1) BONEK Peter NF Wien\n2) BIEL Axel NF Wien\n3) PIETSCH Wolfgang NF Wien\n. (16)",
+          "first_place_text": "BONEK Peter NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 13,
+          "column": 3,
+          "row_heading": "H 60-",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "21.6.2026; Maria Enzersdorf / NÖ",
+          "cell": "H 60-:\n1) TÄUBER Thomas OLT Transdanubien\n2) BIEL Axel NF Wien\n3) ZAPLETAL Josef NF Wien\n(16)",
+          "first_place_text": "TÄUBER Thomas OLT Transdanubien"
+        },
+        {
+          "page": 1,
+          "row": 13,
+          "column": 5,
+          "row_heading": "H 60-",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "10.10.2026; Kobersdorf / NÖ",
+          "cell": "H 180-:\nnicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 14,
+          "column": 1,
+          "row_heading": "H 65-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "H 65-:\n1) GRÜN Paul OLG Ströck Wien\n2) MAYER Johannes OLC Wienerwald\n3) PURGATHOFER Werner OLG Ströck Wien\n(6)",
+          "first_place_text": "GRÜN Paul OLG Ströck Wien"
+        },
+        {
+          "page": 1,
+          "row": 14,
+          "column": 4,
+          "row_heading": "H 65-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "25.04.2026; Neunkirchen / NÖ",
+          "cell": "H 65-:\n1) PURGATHOFER Werner OLG Ströck Wien\n2) GRÜN Paul OLG Ströck Wien\n3) MAYER Johannes OLC Wienerwald\n(6)",
+          "first_place_text": "PURGATHOFER Werner OLG Ströck Wien"
+        },
+        {
+          "page": 1,
+          "row": 16,
+          "column": 1,
+          "row_heading": "H 75-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "H 75-:\n1) BURMANN Werner OLC Wienerwald\n2) SIEGERT Reinhard WAT-OL\n3) BONEK Ernst NF Wien\n(3)",
+          "first_place_text": "BURMANN Werner OLC Wienerwald"
+        },
+        {
+          "page": 1,
+          "row": 16,
+          "column": 2,
+          "row_heading": "H 75-",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "26.4.2026; Oberhöflein / NÖ",
+          "cell": "H 75-:\n1) BURMANN Werner OLC Wienerwald\n2) SIEGERT Reinhard WAT-OL\n3) - - - -\n(4)",
+          "first_place_text": "BURMANN Werner OLC Wienerwald"
+        },
+        {
+          "page": 1,
+          "row": 16,
+          "column": 3,
+          "row_heading": "H 75-",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "21.6.2026; Maria Enzersdorf / NÖ",
+          "cell": "H 75-\n1) BONEK Ernst NF Wien\n2) SRB Walter WAT-OL\n3) GASSNER Ferdinand NF Wien\n(4)",
+          "first_place_text": "BONEK Ernst NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 16,
+          "column": 4,
+          "row_heading": "H 75-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "25.04.2026; Neunkirchen / NÖ",
+          "cell": "H 75-:\n1) BURMANN Werner OLC Wienerwald\n2) SIEGERT Reinhard WAT-OL\n3) KAINZBAUER Josef WAT-OL\n(3)",
+          "first_place_text": "BURMANN Werner OLC Wienerwald"
+        },
+        {
+          "page": 1,
+          "row": 18,
+          "column": 1,
+          "row_heading": "D -12 /\nH+D -12",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "1) KRAIL Timna WAT-OL\n2) PISKORZ Anika WAT-OL\n3) ROVENSKÝ Lauren OLT Transdanubien (3)",
+          "first_place_text": "KRAIL Timna WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 18,
+          "column": 2,
+          "row_heading": "D -12 /\nH+D -12",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "26.4.2026; Oberhöflein / NÖ",
+          "cell": "D -12 zusammen mit H -12 als H+D -12 gewertet",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 18,
+          "column": 3,
+          "row_heading": "D -12 /\nH+D -12",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "21.6.2026; Maria Enzersdorf / NÖ",
+          "cell": "1) STELZENEDER Livia WAT-OL\n2) SCHWEIFER Lotte-Augusta NF Wien\n3) PISKORZ Anika WAT-OL (5)",
+          "first_place_text": "STELZENEDER Livia WAT-OL"
+        },
+        {
+          "page": 1,
+          "row": 18,
+          "column": 4,
+          "row_heading": "D -12 /\nH+D -12",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "25.04.2026; Neunkirchen / NÖ",
+          "cell": "D -14:\nkeine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 18,
+          "column": 5,
+          "row_heading": "D -12 /\nH+D -12",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "10.10.2026; Kobersdorf / NÖ",
+          "cell": "D -14:\nnicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 19,
+          "column": 1,
+          "row_heading": "D 13-14",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "nicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 19,
+          "column": 2,
+          "row_heading": "D 13-14",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "26.4.2026; Oberhöflein / NÖ",
+          "cell": "keine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 19,
+          "column": 3,
+          "row_heading": "D 13-14",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "21.6.2026; Maria Enzersdorf / NÖ",
+          "cell": "nicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 20,
+          "column": 1,
+          "row_heading": "D 15-16",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "D 15-18:\n1) URBANEK Annina NF Wien\n2) PAIER Paula WAT-OL\n3) ALTMANN Sophie OLC Wienerwald\n(4)",
+          "first_place_text": "URBANEK Annina NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 20,
+          "column": 2,
+          "row_heading": "D 15-16",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "26.4.2026; Oberhöflein / NÖ",
+          "cell": "D 1 5 - :\n1) TIEFENBÖCK Tina NF Wien\n2) ARBTER Anja NF Wien\n3) BIEL Corinna NF Wien\n(11)",
+          "first_place_text": "TIEFENBÖCK Tina NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 20,
+          "column": 3,
+          "row_heading": "D 15-16",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "21.6.2026; Maria Enzersdorf / NÖ",
+          "cell": "D 15-:\n1) TIEFENBÖCK Tina NF Wien\n2) MATHIS Aline NF Wien\n3) ASENBAUER Mika NF Wien\n(15)",
+          "first_place_text": "TIEFENBÖCK Tina NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 20,
+          "column": 4,
+          "row_heading": "D 15-16",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "25.04.2026; Neunkirchen / NÖ",
+          "cell": "D 15-18:\nkeine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 20,
+          "column": 5,
+          "row_heading": "D 15-16",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "10.10.2026; Kobersdorf / NÖ",
+          "cell": "D 15-:\n1) NF Wien: TIEFENBÖCK Tina - RADON Livia\n2) WAT-OL: PISKORZ Veronika - WAREYKA-GLANER Sabine\n3) NF Wien: BECK Maria - UJVARI Sandra\n(3)",
+          "first_place_text": "NF Wien: TIEFENBÖCK Tina - RADON Livia"
+        },
+        {
+          "page": 1,
+          "row": 22,
+          "column": 1,
+          "row_heading": "D 19-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "keine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 22,
+          "column": 4,
+          "row_heading": "D 19-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "25.04.2026; Neunkirchen / NÖ",
+          "cell": "keine Wertung\nda nur 3 Läuferinnen aus einem Verein (NF Wien) am Start (3)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 23,
+          "column": 1,
+          "row_heading": "D 35-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "D 35-:\nkeine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 23,
+          "column": 4,
+          "row_heading": "D 35-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "25.04.2026; Neunkirchen / NÖ",
+          "cell": "D 35-:\nn ic h t a u s g e t r a g e n",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 24,
+          "column": 5,
+          "row_heading": "D 40-",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "10.10.2026; Kobersdorf / NÖ",
+          "cell": "D 80-:\nn i c h t a u s g e t r a g e n (1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 25,
+          "column": 1,
+          "row_heading": "D 45-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "D 45-:\n1) KASTNER Barbara NF Wien\n2) SKERN Marina NF Wien\n3) HINTERPLATTNER Herlinde MTV Hernals\n(6)",
+          "first_place_text": "KASTNER Barbara NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 25,
+          "column": 2,
+          "row_heading": "D 45-",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "26.4.2026; Oberhöflein / NÖ",
+          "cell": "D 45-:\n1 ) K ASTNER Barbara NF Wien\n2) SKERN Marina NF Wien\n3) ARBTER Vera NF Wien\n(7)",
+          "first_place_text": "K ASTNER Barbara NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 25,
+          "column": 3,
+          "row_heading": "D 45-",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "21.6.2026; Maria Enzersdorf / NÖ",
+          "cell": "D 45-:\n1) KASTNER Barbara NF Wien\n2) SKERN Marina NF Wien\n3) CALVET Christine NF Wien\n(6)",
+          "first_place_text": "KASTNER Barbara NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 25,
+          "column": 4,
+          "row_heading": "D 45-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "25.04.2026; Neunkirchen / NÖ",
+          "cell": "D 45-:\n1) KASTNER Barbara NF Wien\n2) GAUDERNAK Elisabeth OLT Transdanubien\n3) UJVARI Sandra NF Wien\n(6)",
+          "first_place_text": "KASTNER Barbara NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 26,
+          "column": 5,
+          "row_heading": "D 50-",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "10.10.2026; Kobersdorf / NÖ",
+          "cell": "D 100-:\n1) NF Wien: GOLLMANN Birgit - SKERN Marina\n2) OLC Wienerwald: PALME Guni - MICKO Roswitha\n3) OLT Transdanubien: GAUDERNAK Elisabeth - KOVAC Margit\n(3)",
+          "first_place_text": "NF Wien: GOLLMANN Birgit - SKERN Marina"
+        },
+        {
+          "page": 1,
+          "row": 27,
+          "column": 1,
+          "row_heading": "D 55-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "1) PALME Guni OLC Wienerwald\n2) TIEFENBÖCK Riki NF Wien\n3) - - - - (3)",
+          "first_place_text": "PALME Guni OLC Wienerwald"
+        },
+        {
+          "page": 1,
+          "row": 27,
+          "column": 2,
+          "row_heading": "D 55-",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "26.4.2026; Oberhöflein / NÖ",
+          "cell": "D 55-:\n1) BONEK Claudia NF Wien\n2) WLCEK Sonja WAT-OL\n3) BIEL-PRETTING Renate NF Wien\n(8)",
+          "first_place_text": "BONEK Claudia NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 27,
+          "column": 3,
+          "row_heading": "D 55-",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "21.6.2026; Maria Enzersdorf / NÖ",
+          "cell": "D 55-:\n1) PALME Guni OLC Wienerwald\n2) WLCEK Sonja WAT-OL\n3) TIEFENBÖCK Riki NF Wien\n(10)",
+          "first_place_text": "PALME Guni OLC Wienerwald"
+        },
+        {
+          "page": 1,
+          "row": 27,
+          "column": 4,
+          "row_heading": "D 55-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "25.04.2026; Neunkirchen / NÖ",
+          "cell": "D 55-:\n1) BIEL-PRETTING Renate NF Wien\n2) TIEFENBÖCK Riki NF Wien\n3) KOVAC Margit OLT Transdanubien\n(4)",
+          "first_place_text": "BIEL-PRETTING Renate NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 28,
+          "column": 1,
+          "row_heading": "D 60-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "1) GOLLMANN Birgit NF Wien\n2) GASSNER Irene NF Wien\n3) MICKO Roswitha OLC Wienerwald (3)",
+          "first_place_text": "GOLLMANN Birgit NF Wien"
+        },
+        {
+          "page": 1,
+          "row": 28,
+          "column": 5,
+          "row_heading": "D 60-",
+          "discipline_heading": "STAFFEL - OL",
+          "event_heading": "10.10.2026; Kobersdorf / NÖ",
+          "cell": "D 120-:\nnicht ausgetragen",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 29,
+          "column": 1,
+          "row_heading": "D 65-",
+          "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
+          "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
+          "cell": "D 65-:\nkeine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 29,
+          "column": 2,
+          "row_heading": "D 65-",
+          "discipline_heading": "MITTELDISTANZ - OL",
+          "event_heading": "26.4.2026; Oberhöflein / NÖ",
+          "cell": "D 65-:\nkeine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 29,
+          "column": 3,
+          "row_heading": "D 65-",
+          "discipline_heading": "SPRINT - OL",
+          "event_heading": "21.6.2026; Maria Enzersdorf / NÖ",
+          "cell": "D 65-:\nkeine Wertung\n(2)",
+          "first_place_text": null
+        },
+        {
+          "page": 1,
+          "row": 29,
+          "column": 4,
+          "row_heading": "D 65-",
+          "discipline_heading": "NACHT - OL",
+          "event_heading": "25.04.2026; Neunkirchen / NÖ",
+          "cell": "D 65-:\nkeine Wertung\n(1)",
+          "first_place_text": null
+        },
+        {
+          "page": 2,
+          "row": 1,
+          "column": 0,
+          "row_heading": "Nachwuchs - 16:",
+          "discipline_heading": "MIXED SPRINT STAFFEL - OL\n21.6.2026; Maria Enzersdorf / NÖ",
+          "event_heading": "MIXED SPRINT STAFFEL - OL\n21.6.2026; Maria Enzersdorf / NÖ",
+          "cell": "Nachwuchs - 16:\n1) NF Wien 1: IMRISKA Adam - URBANEK Annina - IMRISKA Albert\n2) NF Wien 2: FRITZE Reto - CHIRINOS-UJVARI Lucia - FRITZE Lorin\n3) OLG Ströck Wien: WITZANI Luis - OGRIS Lilly - STRAUß Fabian\n(3)",
+          "first_place_text": "NF Wien 1: IMRISKA Adam - URBANEK Annina - IMRISKA Albert"
+        },
+        {
+          "page": 2,
+          "row": 2,
+          "column": 0,
+          "row_heading": "Allgemeine Kategorie:",
+          "discipline_heading": "MIXED SPRINT STAFFEL - OL\n21.6.2026; Maria Enzersdorf / NÖ",
+          "event_heading": "MIXED SPRINT STAFFEL - OL\n21.6.2026; Maria Enzersdorf / NÖ",
+          "cell": "Allgemeine Kategorie:\n1) NF Wien: GIDL Florian - TIEFENBÖCK Tina - URBANEK Lauri\n2) OLT Transdanubien: HNILICA Hannes - HNILICA Jana - WALDMANN Andreas\n3) WAT-OL: WAREYKA-GLANER Franz - PISKORZ Kiara-Sophie - BALLIK Elias\n(7)",
+          "first_place_text": "NF Wien: GIDL Florian - TIEFENBÖCK Tina - URBANEK Lauri"
+        },
+        {
+          "page": 2,
+          "row": 3,
+          "column": 0,
+          "row_heading": "Senioren 35-:",
+          "discipline_heading": "MIXED SPRINT STAFFEL - OL\n21.6.2026; Maria Enzersdorf / NÖ",
+          "event_heading": "MIXED SPRINT STAFFEL - OL\n21.6.2026; Maria Enzersdorf / NÖ",
+          "cell": "Senioren 35-:\n1) NF Wien: IMRISKA Samuel - SKERN Marina - KOLAR Hannes\n2) WAT-OL: BICHL Daniel - WAREYKA-GLANER Sabine - SIEGERT Wolfgang\n3) - - - -\n(3)",
+          "first_place_text": "NF Wien: IMRISKA Samuel - SKERN Marina - KOLAR Hannes"
+        },
+        {
+          "page": 2,
+          "row": 4,
+          "column": 0,
+          "row_heading": "Senioren 50 -:",
+          "discipline_heading": "MIXED SPRINT STAFFEL - OL\n21.6.2026; Maria Enzersdorf / NÖ",
+          "event_heading": "MIXED SPRINT STAFFEL - OL\n21.6.2026; Maria Enzersdorf / NÖ",
+          "cell": "Senioren 50 -:\n1) NF Wien 1: KROUPA Günther - KASTNER Barbara - KASTNER-JIRKA Boris\n2) NF Wien 2: GASSNER Ferri - CALVET Christine - BIEL Axel\n3) OLC Wienerwald: POELL Matthias - PALME Guni - GÖSCHL Erich\n(11)",
+          "first_place_text": "NF Wien 1: KROUPA Günther - KASTNER Barbara - KASTNER-JIRKA Boris"
+        }
+      ]
+    }
+  ]
+}
