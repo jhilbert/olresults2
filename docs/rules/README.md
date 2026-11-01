@@ -80,13 +80,20 @@ Korrekturen der erzeugten SQLite-Datenbank sind nicht zulässig.
 
 ## Meisterschaften
 
+Primärquelle für die Fassung Februar 2023 mit Paragraphen, Gültigkeits- und
+Versionshinweisen: [ÖFOL-Wettkampfordnung 2023](oefol-wettkampfordnung-2023.md).
+Sie enthält für nationale Meistertitel zusätzlich eine Zwei-Vereine-Regel mit
+Ausnahme für Ski-O-/MTBO-Nachwuchs. Ihre Anwendung auf einzelne historische
+und spätere Bewerbe benötigt zeitlich passende Quellen und vollständige
+Start-/Vereinsdaten; nicht pauschal rückwirkend aus dem heutigen Register ableiten.
+
 Die vollständige, nach Disziplinen und Fußnoten gegliederte Übertragung der
 WOLV-Kategorieneinteilung ab 10.10.2022 steht in
 [Wiener Meisterschaften ab 2022](wiener-meisterschaften-ab-2022.md).
 
 | ID | Status | Regel |
 |---|---|---|
-| `CHAMP-AUT-001` | confirmed | ÖM/ÖSTM-Eligibility benötigt positive Evidenz: offizielle Meisterschaftswertung, ÖFOL-ID mit Nationalität AUT oder bei anderer Nationalität `championshipEligibility=true`; historische eventbezogene Entscheidungen werden nicht aus dem heutigen Zustand rückwirkend neu abgeleitet. |
+| `CHAMP-AUT-001` | confirmed | ÖM/ÖSTM-Eligibility benötigt positive Evidenz: offizielle Meisterschaftswertung, ÖFOL-ID mit Nationalität AUT oder bei anderer Nationalität `championshipEligibility=true`. Ein zeitlich nicht auflösbarer Widerspruch zwischen dem gespeicherten ANNE-Merkmal und heutiger Nationalität bleibt ungeklärt. Für ÖM 2023 beweist ein negatives heutiges Merkmal keinen fehlenden damaligen Hauptwohnsitz; maßgeblich ist die datierte Ordnung. |
 | `CHAMP-AUT-002` | provisional | Fehlt eine vollständige Wertung, kann Zugehörigkeit zu einem ÖFOL-Verein nur eine vorläufige Eligibility erzeugen. |
 | `CHAMP-AUT-003` | confirmed | OOC/AK, Family und DNS erhalten keine nationale Medaille. Eine veröffentlichte Medaille benötigt positive Eligibility-Evidenz. |
 | `CHAMP-MIN-001` | confirmed | Bei ÖM/ÖSTM und Wiener Meisterschaften sind mindestens drei für die jeweilige Meisterschaft wertungsberechtigte Starter je Kategorie Voraussetzung für Medaillen. DNF, MP und DSQ zählen als gestartet; DNS, AK und nicht wertungsberechtigte Gäste nicht. Ein Paar oder Team zählt als eine Starteinheit. Fehlende Evidenz darf nicht als gesicherte Berechtigung geraten werden. |

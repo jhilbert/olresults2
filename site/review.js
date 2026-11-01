@@ -239,7 +239,9 @@ function identityMappingHtml(r) {
     ? `ÖFOL-ID im Vereinsregister bestätigt: ${r.independently_confirmed_oefol_ids}`
     : "Vereinslisten-Bestätigung: keine";
   const championship = r.championship
-    ? `ÖM/ÖSTM-Wertung: berücksichtigt (${r.championship})`
+    ? r.championship_eligibility_state === "unknown"
+      ? `ÖM/ÖSTM-Wertung: Berechtigung ungeklärt (${r.championship})`
+      : `ÖM/ÖSTM-Wertung: berücksichtigt (${r.championship})`
     : "";
   const eligibilityState = {
     eligible: "Eligibility: bestätigt",
@@ -252,6 +254,8 @@ function identityMappingHtml(r) {
     anne_aut_nationality: "ÖFOL-ID + Nationalität AUT",
     anne_foreign_override: "ANNE championshipEligibility=true",
     anne_foreign_no_override: "ausländisch, keine ANNE-Freigabe",
+    nationality_temporal_conflict: "historisches ANNE-Merkmal und aktuelle Nationalität widersprechen sich",
+    wo2023_om_residency_unknown: "ÖM 2023: damaliger Hauptwohnsitz nicht belegt",
     official_championship_ranking: "offizielle Meisterschaftswertung",
     official_champion_annotation: "Meistertitel in der Quelle",
     official_championship_field: "offizielle ÖM/ÖSTM-Ergebnisliste",

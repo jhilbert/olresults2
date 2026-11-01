@@ -1,7 +1,10 @@
 import importlib.util
+import json
 import sqlite3
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -191,6 +194,51 @@ class ChampionshipAuditTests(unittest.TestCase):
         cur.execute("UPDATE result SET status='dsq' WHERE person_id=204")
         db.apply_vienna_two_club_checks(cur)
         self.assertIsNone(cur.execute("SELECT reason FROM regional_award_hold WHERE championship_instance_id='w'").fetchone())
+
+    def test_historical_residency_and_nationality_conflicts_are_not_guessed(self):
+        cur = self.con.cursor()
+        cur.execute("INSERT INTO event (id,title,date_from) VALUES (2,'ÖM','2023-06-01')")
+        cur.execute("INSERT INTO stage VALUES (2,2,1,NULL,'2023-06-01',NULL)")
+        cur.execute("INSERT INTO event (id,title,date_from) VALUES (3,'ÖM','2024-06-01')")
+        cur.execute("INSERT INTO stage VALUES (3,3,1,NULL,'2024-06-01',NULL)")
+        for pid, nat in ((10,"HUN"),(11,"AUT"),(12,"HUN")):
+            cur.execute("INSERT INTO person VALUES (?,?,?,NULL,?)", (pid,str(pid),str(pid),nat))
+            cur.execute("INSERT INTO person_identifier VALUES ('oefol_id',?,?,'authoritative','anne-user-registry',NULL)", (str(pid),pid))
+        for stage, pid, cat, champ in ((2,10,"H45","ÖM"),(2,11,"D45","ÖM"),
+                                       (2,12,"H21E","ÖSTM"),(3,10,"H45","ÖM")):
+            db.insert_result(cur, stage_id=stage, person_id=pid, category=cat, rank=1, status="ok",
+                source="test", championship=champ, official_club="Testverein")
+        db.insert_result(cur, stage_id=2, person_id=10, category="H40", rank=1, status="ok",
+            source="test", championship="ÖM", official_club="Testverein",
+            championship_eligibility_state="eligible", championship_eligibility_basis="official_championship_ranking")
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "ledger.json"
+            path.write_text(json.dumps({"10":{"2":None,"3":None},"11":{"2":None},"12":{"2":None}}))
+            with patch.object(db, "USER_ELIGIBILITY_PATH", path):
+                db.apply_championship_eligibility_overrides(cur)
+                db.apply_championship_eligibility_evidence(cur)
+        rows = cur.execute("SELECT stage_id,person_id,championship,championship_eligibility_state,championship_eligibility_basis FROM result WHERE person_id IN (10,11,12) ORDER BY stage_id,person_id,category").fetchall()
+        self.assertEqual(rows.pop(0), (2,10,"ÖM","eligible","official_championship_ranking"))
+        self.assertEqual(rows, [(2,10,"ÖM","unknown","wo2023_om_residency_unknown"),
+                                (2,11,"ÖM","unknown","nationality_temporal_conflict"),
+                                (2,12,None,"ineligible","anne_foreign_no_override"),
+                                (3,10,None,"ineligible","anne_foreign_no_override")])
+
+    def test_unknown_eligible_runner_ahead_does_not_promote_next_runner(self):
+        cur = self.con.cursor()
+        self.con.execute("DELETE FROM result")
+        for pid, rank, state, basis in ((1,1,"unknown","wo2023_om_residency_unknown"),
+                                       (2,2,"eligible","anne_aut_nationality"),
+                                       (3,3,"eligible","anne_aut_nationality")):
+            cur.execute("INSERT OR IGNORE INTO person VALUES (?,?,?,NULL,'AUT')", (pid,str(pid),str(pid)))
+            db.insert_result(cur, stage_id=1, person_id=pid, category="H45", rank=rank, status="ok",
+                             source="test", championship="ÖM", championship_eligibility_state=state,
+                             championship_eligibility_basis=basis)
+            cur.execute("UPDATE result SET championship_eligibility_state=?, championship_eligibility_basis=? WHERE id=?",
+                        (state,basis,cur.lastrowid))
+        cur.execute("INSERT INTO national_minimum_starters VALUES (1,'H45',3,1,'met')")
+        db.compute_national_ranks(cur)
+        self.assertEqual(cur.execute("SELECT national_rank FROM result ORDER BY rank").fetchall(), [(None,), (None,), (None,)])
 
 
 if __name__ == "__main__":

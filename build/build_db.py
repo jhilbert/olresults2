@@ -1666,14 +1666,13 @@ def strip_age_overlap_categories(cur):
 
 
 def apply_championship_eligibility_overrides(cur):
-    """Strip championship from a runner's rows in one specific event that
-    ANNE itself reports as foreign-nationality with no eligibility override
-    for that event. Only touches (person, event) pairs present in the cache
-    - i.e. only ones ANNE told us are non-Austrian; everyone else (Austrian
-    by default, or a synthetic person id with no ANNE account to check via
-    this API at all - about half of all medal-tier people, mostly pre-ANNE
-    legacy results) is left untouched, since guessing either way there
-    would be worse than doing nothing."""
+    """Apply cached negative decisions without inventing historical facts.
+
+    The cache is keyed by event but has no observation date. Official
+    championship rankings take precedence; an AUT nationality conflict and
+    the differing 2023 ÖM residence rule remain explicitly unresolved.
+    Other cached negatives retain the existing treatment.
+    """
     if not USER_ELIGIBILITY_PATH.exists():
         return 0
     cache = json.loads(USER_ELIGIBILITY_PATH.read_text())
@@ -1682,12 +1681,35 @@ def apply_championship_eligibility_overrides(cur):
         for eid, eligibility in by_event.items():
             if eligibility is True or eligibility == "error":
                 continue  # eligible, or a transient fetch failure - not evidence either way
+            # The ledger stores no observation timestamp. A negative foreign
+            # override and a current authoritative AUT nationality can both be
+            # true at different times; neither proves the event-day status.
+            cur.execute("""UPDATE result SET championship_eligibility_state='unknown',
+                    championship_eligibility_basis='nationality_temporal_conflict'
+                WHERE championship IS NOT NULL AND person_id=?
+                  AND championship_eligibility_basis != 'official_championship_ranking'
+                  AND stage_id IN (SELECT id FROM stage WHERE event_id=?)
+                  AND person_id IN (SELECT p.id FROM person p WHERE p.nationality='AUT'
+                    AND EXISTS (SELECT 1 FROM person_identifier pi WHERE pi.person_id=p.id
+                      AND pi.scheme='oefol_id' AND pi.identifier_state IN ('authoritative','independently_confirmed')))""",
+                (int(uid), int(eid)))
+            # WO 13.02.2023 V.3.4.2 distinguishes ÖM from ÖSTM: for ÖM it
+            # names Austrian residence without the ÖSTM three-year condition.
+            # A single later ANNE flag cannot establish that historical fact.
+            cur.execute("""UPDATE result SET championship_eligibility_state='unknown',
+                    championship_eligibility_basis='wo2023_om_residency_unknown'
+                WHERE championship='ÖM' AND person_id=?
+                  AND championship_eligibility_basis NOT IN ('official_championship_ranking','nationality_temporal_conflict')
+                  AND stage_id IN (SELECT s.id FROM stage s JOIN event e ON e.id=s.event_id
+                    WHERE s.event_id=? AND substr(COALESCE(s.date,e.date_from),1,10)
+                      BETWEEN '2023-02-13' AND '2023-12-31')""", (int(uid),int(eid)))
             cur.execute("""UPDATE result
                             SET championship = NULL,
                                 championship_eligibility_state = 'ineligible',
                                 championship_eligibility_basis = 'anne_foreign_no_override'
                             WHERE championship IS NOT NULL AND person_id = ?
-                              AND championship_eligibility_basis != 'official_championship_ranking'
+                              AND championship_eligibility_basis NOT IN ('official_championship_ranking',
+                                  'nationality_temporal_conflict','wo2023_om_residency_unknown')
                               AND stage_id IN (SELECT id FROM stage WHERE event_id = ?)""",
                         (int(uid), int(eid)))
             n += cur.rowcount
@@ -1711,7 +1733,8 @@ def apply_championship_eligibility_evidence(cur):
         SET championship_eligibility_state = 'eligible',
             championship_eligibility_basis = 'anne_aut_nationality'
         WHERE championship IS NOT NULL AND person_id > 0
-          AND championship_eligibility_basis != 'official_championship_ranking'
+          AND championship_eligibility_basis NOT IN ('official_championship_ranking',
+              'nationality_temporal_conflict','wo2023_om_residency_unknown')
           AND person_id IN (SELECT id FROM person WHERE nationality = 'AUT')
     """)
     if USER_ELIGIBILITY_PATH.exists():
@@ -1734,6 +1757,7 @@ def apply_championship_eligibility_evidence(cur):
             championship_eligibility_basis = 'oefol_club_inference'
         WHERE championship IS NOT NULL AND official_club IS NOT NULL
           AND championship_eligibility_state IN ('unknown', 'provisional')
+          AND championship_eligibility_basis NOT IN ('nationality_temporal_conflict','wo2023_om_residency_unknown')
     """)
     cur.execute("""
         UPDATE result
@@ -5989,7 +6013,7 @@ def apply_national_minimum_starters(cur, event_eligibility=None):
                           r.team_number, r.team_name, r.club, r.rank, r.time_s,
                           r.note, COALESCE(p.name, r.observed_name), r.status,
                           r.out_of_competition, s.event_id, p.nationality,
-                          r.championship_eligibility_state, r.result_list_id,
+                          r.championship_eligibility_state, r.championship_eligibility_basis, r.result_list_id,
                           EXISTS (SELECT 1 FROM person_identifier pi
                                    WHERE pi.person_id = r.person_id AND pi.scheme = 'oefol_id'
                                      AND pi.identifier_state IN ('authoritative', 'independently_confirmed')),
@@ -6003,7 +6027,7 @@ def apply_national_minimum_starters(cur, event_eligibility=None):
     units = defaultdict(dict)
     list_ids = defaultdict(set)
     for (stage, category, rid, person, kind, number, team, club, rank, time_s,
-         note, name, status, ooc, event_id, nationality, eligibility_state,
+         note, name, status, ooc, event_id, nationality, eligibility_state, eligibility_basis,
          list_id, has_oefol_id, ineligible) in cur.fetchall():
         if list_id:
             list_ids[(stage, category)].add(list_id)
@@ -6032,7 +6056,8 @@ def apply_national_minimum_starters(cur, event_eligibility=None):
         unit["ineligible"] |= bool(ooc or ineligible or eligibility_state == "ineligible")
         event_ok = event_eligibility.get(str(person), {}).get(str(event_id)) is True
         known_eligible = (eligibility_state == "eligible" or event_ok
-                          or (has_oefol_id and str(nationality or "").upper() == "AUT"))
+                          or (has_oefol_id and str(nationality or "").upper() == "AUT"
+                              and eligibility_basis != "nationality_temporal_conflict"))
         unit["unknown"] |= not known_eligible
 
     for (stage, category), category_units in units.items():
@@ -6087,6 +6112,13 @@ def compute_national_ranks(cur):
               AND r2.rank IS NOT NULL AND r2.rank < result.rank)
         WHERE championship IS NOT NULL AND status = 'ok' AND rank IS NOT NULL
           AND championship_eligibility_state IN ('eligible', 'provisional')
+          AND NOT EXISTS (SELECT 1 FROM result uncertain
+                           WHERE uncertain.stage_id=result.stage_id AND uncertain.category=result.category
+                             AND uncertain.championship IS NOT NULL AND uncertain.status='ok'
+                             AND uncertain.rank IS NOT NULL AND uncertain.rank < result.rank
+                             AND uncertain.championship_eligibility_state='unknown'
+                             AND uncertain.championship_eligibility_basis IN
+                                 ('nationality_temporal_conflict','wo2023_om_residency_unknown'))
           AND NOT EXISTS (SELECT 1 FROM national_minimum_starters minimum
                            WHERE minimum.stage_id = result.stage_id
                              AND minimum.category = result.category
@@ -6786,8 +6818,9 @@ def main():
                 if not cur.execute(
                         """SELECT 1 FROM result r JOIN stage s ON s.id = r.stage_id
                            WHERE s.event_id = ? AND r.person_id = ?
-                             AND r.championship_eligibility_basis =
-                                 'official_championship_ranking'
+                             AND r.championship_eligibility_basis IN (
+                                 'official_championship_ranking',
+                                 'nationality_temporal_conflict','wo2023_om_residency_unknown')
                            LIMIT 1""", (int(eid), int(uid))).fetchone():
                     cur.execute(
                         "INSERT INTO ineligible_starter (event_id, person_id) VALUES (?, ?)",
@@ -6878,8 +6911,9 @@ def main():
                                     't:' || r2.team_name, 'c:' || r2.club, '') =
                            COALESCE('n:' || result.team_number,
                                     't:' || result.team_name, 'c:' || result.club, '')))
-              AND EXISTS (SELECT 1 FROM ineligible_starter i
-                          WHERE i.event_id = s2.event_id AND i.person_id = r2.person_id))
+              AND (r2.championship_eligibility_state='ineligible' OR EXISTS
+                   (SELECT 1 FROM ineligible_starter i
+                    WHERE i.event_id = s2.event_id AND i.person_id = r2.person_id)))
     """)
 
     # Championship medals require three eligible starters, not finishers.
