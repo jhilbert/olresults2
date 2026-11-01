@@ -14,6 +14,8 @@ import json
 import os
 import re
 import sqlite3
+import subprocess
+import sys
 import unicodedata
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -374,8 +376,12 @@ CREATE INDEX idx_person_identifier_value ON person_identifier(scheme, identifier
 CREATE INDEX idx_person_membership_club ON person_club_membership(club, sport_type, active);
 CREATE VIEW category_stats AS
 SELECT stage_id, category,
-       COUNT(*)                                       AS starters,
-       SUM(status = 'ok')                             AS classified,
+       COUNT(CASE WHEN result_kind != 'team' AND NOT (stage_id = 10005397 AND result_kind = 'pair') THEN 1 END)
+         + COUNT(DISTINCT CASE WHEN result_kind = 'team' OR (stage_id = 10005397 AND result_kind = 'pair') THEN
+             COALESCE('n:' || team_number, 't:' || team_name, 'r:' || id) END) AS starters,
+       SUM(CASE WHEN result_kind != 'team' AND NOT (stage_id = 10005397 AND result_kind = 'pair') AND status = 'ok' THEN 1 ELSE 0 END)
+         + COUNT(DISTINCT CASE WHEN (result_kind = 'team' OR (stage_id = 10005397 AND result_kind = 'pair')) AND status = 'ok' THEN
+             COALESCE('n:' || team_number, 't:' || team_name, 'r:' || id) END) AS classified,
        MIN(CASE WHEN rank = 1 THEN time_s END)        AS winner_time_s
 FROM result
 WHERE result_kind NOT IN ('relay', 'family')
@@ -847,6 +853,62 @@ def is_om_eligible_category(category):
     if SPECIAL_OM_CAT_RE.search(category):
         return True
     return age is not None and age >= 12
+
+
+def apply_confirmed_national_category_exclusions(cur, evidence):
+    """Remove inferred championship tags only for explicitly documented classes."""
+    changed = 0
+    for eid, event in evidence.get("events", {}).items():
+        if not str(eid).isdigit() or not event.get("event_date") or not event.get("stage_number"):
+            continue
+        for category in event.get("excluded_from_national_championship_categories", []):
+            cur.execute("""UPDATE result SET championship = NULL, national_rank = NULL
+                WHERE championship IS NOT NULL AND category = ? AND stage_id IN (
+                    SELECT s.id FROM stage s JOIN event e ON e.id=s.event_id
+                    WHERE e.id=? AND s.number=? AND substr(COALESCE(s.date,e.date_from),1,10)=?)""",
+                (category, int(eid), event["stage_number"], event["event_date"]))
+            changed += cur.rowcount
+    return changed
+
+
+def apply_confirmed_national_category_additions(cur, evidence):
+    """Seed only missing, explicitly reviewed championship categories.
+
+    The invitation proves the category, not individual eligibility. Existing
+    championship rows are never overwritten or expanded by this inference.
+    """
+    changed = 0
+    for eid, event in evidence.get("events", {}).items():
+        if not event.get("apply_category_inference") or not str(eid).isdigit():
+            continue
+        date, number = event.get("event_date"), event.get("stage_number")
+        default_type = event.get("default_championship")
+        if not date or not number or default_type not in {"ÖM", "ÖSTM"}:
+            raise ValueError(f"Incomplete reviewed national category evidence: {eid}")
+        for category in event.get("categories", []):
+            champ = event.get("category_championship_types", {}).get(category, default_type)
+            if champ not in {"ÖM", "ÖSTM"}:
+                raise ValueError(f"Invalid championship type for {eid}/{category}")
+            stages = [row[0] for row in cur.execute("""SELECT s.id FROM stage s JOIN event e ON e.id=s.event_id
+                WHERE e.id=? AND s.number=? AND substr(COALESCE(s.date,e.date_from),1,10)=?""",
+                (int(eid), number, date)).fetchall()]
+            for stage_id in stages:
+                if cur.execute("SELECT 1 FROM result WHERE stage_id=? AND category=? AND championship IS NOT NULL LIMIT 1",
+                               (stage_id, category)).fetchone():
+                    continue
+                cur.execute("""UPDATE result SET championship=?,
+                    championship_eligibility_state=CASE WHEN championship_eligibility_state='eligible'
+                        THEN 'eligible' ELSE 'provisional' END,
+                    championship_eligibility_basis=CASE WHEN championship_eligibility_state='eligible'
+                        THEN championship_eligibility_basis ELSE 'invitation_category_inference' END,
+                    championship_source_scope='inferred'
+                    WHERE stage_id=? AND category=? AND status='ok' AND rank IS NOT NULL AND person_id IS NOT NULL
+                      AND out_of_competition=0 AND championship IS NULL
+                      AND result_kind IN ('individual','pair','relay','team')
+                      AND championship_eligibility_state != 'ineligible'""",
+                    (champ, stage_id, category))
+                changed += cur.rowcount
+    return changed
 
 
 def is_ostm_eligible_category(category):
@@ -3113,7 +3175,7 @@ def anne_mapped_stage(cur, event, stage_ids, info):
     sid = 30_000_000 + event["id"] * 100 + num
     if sid not in stage_ids:
         cur.execute("INSERT INTO stage VALUES (?,?,?,?,?,?)",
-                    (sid, event["id"], num, info.get("title"), info.get("date"),
+                    (sid, event["id"], num, info.get("title"), calendar_date(info.get("date")),
                      event.get("location")))
         stage_ids.add(sid)
     return sid
@@ -3167,6 +3229,13 @@ def insert_anne_pair(cur, persons, sid, cat, row, source_document_id, list_id, n
     return len(names)
 
 
+def calendar_date(value):
+    """Keep ANNE's stated calendar date, not a timezone-shifted instant."""
+    if isinstance(value, str) and re.match(r'^\d{4}-\d{2}-\d{2}(?:$|T|\s)', value):
+        return value[:10]
+    return value
+
+
 def load_anne_results(cur, events, persons, stage_ids):
     n = 0
     for path in sorted((RAW / "results").glob("*.json")):
@@ -3181,7 +3250,7 @@ def load_anne_results(cur, events, persons, stage_ids):
                 if s["id"] not in stage_ids:
                     cur.execute("INSERT INTO stage VALUES (?,?,?,?,?,?)",
                                 (s["id"], eid, s.get("number", 1), s.get("title"),
-                                 s.get("dateFrom"), s.get("location")))
+                                 calendar_date(s.get("dateFrom")), s.get("location")))
                     stage_ids.add(s["id"])
         rows = deduplicate_anne_rows([
             row for row in json.loads(path.read_text())
@@ -3263,7 +3332,18 @@ def load_anne_results(cur, events, persons, stage_ids):
                 n += 1
                 continue
             if r.get("teamMembers"):
-                n += insert_anne_relay(cur, persons, sid, cat, r, source_document_id, list_id)
+                # The ÖM Mannschaft 2026 used one shared chip/time. ANNE
+                # represents its three members using the relay-shaped API,
+                # including artificial leg numbers and identical times.
+                if eid == 5340:
+                    kind = "team"
+                elif eid == 5397 and re.fullmatch(r"[DH]\s*-\s*(?:12|14)", cat or "", re.I):
+                    # Night-O pairs run together: ANNE encodes them with
+                    # teamMembers/leg despite identical start and finish.
+                    kind = "pair"
+                else:
+                    kind = "relay"
+                n += insert_anne_relay(cur, persons, sid, cat, r, source_document_id, list_id, kind=kind)
                 continue
             pair_names = anne_5370_pair_names(r) if eid == 5370 else None
             if pair_names:
@@ -3342,11 +3422,13 @@ def anne_results_have_minute_precision(rows):
 
 
 def insert_anne_relay(cur, persons, sid, cat, team, source_document_id=None,
-                      result_list_id_value=None):
+                      result_list_id_value=None, kind="relay"):
     """Explode a structured relay team into one result per leg runner, sharing
     the team's rank/club, with the runner's own leg time and a note naming the
     team and teammates. Leg time is the cumulative team time at that leg minus
     the previous leg's (the API only gives cumulative 'overall' times)."""
+    if kind not in ("relay", "team", "pair"):
+        raise ValueError(f"unsupported ANNE team kind: {kind}")
     members = team["teamMembers"]
     names = []
     for m in members:
@@ -3373,7 +3455,7 @@ def insert_anne_relay(cur, persons, sid, cat, team, source_document_id=None,
     for member_index, (m, nm) in enumerate(zip(members, names), start=1):
         ov = m.get("overall") or {}
         cum = ov.get("time")
-        leg_time = (cum - prev_cum) if (cum is not None) else None
+        leg_time = ((cum - prev_cum) if cum is not None else None) if kind == "relay" else team_time
         if cum is not None:
             prev_cum = cum
         if not nm:
@@ -3393,10 +3475,14 @@ def insert_anne_relay(cur, persons, sid, cat, team, source_document_id=None,
             persons.add_last_name(m["lastName"])
         persons.record(pid, nm, authoritative=bool(m.get("firstName") and m.get("lastName")))
         mates = list(dict.fromkeys(o for o in names if o and o != nm))
-        note_bits = [f"Staffel: {team_name}".strip(),
-                     f"Leg {m.get('leg') or member_index}/{len(members)}"]
-        if mates:
-            note_bits.append("Team: " + ", ".join(mates))
+        if kind == "pair":
+            note_bits = ["Partner: " + ", ".join(mates)] if mates else []
+        else:
+            note_bits = [f"{'Staffel' if kind == 'relay' else 'Mannschaft'}: {team_name}".strip()]
+            if kind == "relay":
+                note_bits.append(f"Leg {m.get('leg') or member_index}/{len(members)}")
+            if mates:
+                note_bits.append("Team: " + ", ".join(mates))
         observed_name = f"{m.get('firstName') or ''} {m.get('lastName') or ''}".strip()
         raw_status = (m.get("classification") or
                       (m.get("overall") or {}).get("classification"))
@@ -3407,11 +3493,12 @@ def insert_anne_relay(cur, persons, sid, cat, team, source_document_id=None,
                       official_club=canonicalize_official_club(relay_club, OFFICIAL_CLUBS),
                       rank=team.get("rank"),
                       status=team_status, out_of_competition=team_ooc,
-                      time_s=leg_time, result_kind="relay",
+                      time_s=leg_time, result_kind=kind,
                       note=" · ".join(note_bits),
                       team_number=str(team_number) if team_number not in (None, "") else None,
-                      team_name=team_name, leg_number=m.get("leg") or member_index,
-                      leg_count=len(members), individual_status=individual_status,
+                      team_name=team_name, leg_number=(m.get("leg") or member_index) if kind == "relay" else None,
+                      leg_count=len(members) if kind == "relay" else None,
+                      individual_status=individual_status if kind == "relay" else None,
                       team_status=team_status, team_time_s=team_time,
                       observed_team_time=str(team_time) if team_time is not None else None,
                       source="anne-api",
@@ -5471,6 +5558,76 @@ def load_regional_source_classes():
     return payload["events"]
 
 
+def vienna_two_club_exception(category, event_title, stage_title, split_u12=False):
+    """Return True/False/None; do not infer a published class split.
+
+    Footnotes 11 and 12 apply only to the classes and disciplines shown in
+    WOLV's 2022 table. None means that context needed to apply an exception is
+    missing; it must not be silently treated as an exception.
+    """
+    value = (category or "").casefold().replace("damen", "d").replace("herren", "h")
+    value = re.sub(r"[^a-z0-9]+", "", value)
+    relevant = bool(re.search(r"^(?:d|h)(?:13)?14$", value))
+    is_split_u12 = value in {"d12", "h12"} and split_u12
+    if not relevant and not is_split_u12:
+        return False
+    context = f"{event_title or ''} {stage_title or ''}"
+    if re.search(r"sprint|mittel|nacht|staffel|nachwuchs|jugend|senior|\bnw\b|\bjug\b|\bsen\b", context, re.I):
+        return True
+    return None
+
+
+def apply_vienna_two_club_checks(cur):
+    """Hold unproven Vienna awards, never change the published ranking.
+
+    Count club evidence for eligible started competitor units, not rows or
+    DNS/OOC. Unknown/mixed clubs remain open. Exception classes are exempt
+    only when the discipline and actual published class support it.
+    """
+    instances = cur.execute("""SELECT ci.id,ci.stage_id,ci.category,e.title,s.title
+        FROM championship_instance ci JOIN stage s ON s.id=ci.stage_id
+        JOIN event e ON e.id=s.event_id WHERE ci.jurisdiction='WIEN'
+        AND ci.state='confirmed' AND e.sport_type='footOrienteering'
+        AND substr(COALESCE(s.date,e.date_from),1,10)>='2022-10-10'""").fetchall()
+    categories = defaultdict(set)
+    for _iid, sid, category, _title, _stage_title in instances:
+        value = (category or "").casefold().replace("damen", "d").replace("herren", "h")
+        categories[sid].add(re.sub(r"[^a-z0-9]+", "", value))
+    for instance_id, sid, category, title, stage_title in instances:
+        split_u12 = {"d12", "h12"}.issubset(categories[sid])
+        exception = vienna_two_club_exception(category, title, stage_title, split_u12)
+        if exception is True:
+            continue
+        entries = defaultdict(list)
+        for entry_id, state, status, ooc, club in cur.execute("""SELECT ce.id,ce.eligibility_state,
+            r.status,r.out_of_competition,r.official_club FROM championship_entry ce
+            JOIN championship_entry_result cer ON cer.championship_entry_id=ce.id
+            JOIN result r ON r.id=cer.result_id WHERE ce.championship_instance_id=?""",
+            (instance_id,)).fetchall():
+            if state == "eligible" and not ooc and status in {"ok", "dnf", "mp", "dsq"}:
+                entries[entry_id].append(club)
+        if len(entries) < 3:
+            continue  # The existing minimum-starters check already withholds awards.
+        clubs, incomplete = set(), False
+        for unit_clubs in entries.values():
+            known = {club for club in unit_clubs if club}
+            if len(known) == 1 and all(unit_clubs):
+                clubs.update(known)
+            else:
+                incomplete = True
+        if len(clubs) >= 2:
+            continue
+        reason = ("Zwei-Vereine-Voraussetzung anhand der tatsächlich gestarteten, "
+                  "wertungsberechtigten Einheiten nicht nachgewiesen; "
+                  "Vereinszuordnung, Ergebnisquelle und Ausnahmen prüfen.")
+        if incomplete:
+            reason += " Mindestens eine Vereinszuordnung ist unvollständig oder gemischt."
+        if exception is None:
+            reason += " Eine mögliche Ausnahmeklasse ist mangels Disziplinangabe offen."
+        cur.execute("INSERT OR IGNORE INTO regional_award_hold VALUES (?,?,?)", (
+            instance_id, reason, "http://www.wolv.at/docs/kat22neu.pdf"))
+
+
 def populate_regional_championships(cur, catalog, club_jurisdictions, source_classes=None):
     """Build nationwide regional mappings, instances and competitor entries."""
     person_memberships = defaultdict(list)
@@ -6039,6 +6196,7 @@ def populate_championship_model(cur):
         if isinstance(item, dict)} if CHAMPIONSHIP_CATALOG_PATH.exists() else {}
     club_jurisdictions = load_club_jurisdictions(cur)
     populate_regional_championships(cur, catalog, club_jurisdictions)
+    apply_vienna_two_club_checks(cur)
 
 
 def main():
@@ -6515,6 +6673,12 @@ def main():
 
     n_championship_source_matches = apply_championship_source_entries(cur)
 
+    national_category_evidence_path = ROOT / "site/data/national-category-evidence.json"
+    if national_category_evidence_path.exists():
+        national_category_evidence = json.loads(national_category_evidence_path.read_text())
+        apply_confirmed_national_category_exclusions(cur, national_category_evidence)
+        apply_confirmed_national_category_additions(cur, national_category_evidence)
+
     n_eligibility = apply_championship_eligibility_overrides(cur)
     apply_championship_eligibility_evidence(cur)
 
@@ -6796,6 +6960,11 @@ def main():
 
     cur.execute("VACUUM")
     con.close()
+    # Keep the read-only source review consistent with this exact database.
+    # A test DB writes its report next to itself, never over the local preview.
+    subprocess.run([sys.executable, str(ROOT / "build/championship_audit.py"),
+                    "--db", str(DB_PATH), "--output", str(DB_PATH.parent / "championship-audit.json")],
+                   check=True)
     gz_path = DB_PATH.with_suffix(".db.gz")
     gz_path.write_bytes(gzip.compress(DB_PATH.read_bytes(), 9))
     print(f"wrote {DB_PATH} ({DB_PATH.stat().st_size / 1e6:.1f} MB, "

@@ -6,6 +6,7 @@ node_modules/
 site/data/results.db
 data/raw/anne/files/
 site/data/results.db.gz
+site/data/championship-audit.json
 *-errors.log
 # Per-person data fetched via an authenticated, elevated-access ANNE
 # endpoint (see ingest/anne_user_eligibility.py) - never publish the raw

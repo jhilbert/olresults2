@@ -4,6 +4,17 @@ Diese Seite ist das Register für eng begrenzte Ausnahmen gemäß `EXCEPT-001`.
 Sie ersetzt nicht den Test: Eine bestätigte Ausnahme braucht immer einen
 konkreten Regressionstest oder einen Golden-Fall.
 
+## Offene, nicht automatisch aufgelöste Mehrfachwertung
+
+- Event `5203`, Ski-O Sprint, 22.03.2026: Die
+  [Ausschreibung](https://anne-cdn.oefol.at/public/2026/02/ibJvEeqn28qBetazOEvbL6kBXD1LKJ8NoPAVVeXN.pdf)
+  führt D/H−20 und D/H35− als ÖM-Klassen und zugleich auf gemeinsamer Bahn
+  in der ÖSTM-Wertung an. Das aktuelle Ergebnisfeld `championship` kann nicht
+  zwei parallele nationale Wertungen für dieselbe Leistung abbilden. Eine
+  zusätzliche ÖSTM-Platzierung oder Medaille wird daher nicht ohne eigene,
+  quellenbelegte Wertungs- und Berechtigungsprüfung erfunden. Zu klären sind
+  getrennte Teilnehmerfelder, Rangfolge, Mindeststarter und offizielle Titel.
+
 ## Zulässige Ausnahmearten
 
 | Bereich | Produktionsregister | Zweck |

@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "catalog_url": "http://www.wolv.at/download.php",
+  "scope": "Verzeichnisangaben; die Existenz einer Jahresliste ist kein Klassen- oder Siegerabgleich.",
+  "ranges": [{"from_year": 1994, "to_year": 2011, "url": "http://www.wolv.at/docs/wrmeister.htm"}],
+  "years": {
+    "2012": "http://www.wolv.at/docs/med12.pdf",
+    "2013": "http://www.wolv.at/docs/med13.pdf",
+    "2014": "http://www.wolv.at/docs/wrmeister2014.htm",
+    "2015": "http://www.wolv.at/docs/med15.pdf",
+    "2016": "http://www.wolv.at/docs/med16.pdf",
+    "2017": "http://www.wolv.at/docs/med17.pdf",
+    "2018": "http://www.wolv.at/docs/med18.pdf",
+    "2019": "http://www.wolv.at/docs/med19.pdf",
+    "2020": "http://www.wolv.at/docs/med20.pdf",
+    "2021": "http://www.wolv.at/docs/med21.pdf",
+    "2022": "http://www.wolv.at/docs/med22.pdf",
+    "2023": "http://www.wolv.at/docs/med23.pdf",
+    "2024": "http://www.wolv.at/docs/med24.pdf",
+    "2025": "http://www.wolv.at/docs/med25.pdf",
+    "2026": "http://www.wolv.at/docs/med26.pdf"
+  }
+}

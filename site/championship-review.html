@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OLResults – Meisterschafts-Quellencheck</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.champ-audit { max-width: 1200px; margin: 1.4rem auto; padding: 0 1rem; }
+.champ-filters { display:flex; flex-wrap:wrap; gap:.6rem; margin:1rem 0; }
+.champ-filters select,.champ-filters input { padding:.55rem; max-width:100%; }
+.champ-summary,.champ-help { padding:.8rem; background:#f5f4f0; border-radius:8px; margin:.8rem 0; }
+.champ-event { border:1px solid #ddd; border-radius:8px; margin:1rem 0; padding:.8rem 1rem; }
+.champ-event summary { cursor:pointer; font-weight:700; }
+.champ-class { border-top:1px solid #ddd; padding:.8rem 0; }
+.champ-class p { margin:.3rem 0; }
+.champ-status { font-weight:600; }
+.champ-open { color:#9a5000; } .champ-ok { color:#146338; }
+.champ-conflict { color:#a52222; } .champ-small { font-size:.9em; color:#555; }
+</style>
+</head>
+<body>
+<header><div class="wrap header-inner"><a class="brand" href="index.html">OL<span>Results</span></a>
+<strong>Meisterschafts-Quellencheck</strong> <a href="review.html">Ergebnisprüfung</a></div></header>
+<main class="champ-audit">
+  <h1>ÖM/ÖSTM und Wiener Meisterschaften</h1>
+  <p>Quellen und offene Prüfungen nach Jahr, Wettkampf und Klasse. Diese Übersicht bestätigt keine Medaillen automatisch.</p>
+  <div class="champ-help">Eine gefundene Ausschreibung ist noch keine geprüfte Kategorie. „Sieger abgeglichen“ bestätigt nicht die gesamte Ergebnisliste oder alle Medaillen. Prüfentscheidungen und Ergebnisse entsprechen dem letzten Datenbankaufbau. Die Events stammen aus dem vorhandenen Kalenderbestand, nicht aus einem vollständigen Abgleich aller ANNE-Jahrgänge.</div>
+  <div class="champ-filters">
+    <label>Jahr <select id="year"></select></label>
+    <label>Wertung <select id="jurisdiction"><option value="all">ÖM und Wien</option><option value="AUT">ÖM/ÖSTM</option><option value="WIEN">Wiener MS</option></select></label>
+    <label>Prüfung <select id="state"><option value="all">Alle</option><option value="conflict">Quellenkonflikt</option><option value="invitation">Kategorie-Nachweis offen</option><option value="crosscheck">Sieger-Quercheck offen</option><option value="result">Ergebnisvollständigkeit offen</option><option value="rule">Wien: Zwei-Vereine-Regel prüfen</option></select></label>
+    <label>Suche <input type="search" id="search" placeholder="Event, ID oder Klasse"></label>
+  </div>
+  <div id="summary" class="champ-summary">Lade Quelleninventur …</div>
+  <section id="claims"></section><section id="missing-classes"></section><section id="candidates"></section><section id="events"></section>
+</main>
+<script src="championship-review.js"></script>
+</body></html>

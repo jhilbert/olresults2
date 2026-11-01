@@ -1,6 +1,79 @@
 {
   "schema_version": 1,
   "events": {
+    "5203": {
+      "event_date":"2026-03-22", "stage_number":1,
+      "label":"Ausschreibung Ski-O ÖSTM/ÖM Sprint 2026, Seite 2",
+      "url":"https://anne-cdn.oefol.at/public/2026/02/ibJvEeqn28qBetazOEvbL6kBXD1LKJ8NoPAVVeXN.pdf",
+      "sha256":"40f35d265379a009c50ba4897c93e6c7f26de90ff8ee7306b8bfea6a9a1d40d8",
+      "reviewed_on":"2026-11-01",
+      "categories":["D21-E","H21-E","D-12","H-12","D-14","H-14","D-17","H-17","D-20","H-20","D35-","H35-","D45-","H45-","D55-","H55-","D65-","H65-","H75-"],
+      "scope":"Ausgeschriebene Ski-O-Meisterschaftsklassen; persönliche Berechtigung und Titel getrennt prüfen.",
+      "notes":["D/H−20 und D/H35− laufen laut Ausschreibung auch in der ÖSTM-Wertung auf gemeinsamer Bahn. Diese zusätzliche Wertung ist im Datenmodell noch offen und wird nicht automatisch erzeugt."]
+    },
+    "5127": {
+      "event_date":"2026-09-12", "stage_number":1,
+      "label":"Ausschreibung ÖSTM Langdistanz 2026, Seite 2",
+      "url":"https://anne-cdn.oefol.at/public/2026/09/jrqWT6KPSF4YoSebwvNh60oNQloNcLl3Ho9hCRQq.pdf",
+      "sha256":"49b5052ccb2a307b7eae932f346c95c430127fc04ffd881220edaa81790a0de3",
+      "reviewed_on":"2026-11-01", "apply_category_inference":true, "default_championship":"ÖSTM",
+      "categories":["D21-E","H21-E"],
+      "scope":"ÖSTM Langdistanz am Samstag; Jugend- und Seniorenklassen sind laut Ausschreibung Austria Cup, nicht ÖM."
+    },
+    "5215": {
+      "event_date":"2026-01-17", "stage_number":1,
+      "label":"Ausschreibung Ski-O ÖSTM/ÖM Mittel 2026, Seite 2",
+      "url":"https://anne-cdn.oefol.at/public/2026/01/cj7GwONlYv3BnEnCBi0gMP8wJ0V6ixUaUPmXnbGt.pdf",
+      "sha256":"7781f86625ebd8d893f57ffe9fda93ccd47a1b4d880276d8a14a704f359587b5",
+      "reviewed_on":"2026-11-01", "apply_category_inference":true, "default_championship":"ÖM",
+      "category_championship_types":{"AT-D 21E":"ÖSTM","AT-H 21E":"ÖSTM"},
+      "categories":["AT-D 21E","AT-H 21E","AT-D-12","AT-H-12","AT-D-14","AT-H-14","AT-D-17","AT-H-17","AT-D-20","AT-H-20","AT-D 35-","AT-H 35-","AT-D 45-","AT-H 45-","AT-D 55-","AT-H 55-","AT-D 65-","AT-H 65-","AT-H 75-"],
+      "scope":"ÖSTM/ÖM Mittel am 17. Jänner. Die tschechischen Klassen und der Austria Cup am Folgetag sind getrennt."
+    },
+    "4315": {
+      "event_date":"2024-10-05", "stage_number":1,
+      "label":"Ausschreibung ÖM Nacht 2024, Seite 1",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_4315_c2-ausschreibung-10ac-om-nacht-2024-stand240822.pdf",
+      "sha256":"2e90dfe9654de889fd2b822abc38bd725d76b99088879b579c7b755d8ebf169d",
+      "reviewed_on":"2026-11-01", "result_kinds":["individual","pair"],
+      "apply_category_inference":true, "default_championship":"ÖM",
+      "categories":["Damen bis 12","Herren bis 12","Damen bis 14","Herren bis 14","Damen bis 16 Elite","Herren bis 16 Elite","Damen bis 18 Elite","Herren bis 18 Elite","Damen bis 20 Elite","Herren bis 20 Elite","Damen ab 21 Elite","Herren ab 21 Elite","Damen ab 35","Herren ab 35","Damen ab 40","Herren ab 40","Damen ab 45","Herren ab 45","Damen ab 50","Herren ab 50","Damen ab 55","Herren ab 55","Damen ab 60","Herren ab 60","Damen ab 65","Herren ab 65","Damen ab 70","Herren ab 70","Damen ab 75","Herren ab 75","Herren ab 80"],
+      "scope":"ÖM Nacht, ausgeschriebene Klassen; D/H-12 und D/H-14 paarweise. Keine Aussage zu individuellen Titeln oder Berechtigung."
+    },
+    "4434": {
+      "event_date":"2024-06-08", "stage_number":1,
+      "label":"Ausschreibung ÖM Jugend Sprint 2024, Seite 3",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_4434_ausschreibung-tlo-2024-deu-15052024.pdf",
+      "sha256":"b2464fef9f42326e8c99c2ba1f671c3d875a7e3f52d04d7c777e0ce24db65c96",
+      "reviewed_on":"2026-11-01", "apply_category_inference":true, "default_championship":"ÖM",
+      "categories":["Damen bis 12 / W12","Herren bis 12 / M12","Damen bis 14 / W14","Herren bis 14 / M14","Damen bis 16 Elite / W16E / AAOC W16","Herren bis 16 Elite / M16E / AAOC M16","Damen bis 18 Elite / W18E / AAOC W18","Herren bis 18 Elite / M18E / AAOC M18","Damen bis 20 Elite / W20E","Herren bis 20 Elite / M20E"],
+      "scope":"ÖM Jugend Sprint. Ältere und nicht-Elite-Klassen am Sprinttag sind Austria Cup; die Langdistanz-Staatsmeisterschaft ist ein anderer Bewerb."
+    },
+    "4304": {
+      "event_date":"2024-06-15", "stage_number":1,
+      "label":"Ausschreibung ÖSTM/ÖM MTBO Mittel 2024, Seite 2",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_4304_ausschreibung-neu.pdf",
+      "sha256":"7049a108e5979cf3ebed12ca21c6839f1f6213596bfea8e2acaf05171270f7ed",
+      "reviewed_on":"2026-11-01",
+      "apply_category_inference":true, "default_championship":"ÖM",
+      "category_championship_types":{"M Elite":"ÖSTM"},
+      "categories":["M -14", "W-14", "M-17", "W-17", "M-20", "W-20", "M Elite", "W Elite", "M40-", "W40-", "M50-", "W50-", "M60-", "W60-", "M70-"],
+      "excluded_from_national_championship_categories":["M-12", "W-12"],
+      "scope":"Ausgeschriebene Klassen der ÖSTM/ÖM MTBO Mitteldistanz; kein Nachweis eines individuellen Titels oder persönlicher Berechtigung.",
+      "notes":["D/H-12 sind ausdrücklich Rahmenbewerbe, keine ÖM-Klassen.", "Die Ausschreibung ordnet H21E der ÖSTM, D21E der ÖM zu; der Sprint am Folgetag ist Austria Cup."]
+    },
+    "5397": {
+      "event_date":"2026-04-10", "stage_number":1,
+      "label":"Ausschreibung ÖM Nacht 2026, Seite 1",
+      "url":"https://anne-cdn.oefol.at/public/2026/03/kZT2QZkmKhQBYWXWtPlug6dCMzV5GyfGSwX9yA87.pdf",
+      "sha256":"df45b778c6895046699641dd1b34a441c70f9ab17aa8d457d426b5177d87227c",
+      "reviewed_on":"2026-11-01",
+      "apply_category_inference":true, "default_championship":"ÖM",
+      "result_kinds":["individual", "pair"],
+      "categories":["D-12", "H-12", "D-14", "H-14", "D16-E", "H16-E", "D18-E", "H18-E", "D20-E", "H20-E", "D21-E", "H21-E", "D35-", "H35-", "D40-", "H40-", "D45-", "H45-", "D50-", "H50-", "D55-", "H55-", "D60-", "H60-", "D65-", "H65-", "D70-", "H70-", "D75-", "H75-", "H80-", "H85-"],
+      "scope":"Ausgeschriebene ÖM-Klassen Nacht; kein Nachweis eines individuellen Titels oder persönlicher Berechtigung.",
+      "notes":["D/H15-18, D/H21K, D/H21L und Hobby sind ausdrücklich nur zusätzlich im Austria Cup aufgeführt.", "Die ANNE-Ergebnisdaten führen D/H-12 und D/H-14 als gleichzeitige Paare; der Import bewahrt beide Personen bei einer gemeinsamen Leistung."]
+    },
     "5065": {
       "event_date":"2025-09-12", "stage_number":1,
       "label":"Ausschreibung ÖM Nacht 2025, Seite 2",
@@ -8,8 +81,9 @@
       "sha256":"71b083137668185dd283904a65151871a82589e941cd99f7c3a9ab8ff2fafd62",
       "result_url":"https://anne-cdn.oefol.at/public/legacy/event_5065_ergebnisse.html",
       "cross_check_url":"https://www.orienteeringaustria.at/termine/meistertafel/",
-      "result_kinds":["pair"], "categories":["Damen bis 14"],
-      "scope":"D−14 paarweise ist ÖM; Meistertafel nennt Anna Skern und Annina Urbanek."
+      "result_kinds":["individual","pair"], "apply_category_inference":true, "default_championship":"ÖM",
+      "categories":["Damen bis 12","Herren bis 12","Damen bis 14","Herren bis 14","Damen bis 16 Elite","Herren bis 16 Elite","Damen bis 18 Elite","Herren bis 18 Elite","Damen bis 20 Elite","Herren bis 20 Elite","Damen ab 21 Elite","Herren ab 21 Elite","Damen ab 35","Herren ab 35","Damen ab 40","Herren ab 40","Damen ab 45","Herren ab 45","Damen ab 50","Herren ab 50","Damen ab 55","Herren ab 55","Damen ab 60","Herren ab 60","Damen ab 65","Herren ab 65","Damen ab 70","Herren ab 70","Damen ab 75","Herren ab 75","Herren ab 80"],
+      "scope":"ÖM Nacht, ausgeschriebene Klassen; D/H-12 und D/H-14 paarweise. Die Meistertafel nennt Anna Skern und Annina Urbanek für D−14."
     },
     "5132": {
       "event_date":"2025-10-18", "stage_number":1,
@@ -18,7 +92,17 @@
       "sha256":"120e53197c33c28193978b597de01b4535ddec329e82895583c76abac14245fa",
       "result_url":"https://anne-cdn.oefol.at/public/legacy/event_5132_ergebnisse-sprint.html",
       "cross_check_url":"https://www.orienteeringaustria.at/termine/meistertafel/",
-      "categories":["Damen bis 18 Elite"], "scope":"D−18E; ÖFOL-Meistertafel nennt Mika Asenbauer."
+      "apply_category_inference":true, "default_championship":"ÖM",
+      "category_championship_types":{"Damen ab 21 Elite":"ÖSTM", "Herren ab 21 Elite":"ÖSTM"},
+      "categories":["Damen bis 12", "Herren bis 12", "Damen bis 14", "Herren bis 14",
+        "Damen bis 16 Elite", "Herren bis 16 Elite", "Damen bis 18 Elite", "Herren bis 18 Elite",
+        "Damen bis 20 Elite", "Herren bis 20 Elite", "Damen ab 21 Elite", "Herren ab 21 Elite",
+        "Damen ab 35", "Herren ab 35", "Damen ab 40", "Herren ab 40", "Damen ab 45", "Herren ab 45",
+        "Damen ab 50", "Herren ab 50", "Damen ab 55", "Herren ab 55", "Damen ab 60", "Herren ab 60",
+        "Damen ab 65", "Herren ab 65", "Damen ab 70", "Herren ab 70", "Damen ab 75", "Herren ab 75", "Herren ab 80"],
+      "reviewed_on":"2026-11-01",
+      "scope":"Auf Seite 2 ausgeschriebene Einzel-Klassen der ÖM/ÖSTM Sprint; kein Nachweis eines individuellen Titels, Starts oder der Berechtigung.",
+      "notes":["D/H 15–18, D/H21K, D/H21L und Hobby stehen ebenfalls im Klassenblock; ob daraus eine eigenständige Meisterschaftstitelwertung folgt, wird hier nicht automatisch entschieden.", "Die ÖFOL-Meistertafel ist ein separater Sieger-Quercheck."]
     },
     "5300": {
       "event_date":"2026-05-23", "stage_number":1,
@@ -34,7 +118,9 @@
       "url":"https://anne-cdn.oefol.at/public/2026/05/Fc5LaTWAjOj8qtncmXRo9aBazAsfot21OaXh2vIp.pdf",
       "sha256":"ea1430c22f23d2e406760c45511924e543510563d7611e9ce0c93b4c1ec761d4",
       "result_url":"https://anne-cdn.oefol.at/public/2026/05/tZaC8UDjCWvnR6ywtQENKpofRNiReHfEp0FHRqWI.pdf",
-      "categories":["D18-E","H18-E"], "scope":"ÖM-Langdistanz bis 18 Elite."
+      "apply_category_inference":true, "default_championship":"ÖM",
+      "categories":["D-12","H-12","D-14","H-14","D16-E","H16-E","D18-E","H18-E","D20-E","H20-E","D35-","H35-","D40-","H40-","D45-","H45-","D50-","H50-","D55-","H55-","D60-","H60-","D65-","H65-","D70-","H70-","D75-","H75-","H80-","H85-"],
+      "scope":"ÖM-Langdistanz 24. Mai; 25. Mai Mitteldistanz nur Austria Cup. Die Eliteklasse D/H21E ist kein Teil der ausgeschriebenen ÖM."
     },
     "5128": {
       "event_date":"2026-09-13", "stage_number":1,
@@ -42,7 +128,10 @@
       "url":"https://anne-cdn.oefol.at/public/2026/09/q0rwLcxIWclJ1irwvpHvNoREKJnxPAI8RAl4zH3M.pdf",
       "sha256":"49b5052ccb2a307b7eae932f346c95c430127fc04ffd881220edaa81790a0de3",
       "result_url":"https://anne-cdn.oefol.at/public/2026/09/mj4e4f4OgQDWHdZyZnLcuanYyPzDBC4vcWBIp91T.pdf",
-      "categories":["D18-E"], "scope":"ÖM-Mitteldistanz bis 18 Elite am Sonntag, nicht die Langdistanz am Samstag."
+      "reviewed_on":"2026-11-01", "apply_category_inference":true, "default_championship":"ÖM",
+      "category_championship_types":{"D21-E":"ÖSTM","H21-E":"ÖSTM"},
+      "categories":["D-12","H-12","D-14","H-14","D16-E","H16-E","D18-E","H18-E","D20-E","H20-E","D21-E","H21-E","D35-","H35-","D40-","H40-","D45-","H45-","D50-","H50-","D55-","H55-","D60-","H60-","D65-","H65-","D70-","H70-","D75-","H75-","H80-","H85-"],
+      "scope":"ÖSTM/ÖM Mitteldistanz am Sonntag; die Langdistanz am Samstag ist ein eigener Bewerb."
     },
     "5340": {
       "event_date":"2026-10-26", "stage_number":1,
@@ -73,6 +162,7 @@
       "cross_check_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
       "reviewed_on": "2026-10-29",
       "scope": "Ausgeschriebene ÖM-Kategorien; kein Nachweis von tatsächlichem Titel, Platzierung oder persönlicher Meisterschaftsberechtigung",
+      "apply_category_inference": true, "default_championship": "ÖM",
       "categories": [
         "Damen bis 12", "Herren bis 12",
         "Damen bis 14", "Herren bis 14",
@@ -106,8 +196,9 @@
       "sha256": "66e4a2f3a05cf92c9409b203dc770d5fb2fcad6e87d2356a351e73a06d7f3710",
       "result_url": "https://anne-cdn.oefol.at/public/2026/05/IugK1vReamEQwtSojrgNv83jpJGTiclQVZaFJAa5.pdf",
       "reviewed_on": "2026-10-29",
-      "scope": "Nachweis der ausgeschriebenen U18-Elite-ÖM-Kategorien für Etappe 2; kein Nachweis von Platzierung oder persönlicher Meisterschaftsberechtigung",
-      "categories": ["D18-E", "H18-E"],
+      "scope": "Ausgeschriebene ÖM Sprint-Jugend- und Seniorenklassen für Etappe 2; kein Nachweis von Platzierung oder persönlicher Meisterschaftsberechtigung",
+      "apply_category_inference": true, "default_championship": "ÖM",
+      "categories": ["D-12","H-12","D-14","H-14","D16-E","H16-E","D18-E","H18-E","D20-E","H20-E","D35-","H35-","D40-","H40-","D45-","H45-","D50-","H50-","D55-","H55-","D60-","H60-","D65-","H65-","D70-","H70-","D75-","H75-","H80-","H85-"],
       "notes": [
         "Die Ausschreibung führt D/H-18E als ÖM-Kategorien für Etappe 2 am 2. Mai 2026. Der Sparkassensprint an diesem Tag ist Etappe 3 und kein Teil dieses Nachweises.",
         "Die Ergebnisse von Mika Asenbauer und Lauri Urbanek sind separat auf Rang, Identität, Berechtigung und Mindeststarterzahl geprüft."

@@ -13,6 +13,47 @@ SPEC.loader.exec_module(build_db)
 
 
 class AnneIdentityTests(unittest.TestCase):
+    def test_anne_night_pair_shares_time_and_is_one_competitor(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        persons = build_db.PersonRegistry()
+        team = {"rank": 1, "time": 1614, "teamName": "Egger/Kummerer", "bibNumber": 44,
+                "classification": "classified", "teamMembers": [
+                    {"firstName": "Marie", "lastName": "Egger", "userId": 8355, "leg": 1,
+                     "classification": "classified", "overall": {"time": 1614}},
+                    {"firstName": "Julia", "lastName": "Kummerer", "leg": 2,
+                     "classification": "classified", "overall": {"time": 1614}}]}
+        self.assertEqual(build_db.insert_anne_relay(con.cursor(), persons, 10005397, "D-14", team, kind="pair"), 2)
+        rows = con.execute("SELECT result_kind,time_s,leg_number,note FROM result ORDER BY id").fetchall()
+        self.assertEqual(rows, [("pair", 1614, None, "Partner: Julia Kummerer"),
+                                ("pair", 1614, None, "Partner: Marie Egger")])
+        self.assertEqual(con.execute("SELECT starters,classified FROM category_stats").fetchone(), (1, 1))
+
+    def test_anne_mannschaft_uses_one_team_time_without_synthetic_legs(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        persons = build_db.PersonRegistry()
+        team = {"rank": 1, "time": 2941, "teamName": "Naturfreunde Wien 1",
+                "clubName": "Naturfreunde Wien", "bibNumber": 100,
+                "classification": "classified", "categoryTitle": "Damen 15 bis 18",
+                "teamMembers": [
+                    {"firstName": "Matilda", "lastName": "Buschek", "leg": 1,
+                     "userId": 9030, "classification": "classified", "overall": {"time": 2941}},
+                    {"firstName": "Cleo", "lastName": "Machold", "leg": 2,
+                     "userId": 9220, "classification": "classified", "overall": {"time": 2941}},
+                    {"firstName": "Annina", "lastName": "Urbanek", "leg": 3,
+                     "userId": 8900, "classification": "classified", "overall": {"time": 2941}}]}
+        self.assertEqual(build_db.insert_anne_relay(cur, persons, 1, "D15-18", team, kind="team"), 3)
+        rows = cur.execute("SELECT result_kind,time_s,leg_number,leg_count,individual_status FROM result").fetchall()
+        self.assertEqual(rows, [("team", 2941, None, None, None)] * 3)
+        self.assertEqual(cur.execute("SELECT starters,classified,winner_time_s FROM category_stats").fetchone(), (1, 1, 2941))
+
+    def test_anne_stage_timestamps_keep_the_stated_calendar_date(self):
+        self.assertEqual(build_db.calendar_date("2026-09-27T00:00:00.000000Z"), "2026-09-27")
+        self.assertEqual(build_db.calendar_date("2026-09-26"), "2026-09-26")
+        self.assertIsNone(build_db.calendar_date(None))
+
     def test_official_champion_resolves_only_exact_winner_without_inventing_starters(self):
         con = sqlite3.connect(":memory:")
         con.executescript(build_db.SCHEMA)

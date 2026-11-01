@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "open_claims": [
+    {
+      "event_id": 5203,
+      "date": "2026-03-22",
+      "jurisdiction": "AUT",
+      "name": "Zusätzliche ÖSTM-Wertung",
+      "category": "D/H−20 und D/H35−",
+      "note": "Laut Ausschreibung laufen diese ÖM-Klassen auf derselben Bahn und werden zusätzlich für die ÖSTM gewertet. Die zusätzliche nationale Wertung kann das bisherige Ergebnisfeld nicht getrennt abbilden; Teilnahme, Rang, Mindeststarter und Titel sind offen.",
+      "source_url": "https://anne-cdn.oefol.at/public/2026/02/ibJvEeqn28qBetazOEvbL6kBXD1LKJ8NoPAVVeXN.pdf",
+      "result_url": "https://anne.orienteeringaustria.at/event/ac-skio-om-ostm-sprint-/ergebnisse"
+    }
+  ]
+}

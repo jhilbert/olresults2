@@ -111,8 +111,10 @@ function fmtTime(s) {
 
 function fmtDate(d) {
   if (!d) return "";
-  const [y, m, day] = d.split("-");
-  return `${day}.${m}.${y}`;
+  // ANNE may supply either a calendar date or an ISO timestamp.  Treat the
+  // date as the event's stated calendar date, without timezone conversion.
+  const match = String(d).match(/^(\d{4})-(\d{2})-(\d{2})(?:$|T|\s)/);
+  return match ? `${match[3]}.${match[2]}.${match[1]}` : esc(String(d));
 }
 
 function fmtPct(behind, winner) {
@@ -280,7 +282,7 @@ function runnerHits(q, limit = 10) {
      FROM candidates c
      CROSS JOIN person_result r ON r.person_id = c.id
      JOIN stage s ON s.id = r.stage_id JOIN event e ON e.id = s.event_id
-     WHERE r.result_kind != 'team'${dw.sql}
+     WHERE 1=1${dw.sql}
      GROUP BY c.id ORDER BY starts DESC LIMIT ?`, [`%${q}%`, ...dw.params, limit]);
 }
 
@@ -1722,7 +1724,7 @@ function clubDetailHtml(name, year, medalType, { withChangeButton, hrefBase, vie
       SELECT CAST(p.id AS TEXT) AS id, p.name, p.year_of_birth,
              (SELECT COUNT(*) FROM person_result r
               JOIN stage s ON s.id = r.stage_id JOIN event e ON e.id = s.event_id
-              WHERE r.person_id = p.id AND r.result_kind != 'team'${resultDw.sql}) AS n
+              WHERE r.person_id = p.id${resultDw.sql}) AS n
       FROM person_club_membership pcm
       JOIN person p ON p.id = pcm.person_id
       WHERE pcm.club = ? AND pcm.active = 1${membershipDw.sql}

@@ -18,7 +18,14 @@ const context = vm.createContext({
   localStorage: { getItem: () => null },
   URLSearchParams,
 });
-vm.runInContext(source.slice(0, bootIndex) + "\nglobalThis.renderYouth = renderYouthTitleTable;", context);
+vm.runInContext(source.slice(0, bootIndex) + "\nglobalThis.renderYouth = renderYouthTitleTable; globalThis.formatDate = fmtDate;", context);
+
+test("calendar dates and ISO stage timestamps display without time or timezone shift", () => {
+  assert.equal(context.formatDate("2026-09-27T00:00:00.000000Z"), "27.09.2026");
+  assert.equal(context.formatDate("2026-09-26"), "26.09.2026");
+  assert.equal(context.formatDate(""), "");
+  assert.equal(context.formatDate("<invalid>"), "&lt;invalid&gt;");
+});
 
 test("youth-title view is restricted to Naturfreunde Wien including old direct links", () => {
   const isolated = vm.createContext({
@@ -306,6 +313,10 @@ test("2026 ÖM sprint invitation confirms both U18 elite winners only on stage 2
 });
 
 test("user-confirmed 2024 youth titles are exact and do not override other checks", () => {
+  // Isolate the user-confirmation path: separately reviewed invitations can
+  // independently establish the category even when a confirmation changes.
+  const previousEvidence = vm.runInContext("nationalCategoryEvidence", context);
+  vm.runInContext("nationalCategoryEvidence = {}", context);
   const source = JSON.parse(fs.readFileSync(
     path.join(__dirname, "../site/data/youth-title-confirmations.json"), "utf8"));
   context.confirmationFixture = source.events;
@@ -331,4 +342,6 @@ test("user-confirmed 2024 youth titles are exact and do not override other check
     assert.doesNotMatch(context.renderYouth([{ ...individual, ...changed }], []), /Σ 400 €/);
   }
   assert.doesNotMatch(context.renderYouth([{ ...relay, team_number: "999" }], []), /Σ 400 €/);
+  context.savedNationalEvidence = previousEvidence;
+  vm.runInContext("nationalCategoryEvidence = savedNationalEvidence", context);
 });

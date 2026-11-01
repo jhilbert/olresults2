@@ -89,13 +89,40 @@ weiterhin separat anhand von Ergebnisquelle und Meisterschaftsregeln prüfen.
 Ist eine Ausschreibung nicht auffindbar, nicht lesbar oder widersprüchlich,
 den fehlenden Nachweis als offen ausweisen statt eine Wertung zu erfinden.
 
-Das lokale `data/raw/anne/attachments.json` enthält derzeit überwiegend
-Ergebnis-Anhänge; Ausschreibungen werden bei der Auswahl nicht zuverlässig
-übernommen. Deshalb seine Leere oder das Fehlen eines Dokuments nicht als
-Beweis werten, dass auf ANNE keine Ausschreibung existiert. Die Eventseite und
-gegebenenfalls den vollständigen Attachment-Endpunkt gezielt prüfen. Diese
-Vorgehensregel ist dokumentiert, aber noch kein automatisch vollständiger
-Ausschreibungs-Sync oder Parser.
+Das lokale `data/raw/anne/attachments.json` enthält überwiegend
+Ergebnis-Anhänge. Die gesonderte Inventur
+`data/review/championship_sources.json` fragt deshalb den öffentlichen
+ANNE-Attachment-Endpunkt für Kandidaten aus dem **vorhandenen** Kalender ab.
+Sie ist kein vollständiger Kalenderabgleich, und selbst eine erfolgreiche
+Abfrage ohne Anhang beweist nicht, dass anderswo keine Ausschreibung existiert.
+Ein Link ist zunächst nur ein Fund und noch kein geprüfter Klassenbeleg.
+
+### Meisterschafts-Quellencheck
+
+`championship-review.html` führt für ÖM/ÖSTM und Wiener MS die bestehenden
+Klassen nach Event und Etappe zusammen. Es zeigt separat den Status der
+Ausschreibung, die Ergebnisquelle samt Prüfhinweisen und den Quercheck der
+Meisterliste. Nach Eventtitel gefundene Kandidaten ohne bestehende Wertung
+stehen getrennt; Begleitläufe und Meldeseiten sind dabei möglich. Die
+ÖFOL-Meistertafel ist als Originalzellen mit Jahr und Tabellenzeile gespeichert;
+eindeutige Jugend- und Senioren-Einzelsieger mit passendem Namen und Verein werden nur als
+**Vorschlag**, nicht als Event- oder Titelbestätigung angezeigt. WOLV-Quellen
+und bereits belegte Einzelsieger sind getrennt hinterlegt. Der Abgleich mit
+einem Sieger belegt weder Silber/Bronze noch Vollständigkeit oder Eligibility.
+
+```sh
+python3 ingest/championship_sources.py --from-year 2024 --to-year 2026
+python3 build/championship_audit.py
+```
+
+Der erste Befehl fragt öffentliches Attachment-Metadateninventar ab und wird
+bewusst nicht beim täglichen Ergebnissync ausgeführt. Der zweite erzeugt aus
+dem aktuellen lokalen Datenbankstand den lesbaren Bericht; er schreibt keine
+Ergebnisse, Titel oder Prüfentscheidungen. Er wird auch beim Pages-Build
+erzeugt. Der Fingerabdruck dokumentiert die Eingaben; ein neuer Report allein
+bestätigt keine Prüfung. Seit dem letzten DB-Aufbau getroffene Entscheidungen
+erscheinen erst nach einem erneuten Aufbau im Bericht. Ungeprüfte oder
+widersprüchliche Dokumente bleiben offen.
 
 ## Sechsstufiger QA-Ablauf
 

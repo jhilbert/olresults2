@@ -581,6 +581,14 @@ async function boot() {
     decisions = query("SELECT * FROM verification_assertion");
     $("save-mode").textContent = "nur lesen · lokal mit site/serve.py öffnen";
   }
+  const deepLink = new URLSearchParams(location.search);
+  if (/^\d+$/.test(deepLink.get("event") || "")) {
+    selectedEventId = deepLink.get("event");
+    selectedId = deepLink.get("list") || null;
+    $("campaign").value = "all";
+    $("queue-state").value = "all";
+    $("queue-search").value = selectedEventId;
+  }
   ["campaign", "queue-state", "queue-date"].forEach((id) => $(id).addEventListener("change", applyFilters));
   $("event-select").addEventListener("change", () => {
     selectedEventId = $("event-select").value || null;

@@ -14,7 +14,8 @@ class FrontendRegressionTests(unittest.TestCase):
         if not node:
             self.skipTest("Node.js is required for frontend regression tests")
         subprocess.run(
-            [node, "--test", "tests/test_frontend_rules.js", "tests/test_youth_titles.js"],
+            [node, "--test", "tests/test_frontend_rules.js", "tests/test_youth_titles.js",
+             "tests/test_championship_review.js"],
             cwd=ROOT, check=True, capture_output=True, text=True,
         )
 
