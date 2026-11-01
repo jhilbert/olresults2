@@ -1,0 +1,11 @@
+{
+  "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+  "source_sha256": "b3705cd9a11d461172140744c56bbdefab68860737acfac6bfafa727e85dc9a7",
+  "scope": "2015 annual table, explicitly published state champions; exact source-result matches only. This does not verify an ÖFOL identity or eligibility of other runners.",
+  "champions": [
+    {"event_id":1378,"date":"2015-05-16","category":"Damen 21- Elite","name":"Laura Ramstein","club":"OLC Graz","time_s":2074,"annual_row":"row-34"},
+    {"event_id":1378,"date":"2015-05-16","category":"Herren 21- Elite","name":"Gernot Kerschbaumer","club":"HSV Pinkafeld","time_s":1838,"annual_row":"row-35"},
+    {"event_id":1379,"date":"2015-05-17","category":"Damen 21- Elite","name":"Laura Ramstein","club":"OLC Graz","time_s":977,"annual_row":"row-3"},
+    {"event_id":1379,"date":"2015-05-17","category":"Herren 21- Elite","name":"Gernot Kerschbaumer","club":"HSV Pinkafeld","time_s":918,"annual_row":"row-4"}
+  ]
+}

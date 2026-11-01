@@ -31,6 +31,7 @@ CLUB_JURISDICTIONS_PATH = ROOT / "data" / "club_jurisdictions.json"
 REGIONAL_SOURCE_CLASSES_PATH = ROOT / "data" / "review" / "regional_source_classes.json"
 EXCLUDED_EVENTS_PATH = ROOT / "data" / "review" / "excluded_events.json"
 OFFICIAL_NATIONAL_TITLES_PATH = ROOT / "data" / "review" / "official_national_titles.json"
+OFFICIAL_2015_OSTM_CHAMPIONS_PATH = ROOT / "data" / "review" / "official_2015_ostm_champions.json"
 
 
 def load_event_exclusions(path=EXCLUDED_EVENTS_PATH):
@@ -48,6 +49,16 @@ def load_event_exclusions(path=EXCLUDED_EVENTS_PATH):
 
 
 EXCLUDED_EVENTS = load_event_exclusions()
+
+# The two Austrian 2015 AC/ÖSTM lists are the explicitly selected public
+# results. Their international Swiss joint-event lists describe the same
+# races with different fields and placements, not additional starts. Keep
+# the normalized original sources on disk, but do not import the other field.
+# Match stable source URLs rather than attachment indexes, which can move.
+PREFERRED_EVENT_RESULT_URLS = {
+    1378: "https://anne-cdn.oefol.at/public/legacy/event_1378_ergebnisse_oestm_middle.html",
+    1379: "https://anne-cdn.oefol.at/public/legacy/event_1379_ergebnisse_oestm_sprint.html",
+}
 
 # Dedicated national result sources discovered in ANNE's attachment catalog.
 # ``supplemental`` means the document is a real stage missing from ANNE's
@@ -1663,6 +1674,31 @@ def strip_age_overlap_categories(cur):
            WHERE category = ? AND championship IS NOT NULL AND result_kind = 'individual'""",
         bad)
     return len(bad)
+
+
+def apply_confirmed_2015_ostm_champions(cur, champions):
+    """Recognize the annual-table winner without asserting an ÖFOL identity."""
+    matched = 0
+    for champion in champions:
+        event_id = champion["event_id"]
+        if not cur.execute("SELECT 1 FROM event WHERE id=?", (event_id,)).fetchone():
+            continue
+        rows = cur.execute("""SELECT r.id FROM result r
+            JOIN stage s ON s.id=r.stage_id JOIN event e ON e.id=s.event_id
+            JOIN source_document d ON d.id=r.source_document_id
+            WHERE e.id=? AND substr(COALESCE(s.date,e.date_from),1,10)=?
+              AND d.source_url=? AND r.category=? AND r.observed_name=?
+              AND r.official_club=? AND r.time_s=? AND r.rank=1 AND r.status='ok'
+              AND r.out_of_competition=0 AND r.championship='ÖSTM'""",
+            (event_id, champion["date"], PREFERRED_EVENT_RESULT_URLS[event_id],
+             champion["category"], champion["name"], champion["club"], champion["time_s"])).fetchall()
+        if len(rows) != 1:
+            raise ValueError(f"2015 official champion no longer matches one result: {event_id} {champion['name']}")
+        cur.execute("""UPDATE result SET championship_eligibility_state='eligible',
+                       championship_eligibility_basis='official_championship_ranking',
+                       championship_source_scope='winner_only' WHERE id=?""", rows[0])
+        matched += 1
+    return matched
 
 
 def apply_championship_eligibility_overrides(cur):
@@ -4052,6 +4088,19 @@ def expand_4404_published_pairs(event_id, category, rows):
     return expanded
 
 
+def select_preferred_event_documents(docs, events):
+    """Use explicit source selections; fail closed if a selected source vanished."""
+    for event_id, url in PREFERRED_EVENT_RESULT_URLS.items():
+        if event_id not in events:
+            continue
+        if not any(d.get("eventId") == event_id and d.get("sourceUrl") == url
+                   and d.get("listType") == "race" and not d.get("_skip")
+                   for d in docs):
+            raise ValueError(f"Selected result source missing for event {event_id}: {url}")
+    return [d for d in docs if d.get("eventId") not in PREFERRED_EVENT_RESULT_URLS
+            or d.get("sourceUrl") == PREFERRED_EVENT_RESULT_URLS[d["eventId"]]]
+
+
 def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
     n = 0
     # Each legacy file's own SportSoftware <title> names the specific race it
@@ -4074,6 +4123,7 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
             normalize_qualitative_result_ranks(expanded.get("categories"))
             docs.append(expanded)
     docs = [d for d in docs if not JUNK_DOC_FILENAME_RE.search(d.get("fileName") or "")]
+    docs = select_preferred_event_documents(docs, events)
     docs, _n_dropped = drop_cross_event_duplicate_docs(docs)
     correct_legacy_stage_dates(docs, events)
     map_docs_to_anne_stages(docs)
@@ -6776,6 +6826,8 @@ def main():
         apply_confirmed_national_category_exclusions(cur, national_category_evidence)
         apply_confirmed_national_category_additions(cur, national_category_evidence)
 
+    official_2015 = json.loads(OFFICIAL_2015_OSTM_CHAMPIONS_PATH.read_text())
+    apply_confirmed_2015_ostm_champions(cur, official_2015["champions"])
     n_eligibility = apply_championship_eligibility_overrides(cur)
     apply_championship_eligibility_evidence(cur)
 

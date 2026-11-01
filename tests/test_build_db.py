@@ -13,6 +13,60 @@ SPEC.loader.exec_module(build_db)
 
 
 class AnneIdentityTests(unittest.TestCase):
+    def test_2015_ostm_uses_only_selected_austrian_event_sources(self):
+        urls = build_db.PREFERRED_EVENT_RESULT_URLS
+        docs = [
+            {"eventId": 1378, "sourceUrl": urls[1378], "listType": "race"},
+            {"eventId": 1378, "sourceUrl": "https://example.org/international-middle", "listType": "race"},
+            {"eventId": 1379, "sourceUrl": urls[1379], "listType": "race"},
+            {"eventId": 1379, "sourceUrl": "https://example.org/international-sprint", "listType": "race"},
+            {"eventId": 999, "sourceUrl": "https://example.org/unrelated", "listType": "race"},
+        ]
+        chosen = build_db.select_preferred_event_documents(docs, {1378: {}, 1379: {}, 999: {}})
+        self.assertEqual([d["sourceUrl"] for d in chosen], [urls[1378], urls[1379], "https://example.org/unrelated"])
+        with self.assertRaisesRegex(ValueError, "1378"):
+            build_db.select_preferred_event_documents(docs[1:], {1378: {}, 1379: {}})
+        self.assertEqual(build_db.select_preferred_event_documents(docs[1:], {1379: {}}), [docs[2], docs[4]])
+
+    def test_2015_official_champion_evidence_does_not_invent_identity(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id,title,date_from) VALUES (1378,'ÖSTM','2015-05-16')")
+        cur.execute("INSERT INTO stage (id,event_id,number,date) VALUES (1,1378,1,'2015-05-16')")
+        cur.execute("INSERT INTO person VALUES (-1,'Gernot Kerschbaumer','gernot kerschbaumer',NULL,NULL)")
+        cur.execute("INSERT INTO source_document (id,event_id,source_type,source_url) VALUES ('doc',1378,'html',?)",
+                    (build_db.PREFERRED_EVENT_RESULT_URLS[1378],))
+        build_db.insert_result(cur, stage_id=1, person_id=-1, category="Herren 21- Elite", rank=1,
+            status="ok", time_s=1838, source="test", observed_name="Gernot Kerschbaumer",
+            official_club="HSV Pinkafeld", championship="ÖSTM", source_document_id="doc",
+            identity_state="candidate")
+        champions = [{"event_id":1378, "date":"2015-05-16", "category":"Herren 21- Elite",
+                      "name":"Gernot Kerschbaumer", "club":"HSV Pinkafeld", "time_s":1838}]
+        self.assertEqual(build_db.apply_confirmed_2015_ostm_champions(cur, champions), 1)
+        self.assertEqual(cur.execute("SELECT championship_eligibility_state,championship_eligibility_basis,championship_source_scope,identity_state,person_id FROM result").fetchone(),
+                         ("eligible", "official_championship_ranking", "winner_only", "candidate", -1))
+        with self.assertRaisesRegex(ValueError, "no longer matches"):
+            build_db.apply_confirmed_2015_ostm_champions(cur, [{**champions[0], "time_s": 1839}])
+
+    def test_2015_ostm_champions_match_both_committed_sources(self):
+        evidence = json.loads((ROOT / "data/review/official_2015_ostm_champions.json").read_text())
+        annual = json.loads((ROOT / "data/review/oefol_meistertafel_rows.json").read_text())
+        self.assertEqual(evidence["source_sha256"], annual["source_sha256"])
+        rows = {r["source_row"]: r for table in annual["tables"] if table["year"] == 2015 for r in table["rows"]}
+        for champion in evidence["champions"]:
+            cells = rows[champion["annual_row"]]["cells"]
+            self.assertIn("Staatsmeister", cells[0]["text"])
+            self.assertEqual(cells[2]["text"].casefold(), champion["name"].casefold())
+            path = ROOT / f"data/normalized/{champion['event_id']}-1.json"
+            doc = json.loads(path.read_text())
+            self.assertEqual(doc["sourceUrl"], build_db.PREFERRED_EVENT_RESULT_URLS[champion["event_id"]])
+            matches = [r for cat in doc["categories"] if cat["name"] == champion["category"]
+                       for r in cat["results"] if r.get("rank") == 1
+                       and r.get("name") == champion["name"] and r.get("club") == champion["club"]
+                       and r.get("timeS") == champion["time_s"]]
+            self.assertEqual(len(matches), 1, champion)
+
     def test_additional_championship_ranking_links_one_physical_result(self):
         con = sqlite3.connect(":memory:")
         con.executescript(build_db.SCHEMA)
