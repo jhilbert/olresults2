@@ -623,6 +623,17 @@ function viewEvents(year, omOnly, top3, regionalCode = null) {
         FROM person_result r JOIN person p ON p.id = r.person_id
         WHERE r.championship IS NOT NULL AND r.national_rank <= 3 AND r.status = 'ok'
         ORDER BY r.stage_id, r.category, r.national_rank`);
+    if (!regionalCode) championRows.push(...query(`SELECT DISTINCT cse.stage_id,cse.category,
+        cse.championship_type AS championship,cse.observed_rank AS national_rank,
+        CAST(p.id AS TEXT) AS person_id,p.name AS person_name,r.official_club AS club
+        FROM championship_source_entry cse JOIN result r ON r.id=cse.result_id
+        JOIN person p ON p.id=r.person_id
+        WHERE cse.evidence_kind='official_additional_classification' AND cse.source_scope='full_field'
+          AND cse.observed_status='ok' AND cse.observed_rank BETWEEN 1 AND 3 AND r.identity_state='resolved'
+          AND (SELECT COUNT(*) FROM championship_source_entry starters
+               WHERE starters.source_document_id=cse.source_document_id AND starters.stage_id=cse.stage_id
+                 AND starters.category=cse.category AND starters.evidence_kind=cse.evidence_kind
+                 AND starters.observed_status IN ('ok','dnf','mp','dsq')) >= 3`));
     for (const r of championRows) {
       if (!champsByStage.has(r.stage_id)) champsByStage.set(r.stage_id, new Map());
       const byCat = champsByStage.get(r.stage_id);
@@ -689,11 +700,21 @@ function fetchRunnerRows(id, dw) {
     LEFT JOIN category_stats cs ON cs.stage_id = r.stage_id AND cs.category = r.category
     WHERE r.person_id = ?${dw.sql}
     ORDER BY COALESCE(s.date, e.date_from) DESC`, [id, ...dw.params]);
+  const classifications = query(`SELECT cse.result_id,cse.championship_type,cse.category,
+      cse.observed_rank,cse.observed_status FROM championship_source_entry cse
+      JOIN result r ON r.id=cse.result_id
+      WHERE r.person_id=? AND cse.evidence_kind='official_additional_classification'`, [id]);
+  const byResult = new Map();
+  for (const item of classifications) {
+    if (!byResult.has(item.result_id)) byResult.set(item.result_id, []);
+    byResult.get(item.result_id).push(item);
+  }
   // link straight to the specific race's own results page (same "event ·
   // stage" single click-target as the Wettkämpfe list) - only when this
   // runner's own results reveal the event actually has more than one stage.
   const eventStageCounts = new Map();
   for (const r of allRows) {
+    r.additional_classifications = byResult.get(r.id) || [];
     if (!eventStageCounts.has(r.event_id)) eventStageCounts.set(r.event_id, new Set());
     eventStageCounts.get(r.event_id).add(r.stage_id);
   }
@@ -718,7 +739,7 @@ function renderRunnerResultsTable(rows) {
           <td class="dim">${fmtDate(r.stage_date || r.date_from)}</td>
           <td><a href="${r.href}">${esc(r.event_title)}${r.stage_label ? ` <span class="dim">· ${esc(r.stage_label)}</span>` : ""}</a></td>
           <td class="hide-sm dim">${esc(r.location || "")}</td>
-          <td>${esc(r.category_full || r.category)}${r.result_kind && r.result_kind !== "individual" ? ` <span class="badge">${{ relay: "Staffel", pair: "Paar", team: "Mannschaft" }[r.result_kind] || r.result_kind}</span>` : ""}</td>
+          <td>${esc(r.category_full || r.category)}${r.result_kind && r.result_kind !== "individual" ? ` <span class="badge">${{ relay: "Staffel", pair: "Paar", team: "Mannschaft" }[r.result_kind] || r.result_kind}</span>` : ""}${(r.additional_classifications || []).map((c) => `<div class="note">${esc(c.championship_type)} ${esc(c.category)}: ${c.observed_rank != null ? `Rang ${esc(c.observed_rank)}` : esc(c.observed_status || "")}</div>`).join("")}</td>
           <td class="num">${rankCell(r)}</td>
           <td class="num">${fmtTime(r.result_kind === "relay" && r.team_time_s != null ? r.team_time_s : r.time_s)}</td>
           <td class="num dim">${r.time_behind_s ? "+" + fmtTime(r.time_behind_s) : ""}</td>
@@ -853,7 +874,7 @@ function viewRunnersPage(year, omGroup, ansicht, regionalCode = null) {
           personId: runner ? runner.person_id : null,
           dw,
         })
-      : fetchPodiums({ personId: runner ? runner.person_id : null, dw });
+      : fetchPodiums({ personId: runner ? runner.person_id : null, dw, includeAdditional: mode === "om" });
     // Unlike Vereine, "Medaillenspiegel (Einzeln)" here is a real 3-way
     // Gruppe choice, not locked to ÖM/ÖSTM - a runner's own full "Alle"
     // podium tally is a reasonable thing to want to see for themselves.
@@ -974,6 +995,10 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
      JOIN stage s ON s.id = r.stage_id WHERE s.event_id = ? AND r.championship IS NOT NULL
        ${onStage ? "AND s.number = ?" : ""}`,
     onStage ? [id, onStage.number] : [id]);
+  champCats.push(...query(`SELECT DISTINCT cse.championship_type AS championship,cse.category
+      FROM championship_source_entry cse JOIN stage s ON s.id=cse.stage_id
+      WHERE s.event_id=? AND cse.evidence_kind='official_additional_classification'
+      ${onStage ? "AND s.number=?" : ""}`, onStage ? [id,onStage.number] : [id]));
   const hasChamp = champCats.length > 0;
   const toggleHref = `#/event/${id}${stageParam}${medalsOnly ? "" : "/om"}`;
   const champBadges = [...new Set(champCats.map((c) => c.championship))].map((champ) => {
@@ -1018,6 +1043,15 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
     ${medalsOnly && hasChamp ? `<p class="sub dim">Kompaktübersicht: nur ÖM/ÖSTM-Altersklassen, nur Medaillenränge.</p>` : ""}`;
 
   for (const st of stages) {
+    const hasSourceTime = query("PRAGMA table_info(championship_source_entry)").some((col) => col.name === "observed_time_s");
+    const extraRows = !regionalCode && hasSourceTime ? query(`SELECT cse.category,cse.championship_type,
+        cse.observed_name,cse.observed_club,cse.observed_rank,cse.observed_status,cse.observed_time_s,
+        CAST(r.person_id AS TEXT) AS person_id,COALESCE(p.name,cse.observed_name) AS person_name,
+        sd.source_url
+      FROM championship_source_entry cse LEFT JOIN result r ON r.id=cse.result_id
+      LEFT JOIN person p ON p.id=r.person_id LEFT JOIN source_document sd ON sd.id=cse.source_document_id
+      WHERE cse.stage_id=? AND cse.evidence_kind='official_additional_classification'
+      ORDER BY cse.category,cse.observed_rank IS NULL,cse.observed_rank,cse.observed_name`, [st.id]) : [];
     const cats = regionalCode ? query(`
       SELECT ci.id AS regional_instance_id, ci.category, ci.category AS category_full,
              COALESCE(starter_counts.starter_count, 0) AS championship_starters,
@@ -1057,11 +1091,23 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
     // at all (a plain Austria-Cup leg of an otherwise-championship meet, e.g.
     // "6.AC Mittel" within "ÖM 3Tage-4Läufe") would otherwise render as a bare
     // heading with nothing under it - skip it entirely.
-    if (medalsOnly && !cats.length) continue;
+    if (medalsOnly && !cats.length && !extraRows.length) continue;
     if (stages.length > 1) {
       // each stage heading links to that race on its own for a clean, single-
       // race results page
       html += `<h2 id="stage-${id}-${st.number}" class="stage-anchor"><a href="#/event/${id}/stage/${st.number}${medalsOnly ? "/om" : ""}">${esc(st.title || "Etappe " + st.number)}</a></h2>`;
+    }
+    if (extraRows.length) {
+      const groups = new Map();
+      for (const row of extraRows) {
+        if (medalsOnly && !(row.observed_rank >= 1 && row.observed_rank <= 3)) continue;
+        if (!groups.has(row.category)) groups.set(row.category, []);
+        groups.get(row.category).push(row);
+      }
+      html += `<h2>Offizielle Staatsmeisterschaftswertung</h2><p class="sub dim">Eigenständige Wertung derselben Läufe; kein zusätzlicher Start. ${extraRows[0].source_url ? `<a href="${esc(extraRows[0].source_url)}" target="_blank" rel="noopener">Originalwertung ↗</a>` : ""}</p>`;
+      for (const [category, rows] of groups) {
+        html += `<div class="cat-block"><div class="cat-head"><h3>${esc(category)} <span class="badge champ-badge">ÖSTM</span></h3><span class="course">${rows.length} Einträge</span></div><table><thead><tr><th class="num">Pl</th><th>Name</th><th class="hide-sm">Verein</th><th class="num">Zeit</th></tr></thead><tbody>${rows.map((r) => `<tr><td class="num">${rankCell({rank:r.observed_rank,status:r.observed_status,out_of_competition:0})}</td><td>${runnerNameHtml(r.person_id,r.person_name,{hasResults:!!r.person_id})}</td><td class="hide-sm dim">${esc(r.observed_club || "")}</td><td class="num">${r.observed_time_s != null ? fmtTime(r.observed_time_s) : ""}</td></tr>`).join("")}</tbody></table></div>`;
+      }
     }
     const stageHasOfficial = cats.some((c) => !isBahn(c.category));
     for (const c of cats) {
@@ -1256,7 +1302,7 @@ function renderChampions(byCat) {
 // page and the home hub's own Medaillenspiegel Ansicht so the exact same
 // query (and the ranked-/chronological-table renderers built on it) isn't
 // duplicated between the two.
-function fetchPodiums({ club, personId, dw }) {
+function fetchPodiums({ club, personId, dw, includeAdditional = false }) {
   const conds = [`r.status = 'ok'`,
     // national_rank is placement among only championship-eligible (Austrian)
     // finishers - it can differ from the overall race `rank` when a
@@ -1286,7 +1332,7 @@ function fetchPodiums({ club, personId, dw }) {
   // even though the club itself is still perfectly well known. Callers that
   // rank by PERSON (renderRankedMedalTable) skip person_id-less rows
   // themselves instead, since there's no one to attribute them to there.
-  return query(`
+  const base = query(`
     SELECT r.rank, r.national_rank, r.category, r.category_full, r.result_kind, r.championship,
            r.status, r.out_of_competition, r.time_s, r.team_number,
            r.championship_source_scope, r.championship_eligibility_state, r.identity_state,
@@ -1304,6 +1350,35 @@ function fetchPodiums({ club, personId, dw }) {
     LEFT JOIN official_national_title ont ON ont.result_id = r.id
     WHERE ${conds.join(" AND ")}${dw.sql}
     ORDER BY date DESC`, [...params, ...dw.params]);
+  if (!includeAdditional || !query("PRAGMA table_info(championship_source_entry)").some((col) => col.name === "observed_time_s")) return base;
+  const extraConds = ["cse.evidence_kind = 'official_additional_classification'",
+    "cse.source_scope = 'full_field'", "cse.observed_status = 'ok'",
+    "cse.observed_rank BETWEEN 1 AND 3", "r.person_id IS NOT NULL",
+    "r.identity_state = 'resolved'",
+    `(SELECT COUNT(*) FROM championship_source_entry starters
+       WHERE starters.source_document_id=cse.source_document_id
+         AND starters.stage_id=cse.stage_id AND starters.category=cse.category
+         AND starters.evidence_kind=cse.evidence_kind
+         AND starters.observed_status IN ('ok','dnf','mp','dsq')) >= 3`];
+  const extraParams = [];
+  if (club) { extraConds.push("r.official_club = ?"); extraParams.push(club); }
+  if (personId) { extraConds.push("r.person_id = ?"); extraParams.push(personId); }
+  const additional = query(`SELECT DISTINCT cse.observed_rank AS rank, cse.observed_rank AS national_rank,
+      cse.category, cse.category AS category_full, 'individual' AS result_kind,
+      cse.championship_type AS championship, cse.observed_status AS status,
+      0 AS out_of_competition, cse.observed_time_s AS time_s, NULL AS team_number,
+      cse.source_scope AS championship_source_scope, 'eligible' AS championship_eligibility_state,
+      r.identity_state, r.result_list_id, NULL AS official_national_title_url,
+      e.id AS event_id, e.title AS event_title, e.sport_type, s.title AS stage_title,
+      s.id AS stage_id, s.number AS stage_number, COALESCE(s.date,e.date_from) AS date,
+      CAST(p.id AS TEXT) AS person_id, COALESCE(p.name,cse.observed_name) AS person_name,
+      r.official_club AS club_name
+    FROM championship_source_entry cse JOIN result r ON r.id=cse.result_id
+    JOIN stage s ON s.id=cse.stage_id JOIN event e ON e.id=s.event_id
+    LEFT JOIN person p ON p.id=r.person_id
+    WHERE ${extraConds.join(" AND ")}${dw.sql}
+    ORDER BY date DESC`, [...extraParams, ...dw.params]);
+  return [...base, ...additional];
 }
 
 // Confirmed Landesmeisterschaft podiums use their own regional rank. One
@@ -1763,7 +1838,7 @@ function clubDetailHtml(name, year, medalType, { withChangeButton, hrefBase, vie
 
   const allPodiums = mode === "lm"
     ? fetchRegionalPodiums({ jurisdiction: regionalCode, club: name, dw })
-    : fetchPodiums({ club: name, dw });
+    : fetchPodiums({ club: name, dw, includeAdditional: isOm });
   const years = [...new Set(allPodiums.map((r) => seasonYear(r.date, r.sport_type)))].sort((a, b) => b - a);
   const typeFiltered = mode === "lm" ? allPodiums : isOm
     ? allPodiums.filter((r) => r.championship && r.national_rank <= 3)
@@ -1839,7 +1914,7 @@ function viewClubsPage(year, medalType, view, regionalCode = null) {
     const mode = regionalCode ? "lm" : "om";
     const podiumsAll = mode === "lm"
       ? fetchRegionalPodiums({ jurisdiction: regionalCode, dw })
-      : fetchPodiums({ dw });
+      : fetchPodiums({ dw, includeAdditional: true });
     const typeFiltered = mode === "lm" ? podiumsAll
       : podiumsAll.filter((r) => r.championship && r.national_rank <= 3);
     const podiums = year ? typeFiltered.filter((r) => seasonYear(r.date, r.sport_type) === year) : typeFiltered;

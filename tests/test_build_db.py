@@ -13,6 +13,39 @@ SPEC.loader.exec_module(build_db)
 
 
 class AnneIdentityTests(unittest.TestCase):
+    def test_additional_championship_ranking_links_one_physical_result(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO stage (id,event_id,number) VALUES (1,5203,1)")
+        cur.execute("INSERT INTO person VALUES (8611,'Maria Hauser','hauser maria',2008,'AUT')")
+        build_db.insert_result(cur, stage_id=1, person_id=8611, category="D-20", rank=1,
+            status="ok", time_s=881, championship="ÖM", source="anne-api",
+            observed_name="Maria Hauser", observed_club="Naturfreunde Kitzbühel")
+        cur.execute("INSERT INTO source_document (id,event_id,source_type) VALUES ('doc',5203,'pdf')")
+        doc = {"_normalizedPath":"5203-1.json", "categories":[{"name":"Damen", "results":[
+            {"name":"Hauser Maria", "club":"Naturfreunde Kitzbühel", "rank":3,
+             "status":"ok", "timeS":881}]}]}
+        build_db.register_championship_source_entries(cur, doc, 1, "doc", {
+            "mode":"classification", "championship":"ÖSTM", "scope":"full_field"})
+        self.assertEqual(build_db.apply_championship_source_entries(cur), 1)
+        self.assertEqual(cur.execute("SELECT COUNT(*),MIN(championship) FROM result").fetchone(), (1, "ÖM"))
+        self.assertEqual(cur.execute("SELECT result_id,observed_rank,championship_type FROM championship_source_entry").fetchone(), (1, 3, "ÖSTM"))
+        # An official source with fewer than three starters does not award.
+        build_db.populate_additional_national_classifications(cur)
+        self.assertEqual(cur.execute("SELECT COUNT(*) FROM award").fetchone()[0], 0)
+        self.assertEqual(cur.execute("SELECT COUNT(*) FROM championship_instance WHERE detection_basis='official_additional_classification'").fetchone()[0], 1)
+        for sid, status in (("x", "dnf"), ("y", "mp")):
+            cur.execute("""INSERT INTO championship_source_entry VALUES
+                (?,1,'doc','Damen','d21e',?,?,'OLC Graz',NULL,?,NULL,NULL,
+                 'ÖSTM','official_additional_classification','full_field')""", (sid,sid,sid,status))
+        build_db.populate_additional_national_classifications(cur)
+        self.assertEqual(cur.execute("SELECT medal,award_rank,result_id FROM award").fetchall(), [("bronze",3,1)])
+        self.assertEqual(cur.execute("SELECT COUNT(*) FROM result").fetchone()[0], 1)
+        cur.execute("UPDATE championship_source_entry SET observed_time_s=999,result_id=NULL")
+        self.assertEqual(build_db.apply_championship_source_entries(cur), 0)
+        self.assertIsNone(cur.execute("SELECT result_id FROM championship_source_entry").fetchone()[0])
+
     def test_anne_night_pair_shares_time_and_is_one_competitor(self):
         con = sqlite3.connect(":memory:")
         con.executescript(build_db.SCHEMA)
@@ -1071,7 +1104,7 @@ class AnneIdentityTests(unittest.TestCase):
         cur.execute(
             """INSERT INTO championship_source_entry VALUES
                ('e',1,'doc','D-14','d14','Anna-Berta Eins-Zwei',
-                'anna berta eins zwei','OLC Graz',3,'ok',NULL,'ÖM',
+                'anna berta eins zwei','OLC Graz',3,'ok',NULL,NULL,'ÖM',
                 'official_championship_inclusion','medal_places_only')""")
         build_db.apply_championship_source_entries(cur)
         self.assertEqual(cur.execute(

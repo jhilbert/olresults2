@@ -81,13 +81,11 @@ class ChampionshipAuditTests(unittest.TestCase):
         national["events"]["1"]["stage_number"] = 2
         self.assertNotEqual(self.collect(national=national)["classes"][0]["invitation"]["state"], "category_reviewed")
 
-    def test_invited_but_absent_class_is_a_question_not_a_title(self):
+    def test_an_announced_class_without_participants_is_not_an_issue(self):
         national = {"events": {"1": {"event_date": "2025-05-01", "stage_number": 1,
                     "categories": ["D-14", "H-14"], "url": "https://example.org/inv"}}}
         report = self.collect(national=national)
-        self.assertEqual(len(report["national_classes_without_instance"]), 1)
-        self.assertEqual(report["national_classes_without_instance"][0]["category"], "H-14")
-        self.assertEqual(report["national_classes_without_instance"][0]["result_rows"], 0)
+        self.assertNotIn("national_classes_without_instance", report)
 
     def test_regional_mapping_requires_real_class_and_source_category(self):
         item = {"categories":{"W D-14":"D-14", "H45":{"H45-":["A"],"H50-":["B"]}}}

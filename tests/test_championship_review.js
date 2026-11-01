@@ -24,10 +24,10 @@ test("championship source overview shows findings without confirming them", asyn
   vm.runInContext(fs.readFileSync(path.join(__dirname, "../site/championship-review.js"), "utf8"), context);
   await new Promise((resolve) => setImmediate(resolve));
   assert.match(node("events").innerHTML, /Widerspruch/);
-  assert.match(node("events").innerHTML, /Vollständigkeit nicht manuell bestätigt/);
+  assert.doesNotMatch(node("events").innerHTML, /Vollständigkeit nicht manuell bestätigt/);
   assert.match(node("events").innerHTML, /review\.html\?event=4304&amp;list=list%3Aone/);
   assert.doesNotMatch(node("events").innerHTML, /Test <Event>/);
   node("state").value = "conflict";
   vm.runInContext("render()", context);
-  assert.match(node("summary").textContent, /1 Klassen mit Quellenkonflikt/);
+  assert.match(node("summary").textContent, /1 bekannte Quellenkonflikte/);
 });

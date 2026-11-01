@@ -179,7 +179,16 @@ def collect(con, source_inventory, national_evidence, regional_classes,
           AND r.championship=ci.championship_type
         LEFT JOIN result_list rl ON rl.id=r.result_list_id
         LEFT JOIN source_document sd ON sd.id=rl.source_document_id
-        WHERE ci.jurisdiction='AUT'"""
+        WHERE ci.jurisdiction='AUT' AND ci.detection_basis!='official_additional_classification'"""
+    sql_additional = f"""SELECT ci.id AS instance_id,{common},cse.observed_rank AS official_rank
+        FROM championship_instance ci JOIN championship_source_entry cse
+          ON cse.stage_id=ci.stage_id AND cse.category=ci.category
+         AND cse.championship_type=ci.championship_type
+         AND cse.evidence_kind='official_additional_classification'
+        JOIN result r ON r.id=cse.result_id
+        LEFT JOIN result_list rl ON rl.id=r.result_list_id
+        LEFT JOIN source_document sd ON sd.id=cse.source_document_id
+        WHERE ci.jurisdiction='AUT' AND ci.detection_basis='official_additional_classification'"""
     sql_regional = f"""SELECT ci.id AS instance_id,{common},ce.id AS regional_entry_id,ce.regional_rank,
         ce.eligibility_state AS regional_eligibility_state FROM championship_instance ci
         JOIN championship_entry ce ON ce.championship_instance_id=ci.id
@@ -188,9 +197,12 @@ def collect(con, source_inventory, national_evidence, regional_classes,
         LEFT JOIN result_list rl ON rl.id=r.result_list_id
         LEFT JOIN source_document sd ON sd.id=rl.source_document_id
         WHERE ci.jurisdiction='WIEN'"""
-    for sql in (sql_national, sql_regional):
+    for sql in (sql_national, sql_regional, sql_additional):
         for row in con.execute(sql):
-            results[row["instance_id"]].append(dict(row))
+            item = dict(row)
+            if "official_rank" in item:
+                item["national_rank"] = item.pop("official_rank")
+            results[row["instance_id"]].append(item)
     issues = defaultdict(Counter)
     for row in con.execute("SELECT result_list_id,severity,code,COUNT(*) AS n FROM audit_issue GROUP BY result_list_id,severity,code"):
         issues[row["result_list_id"]][(row["severity"], row["code"])] += row["n"]
@@ -247,7 +259,10 @@ def collect(con, source_inventory, national_evidence, regional_classes,
                 invitation["sha256"] = reviewed.get("sha256")
         cross = {"state": "not_compared", "source_url": None}
         if c["jurisdiction"] == "AUT":
-            if any(r["result_id"] in official for r in rows):
+            if c["detection_basis"] == "official_additional_classification":
+                cross.update(state="official_classification",
+                             source_url=next((r.get("result_url") for r in rows if r.get("result_url")), None))
+            elif any(r["result_id"] in official for r in rows):
                 cross.update(state="winner_partially_matched", source_url=national_rows.get("source_url"))
             elif year and int(year) in official_years:
                 cross["source_url"] = national_rows.get("source_url")
@@ -325,29 +340,11 @@ def collect(con, source_inventory, national_evidence, regional_classes,
         grouped[key]["result_" + c["result"]["completeness"]] += 1
     missing_candidates = [v for v in source_inventory.get("events", {}).values()
                           if not v.get("jurisdictions")]
-    present_classes = {(str(c["event_id"]), c["stage_number"], c["stage_date"][:10], c["category"])
-                       for c in output if c["jurisdiction"] == "AUT" and c["stage_date"]}
-    missing_national_classes = []
-    for eid, evidence in national_evidence.get("events", {}).items():
-        if not str(eid).isdigit() or not evidence.get("event_date") or not evidence.get("stage_number"):
-            continue
-        for category in evidence.get("categories", []):
-            key = (str(eid), evidence["stage_number"], evidence["event_date"], category)
-            if key in present_classes:
-                continue
-            count = con.execute("""SELECT COUNT(*) FROM result r JOIN stage s ON s.id=r.stage_id
-                JOIN event e ON e.id=s.event_id WHERE e.id=? AND s.number=?
-                AND substr(COALESCE(s.date,e.date_from),1,10)=? AND r.category=?""",
-                (int(eid), evidence["stage_number"], evidence["event_date"], category)).fetchone()[0]
-            missing_national_classes.append({"event_id": int(eid), "date": evidence["event_date"],
-                "stage_number": evidence["stage_number"], "category": category,
-                "result_rows": count, "source_url": evidence.get("url")})
     return {"schema_version": 1,
             "scope": "Inventory and partial checks only. No global completeness or award verification implied.",
             "annual": [{"year": y, "jurisdiction": j, **dict(v)} for (y, j), v in sorted(grouped.items(), reverse=True)],
             "national_source_years": sorted(official_years), "regional_source_years": sorted(y for y in wolv_years if y),
             "candidate_events_without_instance": missing_candidates,
-            "national_classes_without_instance": missing_national_classes,
             "open_source_claims": [{"event_id": int(eid), "date": item.get("event_date"), **claim,
                                      "source_url": item.get("url")}
                 for eid, item in regional_titles.get("events", {}).items() for claim in item.get("open_claims", [])]

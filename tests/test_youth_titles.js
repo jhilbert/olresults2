@@ -27,6 +27,28 @@ test("calendar dates and ISO stage timestamps display without time or timezone s
   assert.equal(context.formatDate("<invalid>"), "&lt;invalid&gt;");
 });
 
+test("additional championship classification keeps one start and separate titles", () => {
+  const isolated = vm.createContext({window:{OLRDomainRules:rules}, document:{getElementById:()=>({})},
+    location:{search:""}, localStorage:{getItem:()=>null}, URLSearchParams});
+  vm.runInContext(source.slice(0, bootIndex) + `
+    query = (sql) => sql.startsWith("PRAGMA table_info") ? [{name:"observed_time_s"}]
+      : sql.includes("FROM championship_source_entry cse")
+      ? [{person_id:"1",stage_id:1,championship:"ÖSTM",national_rank:3}]
+      : [{person_id:"1",stage_id:1,championship:"ÖM",national_rank:1}];
+    globalThis.podiums = fetchPodiums;
+    globalThis.runnerTable = renderRunnerResultsTable;`, isolated);
+  const scope = {dw:{sql:"",params:[]}, personId:"1"};
+  assert.equal(isolated.podiums(scope).length, 1);
+  const titles = isolated.podiums({...scope, includeAdditional:true});
+  assert.equal(titles.length, 2);
+  assert.deepEqual(Array.from(titles, (row) => row.championship), ["ÖM", "ÖSTM"]);
+  const html = isolated.runnerTable([{stage_date:"2026-03-22",href:"#/event/5203",event_title:"Ski-O",
+    category:"D-20",result_kind:"individual",status:"ok",rank:1,time_s:881,
+    additional_classifications:[{championship_type:"ÖSTM",category:"Damen",observed_rank:3}]}]);
+  assert.equal((html.match(/<tr(?:\s|>)/g) || []).length, 2); // header and one physical result
+  assert.match(html, /ÖSTM Damen: Rang 3/);
+});
+
 test("youth-title view is restricted to Naturfreunde Wien including old direct links", () => {
   const isolated = vm.createContext({
     window: { OLRDomainRules: rules }, document: { getElementById: () => ({}) },

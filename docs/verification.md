@@ -100,12 +100,13 @@ Ein Link ist zunächst nur ein Fund und noch kein geprüfter Klassenbeleg.
 ### Meisterschafts-Quellencheck
 
 `championship-review.html` führt für ÖM/ÖSTM und Wiener MS die bestehenden
-Klassen nach Event und Etappe zusammen. Es zeigt separat den Status der
-Ausschreibung, die Ergebnisquelle samt Prüfhinweisen und den Quercheck der
-Meisterliste. Nach Eventtitel gefundene Kandidaten ohne bestehende Wertung
-stehen getrennt; Begleitläufe und Meldeseiten sind dabei möglich. Die
-ÖFOL-Meistertafel ist als Originalzellen mit Jahr und Tabellenzeile gespeichert;
-eindeutige Jugend- und Senioren-Einzelsieger mit passendem Namen und Verein werden nur als
+Klassen nach Event und Etappe zusammen. Es zeigt Quellen und bekannte
+Widersprüche, aber keine Arbeitsaufträge aus einer bloß fehlenden manuellen
+Bestätigung. Ausgeschriebene Klassen ohne Ergebnis sind kein Fehler. Nach
+Eventtitel gefundene Kandidaten stehen nur intern für die eigenständige
+Quellenprüfung zur Verfügung. Die ÖFOL-Meistertafel ist als Originalzellen
+mit Jahr und Tabellenzeile gespeichert; eindeutige Jugend- und
+Senioren-Einzelsieger mit passendem Namen und Verein werden nur als
 **Vorschlag**, nicht als Event- oder Titelbestätigung angezeigt. WOLV-Quellen
 und bereits belegte Einzelsieger sind getrennt hinterlegt. Der Abgleich mit
 einem Sieger belegt weder Silber/Bronze noch Vollständigkeit oder Eligibility.

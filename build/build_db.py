@@ -56,7 +56,7 @@ EXCLUDED_EVENTS = load_event_exclusions()
 CHAMPIONSHIP_SOURCE_CONFIG = {
     "4315-2": {"mode": "evidence", "championship": "ÖM",
                "scope": "medal_places_only", "explicit_eligibility": True},
-    "5203-1": {"mode": "supplemental", "championship": "ÖSTM",
+    "5203-1": {"mode": "classification", "championship": "ÖSTM",
                "scope": "full_field", "explicit_eligibility": True},
     "5396-2": {"mode": "supplemental", "championship": "ÖM",
                "scope": "full_field", "explicit_eligibility": True,
@@ -233,9 +233,10 @@ CREATE TABLE championship_source_entry (
     observed_club TEXT,
     observed_rank INTEGER,
     observed_status TEXT,
+    observed_time_s INTEGER,
     result_id INTEGER REFERENCES result(id),
     championship_type TEXT NOT NULL, -- ÖM|ÖSTM
-    evidence_kind TEXT NOT NULL,     -- official_championship_inclusion|official_championship_field
+    evidence_kind TEXT NOT NULL,     -- official_championship_inclusion|official_championship_field|official_additional_classification
     source_scope TEXT NOT NULL       -- full_field|medal_places_only
 );
 CREATE TABLE verification_assertion (
@@ -2779,7 +2780,7 @@ def register_championship_source_entries(cur, doc, stage_id, source_document_id,
                                          config):
     """Persist source observations without duplicating overlapping results."""
     stem = Path(doc["_normalizedPath"]).stem
-    evidence_kind = ("official_championship_inclusion"
+    evidence_kind = ("official_additional_classification" if config.get("mode") == "classification" else "official_championship_inclusion"
                      if config.get("explicit_eligibility")
                      else "official_championship_field")
     inserted = 0
@@ -2796,10 +2797,10 @@ def register_championship_source_entries(cur, doc, stage_id, source_document_id,
             ).hexdigest()[:24]
             cur.execute(
                 """INSERT OR REPLACE INTO championship_source_entry
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (entry_id, stage_id, source_document_id, category_name,
                  category_key, observed_name, name_key(cleaned), row.get("club"),
-                 row.get("rank"), row.get("status"), None,
+                 row.get("rank"), row.get("status"), row.get("timeS"), None,
                  config["championship"], evidence_kind, config["scope"]))
             inserted += 1
     return inserted
@@ -2815,18 +2816,21 @@ def apply_championship_source_entries(cur):
     """
     candidates = defaultdict(list)
     ranked_candidates = defaultdict(list)
+    individual_by_name = defaultdict(dict)
     for row in cur.execute(
             """SELECT r.id, r.stage_id, r.category, p.name_key, r.observed_name,
-                      r.observed_club, r.championship, r.rank
+                      r.observed_club, r.championship, r.rank, r.time_s, r.status, r.result_kind
                FROM result r LEFT JOIN person p ON p.id = r.person_id""").fetchall():
         (rid, stage_id, category, person_key, observed_name, observed_club,
-         championship, rank) = row
+         championship, rank, time_s, status, result_kind) = row
         keys = {key for key in (person_key,
                                 name_key(clean_name(observed_name)) if observed_name else None)
                 if key}
         for key in keys:
             candidates[(stage_id, championship_category_key(category), key)].append(
                 (rid, category, observed_club, championship, rank))
+            if result_kind == "individual":
+                individual_by_name[(stage_id, key)][rid] = (category, observed_club, time_s, status)
         if rank is not None:
             ranked_candidates[(stage_id, championship_category_key(category), rank)].append(
                 (rid, category, observed_club, championship, rank))
@@ -2834,10 +2838,27 @@ def apply_championship_source_entries(cur):
     matched = 0
     entries = cur.execute(
         """SELECT id, stage_id, category_key, observed_name_key, observed_club,
-                  observed_rank, championship_type, evidence_kind, source_scope
+                  observed_rank, championship_type, evidence_kind, source_scope, observed_time_s, observed_status
            FROM championship_source_entry""").fetchall()
     for (entry_id, stage_id, category_key, observed_name_key, observed_club,
-         observed_rank, championship_type, evidence_kind, source_scope) in entries:
+         observed_rank, championship_type, evidence_kind, source_scope, observed_time_s, observed_status) in entries:
+        if evidence_kind == "official_additional_classification":
+            # The extra national ranking combines age classes: its rank is
+            # intentionally different from the original category rank.
+            # Never match on rank alone or overwrite the original result.
+            source_club = canonicalize_official_club(observed_club, OFFICIAL_CLUBS) if observed_club else None
+            matches = []
+            for rid, (category, club, time_s, status) in individual_by_name.get((stage_id, observed_name_key), {}).items():
+                same_gender = championship_category_key(category)[:1] == category_key[:1]
+                candidate_club = canonicalize_official_club(club, OFFICIAL_CLUBS) if club else None
+                same_club = bool(source_club and candidate_club and source_club == candidate_club)
+                same_time = observed_time_s is None or time_s == observed_time_s
+                if same_gender and same_club and same_time and status == observed_status:
+                    matches.append(rid)
+            if len(matches) == 1:
+                cur.execute("UPDATE championship_source_entry SET result_id=? WHERE id=?", (matches[0], entry_id))
+                matched += 1
+            continue
         options = candidates.get((stage_id, category_key, observed_name_key), [])
         # Pair-only medal sheets sometimes compress two names into one token
         # (``Nora-Sophia Tandl-Asseg``).  The official rank + category + club
@@ -4094,7 +4115,7 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                 cur, event, stage_ids, source_config)
             register_championship_source_entries(
                 cur, doc, configured_sid, source_document_id, source_config)
-            if source_config["mode"] == "evidence":
+            if source_config["mode"] in ("evidence", "classification"):
                 continue
         # team (Mannschaft) result lists give only member surnames + a club +
         # a single team time — no first names, so members can't be resolved to
@@ -6199,6 +6220,40 @@ def populate_championship_model(cur):
     apply_vienna_two_club_checks(cur)
 
 
+def populate_additional_national_classifications(cur):
+    """Persist a source-authoritative national ranking without new starts."""
+    groups = cur.execute("""SELECT cse.stage_id,cse.category,cse.championship_type,
+        cse.source_document_id,sd.normalized_sha256
+        FROM championship_source_entry cse JOIN source_document sd ON sd.id=cse.source_document_id
+        WHERE cse.evidence_kind='official_additional_classification' AND cse.source_scope='full_field'
+        GROUP BY cse.stage_id,cse.category,cse.championship_type,cse.source_document_id""").fetchall()
+    for sid, category, championship, source_id, digest in groups:
+        category_key = championship_category_key(category)
+        instance_id = _championship_id("AUT", sid, category_key, championship)
+        cur.execute("INSERT OR IGNORE INTO championship_instance VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (instance_id,"AUT",sid,category,category_key,championship,"aut-national-v1",
+             "confirmed","official_additional_classification",digest or ""))
+        instance = cur.execute("SELECT category,detection_basis FROM championship_instance WHERE id=?", (instance_id,)).fetchone()
+        if instance != (category, "official_additional_classification"):
+            raise ValueError(f"Conflicting national championship classification: {sid}/{category}")
+        # A source may include MP/DNF/DSQ: these are starts, not podiums.
+        starters = cur.execute("""SELECT COUNT(*) FROM championship_source_entry
+            WHERE stage_id=? AND category=? AND source_document_id=?
+              AND evidence_kind='official_additional_classification'
+              AND observed_status IN ('ok','dnf','mp','dsq')""", (sid,category,source_id)).fetchone()[0]
+        if starters < 3:
+            continue
+        for result_id, rank, identity_state in cur.execute("""SELECT cse.result_id,cse.observed_rank,r.identity_state
+            FROM championship_source_entry cse JOIN result r ON r.id=cse.result_id
+            WHERE cse.stage_id=? AND cse.category=? AND cse.source_document_id=?
+              AND cse.evidence_kind='official_additional_classification' AND cse.observed_status='ok'
+              AND cse.observed_rank BETWEEN 1 AND 3""", (sid,category,source_id)).fetchall():
+            award_id = "award:" + hashlib.sha256(f"{instance_id}\0{result_id}".encode()).hexdigest()[:24]
+            cur.execute("INSERT OR IGNORE INTO award VALUES (?,?,?,?,?,?)", (award_id, instance_id,
+                result_id, {1:"gold",2:"silver",3:"bronze"}[rank], rank,
+                "verified" if identity_state == "resolved" else "provisional"))
+
+
 def main():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     DB_PATH.unlink(missing_ok=True)
@@ -6673,6 +6728,16 @@ def main():
 
     n_championship_source_matches = apply_championship_source_entries(cur)
 
+    # Ski-O Sprint 2026 publishes a separate, combined ÖSTM ranking across
+    # three age classes. D21-E/H21-E remain physical race results, but their
+    # within-class ranks are not the official national ranking. The source
+    # entries above provide that distinct ranking without duplicating starts.
+    cur.execute("""UPDATE result SET championship=NULL, national_rank=NULL
+        WHERE category IN ('D21-E','H21-E') AND championship='ÖSTM'
+          AND stage_id IN (SELECT id FROM stage WHERE event_id=5203)
+          AND EXISTS (SELECT 1 FROM championship_source_entry cse
+              WHERE cse.stage_id=result.stage_id AND cse.evidence_kind='official_additional_classification')""")
+
     national_category_evidence_path = ROOT / "site/data/national-category-evidence.json"
     if national_category_evidence_path.exists():
         national_category_evidence = json.loads(national_category_evidence_path.read_text())
@@ -6894,9 +6959,10 @@ def main():
     compute_time_behind(cur)
 
     populate_championship_model(cur)
+    populate_additional_national_classifications(cur)
     populate_quality_model(cur)
 
-    cur.execute("PRAGMA user_version = 13")
+    cur.execute("PRAGMA user_version = 14")
     con.commit()
     for table in ("event", "stage", "person", "person_identifier", "person_club_membership", "person_alias",
                   "person_redirect", "person_tombstone", "source_document", "result_list", "result",
