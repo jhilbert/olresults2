@@ -294,6 +294,9 @@ def collect(con, source_inventory, national_evidence, regional_classes,
                         and (t.get("result_kind") is None or r.get("result_kind") == t.get("result_kind")))
                 if any(matches(r, t) for r in winners for t in ev.get("conflicted_winners", [])):
                     cross["state"] = "conflict"
+                elif any(matches(r, t) and t.get("name_resolution") == "anne_result_precedence"
+                         for r in winners for t in ev.get("titles", [])):
+                    cross["state"] = "winner_name_resolved_by_anne"
                 elif winners and all(any(matches(r, t) for t in ev.get("titles", [])) for r in winners):
                     cross["state"] = "winner_matched_only"
                 elif any(matches(r, t) for r in winners for t in ev.get("titles", [])):

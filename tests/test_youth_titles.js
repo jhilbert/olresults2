@@ -261,9 +261,11 @@ test("source conflicts remain visible without fabricating or double-counting res
     date:"2026-04-26", national_rank:1, identity_state:"resolved", status:"ok", result_kind:"individual",
     out_of_competition:0, time_s:1566, club_name:"Naturfreunde Wien"};
   const html = context.renderYouth([], [winner], {year:"2026", club:"Naturfreunde Wien"});
-  assert.match(html, /Quellenwiderspruch: Veranstalter-Ergebnis und ANNE nennen Albert/);
+  assert.match(html, /ANNE-Ergebnis: Name maßgeblich/);
+  assert.match(html, /abweichender Vorname/);
+  assert.match(html, /Albert Imriska/);
   assert.match(html, /Σ 90 €/);
-  assert.doesNotMatch(context.renderYouth([], [{...winner, time_s:1567}]), /Quellenwiderspruch: Veranstalter/);
+  assert.doesNotMatch(context.renderYouth([], [{...winner, time_s:1567}]), /ANNE-Ergebnis: Name maßgeblich/);
 });
 
 test("2026 audited national team evidence is restricted to event, date, category and kind", () => {

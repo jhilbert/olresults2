@@ -1715,6 +1715,9 @@ function renderYouthTitleTable(national, vienna, { year = null, club = null } = 
       const confirmedRate = ["user-confirmed", "official-title-gender"].includes(confirmation?.source)
         && [90, 110].includes(confirmation.amount_eur)
         ? ` · Fördersatz ${confirmation.amount_eur} € bestätigt` : "";
+      if (match.title.name_resolution === "anne_result_precedence") {
+        return ` · <a href="${esc(match.title.result_url)}" target="_blank" rel="noopener">ANNE-Ergebnis: Name maßgeblich ↗</a> · <a href="${esc(match.source.url)}" target="_blank" rel="noopener">WOLV-Meistertitel (${esc(match.title.category)}), abweichender Vorname ↗</a>${confirmedRate}`;
+      }
       return ` · <a href="${esc(match.source.url)}" target="_blank" rel="noopener">WOLV-Meistertitel bestätigt (${esc(match.title.category)}) ↗</a>${confirmedRate}`;
     }
     const unannotated = regionalTitleMatch(r, "unannotated_winners");

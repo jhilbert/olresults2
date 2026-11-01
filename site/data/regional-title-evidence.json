@@ -122,9 +122,10 @@
       "sha256":"d7aaba1ea954e6fc32b66b42808d263394729fed2e00b586cde7f4179e60e6b1",
       "invitation_url":"https://anne-cdn.oefol.at/public/2026/02/UOYUAEpqmtPnYjJXpCZ9mKS6R9ALBNSBTFJbGLzl.pdf",
       "invitation_sha256":"3be3dd2bbd0c5815e56059a26e74da4cc64e860cbee9e3beafdd546c05821229",
-      "reviewed_on":"2026-10-31", "summary":"H−14: Ergebnis und WOLV-Jahresliste unterscheiden sich beim Vornamen; Zuordnung bleibt vorläufig.",
-      "conflicted_winners":[{"category":"H-14","result_category":"H -14","person_id":"8980","name":"Albert Imriska","club":"Naturfreunde Wien","time_s":1566,
-        "note":"Quellenwiderspruch: Veranstalter-Ergebnis und ANNE nennen Albert; WOLV-Jahresliste nennt Adam. Bitte beim WOLV klären.",
+      "reviewed_on":"2026-11-01", "summary":"H−14: ANNE und Veranstalter nennen Albert; die abweichende Namensangabe der WOLV-Jahresliste wird nach Nutzerentscheidung nicht übernommen.",
+      "titles":[{"category":"H-14","result_category":"H -14","person_id":"8980","name":"Albert Imriska","club":"Naturfreunde Wien","time_s":1566,
+        "name_resolution":"anne_result_precedence",
+        "note":"Nutzerentscheidung: ANNE und Veranstalter-Ergebnis sind beim Namen maßgeblich; die WOLV-Jahresliste nennt abweichend Adam.",
         "result_url":"https://anne-cdn.oefol.at/public/2026/04/b2G2wOhbgabGXVqZonbBcBMJmmz9V8imguVZsXlf.pdf",
         "result_sha256":"81e3fc9867b613573be575d352510ce2d8816df226b0c83b957a72a74b290f76"}]
     },
