@@ -10,7 +10,7 @@
     "championship_rule_set": 10,
     "championship_source_entry": 324,
     "club_jurisdiction": 54,
-    "event": 4119,
+    "event": 4124,
     "national_minimum_starters": 3386,
     "official_national_title": 3,
     "person": 32197,
@@ -32,7 +32,7 @@
     "decisions": 1684,
     "people": 135
   },
-  "logical_sha256": "02f59eabff75911d99529309cc5f5c9a0a6cca434e9ffe179bb05ef1ec337161",
+  "logical_sha256": "2c2d6ea7e1a8eee51a8f0f9b066f18c6bf0ad1bde745de40264c7ad7ff991f52",
   "quality": {
     "awards_without_positive_eligibility": 0,
     "club_evidence_mismatch": 0,
