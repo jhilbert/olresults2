@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "purpose": "Freigegebene Umstellung der beiden gemeinsamen CH/AT-Wettkämpfe auf ausschließlich österreichische AC-/ÖSTM-Wertungen; keine allgemeine Absenkung der Datenbankprüfungen.",
+  "approved_by": "user",
+  "approved_on": "2026-11-05",
+  "previous_public_db_gzip_sha256": "76014cbb91609b18603db9ef05306360e816c1d84c649e577c08491513cf02cb",
+  "previous_logical_sha256": "94087c9873a6b12f251868d5612ff3a082f197c6ac5ca05785a95c60f6dee8bb",
+  "new_logical_sha256": "635096b2c055dd7307302680995ea5d6593621d11f356b7e5f4a95289a6f4718",
+  "events": {
+    "1378": {"previous_results": 2318, "austrian_source_results": 384},
+    "1379": {"previous_results": 2353, "austrian_source_results": 400}
+  },
+  "source_observations_lost_outside_events": 0,
+  "people_before": 32239,
+  "people_after": 30749,
+  "previous_people_with_results_outside_events_but_changed_identity": 140,
+  "reviewed_exact_person_redirects": 126,
+  "unresolved_old_person_identities": 14,
+  "unresolved_policy": "Frühere zusammengesetzte Paar- oder nicht eindeutig identifizierte Personen nicht auf eine einzelne Person umleiten.",
+  "eligibility_people": 135,
+  "eligibility_decisions": 1684,
+  "verification": "build/verify_2015_source_migration.py vergleicht die bis dahin veröffentlichte mit der neuen Datenbank einschließlich mehrfacher Quellzeilen, Quellen, Zeiten, Identitäten und regulärer Qualitätsprüfungen."
+}
