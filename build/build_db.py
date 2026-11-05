@@ -1239,6 +1239,7 @@ MEMBER_INDEX_PATH = ROOT / "data" / "member_index" / "naturfreunde_wien.json"
 MEMBER_MAPPING_PUBLIC_PATH = ROOT / "data" / "member_index" / "naturfreunde_wien_mapping.json"
 PERSON_REDIRECT_PATH = Path(os.environ.get(
     "OLRESULTS_PERSON_REDIRECT_PATH", ROOT / "data" / "person_id_redirects.json"))
+REVIEWED_2015_REDIRECT_PATH = ROOT / "data" / "review" / "official_2015_person_redirects.json"
 # Build byproducts (private, regenerated each run): the review worklist and
 # any BoR-vs-DB id conflicts worth a human look.
 PENDING_REVIEW_PATH = PRIVATE / "pending_review.json"
@@ -4101,6 +4102,29 @@ def replace_minute_precision_anne_with_legacy(cur, stage_id, doc):
     return True
 
 
+def reconcile_reviewed_person_redirects(existing, reviewed, surviving_people):
+    """Retarget prior aliases only when a reviewed successor actually exists.
+
+    Existing missing targets remain tombstones. A reviewed old ID that becomes
+    a real person again must not hide that real person behind a redirect.
+    """
+    current = set(surviving_people)
+    migrations = {}
+    for old, new in reviewed.items():
+        old, new = int(old), int(new)
+        if old >= 0 or old == new:
+            raise ValueError("Reviewed legacy redirect must use a distinct negative old ID")
+        if old in current or new not in current:
+            continue
+        if str(old) in existing and int(existing[str(old)]) != new:
+            raise ValueError(f"Conflicting existing redirect for {old}")
+        migrations[old] = new
+    combined = {str(old): migrations.get(int(target), int(target))
+                for old, target in existing.items()}
+    combined.update({str(old): target for old, target in migrations.items()})
+    return combined
+
+
 def expand_4404_published_pairs(event_id, category, rows):
     """Recover only the four explicitly documented 2024 Wiener night pairs."""
     pairs = {
@@ -6928,6 +6952,9 @@ def main():
 
     if PERSON_REDIRECT_PATH.exists():
         redirects = json.loads(PERSON_REDIRECT_PATH.read_text())
+        if REVIEWED_2015_REDIRECT_PATH.exists():
+            reviewed_redirects = json.loads(REVIEWED_2015_REDIRECT_PATH.read_text())["redirects"]
+            redirects = reconcile_reviewed_person_redirects(redirects, reviewed_redirects, surviving_people)
         for old_id, new_id in redirects.items():
             old_id, new_id = int(old_id), int(new_id)
             if new_id not in surviving_people:

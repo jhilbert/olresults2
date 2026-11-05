@@ -13,6 +13,14 @@ SPEC.loader.exec_module(build_db)
 
 
 class AnneIdentityTests(unittest.TestCase):
+    def test_reviewed_2015_redirects_retarget_existing_aliases_without_hiding_people(self):
+        old = {"-10": -1, "-20": -2, "-30": -4}
+        reviewed = {"-1": -3, "-2": -5, "-4": -6}
+        result = build_db.reconcile_reviewed_person_redirects(old, reviewed, {-3, -2})
+        self.assertEqual(result, {"-10": -3, "-20": -2, "-30": -4, "-1": -3})
+        with self.assertRaises(ValueError):
+            build_db.reconcile_reviewed_person_redirects({"-1": -9}, {"-1": -3}, {-3})
+
     def test_2016_night_winner_uses_oefol_to_complete_truncated_pair(self):
         doc = json.loads((ROOT / "data/normalized/1710-0.json").read_text())
         cat = next(c for c in doc["categories"] if c["name"] == "Damen -14")
