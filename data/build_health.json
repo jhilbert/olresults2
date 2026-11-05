@@ -1,38 +1,38 @@
 {
   "counts": {
-    "audit_issue": 6127,
-    "award": 9341,
+    "audit_issue": 6133,
+    "award": 9328,
     "championship_entry": 16638,
     "championship_entry_result": 18522,
-    "championship_instance": 7409,
+    "championship_instance": 7413,
     "championship_jurisdiction": 10,
-    "championship_result": 33503,
+    "championship_result": 33521,
     "championship_rule_set": 10,
     "championship_source_entry": 324,
     "club_jurisdiction": 54,
-    "event": 4114,
+    "event": 4125,
     "national_minimum_starters": 3386,
     "official_national_title": 3,
-    "person": 30715,
-    "person_alias": 38982,
+    "person": 32239,
+    "person_alias": 39024,
     "person_club_membership": 12230,
-    "person_identifier": 4079,
+    "person_identifier": 4081,
     "person_redirect": 21845,
     "person_tombstone": 4049,
     "regional_award_hold": 4,
     "regional_category_mapping": 4439,
-    "result": 267021,
+    "result": 271062,
     "result_club_evidence": 749,
-    "result_list": 28098,
-    "source_document": 1921,
-    "stage": 1734,
+    "result_list": 28104,
+    "source_document": 1922,
+    "stage": 1735,
     "verification_assertion": 695
   },
   "eligibility": {
     "decisions": 1684,
     "people": 135
   },
-  "logical_sha256": "e958e32d13c9ede966b282e886fb1115b78043ccf7aea7fa63d96f51e53a2e5b",
+  "logical_sha256": "94087c9873a6b12f251868d5612ff3a082f197c6ac5ca05785a95c60f6dee8bb",
   "quality": {
     "awards_without_positive_eligibility": 0,
     "club_evidence_mismatch": 0,
@@ -56,20 +56,20 @@
   },
   "result_by_kind": {
     "family": 3961,
-    "individual": 242240,
-    "pair": 2821,
-    "relay": 17811,
-    "team": 4075
+    "individual": 242394,
+    "pair": 2861,
+    "relay": 17436,
+    "team": 4410
   },
   "result_by_source": {
-    "anne-api": 40260,
+    "anne-api": 40436,
     "anne-entry-recovery": 8,
     "club-table": 690,
     "liveresultat": 1254,
     "sportident-center": 48,
     "sportsoftware-html": 116471,
-    "sportsoftware-pdf": 108372,
+    "sportsoftware-pdf": 108350,
     "sportsoftware-text": 3805
   },
-  "schema_version": 13
+  "schema_version": 14
 }
