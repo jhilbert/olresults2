@@ -257,6 +257,7 @@ function identityMappingHtml(r) {
     nationality_temporal_conflict: "historisches ANNE-Merkmal und aktuelle Nationalität widersprechen sich",
     wo2023_om_residency_unknown: "ÖM 2023: damaliger Hauptwohnsitz nicht belegt",
     official_championship_ranking: "offizielle Meisterschaftswertung",
+    official_source_ineligible: "laut offizieller Meisterschaftswertung nicht berechtigt",
     official_champion_annotation: "Meistertitel in der Quelle",
     official_championship_field: "offizielle ÖM/ÖSTM-Ergebnisliste",
     oefol_club_inference: "ÖFOL-Verein (nur vorläufig)",

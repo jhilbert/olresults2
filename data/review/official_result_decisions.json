@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "events": {
+    "2916": {
+      "date": "2020-01-25",
+      "stage_number": 1,
+      "category": "Herren -14",
+      "result_source_url": "https://anne-cdn.oefol.at/public/legacy/event_2916_ergebnis-stm-u-m-ski-ol-lang-5-ac.pdf",
+      "championship_source_url": "https://anne-cdn.oefol.at/public/legacy/event_2916_ergebnisse-ski-o-oem-lang-2020.pdf",
+      "championship_source_sha256": "cbe6ce4fcd5fa32ab672db30413457fdfaa35a7f16f81939971a26f9dab84478",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_2916_ausschreibung-ramsau.pdf",
+      "invitation_sha256": "c04f03506d88351e516c263de996b968e6f1c18e4e13bf6839d5e4f60cd9430b",
+      "note": "Separate offizielle ÖM-Wertung, Seite 2: Adam Cech ist ausdrücklich nicht ÖM-berechtigt; Meister David Perktold, dahinter Konrad Lorenz und Lilli Egger. Die abweichende ÖFOL-Jahresmeistertafel nennt Adam Cech. Die einzelne offizielle Wettkampfwertung ist hier maßgeblich.",
+      "rows": [
+        {"observed_name":"Cech Adam", "club":"Naturfreunde Wien", "rank":1, "time_s":1420, "eligible":false},
+        {"observed_name":"Perktold David", "club":"Orienteering Innsbruck Imst", "rank":2, "time_s":2001, "eligible":true},
+        {"observed_name":"Lorenz Konrad", "club":"Orienteering Innsbruck Imst", "rank":3, "time_s":2441, "eligible":true},
+        {"observed_name":"Egger Lilli", "club":"Orienteering Innsbruck Imst", "rank":4, "time_s":2460, "eligible":true}
+      ]
+    }
+  }
+}

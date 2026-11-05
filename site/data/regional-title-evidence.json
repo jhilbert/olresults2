@@ -1,6 +1,63 @@
 {
   "schema_version": 1,
   "events": {
+    "3847": {
+      "jurisdiction":"WIEN", "event_date":"2022-10-08", "stage_number":1,
+      "label":"WOLV: Medaillenliste 2022", "url":"http://www.wolv.at/docs/med22.pdf",
+      "sha256":"8d075300f937aec270ba0a00478d4d85cf8fd95f5dbd24cc8ceb4947bb188a17",
+      "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_3847_ausschreibung.pdf",
+      "invitation_sha256":"7fa3222e93c2bd877f89145352a5da75f612e356019d273057ede2bb0c8f8fea",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_3847_erg081022.pdf",
+      "result_sha256":"160be6a273ccee79c05b77c75f00080b8cc245fff196049adf68a3f55dcf8a6a",
+      "reviewed_on":"2026-11-02", "summary":"WOLV bestätigt das D−14-Siegerpaar Mika und Sona Asenbauer.",
+      "titles":[
+        {"category":"D-14","result_category":"D -14 (paarweise)","result_kind":"pair","person_id":"9209","name":"Mika Asenbauer","club":"Naturfreunde Wien","time_s":1399},
+        {"category":"D-14","result_category":"D -14 (paarweise)","result_kind":"pair","person_id":"9210","name":"Sona Asenbauer","club":"Naturfreunde Wien","time_s":1399}
+      ]
+    },
+    "3584": {
+      "jurisdiction":"WIEN", "event_date":"2023-04-22", "stage_number":1,
+      "label":"WOLV: Medaillenliste 2023", "url":"http://www.wolv.at/docs/med23.pdf",
+      "sha256":"b736bbc237dd816faf92efd26759b3439789d53ae32aab3a9ff605f76a6c594a",
+      "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_3584_nacht-ms-2023-einladung-und-ausschreibung.pdf",
+      "invitation_sha256":"cfb9d280b4588929d2406a8c656bf77b97018fe38ff88c9664e6f91022f9bb65",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_3584_noe-wr-bgl-nacht-ms-2023-ergebnis-nach-kategorien.pdf",
+      "result_sha256":"62aea533ef5d4004303b9eca6041a6af8b432d156119023da66b8cb6dcaecdb6",
+      "reviewed_on":"2026-11-02", "summary":"Die offizielle WOLV-Wertung fasst die regulären D/H−14-Paare als H−14 zusammen; Sieger sind Lauri Urbanek und Adam Imriska.",
+      "titles":[
+        {"category":"H-14","result_category":"Wien Herren -14 *","result_kind":"pair","person_id":"8901","name":"Lauri Urbanek","club":"Naturfreunde Wien","time_s":1343},
+        {"category":"H-14","result_category":"Wien Herren -14 *","result_kind":"pair","person_id":"8979","name":"Adam Imriska","club":"Naturfreunde Wien","time_s":1343}
+      ]
+    },
+    "1333": {
+      "jurisdiction":"WIEN", "event_date":"2015-10-10", "stage_number":1,
+      "label":"WOLV: Medaillenliste 2015", "url":"http://www.wolv.at/docs/med15.pdf",
+      "sha256":"ff53bc418307d15393c86ea0cdd2033b4efe66dd57581119a1380b9dc9b1efd4",
+      "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1333_Ausschreibung_NachtMS_101015.doc",
+      "invitation_sha256":"10169505ce54bd16cb62b61baf54730bb34321aa5c4db2a7a11f8e15102b5392",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1333_Ergebnis3.html",
+      "reviewed_on":"2026-11-02", "summary":"Ausschreibung und WOLV-Medaillenliste bestätigen D/H−14 als Paarwertung und beide Siegerpaare.",
+      "titles":[
+        {"category":"D-14","result_category":"Damen - 14 W","result_kind":"pair","person_id":"6704","name":"Livia Radon","club":"Naturfreunde Wien","time_s":922},
+        {"category":"D-14","result_category":"Damen - 14 W","result_kind":"pair","person_id":"7307","name":"Maya Kastner","club":"Naturfreunde Wien","time_s":922},
+        {"category":"H-14","result_category":"Herren -14 W","result_kind":"pair","person_id":"6784","name":"Jakob Wolfram","club":"Naturfreunde Wien","time_s":661},
+        {"category":"H-14","result_category":"Herren -14 W","result_kind":"pair","person_id":"6452","name":"Joergen Deubel","club":"Naturfreunde Wien","time_s":661}
+      ]
+    },
+    "3401": {
+      "jurisdiction":"WIEN", "event_date":"2021-10-08", "stage_number":1,
+      "label":"WOLV: Medaillenliste 2021", "url":"http://www.wolv.at/docs/med21.pdf",
+      "sha256":"17658af3daba020b2a69513fef6087918a4a1b1ab45c757a46346f375a1977e3",
+      "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_3401_nachtms2021-einladung-bgld-n-wien-v1-2.pdf",
+      "invitation_sha256":"8c23f09f916aae0070dcc11f5f229470539d73545bbcb71e445cd36248fa2fb0",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_3401_ergebnisliste-wr-nacht-ms-gpl-grossmittel-2021-10-08.pdf",
+      "result_sha256":"05bde8d33f4242ad25d132d562bf71ca9c74a714ee39267469faa009cfda8bd4",
+      "reviewed_on":"2026-11-02", "summary":"Ausschreibung und WOLV-Liste bestätigen das H−14-Siegerpaar Lauri Urbanek / Cleo Machold.",
+      "titles":[
+        {"category":"H-14","result_category":"Herren -14","result_kind":"pair","person_id":"8901","name":"Lauri Urbanek","club":"Naturfreunde Wien","time_s":1720},
+        {"category":"H-14","result_category":"Herren -14","result_kind":"pair","person_id":"9220","name":"Cleo Machold","club":"Naturfreunde Wien","time_s":1720}
+      ]
+    },
     "4879": {
       "jurisdiction": "WIEN",
       "event_date": "2025-05-10",

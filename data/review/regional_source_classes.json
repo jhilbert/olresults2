@@ -1,6 +1,45 @@
 {
   "schema_version": 1,
   "events": {
+    "3847": {
+      "date":"2022-10-08", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true,
+        "url":"http://www.wolv.at/docs/med22.pdf",
+        "sha256":"8d075300f937aec270ba0a00478d4d85cf8fd95f5dbd24cc8ceb4947bb188a17",
+        "evidence_kind":"official-results",
+        "categories":{"D -14 (paarweise)":"D-14"}
+      }}
+    },
+    "4072": {
+      "date":"2023-06-04", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true,
+        "url":"http://www.wolv.at/docs/med23.pdf",
+        "sha256":"b736bbc237dd816faf92efd26759b3439789d53ae32aab3a9ff605f76a6c594a",
+        "evidence_kind":"official-results",
+        "categories":{"Damen -14 Wien":"D-14"},
+        "award_holds":{"D-14":{
+          "reason":"Die WOLV-Jahresliste weist für D−14 ausdrücklich keine Wertung aus. Die Ergebnisquelle zeigt zwei klassifizierte Teams und ein Team mit Fehlstempel; nach der vereinbarten Startregel zählt Letzteres als gestartet. Quellenwiderspruch: vorerst kein bestätigter Titel.",
+          "url":"http://www.wolv.at/docs/med23.pdf"
+        }}
+      }}
+    },
+    "3584": {
+      "date":"2023-04-22", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "url":"http://www.wolv.at/docs/med23.pdf",
+        "sha256":"b736bbc237dd816faf92efd26759b3439789d53ae32aab3a9ff605f76a6c594a",
+        "evidence_kind":"official-results",
+        "time_ranked_categories":["H-14"],
+        "note":"WOLV-Jahreswertung führt die regulären Damen- und Herrenpaare gemeinsam in H−14; AK-Teams bleiben außerhalb der Wertung.",
+        "categories":{
+          "Wien Damen -14 *":"H-14", "Wien Herren -14 *":"H-14",
+          "Wien Damen -18":"D-18", "Wien Damen 19-":"D19-", "Wien Damen 45-":"D45-", "Wien Damen 55-":"D55-",
+          "Wien Herren -18":"H-18", "Wien Herren 19-":"H19-", "Wien Herren 35-":"H35-", "Wien Herren 45-":"H45-", "Wien Herren 55-":"H55-", "Wien Herren 65-":"H65-", "Wien Herren 75-":"H75-"
+        }
+      }}
+    },
     "4251": {
       "date": "2024-04-20", "stage_number": 1,
       "jurisdictions": {

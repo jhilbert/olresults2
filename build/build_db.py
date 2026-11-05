@@ -31,7 +31,9 @@ CLUB_JURISDICTIONS_PATH = ROOT / "data" / "club_jurisdictions.json"
 REGIONAL_SOURCE_CLASSES_PATH = ROOT / "data" / "review" / "regional_source_classes.json"
 EXCLUDED_EVENTS_PATH = ROOT / "data" / "review" / "excluded_events.json"
 OFFICIAL_NATIONAL_TITLES_PATH = ROOT / "data" / "review" / "official_national_titles.json"
+OFFICIAL_HISTORICAL_TITLES_PATH = ROOT / "data" / "review" / "official_historical_champions.json"
 OFFICIAL_2015_OSTM_CHAMPIONS_PATH = ROOT / "data" / "review" / "official_2015_ostm_champions.json"
+OFFICIAL_RESULT_DECISIONS_PATH = ROOT / "data" / "review" / "official_result_decisions.json"
 
 
 def load_event_exclusions(path=EXCLUDED_EVENTS_PATH):
@@ -1802,6 +1804,37 @@ def apply_championship_eligibility_evidence(cur):
         WHERE championship IS NOT NULL AND official_club IS NULL
           AND championship_eligibility_state = 'provisional'
     """)
+
+
+def apply_official_result_decisions(cur, evidence):
+    """Apply narrowly identified organizer championship decisions to source rows."""
+    if evidence.get("schema_version") != 1:
+        raise ValueError("Unsupported official result decisions schema")
+    changed = 0
+    for event_id, event in evidence["events"].items():
+        if not cur.execute("SELECT 1 FROM event WHERE id=?", (int(event_id),)).fetchone():
+            continue
+        for decision in event["rows"]:
+            matches = cur.execute("""SELECT r.id FROM result r JOIN stage s ON s.id=r.stage_id
+                JOIN event e ON e.id=s.event_id JOIN source_document d ON d.id=r.source_document_id
+                WHERE e.id=? AND s.number=? AND substr(COALESCE(s.date,e.date_from),1,10)=?
+                  AND d.source_url=? AND r.category=? AND r.observed_name=? AND r.observed_club=?
+                  AND r.rank=? AND r.time_s=? AND r.status='ok' AND r.out_of_competition=0""",
+                (int(event_id), event["stage_number"], event["date"], event["result_source_url"],
+                 event["category"], decision["observed_name"], decision["club"],
+                 decision["rank"], decision["time_s"])).fetchall()
+            if len(matches) != 1:
+                raise ValueError(f"Official result decision no longer matches: {event_id} {decision['observed_name']}")
+            if decision["eligible"]:
+                cur.execute("""UPDATE result SET championship='ÖM', championship_eligibility_state='eligible',
+                    championship_eligibility_basis='official_championship_ranking', championship_source_scope='full_field'
+                    WHERE id=?""", matches[0])
+            else:
+                cur.execute("""UPDATE result SET championship=NULL, national_rank=NULL,
+                    championship_eligibility_state='ineligible', championship_eligibility_basis='official_source_ineligible',
+                    championship_source_scope='full_field' WHERE id=?""", matches[0])
+            changed += 1
+    return changed
 
 
 def apply_title_championship_fallback(cur):
@@ -4088,6 +4121,138 @@ def expand_4404_published_pairs(event_id, category, rows):
     return expanded
 
 
+def expand_1333_published_pairs(event_id, category, rows):
+    """Split the explicitly published 2015 Wiener Nacht two-person teams.
+
+    The source gives a single birth year for a team, not two separate years;
+    it must never be attributed to both individual runners.
+    """
+    pairs = {
+        ("Damen - 14 W", "Radon Livia Kastner Maya"): ("Livia Radon", "Maya Kastner"),
+        ("Damen - 14 W", "Hnilica Jana Veitsberger Carina"): ("Jana Hnilica", "Carina Veitsberger"),
+        ("Damen - 14 W", "HufnaglMagdalena Tiefenböck Rita"): ("Magdalena Hufnagl", "Rita Tiefenböck"),
+        ("Herren -14 W", "Wolfram Jakob Deubel Jörgen"): ("Jakob Wolfram", "Joergen Deubel"),
+        ("Herren -14 W", "Jandl Florian Bonek Erik"): ("Florian Jandl", "Erik Bonek"),
+        ("Herren -14 W", "Kratky Jakob Hnilica Hannes"): ("Jakob Kratky", "Hannes Hnilica"),
+        ("Herren -14 W", "GrünbeckJohannes Altmann Benjamin"): ("Johannes Grünbeck", "Benjamin Altmann"),
+        ("Herren -14 W", "Pietsch Max Deubel Jonas"): ("Max Pietsch", "Jonas Deubel"),
+        ("Herren -14 W", "Velkovski Julia Leitner Mario"): ("Julia Velkovski", "Mario Leitner"),
+    }
+    expanded = []
+    for row in rows:
+        names = pairs.get((category, row.get("name"))) if event_id == 1333 else None
+        if not names:
+            expanded.append(row)
+            continue
+        for i, name in enumerate(names):
+            expanded.append({**row, "name": name, "originalObservedName": row["name"],
+                             "yearOfBirth": None, "resultKind": "pair",
+                             "nameCanonicalOrder": True, "note": "Partner: " + names[1-i]})
+    return expanded
+
+
+def expand_1710_published_winning_pair(event_id, category, rows):
+    """Resolve a truncated source pair using the independent ÖFOL winner list.
+
+    The result PDF prints only ``Calvet Sofia Kastner M``; the ÖFOL
+    Meistertafel identifies the second runner as Maya Kastner. Preserve the
+    exact observation and do not extend this inference to any other row.
+    """
+    expanded = []
+    for row in rows:
+        if (event_id, category, row.get("name"), row.get("club"),
+                row.get("rank"), row.get("timeS")) != (
+                1710, "Damen -14", "Calvet Sofia Kastner M",
+                "Naturfreunde Wien", 1, 846):
+            expanded.append(row)
+            continue
+        names = ("Sofia Calvet", "Maya Kastner")
+        for i, name in enumerate(names):
+            expanded.append({**row, "name": name, "originalObservedName": row["name"],
+                             "yearOfBirth": None, "resultKind": "pair",
+                             "nameCanonicalOrder": True, "note": "Partner: " + names[1-i]})
+    return expanded
+
+
+def expand_3401_published_pairs(event_id, category, rows):
+    """Split the seven named Wiener 2021 night pair source rows."""
+    pairs = {
+        ("Damen -14", "PISKORZ Kiara-Sophie TOPALOGLU Leni"): ("Kiara-Sophie Piskorz", "Leni Topaloglu"),
+        ("Damen -14", "ASENBAUER Sona MEIZER Katharina"): ("Sona Asenbauer", "Katharina Meizer"),
+        ("Damen -14", "ASENBAUER Mika RADON Zoe"): ("Mika Asenbauer", "Zoe Radon"),
+        ("Damen -14", "BECK Maria RADON Elise"): ("Maria Beck", "Elise Radon"),
+        ("Herren -14", "URBANEK Lauri MACHOLD Cleo"): ("Lauri Urbanek", "Cleo Machold"),
+        ("Herren -14", "DOBLER Linus FISCHER Jonas"): ("Linus Dobler", "Jonas Fischer"),
+        ("Herren -14", "KOLAR Fabian URBANEK Annina"): ("Fabian Kolar", "Annina Urbanek"),
+    }
+    expanded = []
+    for row in rows:
+        names = pairs.get((category, row.get("name"))) if event_id == 3401 else None
+        if not names:
+            expanded.append(row)
+            continue
+        for i, name in enumerate(names):
+            expanded.append({**row, "name": name, "originalObservedName": row["name"],
+                             "yearOfBirth": None, "resultKind": "pair", "nameCanonicalOrder": True,
+                             "note": "Partner: " + names[1-i]})
+    return expanded
+
+
+def expand_3584_published_vienna_pairs(event_id, category, rows):
+    """Recover 2023 Wiener pairs whose second surname leaked into the club."""
+    pairs = {
+        ("Wien Damen -14 *", "Annina & Anna Urbanek", "& Skern Naturfreunde Wien"):
+            (("Annina Urbanek", "Anna Skern"), "Naturfreunde Wien"),
+        ("Wien Damen -14 *", "Maria & Cleo Beck &", "Machold Naturfreunde Wien"):
+            (("Maria Beck", "Cleo Machold"), "Naturfreunde Wien"),
+        ("Wien Damen -14 *", "Kath. & Marlies Janik", "& Meigl WAT-OL"):
+            (("Kath. Janik", "Marlies Meigl"), "WAT-OL"),
+        ("Wien Damen -14 *", "Merryn & Nicole Millard", "& Halanek WAT-OL"):
+            (("Merryn Millard", "Nicole Halanek"), "WAT-OL"),
+        ("Wien Herren -14 *", "Lauri & Adam Urbanek", "& Imriska Naturfreunde Wien"):
+            (("Lauri Urbanek", "Adam Imriska"), "Naturfreunde Wien"),
+        ("Wien Herren -14 *", "Oskar & Karla Hinterplattner", "MTV Hernals"):
+            (("Oskar Hinterplattner", "Karla Hinterplattner"), "MTV Hernals"),
+    }
+    expanded = []
+    for row in rows:
+        match = pairs.get((category, row.get("name"), row.get("club"))) if event_id == 3584 else None
+        if not match:
+            expanded.append(row)
+            continue
+        names, club = match
+        for i, name in enumerate(names):
+            expanded.append({**row, "name": name, "club": club, "originalObservedName": row["name"],
+                "originalObservedClub": row["club"], "yearOfBirth": None, "resultKind": "pair",
+                "nameCanonicalOrder": True, "note": "Partner: " + names[1-i]})
+    return expanded
+
+
+def expand_3847_published_vienna_pairs(event_id, category, rows):
+    """Recover the Wiener 2022 D−14 teams from the result and WOLV sources."""
+    pairs = {
+        "Asenbauer/Asenbauer": (("Mika Asenbauer", "Sona Asenbauer"), "Naturfreunde Wien"),
+        "Skern/Urbanek": (("Anna Skern", "Annina Urbanek"), "Naturfreunde Wien"),
+        "Paier/Millard Paula/Merryn": (("Paula Paier", "Merryn Millard"), "WAT-OL"),
+        "Machold/Buschek": (("Cleo Machold", "Matilda Buschek"), "Naturfreunde Wien"),
+        # The published DNS row has one real name and one unknown partner.
+        "Beck/???? Maria/????": (("Maria Beck",), "Naturfreunde Wien"),
+    }
+    expanded = []
+    for row in rows:
+        match = pairs.get(row.get("name")) if event_id == 3847 and category == "D -14 (paarweise)" else None
+        if not match:
+            expanded.append(row)
+            continue
+        names, club = match
+        for i, name in enumerate(names):
+            partner = names[1-i] if len(names) == 2 else "unbekannt"
+            expanded.append({**row, "name": name, "club": club, "originalObservedName": row["name"],
+                "originalObservedClub": row.get("club"), "yearOfBirth": None, "resultKind": "pair",
+                "nameCanonicalOrder": True, "note": "Partner: " + partner})
+    return expanded
+
+
 def select_preferred_event_documents(docs, events):
     """Use explicit source selections; fail closed if a selected source vanished."""
     for event_id, url in PREFERRED_EVENT_RESULT_URLS.items():
@@ -4243,6 +4408,16 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
         for cat in doc["categories"]:
             if eid == 4404:
                 cat = {**cat, "results": expand_4404_published_pairs(eid, cat["name"], cat["results"])}
+            if eid == 1333:
+                cat = {**cat, "results": expand_1333_published_pairs(eid, cat["name"], cat["results"])}
+            if eid == 1710:
+                cat = {**cat, "results": expand_1710_published_winning_pair(eid, cat["name"], cat["results"])}
+            if eid == 3401:
+                cat = {**cat, "results": expand_3401_published_pairs(eid, cat["name"], cat["results"])}
+            if eid == 3584:
+                cat = {**cat, "results": expand_3584_published_vienna_pairs(eid, cat["name"], cat["results"])}
+            if eid == 3847:
+                cat = {**cat, "results": expand_3847_published_vienna_pairs(eid, cat["name"], cat["results"])}
             current_list_occurrences = defaultdict(set)
             list_id = register_result_list(
                 cur, sid, source_document_id, cat["name"],
@@ -4448,7 +4623,7 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                     continue
                 if not is_valid_name(name):
                     continue
-                if flip_doc:
+                if flip_doc and not r.get("nameCanonicalOrder"):
                     toks = name.split()
                     if len(toks) == 2:
                         name = f"{toks[1]} {toks[0]}"
@@ -4563,7 +4738,7 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                               course_controls=cat.get("courseControls"),
                               result_kind=kind, note=note, source=doc["source"],
                               source_document_id=source_document_id,
-                              observed_name=observed_name, observed_club=r.get("club"),
+                              observed_name=observed_name, observed_club=r.get("originalObservedClub", r.get("club")),
                               observed_user_id=(
                                   str(uid) if uid is not None else None),
                               observed_category=cat["name"],
@@ -5753,9 +5928,13 @@ def populate_regional_championships(cur, catalog, club_jurisdictions, source_cla
         scopes = (reviewed.get("jurisdictions", {})
                   if reviewed.get("date") == stage_date
                   and reviewed.get("stage_number") == stage_number else {})
+        # A partial official overlay replaces only the explicitly documented
+        # source classes; it must not suppress the event's other mappings.
+        replaced = {jur for jur, scope in scopes.items()
+                    if not scope.get("partial") or category in scope.get("categories", {})}
         mappings = [m for m in regional_mappings_for_list(
             category, event_title, stage_title, file_name)
-            if m["jurisdiction"] not in scopes]
+            if m["jurisdiction"] not in replaced]
         for jurisdiction, evidence in scopes.items():
             review_note = evidence.get("review_notes", {}).get(category)
             if review_note:
@@ -6185,19 +6364,30 @@ def apply_official_national_titles(cur, titles):
     All source observations and the full roster must still match.
     """
     for item in titles:
-        rows = cur.execute("""SELECT r.id,r.person_id FROM result r
+        if item.get("result_kind") == "relay":
+            if item.get("team_time_s") is None:
+                raise ValueError("Official relay winner requires its shared team time")
+            time_column, expected_time = "r.team_time_s", item["team_time_s"]
+        else:
+            time_column, expected_time = "r.time_s", item["time_s"]
+        source_required = item.get("result_url") or ""
+        allow_provisional = int(item.get("eligibility_from_official_champion") is True)
+        rows = cur.execute(f"""SELECT r.id,r.person_id FROM result r
             JOIN stage s ON s.id=r.stage_id JOIN event e ON e.id=s.event_id
             JOIN national_minimum_starters m ON m.stage_id=r.stage_id AND m.category=r.category
             WHERE e.id=? AND COALESCE(s.date,e.date_from)=? AND s.number=?
               AND r.category=? AND r.result_list_id=? AND r.result_kind=?
-              AND r.official_club=? AND r.team_name=? AND r.time_s=?
+              AND r.official_club=? AND r.team_name IS ? AND {time_column}=?
               AND r.rank=1 AND r.status='ok' AND r.out_of_competition=0
               AND r.championship='ÖM' AND r.identity_state='resolved'
-              AND r.championship_eligibility_state='eligible'
+              AND (r.championship_eligibility_state='eligible' OR
+                   (?=1 AND r.championship_eligibility_state IN ('unknown','provisional')))
+              AND (?='' OR EXISTS (SELECT 1 FROM source_document d
+                                    WHERE d.id=r.source_document_id AND d.source_url=?))
               AND m.state IN ('met','unresolved')""",
             (item['event_id'], item['date'], item['stage_number'], item['category'],
              item['result_list_id'], item['result_kind'], item['club'], item['team_name'],
-             item['time_s'])).fetchall()
+             expected_time, allow_provisional, source_required, source_required)).fetchall()
         if len(rows) != len(item['person_ids']) or {r[1] for r in rows} != set(item['person_ids']):
             continue
         for result_id, _ in rows:
@@ -6205,6 +6395,10 @@ def apply_official_national_titles(cur, titles):
                         (result_id, item['source_url'], item['invitation_url'],
                          item['invitation_sha256'], item['note']))
             cur.execute("UPDATE result SET national_rank=1 WHERE id=?", (result_id,))
+            if allow_provisional:
+                cur.execute("""UPDATE result SET championship_eligibility_state='eligible',
+                    championship_eligibility_basis='official_championship_ranking',
+                    championship_source_scope='winner_only' WHERE id=?""", (result_id,))
 
 
 def compute_time_behind(cur):
@@ -6830,6 +7024,8 @@ def main():
     apply_confirmed_2015_ostm_champions(cur, official_2015["champions"])
     n_eligibility = apply_championship_eligibility_overrides(cur)
     apply_championship_eligibility_evidence(cur)
+    official_decisions = json.loads(OFFICIAL_RESULT_DECISIONS_PATH.read_text())
+    apply_official_result_decisions(cur, official_decisions)
 
     # OOC/AK is independent of finish status but never participates in a
     # championship ranking or medal award.
@@ -7039,6 +7235,9 @@ def main():
     if OFFICIAL_NATIONAL_TITLES_PATH.exists():
         official_titles = json.loads(OFFICIAL_NATIONAL_TITLES_PATH.read_text()).get('titles', [])
         apply_official_national_titles(cur, official_titles)
+    if OFFICIAL_HISTORICAL_TITLES_PATH.exists():
+        historical_titles = json.loads(OFFICIAL_HISTORICAL_TITLES_PATH.read_text()).get('titles', [])
+        apply_official_national_titles(cur, historical_titles)
 
     # Compute source-faithful time gaps only where a time ranking makes them
     # meaningful. Score lists, OOC rows and unranked rows remain without a gap.

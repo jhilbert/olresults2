@@ -62,6 +62,29 @@ class ChampionshipAuditTests(unittest.TestCase):
         return builder.collect(self.con, inventory or {}, national or {}, {}, {},
                                {"source_url":"https://example.org/official", "tables":[{"year":2025}]}, {})
 
+    def test_official_2020_ski_classification_beats_conflicting_annual_table(self):
+        evidence = json.loads((ROOT / "data/review/official_result_decisions.json").read_text())
+        event = evidence["events"]["2916"]
+        cur = self.con.cursor()
+        cur.execute("INSERT INTO event (id,title,date_from) VALUES (2916,'Ski-O ÖM Lang','2020-01-25')")
+        cur.execute("INSERT INTO stage VALUES (2,2916,1,NULL,'2020-01-25',NULL)")
+        cur.execute("INSERT INTO source_document (id,event_id,source_type,source_url) VALUES ('ski',2916,'pdf',?)", (event["result_source_url"],))
+        for idx, item in enumerate(event["rows"], start=20):
+            cur.execute("INSERT INTO person VALUES (?,?,?,NULL,NULL)", (idx,item["observed_name"],str(idx)))
+            db.insert_result(cur, stage_id=2, person_id=idx, category=event["category"], status="ok",
+                rank=item["rank"], time_s=item["time_s"], source="test", observed_name=item["observed_name"],
+                observed_club=item["club"], official_club=item["club"], source_document_id="ski", championship="ÖM")
+        self.assertEqual(db.apply_official_result_decisions(cur, evidence), 4)
+        cur.execute("CREATE TEMP TABLE ineligible_starter (event_id INTEGER, person_id INTEGER)")
+        db.apply_national_minimum_starters(cur)
+        self.assertEqual(cur.execute("SELECT eligible_starters,state FROM national_minimum_starters WHERE stage_id=2").fetchone(), (3,"met"))
+        db.compute_national_ranks(cur)
+        self.assertEqual(cur.execute("SELECT observed_name,championship,national_rank FROM result WHERE stage_id=2 ORDER BY rank").fetchall(),
+            [("Cech Adam",None,None), ("Perktold David","ÖM",1), ("Lorenz Konrad","ÖM",2), ("Egger Lilli","ÖM",3)])
+        cur.execute("UPDATE result SET time_s=1421 WHERE observed_name='Cech Adam'")
+        with self.assertRaisesRegex(ValueError,"no longer matches"):
+            db.apply_official_result_decisions(cur, evidence)
+
     def test_discovery_does_not_claim_verified_category_or_champion(self):
         inv = {"events":{"1":{"fetch_status":"ok", "attachments":[{"type":"invitation", "url":"https://example.org/inv"}]}}}
         row = self.collect(inv)["classes"][0]

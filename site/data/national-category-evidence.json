@@ -1,6 +1,87 @@
 {
   "schema_version": 1,
   "events": {
+    "1080": {
+      "event_date":"2014-09-20", "stage_number":1, "label":"Ausschreibung ÖM Mittel 2014, Seite 1",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_1080_Ausschreibung%20OEM%20Mittel.pdf",
+      "sha256":"75ab208545b302f16c9a3c40b5e82452d721888627672c1a687049489b7d599c",
+      "reviewed_on":"2026-11-02", "result_kinds":["individual"],
+      "categories":["D-12","H -12","D-14","H -14","D-16 Elite","H -16 Elite","D-18 Elite","H -18Elite","D-20 Elite","H -20Elite"],
+      "scope":"Die Ausschreibung belegt die ÖM-Jugendklassen; individuelle Berechtigung und Titel bleiben gesondert."
+    },
+    "1818": {
+      "event_date":"2016-10-01", "stage_number":1, "label":"Ausschreibung ÖM Mittel 2016, Seite 1",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_1818_einloemstmittel2016.pdf",
+      "sha256":"e28b4bc0f769beb703adac20a9dee02cfad84e5f3b541f0381439f06725718b2",
+      "reviewed_on":"2026-11-02", "result_kinds":["individual"],
+      "categories":["Damen -12","Herren -12","Damen -14","Herren -14","Damen 16E","Herren 16E"],
+      "excluded_from_national_championship_categories":["Damen 18E","Herren 18E","Damen 20E","Herren 20E"],
+      "scope":"D/H−12, D/H13–14 und D/H−16E sind ÖM; D/H−18E und D/H−20E sind ausdrücklich nur Austria Cup."
+    },
+    "1893": {
+      "event_date":"2017-05-06", "stage_number":1, "label":"Ausschreibung ÖM Mittel 2017, Seite 3",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_1893_2017-05-06-ac-ausschreibung.pdf",
+      "sha256":"90b5a475a25da4d19e56c9295d84fe1de1508f197b8fd87a22d901dacaabe293",
+      "reviewed_on":"2026-11-02", "result_kinds":["individual"],
+      "categories":["Damen -12","Herren -12","Damen -14","Herren -14","Damen -16 Elite","Herren -16 Elite","Damen -18 Elite","Herren -18 Elite","Damen -20 Elite","Herren -20 Elite"],
+      "scope":"Ausgeschriebene ÖM-Jugendklassen; kein Nachweis persönlicher Berechtigung."
+    },
+    "1972": {
+      "event_date":"2017-05-07", "stage_number":1, "label":"Ausschreibung ÖM Sprint 2017, Seite 4",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_1972_20170507-m-sprint-2-ac-sprint-mixed-staffel-stand-20170418.pdf",
+      "sha256":"a9eb46e0119aef3dd0a09a055803f458266d31856a6ea72b473ae22b6d4aa3db",
+      "reviewed_on":"2026-11-02", "result_kinds":["individual"],
+      "categories":["Damen -12","Herren -12","Damen -14","Herren -14","Damen -16 Elite","Herren -16 Elite","Damen -18 Elite","Herren -18 Elite","Damen -20 Elite","Herren -20 Elite"],
+      "scope":"Ausgeschriebene ÖM-Sprint-Jugendklassen; 21 Elite ist nur Austria Cup/WRE."
+    },
+    "2110": {
+      "event_date":"2018-04-07", "stage_number":1, "label":"Ausschreibung ÖM Sprint 2018, Seite 2",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_2110_ausschreibung-sprint-mixedrelay.pdf",
+      "sha256":"fd8a2a4d26e29ed068139f245f9f0a8320af5c261fab0ef4bbcf4ea8d62f6c03",
+      "reviewed_on":"2026-11-02", "result_kinds":["individual"],
+      "categories":["Damen -12","Herren -12","Damen -14","Herren -14","Damen -16 Elite","Herren -16 Elite","Damen -18 Elite","Herren -18 Elite","Damen -20 Elite","Herren -20 Elite"],
+      "scope":"Ausgeschriebene ÖM-Sprint-Jugendklassen; die getrennte Mixed-Staffel ist ein anderer Bewerb."
+    },
+    "2622": {
+      "event_date":"2019-09-22", "stage_number":1, "label":"Ausschreibung ÖM Lang 2019, Seite 2",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_2622_ausschreibung-orienteering-unlimited-anne.pdf",
+      "sha256":"197407a760a1554d0d9d4b201af12752749d4f28ba66f921bd8147f0b848941b",
+      "reviewed_on":"2026-11-02", "result_kinds":["individual"],
+      "categories":["Damen -12","Herren -12","Damen -14","Herren -14","Damen -16 Elite","Herren -16 Elite","Damen -18 Elite","Herren -18 Elite","Damen -20 Elite","Herren -20 Elite"],
+      "scope":"Ausgeschriebene Jugendklassen der ÖM Lang; die ÖSTM Mittel am Vortag ist getrennt."
+    },
+    "2675": {
+      "event_date":"2019-05-19", "stage_number":2, "label":"Ausschreibung ÖM Sprint 2019, Seite 2",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_2675_ausschreibung-stm.pdf",
+      "sha256":"29e7316625af3bb86c9e7bd30af8640d19e4d8080463bc27a33abe1a7441095e",
+      "reviewed_on":"2026-11-02", "result_kinds":["individual"],
+      "categories":["Damen-12","Herren-12","Damen-14","Herren-14","Damen-16E","Herren-16 Elite","Damen-18E","Herren-18 Elite","Damen-20E","Herren-20 Elite"],
+      "scope":"ÖM-Sprint-Jugendklassen der zweiten Etappe; die erste Etappe ist ein anderer Bewerb."
+    },
+    "2916": {
+      "event_date":"2020-01-25", "stage_number":1,
+      "label":"Ausschreibung Ski-O ÖM Lang 2020, Seite 1",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_2916_ausschreibung-ramsau.pdf",
+      "sha256":"c04f03506d88351e516c263de996b968e6f1c18e4e13bf6839d5e4f60cd9430b",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_2916_ergebnisse-ski-o-oem-lang-2020.pdf",
+      "result_sha256":"cbe6ce4fcd5fa32ab672db30413457fdfaa35a7f16f81939971a26f9dab84478",
+      "reviewed_on":"2026-11-02", "result_kinds":["individual"],
+      "categories":["Herren -14"],
+      "scope":"Die Ausschreibung nennt H−14 als ÖM-Klasse. Die offizielle ÖM-Wertung nennt David Perktold als Meister und Adam Cech ausdrücklich als nicht ÖM-berechtigt; die ÖFOL-Jahrestafel weicht beim Meister ab."
+    },
+    "3507": {
+      "event_date":"2022-09-24", "stage_number":1,
+      "label":"Ausschreibung ÖM Mannschaft 2022, Seite 2",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_3507_m-mannschaft-2022-einladung-und-ausschreibung.pdf",
+      "sha256":"72f856ebc87c5143d968e2a46570385c0d8215c53ae383563d7d607d27d7ae8d",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_3507_ergebnis-teams-mannschaft.pdf",
+      "result_sha256":"19003102238ad2e6e0019432af2deaf098a1533b81b6f0d037fbda7d4679ac79",
+      "cross_check_url":"https://www.orienteeringaustria.at/termine/meistertafel/",
+      "reviewed_on":"2026-11-01", "result_kinds":["team"],
+      "categories":["Damen bis 14","Damen ab 15 bis 18","Damen ab 19","Damen ab 40","Damen ab 55","Herren bis 14","Herren ab 15 bis 18","Herren ab 19","Herren ab 40","Herren ab 50","Herren ab 60"],
+      "excluded_from_national_championship_categories":["Damen bis 14 Einzel","Herren bis 14 Einzel"],
+      "scope":"Die Ausschreibung nennt nur die Mannschaftsklassen als ÖM; Einzelläufer sind Rahmenbewerbe. Die ÖFOL-Meistertafel bestätigt das D−14-Siegerteam Mika und Sona Asenbauer sowie Anna Skern."
+    },
     "5203": {
       "event_date":"2026-03-22", "stage_number":1,
       "label":"Ausschreibung Ski-O ÖSTM/ÖM Sprint 2026, Seite 2",

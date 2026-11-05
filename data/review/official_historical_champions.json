@@ -1,0 +1,406 @@
+{
+  "schema_version": 1,
+  "scope": "Quellenbestätigte historische ÖM-Jugend-Meisterteams; keine künstlichen Starterzahlen",
+  "titles": [
+    {
+      "event_id": 1167,
+      "date": "2014-04-27",
+      "stage_number": 1,
+      "category": "Damen -18",
+      "result_list_id": "list:2e8ee2f83e71c8068caee0e4",
+      "result_kind": "relay",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien 1",
+      "team_time_s": 5150,
+      "person_ids": [
+        2710,
+        7276,
+        1690
+      ],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_1167_erg270414.html",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_1167_Einl.Staffel2014.pdf",
+      "invitation_sha256": "78591f7d44aeed99745fbdb15853e36fb804d66e7268138af755a078baa775fb",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Tina Tiefenböck / Ylvi Kastner / Jasmina Gassner."
+    },
+    {
+      "event_id": 1167,
+      "date": "2014-04-27",
+      "stage_number": 1,
+      "category": "Herren -14",
+      "result_list_id": "list:3f10ee85ba2cdc2e3da3b71f",
+      "result_kind": "relay",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien 1",
+      "team_time_s": 5008,
+      "person_ids": [
+        6452,
+        3259,
+        6784
+      ],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_1167_erg270414.html",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_1167_Einl.Staffel2014.pdf",
+      "invitation_sha256": "78591f7d44aeed99745fbdb15853e36fb804d66e7268138af755a078baa775fb",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Joergen Deubel / Florian Jandl / Jakob Wolfram."
+    },
+    {
+      "event_id": 1167,
+      "date": "2014-04-27",
+      "stage_number": 1,
+      "category": "Herren -16",
+      "result_list_id": "list:0d5fa09f6daaef1972515254",
+      "result_kind": "relay",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien 1",
+      "team_time_s": 5682,
+      "person_ids": [
+        1664,
+        1662,
+        6783
+      ],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_1167_erg270414.html",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_1167_Einl.Staffel2014.pdf",
+      "invitation_sha256": "78591f7d44aeed99745fbdb15853e36fb804d66e7268138af755a078baa775fb",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Jannis Bonek / Erik Bonek / Clemens Wolfram."
+    },
+    {
+      "event_id": 1167,
+      "date": "2014-04-27",
+      "stage_number": 1,
+      "category": "Herren -18",
+      "result_list_id": "list:bdfb639fd049f70f937b56d3",
+      "result_kind": "relay",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien 1",
+      "team_time_s": 5346,
+      "person_ids": [
+        3258,
+        6912,
+        6741
+      ],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_1167_erg270414.html",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_1167_Einl.Staffel2014.pdf",
+      "invitation_sha256": "78591f7d44aeed99745fbdb15853e36fb804d66e7268138af755a078baa775fb",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Dominik Jandl / Nicolas Kastner / Florian Kurz."
+    },
+    {
+      "event_id": 1249,
+      "date": "2014-10-18",
+      "stage_number": 1,
+      "category": "Herren -14",
+      "result_list_id": "list:3dd8b2b46c737716c48c4d14",
+      "result_kind": "pair",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien",
+      "time_s": 1679,
+      "person_ids": [
+        1662,
+        3259
+      ],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_1249_erg181014.html",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_1249_aus.pdf",
+      "invitation_sha256": "822a4e61fb652f33e697d9a2b5f8d7c4b939edf678867ac6c6ac29d76d9170dd",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Bonek Erik / Jandl Florian."
+    },
+    {
+      "event_id": 1551,
+      "date": "2015-10-17",
+      "stage_number": 1,
+      "category": "Herren -14",
+      "result_list_id": "list:c0cd2c6b6111358614d0e599",
+      "result_kind": "pair",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien",
+      "time_s": 1445,
+      "person_ids": [
+        6452,
+        6784
+      ],
+      "eligibility_from_official_champion": true,
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_1551_ac_09_15_erg.html",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_1551_Ausschreibung OeM NachtOL_2015_9AC_final.pdf",
+      "invitation_sha256": "34d936c9fd368cbd526bf6bd8f56e1ffbce9ff070481dca0380ac17e89f8e713",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Deubel Joergen / Wolfram Jakob. Meistertafel nennt Joergen abweichend Jürgen; ANNE-Ergebnisname ist maßgeblich."
+    },
+    {
+      "event_id": 1618,
+      "date": "2016-04-24",
+      "stage_number": 1,
+      "category": "Damen -14",
+      "result_list_id": "list:a5329d22d9a74792b708cce0",
+      "result_kind": "relay",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien 1",
+      "team_time_s": 6130,
+      "person_ids": [
+        6700,
+        7911,
+        7307
+      ],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_1618_ergebnisse-staffel.html",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_1618_AusschreibungAC2016.pdf",
+      "invitation_sha256": "ef0d822c51e6d06b2bfdca70c77ba53c83fc45ac20df6dc8109065cbc223b365",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Sofia Calvet / Magdalena Hufnagel / Maya Kastner."
+    },
+    {
+      "event_id": 1618,
+      "date": "2016-04-24",
+      "stage_number": 1,
+      "category": "Herren -12",
+      "result_list_id": "list:b35b74df1d82298fe5aea807",
+      "result_kind": "relay",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien 1",
+      "team_time_s": 4912,
+      "person_ids": [
+        6510,
+        8112,
+        6704
+      ],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_1618_ergebnisse-staffel.html",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_1618_AusschreibungAC2016.pdf",
+      "invitation_sha256": "ef0d822c51e6d06b2bfdca70c77ba53c83fc45ac20df6dc8109065cbc223b365",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Theo Pietsch / Corinna Biel / Livia Radon."
+    },
+    {
+      "event_id": 1618,
+      "date": "2016-04-24",
+      "stage_number": 1,
+      "category": "Herren -16",
+      "result_list_id": "list:56484c4d0ef44973c2730503",
+      "result_kind": "relay",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien 1",
+      "team_time_s": 5640,
+      "person_ids": [
+        6452,
+        3259,
+        6784
+      ],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_1618_ergebnisse-staffel.html",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_1618_AusschreibungAC2016.pdf",
+      "invitation_sha256": "ef0d822c51e6d06b2bfdca70c77ba53c83fc45ac20df6dc8109065cbc223b365",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Joergen Deubel / Florian Jandl / Jakob Wolfram."
+    },
+    {
+      "event_id": 1618,
+      "date": "2016-04-24",
+      "stage_number": 1,
+      "category": "Herren -18",
+      "result_list_id": "list:79e24d8f0f8092937fd14883",
+      "result_kind": "relay",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien 1",
+      "team_time_s": 6270,
+      "person_ids": [
+        3258,
+        6783,
+        1664
+      ],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_1618_ergebnisse-staffel.html",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_1618_AusschreibungAC2016.pdf",
+      "invitation_sha256": "ef0d822c51e6d06b2bfdca70c77ba53c83fc45ac20df6dc8109065cbc223b365",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Dominik Jandl / Clemens Wolfram / Jannis Bonek."
+    },
+    {
+      "event_id": 1973,
+      "date": "2017-05-07",
+      "stage_number": 1,
+      "category": "Nachwuchs -16",
+      "result_list_id": "list:7f19f262e9dced60e0fb77e1",
+      "result_kind": "relay",
+      "club": "Naturfreunde Wien",
+      "team_name": "NF Wien Naturfreunde Wien 1",
+      "team_time_s": 1995,
+      "person_ids": [
+        3165,
+        3259,
+        6784,
+        7307
+      ],
+      "eligibility_from_official_champion": true,
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_1973_ergebnisse-oem-mixed-staffel-2017-vorlufig.pdf",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_1973_20170507-m-sprint-2-ac-sprint-mixed-staffel-stand-20170418.pdf",
+      "invitation_sha256": "a9eb46e0119aef3dd0a09a055803f458266d31856a6ea72b473ae22b6d4aa3db",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Rita Tiefenböck / Florian Jandl / Jakob Wolfram / Maya Kastner. Ergebnis ist als vorläufig bezeichnet; Meistertafel bestätigt die Besetzung."
+    },
+    {
+      "event_id": 1977,
+      "date": "2017-10-07",
+      "stage_number": 2,
+      "category": "D -12",
+      "result_list_id": "list:0de2a8d4513ba43b3e8a116f",
+      "result_kind": "relay",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien 1",
+      "team_time_s": 4722,
+      "person_ids": [
+        8112,
+        6704,
+        8452
+      ],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_1977_st-ergebnisse2.html",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_1977_einladung-20170910.pdf",
+      "invitation_sha256": "5eb157e0340bb2c0667fcc1ede0f14451a1aa5bf73e67bdff62710ba1547434b",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Corinna Biel / Livia Radon / Carolina Hufnagel."
+    },
+    {
+      "event_id": 1977,
+      "date": "2017-10-07",
+      "stage_number": 2,
+      "category": "D 15-18",
+      "result_list_id": "list:da3f2c21aca78bc673de2b5a",
+      "result_kind": "relay",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien 1",
+      "team_time_s": 5393,
+      "person_ids": [
+        7307,
+        3165,
+        7276
+      ],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_1977_st-ergebnisse2.html",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_1977_einladung-20170910.pdf",
+      "invitation_sha256": "5eb157e0340bb2c0667fcc1ede0f14451a1aa5bf73e67bdff62710ba1547434b",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Maya Kastner / Rita Tiefenböck / Ylvi Kastner."
+    },
+    {
+      "event_id": 1977,
+      "date": "2017-10-07",
+      "stage_number": 2,
+      "category": "H -18",
+      "result_list_id": "list:850959103f2c26a470bb7194",
+      "result_kind": "relay",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien 1",
+      "team_time_s": 7854,
+      "person_ids": [
+        8442,
+        3259,
+        1664
+      ],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_1977_st-ergebnisse2.html",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_1977_einladung-20170910.pdf",
+      "invitation_sha256": "5eb157e0340bb2c0667fcc1ede0f14451a1aa5bf73e67bdff62710ba1547434b",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Julius Tesarek / Florian Jandl / Jannis Bonek."
+    },
+    {
+      "event_id": 2236,
+      "date": "2018-06-10",
+      "stage_number": 1,
+      "category": "Damen -18",
+      "result_list_id": "list:ae65fd29eb701259d83a1d63",
+      "result_kind": "team",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien 1",
+      "time_s": 3932,
+      "person_ids": [
+        7276,
+        7307,
+        3165
+      ],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_2236_ergebnis-mannschaft.txt",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_2236_ausschreibung-msjugsen-mannschaft.pdf",
+      "invitation_sha256": "d76571950eb6091a150ae5b34176938c6e197ef155364debf67eae1df7630e45",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Kastner Ylvi / Kastner Maya / Tiefenböck Rita."
+    },
+    {
+      "event_id": 2612,
+      "date": "2019-04-13",
+      "stage_number": 1,
+      "category": "Damen -18",
+      "result_list_id": "list:8ced175c4326812a1a842461",
+      "result_kind": "team",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien 1",
+      "time_s": 3535,
+      "person_ids": [
+        7307,
+        3165,
+        7911
+      ],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_2612_ergebnisse.html",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_2612_einladung-und-ausschreibung.pdf",
+      "invitation_sha256": "ba8fd01abe64f7260cd1f00770a38dffb04f4f64aad4fa0c65e650d9cf19ef71",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Kastner Maya / Tiefenböck Rita / Hufnagel Magdalena."
+    },
+    {
+      "event_id": 2713,
+      "date": "2019-06-02",
+      "stage_number": 1,
+      "category": "Damen -14",
+      "result_list_id": "list:4acb96a34ba253c558258487",
+      "result_kind": "relay",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien 1",
+      "team_time_s": 4930,
+      "person_ids": [
+        8112,
+        6704,
+        8452
+      ],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_2713_erg020619.html",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_2713_ausschreibung-stm-mstaffelorientierungslauf-2019.pdf",
+      "invitation_sha256": "964ac7711be2ff74f975e941831e39cdfeb365b92a8a0ed81181a25e9f1d1637",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Biel Corinna / Radon Livia / Hufnagel Carolina."
+    },
+    {
+      "event_id": 2713,
+      "date": "2019-06-02",
+      "stage_number": 1,
+      "category": "Damen 15 -18",
+      "result_list_id": "list:c9dff4512a0f32f3d03129c2",
+      "result_kind": "relay",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien 1",
+      "team_time_s": 6578,
+      "person_ids": [
+        7911,
+        3165,
+        7307
+      ],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_2713_erg020619.html",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_2713_ausschreibung-stm-mstaffelorientierungslauf-2019.pdf",
+      "invitation_sha256": "964ac7711be2ff74f975e941831e39cdfeb365b92a8a0ed81181a25e9f1d1637",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Hufnagel Magdalena / Tiefenböck Rita / Kastner Maya."
+    },
+    {
+      "event_id": 2713,
+      "date": "2019-06-02",
+      "stage_number": 1,
+      "category": "Herren -18",
+      "result_list_id": "list:7a5f939a2127738c4bf907b0",
+      "result_kind": "relay",
+      "club": "Naturfreunde Wien",
+      "team_name": "Naturfreunde Wien 1",
+      "team_time_s": 8127,
+      "person_ids": [
+        6452,
+        6784,
+        1662
+      ],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url": "https://anne-cdn.oefol.at/public/legacy/event_2713_erg020619.html",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_2713_ausschreibung-stm-mstaffelorientierungslauf-2019.pdf",
+      "invitation_sha256": "964ac7711be2ff74f975e941831e39cdfeb365b92a8a0ed81181a25e9f1d1637",
+      "note": "ÖFOL-Meistertafel, Ausschreibung und ANNE-Ergebnis: Deubel Joergen / Wolfram Jakob / Bonek Erik."
+    }
+  ]
+}

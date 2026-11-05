@@ -85,6 +85,42 @@ test("2024 Vienna D14 winner with dated club mapping counts toward youth title",
   assert.match(html, /event\/4251/);
 });
 
+test("2022 Mannschaft D14 is an evidenced championship, individual race is not", () => {
+  const source = JSON.parse(fs.readFileSync(path.join(__dirname, "../site/data/national-category-evidence.json"), "utf8"));
+  context.nationalFixture = source.events;
+  vm.runInContext("nationalCategoryEvidence = nationalFixture", context);
+  const base = {event_id:3507, date:"2022-09-24", stage_number:1, category:"Damen bis 14",
+    category_full:"Damen bis 14", championship:"ÖM", national_rank:1,
+    championship_eligibility_state:"eligible", championship_source_scope:"inferred",
+    status:"ok", out_of_competition:0, identity_state:"resolved", result_kind:"team",
+    result_list_id:"list:1562752144d8718e6d05698d", team_number:"1", time_s:1771,
+    club_name:"Naturfreunde Wien", event_title:"ÖM Mannschaft"};
+  const rows = [["9209","Mika Asenbauer"],["9210","Sona Asenbauer"],["8506","Anna Skern"]]
+    .map(([person_id,person_name]) => ({...base, person_id, person_name}));
+  const html = context.renderYouth(rows, [], {year:"2022",club:"Naturfreunde Wien"});
+  assert.match(html, /Σ 3<\/small>/);
+  assert.match(html, /Σ 1\s*200 €/);
+  const single = context.renderYouth([{...rows[0], result_kind:"individual", category:"Damen bis 14 Einzel"}], []);
+  assert.match(single, /ÖM-Kategorie nur abgeleitet/);
+});
+
+test("historical Wiener night pairs count both verified winners once", () => {
+  const source = JSON.parse(fs.readFileSync(path.join(__dirname, "../site/data/regional-title-evidence.json"), "utf8"));
+  context.sourceFixture = source.events;
+  vm.runInContext("regionalTitleEvidence = sourceFixture", context);
+  const base = {category:"H-14", category_full:"H-14", source_category:"Herren -14",
+    source_category_full:"Herren -14", result_kind:"pair", status:"ok", out_of_competition:0,
+    rank:1, national_rank:1, identity_state:"resolved", result_list_id:"night",
+    regional_entry_id:"winner-pair", stage_number:1, event_id:3401, event_title:"Wiener Nacht",
+    date:"2021-10-08", club_name:"Naturfreunde Wien", time_s:1720, detection_basis:"category"};
+  const rows = [["8901","Lauri Urbanek"],["9220","Cleo Machold"]]
+    .map(([person_id,person_name]) => ({...base, person_id, person_name}));
+  const html = context.renderYouth([], rows, {year:"2021",club:"Naturfreunde Wien"});
+  assert.match(html, /Σ 2<\/small>/);
+  assert.match(html, /Σ 180 €/);
+  assert.doesNotMatch(html, /Personenzuordnung prüfen/);
+});
+
 test("compact elite U16 classes and official team champions are counted with evidence", () => {
   assert.equal(rules.youthTitleCategory("D16-E").maxAge, 16);
   assert.equal(rules.youthTitleCategory("H18E").maxAge, 18);

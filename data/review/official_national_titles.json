@@ -2,6 +2,113 @@
   "schema_version": 1,
   "titles": [
     {
+      "event_id":1710,"date":"2016-10-22","stage_number":1,"category":"Damen -14",
+      "result_list_id":"list:a3003eac8315c59b644fdaef","result_kind":"pair","club":"Naturfreunde Wien","team_name":"Naturfreunde Wien",
+      "time_s":846,"person_ids":[6700,7307],"source_url":"https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1710_m-nacht-zgl-8-ac-2016.pdf",
+      "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1710_m-nacht-ol-2016-ausschreibung.pdf",
+      "invitation_sha256":"c267f2eb3eccf9b80482d3321ebeb48eff1e044471cd1f531acf93d0849e2b78",
+      "note":"ÖM Nacht D−14: Sofia Calvet und Maya Kastner. Ergebnis kürzt den zweiten Namen ab; ÖFOL-Meistertafel ergänzt ihn."
+    },
+    {
+      "event_id":1314,"date":"2015-04-25","stage_number":1,"category":"Damen -14",
+      "result_list_id":"list:f087b3fcee24f485cce73b53","result_kind":"individual","club":"Naturfreunde Wien","team_name":null,
+      "time_s":1104,"person_ids":[7307],"source_url":"https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1314_ergebnis.htm",
+      "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1314_Aussschreibung%20.docx",
+      "invitation_sha256":"93e89ac59b746b8cdf768d3b615642463474ea8064596ecf856789005be8ed3a",
+      "note":"ÖM MTBO Sprint D−14: Maya Kastner. Ausschreibung, Ergebnis und ÖFOL-Meistertafel stimmen überein."
+    },
+    {
+      "event_id":1324,"date":"2015-09-19","stage_number":1,"category":"Damen -14",
+      "result_list_id":"list:1b5de44807a61114d835ca05","result_kind":"individual","club":"Naturfreunde Wien","team_name":null,
+      "time_s":903,"person_ids":[7307],"source_url":"https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1324_mtboac09_erg.pdf",
+      "invitation_url":"http://www.olt-transdanubien.at/data/2015/ausschreibung_mtbo15.pdf",
+      "invitation_sha256":"a026f191c234cf230d2ff528544b4393a3556ed3e26e5b24a6b7a9f72de834ec",
+      "note":"ÖM MTBO Mittel D−14: Maya Kastner. Ausschreibung, Ergebnis und ÖFOL-Meistertafel stimmen überein."
+    },
+    {
+      "event_id":1062,"date":"2014-05-24","stage_number":1,"category":"Damen-16 Elite",
+      "result_list_id":"list:3561f285be932127b4740603","result_kind":"individual","club":"Naturfreunde Wien","team_name":null,
+      "time_s":2228,"person_ids":[1690],"source_url":"https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1062_ac_2_result.pdf","invitation_url":"","invitation_sha256":"",
+      "note":"ÖFOL-Meistertafel 2014 Lang D−16: Jasmina Gassner; Ergebnis und Kategorie stimmen exakt. Eine Ausschreibung ist im ANNE-Anhangsinventar nicht vorhanden."
+    },
+    {
+      "event_id":1062,"date":"2014-05-24","stage_number":1,"category":"Herren-12",
+      "result_list_id":"list:8f6d1d43a58c198e2e7ee9b5","result_kind":"individual","club":"Naturfreunde Wien","team_name":null,
+      "time_s":1371,"person_ids":[3759],"source_url":"https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1062_ac_2_result.pdf","invitation_url":"","invitation_sha256":"",
+      "note":"ÖFOL-Meistertafel 2014 Lang H−12: Jonas Deubel; Ergebnis und Kategorie stimmen exakt. Eine Ausschreibung ist im ANNE-Anhangsinventar nicht vorhanden."
+    },
+    {
+      "event_id":1062,"date":"2014-05-24","stage_number":1,"category":"Herren-16 Elite",
+      "result_list_id":"list:961cdc9fc2cda176d56b86a6","result_kind":"individual","club":"Naturfreunde Wien","team_name":null,
+      "time_s":2913,"person_ids":[1664],"source_url":"https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1062_ac_2_result.pdf","invitation_url":"","invitation_sha256":"",
+      "note":"ÖFOL-Meistertafel 2014 Lang H−16: Jannis Bonek; Ergebnis und Kategorie stimmen exakt. Eine Ausschreibung ist im ANNE-Anhangsinventar nicht vorhanden."
+    },
+    {
+      "event_id":1893,"date":"2017-05-06","stage_number":1,"category":"Herren -16 Elite",
+      "result_list_id":"list:9cbe73b74857dbbfb10c33b3","result_kind":"individual","club":"Naturfreunde Wien","team_name":null,
+      "time_s":1929,"person_ids":[3259],"eligibility_from_official_champion":true,
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1893_2017-05-06-ac-ergebnisse.pdf",
+      "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1893_2017-05-06-ac-ausschreibung.pdf",
+      "invitation_sha256":"90b5a475a25da4d19e56c9295d84fe1de1508f197b8fd87a22d901dacaabe293",
+      "note":"Ausschreibung ÖM Mittel H−16E; Ergebnis und ÖFOL-Meistertafel nennen Florian Jandl."
+    },
+    {
+      "event_id":1972,"date":"2017-05-07","stage_number":1,"category":"Herren -16 Elite",
+      "result_list_id":"list:804e5032292f23c9e15d91c7","result_kind":"individual","club":"Naturfreunde Wien","team_name":null,
+      "time_s":779,"person_ids":[6784],"eligibility_from_official_champion":true,
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1972_ergebnisse-m-sprint-2017-vorlufig.pdf",
+      "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1972_20170507-m-sprint-2-ac-sprint-mixed-staffel-stand-20170418.pdf",
+      "invitation_sha256":"a9eb46e0119aef3dd0a09a055803f458266d31856a6ea72b473ae22b6d4aa3db",
+      "note":"Ausschreibung ÖM Sprint H−16E; die als vorläufig bezeichnete Ergebnisquelle und die ÖFOL-Meistertafel nennen Jakob Wolfram."
+    },
+    {
+      "event_id":2675,"date":"2019-05-19","stage_number":2,"category":"Herren-18 Elite",
+      "result_list_id":"list:e4aebb21301f66b534ad6c75","result_kind":"individual","club":"Naturfreunde Wien","team_name":null,
+      "time_s":844,"person_ids":[6784],"eligibility_from_official_champion":true,
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_2675_oestm-oem-19-5-2019-ergebnisse.html",
+      "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_2675_ausschreibung-stm.pdf",
+      "invitation_sha256":"29e7316625af3bb86c9e7bd30af8640d19e4d8080463bc27a33abe1a7441095e",
+      "note":"Ausschreibung ÖM Sprint H−18E; Ergebnis und ÖFOL-Meistertafel nennen Jakob Wolfram."
+    },
+    {
+      "event_id":2274,"date":"2018-10-20","stage_number":2,"category":"Herren -14",
+      "result_list_id":"list:74b47eddcf0d3c571e1ec8de","result_kind":"pair","club":"Naturfreunde Wien","team_name":"Naturfreunde Wien",
+      "time_s":947,"person_ids":[6701,8416],"source_url":"https://www.orienteeringaustria.at/termine/meistertafel/",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_2274_ergebnisse-e2.pdf",
+      "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_2274_ausschreibung-ac-2018-kainbach-20180829.pdf",
+      "invitation_sha256":"8bec072fae3aa7b5a47a4f131877c3487ddbaeda6d8c16836d0a21ba9846e259",
+      "note":"ÖM Nacht H−14: Oliver Calvet und Anton Buschek laut ÖFOL-Meistertafel und Ergebnis. Die gemeinsame Ausschreibung führt Nachtklassen nicht einzeln auf."
+    },
+    {
+      "event_id": 3633, "date": "2022-06-18", "stage_number": 1,
+      "category": "Damen bis 12", "result_list_id": "list:6dc5bd4b59185ad1eebb6c41",
+      "result_kind": "relay", "club": "Naturfreunde Wien", "team_name": "Naturfreunde Wien 1",
+      "team_time_s": 4264, "person_ids": [9220, 9030, 8506],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_3633_ausschreibung-stm-staffel-2022-v3.pdf",
+      "invitation_sha256": "7ebb2f012b8ee126b494a13483658bfa554b88667edea81a9d321205b82da65d",
+      "note": "ÖM Staffel D−12: Cleo Machold, Matilda Buschek und Anna Skern; Ausschreibung, Originalergebnis und ÖFOL-Meistertafel stimmen überein."
+    },
+    {
+      "event_id": 3633, "date": "2022-06-18", "stage_number": 1,
+      "category": "Damen bis 14", "result_list_id": "list:a3ddb4a734d95b367e537fae",
+      "result_kind": "relay", "club": "Naturfreunde Wien", "team_name": "Naturfreunde Wien 1",
+      "team_time_s": 5032, "person_ids": [8110, 9209, 9210],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_3633_ausschreibung-stm-staffel-2022-v3.pdf",
+      "invitation_sha256": "7ebb2f012b8ee126b494a13483658bfa554b88667edea81a9d321205b82da65d",
+      "note": "ÖM Staffel D−14: Maria Beck, Mika und Sona Asenbauer; ein drittes Team startete und gab auf. ÖFOL-Meistertafel bestätigt den Sieg."
+    },
+    {
       "event_id": 4515,
       "date": "2024-06-01",
       "stage_number": 1,
@@ -16,6 +123,36 @@
       "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_4515_einladung-ausschreibung-om-mannschaft2024-update.pdf",
       "invitation_sha256": "0c03f35e697a4a3f0a05624ac01c6ae79372ee4a05dc4493ac75db687827a354",
       "note": "Ausschreibung Seite 2: D-14 ÖM Mannschaft; ÖFOL-Meistertafel 2024: Anna Skern, Cleo Machold, Matilda Buschek. Der offizielle Sieg ist belegt; die Identität und Berechtigung einer anderen Mannschaft bleibt ungeklärt."
+    },
+    {
+      "event_id": 3831, "date": "2023-03-26", "stage_number": 1,
+      "category": "Damen bis 14", "result_list_id": "list:91c2a8cc1a46f58ce33defc5",
+      "result_kind": "team", "club": "Naturfreunde Wien", "team_name": "Naturfreunde Wien 1",
+      "time_s": 2443, "person_ids": [8506, 9220, 9030],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_3831_ausschreibung-kogelmeeting.pdf",
+      "invitation_sha256": "51eb037c6d2251fd811a499c25da7cca51371efc3a10ff32282ae414f95de2cb",
+      "note": "Ausschreibung Seite 3: ÖM Mannschaft D−14; ÖFOL-Meistertafel 2023 Mannschaft: Anna Skern, Cleo Machold, Matilda Buschek."
+    },
+    {
+      "event_id": 3824, "date": "2023-09-23", "stage_number": 1,
+      "category": "Damen bis 14", "result_list_id": "list:2101bf7c43759dc24b939e17",
+      "result_kind": "relay", "club": "Naturfreunde Wien", "team_name": "Naturfreunde Wien 1",
+      "team_time_s": 5996, "person_ids": [9030, 8110, 9220],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_3824_ausschreibung-chicken-challenge-2023.pdf",
+      "invitation_sha256": "ee8e7bb565d0f9353cfee379c434c0762085f3f3d517059be98b82ba20d6ed2c",
+      "note": "ÖM Staffel D−14: Matilda Buschek, Maria Beck und Cleo Machold; ÖFOL-Meistertafel und Ergebnisliste bestätigen den Gleichstand mit OL Kufstein."
+    },
+    {
+      "event_id": 3824, "date": "2023-09-23", "stage_number": 1,
+      "category": "Damen bis 14", "result_list_id": "list:2101bf7c43759dc24b939e17",
+      "result_kind": "relay", "club": "OL Kufstein", "team_name": "OL Kufstein OLK 1",
+      "team_time_s": 5996, "person_ids": [8672, 9996, 7958],
+      "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
+      "invitation_url": "https://anne-cdn.oefol.at/public/legacy/event_3824_ausschreibung-chicken-challenge-2023.pdf",
+      "invitation_sha256": "ee8e7bb565d0f9353cfee379c434c0762085f3f3d517059be98b82ba20d6ed2c",
+      "note": "ÖM Staffel D−14: Katrin Egger, Maya Eichmüller und Emma Frey; ÖFOL-Meistertafel und Ergebnisliste bestätigen den Gleichstand mit Naturfreunde Wien."
     }
   ]
 }
