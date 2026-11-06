@@ -260,6 +260,36 @@ class ChampionshipAuditTests(unittest.TestCase):
         self.assertIn('Damen ab 21 Elite', config['eligible_categories'])
         self.assertNotIn('Offen Kurz', config['eligible_categories'])
 
+    def test_2026_ski_ac_without_championship_keeps_all_results(self):
+        cur = self.con.cursor()
+        events = json.loads((ROOT / 'site/data/national-category-evidence.json').read_text())['events']
+        scope = {'events': {'5202': events['5202']}}
+        cur.execute("INSERT INTO event (id,title,date_from,slug) VALUES (5202,'2.AC SkiO Mittel','2026-01-11','2-ac-skio-ostm-om-langdistanz')")
+        cur.execute("INSERT INTO stage VALUES (92,5202,1,NULL,'2026-01-11',NULL)")
+        for pid, category, champ in ((11, 'D21-E', 'ÖSTM'), (12, 'H55-', 'ÖM'), (13, 'N', None)):
+            db.insert_result(cur,stage_id=92,person_id=pid,category=category,rank=1,status='ok',source='test',championship=champ)
+        self.assertEqual(db.apply_confirmed_national_event_scopes(cur, scope), 2)
+        self.assertEqual(cur.execute("SELECT category,championship FROM result WHERE stage_id=92 ORDER BY person_id").fetchall(),
+                         [('D21-E',None),('H55-',None),('N',None)])
+        self.assertEqual(db.apply_confirmed_national_event_scopes(cur, scope), 0)
+        incomplete = dict(events['5202'])
+        del incomplete['no_national_championship']
+        with self.assertRaisesRegex(ValueError, 'Incomplete reviewed'):
+            db.apply_confirmed_national_event_scopes(cur, {'events': {'5202': incomplete}})
+
+    def test_2026_faistenau_long_has_championship_but_cancelled_classes_do_not(self):
+        cur = self.con.cursor()
+        event = json.loads((ROOT / 'site/data/national-category-evidence.json').read_text())['events']['5201']
+        scope = {'events': {'5201': event}}
+        cur.execute("INSERT INTO event (id,title,date_from) VALUES (5201,'1.AC SkiO Lang','2026-01-10')")
+        cur.execute("INSERT INTO stage VALUES (93,5201,1,NULL,'2026-01-10',NULL)")
+        for pid, category in ((11, 'D21-E'), (12, 'H21-E'), (13, 'H-12'), (14, 'H-14'), (15, 'D-12')):
+            db.insert_result(cur,stage_id=93,person_id=pid,category=category,rank=1,status='ok',source='test')
+        db.apply_confirmed_national_event_scopes(cur,scope)
+        self.assertEqual(db.apply_confirmed_national_category_additions(cur,scope),2)
+        self.assertEqual(cur.execute("SELECT category,championship FROM result WHERE stage_id=93 ORDER BY person_id").fetchall(),
+                         [('D21-E','ÖM'),('H21-E','ÖSTM'),('H-12',None),('H-14',None),('D-12',None)])
+
     def test_invitation_adds_only_missing_class_and_not_eligibility(self):
         cur = self.con.cursor()
         db.insert_result(cur, stage_id=1, category="D21-E", person_id=10, status="ok", rank=1, source="test")

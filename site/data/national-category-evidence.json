@@ -82,6 +82,28 @@
       "excluded_from_national_championship_categories":["Damen bis 14 Einzel","Herren bis 14 Einzel"],
       "scope":"Die Ausschreibung nennt nur die Mannschaftsklassen als ÖM; Einzelläufer sind Rahmenbewerbe. Die ÖFOL-Meistertafel bestätigt das D−14-Siegerteam Mika und Sona Asenbauer sowie Anna Skern."
     },
+    "5201": {
+      "event_date":"2026-01-10", "stage_number":1,
+      "label":"Ausschreibung und Ergebnis 1. Ski-O AC / ÖM Lang 2026",
+      "url":"https://anne-cdn.oefol.at/public/2026/01/BdIW9B5mjkxrXzq5AJzvUvdrrHnlpz9T6Itg2Qmg.pdf",
+      "sha256":"2f26268e02b8b95cd99a006cf3b2a16e122f871b4178bd4c1746a253c1c71f1a",
+      "result_url":"https://anne-cdn.oefol.at/public/2026/01/ie3TYA4uidnWlpoBFOsnmdZicFfTjurY9P9ewaEg.pdf",
+      "result_sha256":"0bc8af1defd74856bef69d71a1d7950f08ffe4e177a32e0a100626cddee64f0d",
+      "reviewed_on":"2026-11-06", "result_kinds":["individual"],
+      "complete_event_scope":true, "apply_category_inference":true, "default_championship":"ÖM",
+      "category_championship_types":{"H21-E":"ÖSTM"},
+      "categories":["D-14","D-17","H-17","D-20","H-20","D21-E","H21-E","D35-","H35-","D45-","H45-","D55-","H55-","D65-","H65-","H75-"],
+      "scope":"1. AC Langdistanz: H21-E ÖSTM, D21-E und ausgeschriebene Jugend- und Seniorenklassen ÖM. Die offizielle Ergebnisliste annulliert D/H−12 und H−14; diese Klassen werden deshalb nicht gewertet."
+    },
+    "5202": {
+      "event_date":"2026-01-11", "stage_number":1,
+      "label":"Aktualisierte Ausschreibung Ski-O Faistenau, Seiten 1–2",
+      "url":"https://anne-cdn.oefol.at/public/2026/01/97YfOJmIUrTiTajC3v3WTUgWTN2s5X3fSbb1vPwf.pdf",
+      "sha256":"2f26268e02b8b95cd99a006cf3b2a16e122f871b4178bd4c1746a253c1c71f1a",
+      "reviewed_on":"2026-11-06", "result_kinds":["individual"],
+      "complete_event_scope":true, "no_national_championship":true, "default_championship":"ÖM", "categories":[],
+      "scope":"Sonntag, 11. Jänner: ausschließlich 2. AC Mitteldistanz. Die ÖM/ÖSTM Langdistanz gehört zum 1. AC am Samstag; der veraltete ANNE-Slug für diesen Sonntag ist kein Meisterschaftsnachweis."
+    },
     "5207": {
       "event_date":"2026-04-18", "stage_number":1,
       "label":"Ausschreibung 1. MTBO AC / ÖM Massenstart 2026, Seite 1",

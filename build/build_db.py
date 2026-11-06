@@ -915,8 +915,10 @@ def apply_confirmed_national_event_scopes(cur, evidence):
         number = event.get("stage_number")
         default = event.get("default_championship")
         types = event.get("category_championship_types", {})
+        no_national = event.get("no_national_championship") is True
         if (not str(event_id).isdigit() or not date or not number or
-                default not in {"ÖM", "ÖSTM"} or not categories or
+                default not in {"ÖM", "ÖSTM"} or not isinstance(categories, list) or
+                (not categories and not no_national) or (categories and no_national) or
                 len(set(categories)) != len(categories) or
                 any(not isinstance(c, str) or not c for c in categories) or
                 any(k not in categories or v not in {"ÖM", "ÖSTM"}
