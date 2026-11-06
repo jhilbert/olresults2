@@ -129,6 +129,88 @@ class ChampionshipAuditTests(unittest.TestCase):
         self.assertEqual(db.apply_confirmed_national_category_exclusions(self.con.cursor(), evidence), 0)
         self.assertEqual(self.con.execute("SELECT championship FROM result").fetchone()[0], "ÖM")
 
+    def test_2026_mtbo_scope_only_allows_middle_elite_and_preserves_results(self):
+        cur = self.con.cursor()
+        cur.execute("INSERT INTO event (id,title,date_from) VALUES (5335,'7./8./9. AC ÖSTM Mittel','2026-09-26')")
+        for stage_id, number, day in [(101,1,'2026-09-26'), (102,2,'2026-09-27'), (103,3,'2026-09-27')]:
+            cur.execute("INSERT INTO stage VALUES (?,?,?,NULL,?,NULL)", (stage_id,5335,number,day))
+        cases = [(101,'D21-E','ÖSTM'),(101,'D-14','ÖM'),
+                 (102,'D21-E','ÖSTM'),(102,'H21-E','ÖSTM'),(102,'D50-','ÖM'),
+                 (103,'Damen ab 21 Elite','ÖSTM'),(103,'Herren bis 14','ÖM')]
+        for index, (stage_id, category, championship) in enumerate(cases):
+            db.insert_result(cur, stage_id=stage_id, category=category, person_id=1000+index,
+                status='ok', rank=1, time_s=1000+index, source='test', observed_name=f'Person {index}',
+                championship=championship, national_rank=1)
+        evidence = json.loads((ROOT / 'site/data/national-category-evidence.json').read_text())
+        scope = {'events': {'5335': evidence['events']['5335']}}
+        self.assertEqual(db.apply_confirmed_national_event_scopes(cur, scope), 5)
+        rows = cur.execute("""SELECT stage_id,category,championship,national_rank,time_s,observed_name
+            FROM result WHERE stage_id IN (101,102,103) ORDER BY stage_id,category""").fetchall()
+        self.assertEqual([(r[0],r[1],r[2]) for r in rows if r[2]],
+                         [(102,'D21-E','ÖSTM'),(102,'H21-E','ÖSTM')])
+        self.assertEqual(len(rows), 7)
+        self.assertTrue(all(r[3] is None for r in rows if r[2] is None))
+        self.assertEqual(cur.execute("SELECT championship FROM result WHERE stage_id=1").fetchone()[0], 'ÖM')
+        self.assertEqual(db.apply_confirmed_national_event_scopes(cur, scope), 0)
+
+    def test_complete_scope_fails_closed_on_changed_stage_date_but_not_missing_classes(self):
+        evidence = {'events': {'1': {'event_date':'2025-05-02', 'stage_number':1,
+            'complete_event_scope':True, 'default_championship':'ÖM', 'categories':['D-14','H-14']}}}
+        with self.assertRaisesRegex(ValueError, 'stage no longer matches'):
+            db.apply_confirmed_national_event_scopes(self.con.cursor(), evidence)
+        self.assertEqual(self.con.execute('SELECT championship FROM result').fetchone()[0], 'ÖM')
+        evidence['events']['1']['event_date'] = '2025-05-01'
+        self.assertEqual(db.apply_confirmed_national_event_scopes(self.con.cursor(), evidence), 0)
+
+    def test_complete_scope_does_not_silently_accept_conflicting_extra_ranking(self):
+        self.con.execute("""INSERT INTO championship_source_entry
+            (id,stage_id,source_document_id,category,category_key,observed_name,observed_name_key,
+             championship_type,evidence_kind,source_scope)
+            VALUES ('extra',1,'source','H50-','h50','Test','test','ÖM',
+                    'official_additional_classification','full_field')""")
+        evidence = {'events': {'1': {'event_date':'2025-05-01','stage_number':1,
+            'complete_event_scope':True,'default_championship':'ÖM','categories':['D-14']}}}
+        with self.assertRaisesRegex(ValueError, 'Additional championship source conflicts'):
+            db.apply_confirmed_national_event_scopes(self.con.cursor(), evidence)
+        self.assertEqual(self.con.execute('SELECT championship FROM result').fetchone()[0], 'ÖM')
+
+    def test_mtbo_2026_scopes_match_the_announcements(self):
+        events = json.loads((ROOT / 'site/data/national-category-evidence.json').read_text())['events']
+        self.assertEqual((events['5280']['stage_number'], events['5280']['event_date']), (1,'2026-07-18'))
+        self.assertEqual((events['5335']['stage_number'], set(events['5335']['categories'])),
+                         (2, {'D21-E','H21-E'}))
+        self.assertEqual(set(events['5411']['categories']), {'D-14','H-14','D-17','H-17','D-20','H-20'})
+        self.assertEqual(events['5412']['category_championship_types'], {'H21-E':'ÖSTM'})
+        self.assertIn('D21-E', events['5207']['categories'])
+        self.assertEqual(events['5207']['default_championship'], 'ÖM')
+
+    def test_2026_mtbo_middle_scope_excludes_the_following_long_race(self):
+        cur = self.con.cursor()
+        cur.execute("INSERT INTO event (id,title,date_from) VALUES (5280,'MTBO ÖM Mittel','2026-07-18')")
+        cur.execute("INSERT INTO stage VALUES (110,5280,1,'Mittel','2026-07-18',NULL)")
+        cur.execute("INSERT INTO stage VALUES (111,5280,2,'Lang','2026-07-19',NULL)")
+        for index, (stage, category) in enumerate([(110,'M17'),(110,'M50'),(111,'M17'),(111,'M50')]):
+            db.insert_result(cur,stage_id=stage,person_id=1100+index,category=category,
+                status='ok',rank=1,source='test',championship='ÖM')
+        events = json.loads((ROOT / 'site/data/national-category-evidence.json').read_text())['events']
+        self.assertEqual(db.apply_confirmed_national_event_scopes(cur, {'events':{'5280':events['5280']}}),2)
+        rows = cur.execute("SELECT stage_id,championship FROM result WHERE stage_id IN(110,111) ORDER BY stage_id,category").fetchall()
+        self.assertEqual(rows, [(110,'ÖM'),(110,'ÖM'),(111,None),(111,None)])
+
+    def test_2026_mtbo_mass_start_adds_om_elite_without_assuming_eligibility(self):
+        cur = self.con.cursor()
+        cur.execute("INSERT INTO event (id,title,date_from) VALUES (5207,'ÖM Massenstart','2026-04-18')")
+        cur.execute("INSERT INTO stage VALUES (120,5207,1,NULL,'2026-04-18',NULL)")
+        db.insert_result(cur,stage_id=120,person_id=1201,category='D21-E',status='ok',rank=1,source='test')
+        db.insert_result(cur,stage_id=120,person_id=1202,category='H21-E',status='ok',rank=1,source='test')
+        db.insert_result(cur,stage_id=120,person_id=1203,category='D-K',status='ok',rank=1,source='test')
+        events = json.loads((ROOT / 'site/data/national-category-evidence.json').read_text())['events']
+        scope = {'events':{'5207':events['5207']}}
+        db.apply_confirmed_national_event_scopes(cur,scope)
+        self.assertEqual(db.apply_confirmed_national_category_additions(cur,scope),2)
+        rows = cur.execute("SELECT category,championship,championship_eligibility_state FROM result WHERE stage_id=120 ORDER BY person_id").fetchall()
+        self.assertEqual(rows,[('D21-E','ÖM','provisional'),('H21-E','ÖM','provisional'),('D-K',None,'unknown')])
+
     def test_2026_night_elite_om_is_provisional_not_ostm(self):
         cur = self.con.cursor()
         cur.execute("INSERT INTO event (id,title,date_from,sport_type) VALUES (5397,'ÖM Nacht','2026-04-10','footOrienteering')")

@@ -885,6 +885,56 @@ def apply_confirmed_national_category_exclusions(cur, evidence):
     return changed
 
 
+def apply_confirmed_national_event_scopes(cur, evidence):
+    """Restrict a meet to the one stage and classes explicitly advertised.
+
+    An event name can mention a championship while naming several different
+    races.  A reviewed *complete* scope takes precedence over inferred event
+    titles and over category annotations in the wrong race.  The observation,
+    status and individual eligibility evidence remain intact.
+    """
+    changed = 0
+    for event_id, event in evidence.get("events", {}).items():
+        if not event.get("complete_event_scope"):
+            continue
+        categories = event.get("categories")
+        date = event.get("event_date")
+        number = event.get("stage_number")
+        default = event.get("default_championship")
+        types = event.get("category_championship_types", {})
+        if (not str(event_id).isdigit() or not date or not number or
+                default not in {"ÖM", "ÖSTM"} or not categories or
+                len(set(categories)) != len(categories) or
+                any(not isinstance(c, str) or not c for c in categories) or
+                any(k not in categories or v not in {"ÖM", "ÖSTM"}
+                    for k, v in types.items())):
+            raise ValueError(f"Incomplete reviewed national event scope: {event_id}")
+        stages = cur.execute("SELECT id, number, substr(COALESCE(date, (SELECT date_from FROM event WHERE id=?)),1,10) "
+                             "FROM stage WHERE event_id=?", (int(event_id), int(event_id))).fetchall()
+        if not stages:
+            continue  # an archived event without results needs no synthetic stage
+        matches = [sid for sid, n, day in stages if n == number and day == date]
+        if len(matches) != 1:
+            raise ValueError(f"Reviewed national stage no longer matches event {event_id}: {date} / {number}")
+        allowed_stage = matches[0]
+        allowed = {cat: types.get(cat, default) for cat in categories}
+        extra = cur.execute("""SELECT c.stage_id, c.category, c.championship_type
+            FROM championship_source_entry c JOIN stage s ON s.id=c.stage_id
+            WHERE s.event_id=? AND c.evidence_kind='official_additional_classification'""",
+            (int(event_id),)).fetchall()
+        if any(sid != allowed_stage or allowed.get(category) != champ
+               for sid, category, champ in extra):
+            raise ValueError(f"Additional championship source conflicts with reviewed event scope: {event_id}")
+        rows = cur.execute("""SELECT r.id, r.stage_id, r.category, r.championship
+            FROM result r JOIN stage s ON s.id=r.stage_id
+            WHERE s.event_id=? AND r.championship IS NOT NULL""", (int(event_id),)).fetchall()
+        excluded = [(rid,) for rid, sid, category, champ in rows
+                    if sid != allowed_stage or allowed.get(category) != champ]
+        cur.executemany("UPDATE result SET championship=NULL, national_rank=NULL WHERE id=?", excluded)
+        changed += len(excluded)
+    return changed
+
+
 def apply_confirmed_national_category_additions(cur, evidence):
     """Seed only missing, explicitly reviewed championship categories.
 
@@ -7045,6 +7095,7 @@ def main():
     if national_category_evidence_path.exists():
         national_category_evidence = json.loads(national_category_evidence_path.read_text())
         apply_confirmed_national_category_exclusions(cur, national_category_evidence)
+        apply_confirmed_national_event_scopes(cur, national_category_evidence)
         apply_confirmed_national_category_additions(cur, national_category_evidence)
 
     official_2015 = json.loads(OFFICIAL_2015_OSTM_CHAMPIONS_PATH.read_text())

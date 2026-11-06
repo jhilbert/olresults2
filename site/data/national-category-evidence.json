@@ -82,6 +82,68 @@
       "excluded_from_national_championship_categories":["Damen bis 14 Einzel","Herren bis 14 Einzel"],
       "scope":"Die Ausschreibung nennt nur die Mannschaftsklassen als ÖM; Einzelläufer sind Rahmenbewerbe. Die ÖFOL-Meistertafel bestätigt das D−14-Siegerteam Mika und Sona Asenbauer sowie Anna Skern."
     },
+    "5207": {
+      "event_date":"2026-04-18", "stage_number":1,
+      "label":"Ausschreibung 1. MTBO AC / ÖM Massenstart 2026, Seite 1",
+      "url":"https://anne-cdn.oefol.at/public/2026/04/7j7aoWJQjKzaR9ZNFoRS0ohw8qQ3BzhTqOmjUdv5.pdf",
+      "sha256":"efdf9301504ec6d7295e902c01696474fa6f08f44674dbde743f2b8cccd31cc2",
+      "reviewed_on":"2026-11-06", "result_kinds":["individual"],
+      "complete_event_scope":true, "apply_category_inference":true, "default_championship":"ÖM",
+      "categories":["D-14","H-14","D-17","H-17","D-20","H-20","D21-E","H21-E","D40-","H40-","D50-","H50-","D60-","H60-","H70-","H80-"],
+      "scope":"ÖM Massenstart einschließlich D/H21-E. Kurz- und Rahmenklassen sind nicht ÖM; individuelle Berechtigung separat."
+    },
+    "5208": {
+      "event_date":"2026-04-19", "stage_number":1,
+      "label":"Ausschreibung 2. MTBO AC / ÖSTM und ÖM Sprint 2026, Seite 1",
+      "url":"https://anne-cdn.oefol.at/public/2026/04/JetBXSYyDR8NQFA3lKsYfE80va1eVraRqG3K4AD0.pdf",
+      "sha256":"00f598acac47d1fe54359b8950d38c070fd3e672e65330f15fecc7179c2c43e2",
+      "reviewed_on":"2026-11-06", "result_kinds":["individual"],
+      "complete_event_scope":true, "apply_category_inference":true, "default_championship":"ÖM",
+      "category_championship_types":{"D21-E":"ÖSTM","H21-E":"ÖSTM"},
+      "categories":["D-14","H-14","D-17","H-17","D-20","H-20","D21-E","H21-E","D40-","H40-","D50-","H50-","D60-","H60-","H70-","H80-"],
+      "scope":"D/H21-E ÖSTM, ausgeschriebene Jugend- und Seniorenklassen ÖM; keine Meisterschaft in Kurz- oder Rahmenklassen."
+    },
+    "5280": {
+      "event_date":"2026-07-18", "stage_number":1,
+      "label":"Ausschreibung Pannon MTBO / ÖM Mittel 2026, Seite 1",
+      "url":"https://anne-cdn.oefol.at/public/2026/07/O2HE4G7KRvqSUf8XyAL5kOASVKDGsk5OqstNpWV0.pdf",
+      "sha256":"97e9274f01f17cab9034698ed7d0d841cf53bb335966625852b9b8b8cfb65e11",
+      "reviewed_on":"2026-11-06", "result_kinds":["individual"],
+      "complete_event_scope":true, "apply_category_inference":true, "default_championship":"ÖM",
+      "categories":["W14","M14","W17","M17","W20","M20","W40","M40","W50","M50","W60","M60","M70","M80"],
+      "scope":"Nur Mitteldistanz am 18. Juli: ÖM Jugend und Senioren. Der 6. AC Lang am 19. Juli ist keine österreichische Meisterschaft."
+    },
+    "5335": {
+      "event_date":"2026-09-27", "stage_number":2,
+      "label":"Ausschreibung 7.–9. MTBO AC / ÖSTM Mittel 2026, Seiten 1–2",
+      "url":"https://anne-cdn.oefol.at/public/2026/08/kcqqXc4TYBSInSUFyWH0PAA2yuRU2fAedouDzlCe.pdf",
+      "sha256":"0dbdaf440c795e74d28b35c1659875fbe053ea01e4f24fa87c88d8bc0414807c",
+      "reviewed_on":"2026-11-06", "result_kinds":["individual"],
+      "complete_event_scope":true, "apply_category_inference":true, "default_championship":"ÖSTM",
+      "categories":["D21-E","H21-E"],
+      "scope":"Nur 8. AC Mittel D/H21-E ist ÖSTM. 7. AC Massenstart und 9. AC Sprint sowie alle übrigen Kategorien sind ausschließlich AC oder Rahmenbewerb."
+    },
+    "5411": {
+      "event_date":"2026-10-17", "stage_number":1,
+      "label":"Veranstalter-Ausschreibung Sopron MTBO 2026: Samstag",
+      "url":"https://sopronitajfutas.hu/2026/2026_MTBO/MTBO_Sopron_ausschreibung.html",
+      "sha256":"fa97d0f283e2feb59a8ee6091277a6f1c4a639df5362180457d8491e3fe10473",
+      "reviewed_on":"2026-11-06", "result_kinds":["individual"],
+      "complete_event_scope":true, "apply_category_inference":true, "default_championship":"ÖM",
+      "categories":["D-14","H-14","D-17","H-17","D-20","H-20"],
+      "scope":"10. AC Mittel: ÖM nur D/H14, 15–17 und 18–20; Elite und Senioren sind keine ÖM."
+    },
+    "5412": {
+      "event_date":"2026-10-18", "stage_number":1,
+      "label":"Veranstalter-Ausschreibung Sopron MTBO 2026: Sonntag",
+      "url":"https://sopronitajfutas.hu/2026/2026_MTBO/MTBO_Sopron_ausschreibung.html",
+      "sha256":"fa97d0f283e2feb59a8ee6091277a6f1c4a639df5362180457d8491e3fe10473",
+      "reviewed_on":"2026-11-06", "result_kinds":["individual"],
+      "complete_event_scope":true, "apply_category_inference":true, "default_championship":"ÖM",
+      "category_championship_types":{"H21-E":"ÖSTM"},
+      "categories":["D-14","H-14","D-17","H-17","D-20","H-20","D21-E","H21-E","D40-","H40-","D50-","H50-","D60-","H60-","H70-","H80-"],
+      "scope":"11. AC Lang: H21-E ÖSTM, D21-E sowie ausgeschriebene Jugend- und Seniorenklassen ÖM."
+    },
     "5203": {
       "event_date":"2026-03-22", "stage_number":1,
       "label":"Ausschreibung Ski-O ÖSTM/ÖM Sprint 2026, Seite 2",
