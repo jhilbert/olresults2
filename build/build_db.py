@@ -71,11 +71,17 @@ CHAMPIONSHIP_SOURCE_CONFIG = {
                "scope": "medal_places_only", "explicit_eligibility": True},
     "5203-1": {"mode": "classification", "championship": "ÖSTM",
                "scope": "full_field", "explicit_eligibility": True},
-    "5396-2": {"mode": "supplemental", "championship": "ÖM",
-               "scope": "full_field", "explicit_eligibility": True,
+    # The age-spanning Elite sheet is a comparative overview, not another
+    # championship or another set of starts. Keep the source, not its rows.
+    "5396-2": {"mode": "reference", "championship": "ÖM",
+               "scope": "full_field", "explicit_eligibility": False,
                "stage_title": r"Verfolgung"},
     "5396-3": {"mode": "supplemental", "championship": "ÖM",
-               "scope": "full_field", "explicit_eligibility": False,
+               "scope": "full_field", "explicit_eligibility": True,
+               "eligible_categories": ["Damen bis 12", "Damen bis 14", "Damen bis 17", "Damen bis 20",
+                   "Damen ab 21 Elite", "Damen ab 35", "Damen ab 45", "Damen ab 55", "Damen ab 65",
+                   "Herren bis 12", "Herren bis 14", "Herren bis 17", "Herren ab 21 Elite",
+                   "Herren ab 35", "Herren ab 45", "Herren ab 55", "Herren ab 65", "Herren ab 75"],
                "stage_title": r"Verfolgung"},
     "5437-0": {"mode": "evidence", "championship": "ÖSTM",
                "scope": "full_field", "explicit_eligibility": False,
@@ -359,7 +365,14 @@ CREATE TABLE national_minimum_starters (
     category TEXT NOT NULL,
     eligible_starters INTEGER NOT NULL,
     unresolved_starters INTEGER NOT NULL,
-    state TEXT NOT NULL,              -- met|insufficient|unresolved
+    state TEXT NOT NULL,              -- met|insufficient|unresolved|jury_exception
+    PRIMARY KEY (stage_id, category)
+);
+CREATE TABLE national_jury_decision (
+    stage_id INTEGER NOT NULL REFERENCES stage(id),
+    category TEXT NOT NULL,
+    source_url TEXT NOT NULL,
+    reason TEXT NOT NULL,
     PRIMARY KEY (stage_id, category)
 );
 CREATE TABLE official_national_title (
@@ -2930,6 +2943,8 @@ def register_championship_source_entries(cur, doc, stage_id, source_document_id,
     inserted = 0
     for category in doc.get("categories") or []:
         category_name = category.get("name") or ""
+        if config.get("eligible_categories") is not None and category_name not in config["eligible_categories"]:
+            continue
         category_key = championship_category_key(category_name)
         for index, row in enumerate(category.get("results") or []):
             observed_name = (row.get("name") or "").strip()
@@ -4424,6 +4439,8 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
         configured_sid = None
         if source_config:
             source_document_id = register_legacy_document(cur, doc)
+            if source_config["mode"] == "reference":
+                continue
             configured_sid = configured_championship_stage(
                 cur, event, stage_ids, source_config)
             register_championship_source_entries(
@@ -6425,9 +6442,39 @@ def compute_national_ranks(cur):
           AND NOT EXISTS (SELECT 1 FROM national_minimum_starters minimum
                            WHERE minimum.stage_id = result.stage_id
                              AND minimum.category = result.category
-                             AND minimum.state != 'met')
+                             AND minimum.state NOT IN ('met','jury_exception'))
     """)
     cur.execute("DROP TABLE pair_unit")
+
+
+def apply_national_jury_decisions(cur, evidence):
+    """Apply only explicitly documented, source-pinned organizer decisions.
+
+    The real starter count stays unchanged; the exception is not a general
+    relaxation of the three-starter rule. Fail closed if the source changes.
+    """
+    for event_id, event in evidence.get("events", {}).items():
+        for decision in event.get("jury_decisions", []):
+            if decision.get("category") not in event.get("categories", []):
+                raise ValueError(f"Jury decision outside reviewed scope: {event_id}")
+            matches = cur.execute("""SELECT r.stage_id FROM result r
+                JOIN stage s ON s.id=r.stage_id JOIN source_document d ON d.id=r.source_document_id
+                WHERE s.event_id=? AND s.number=? AND substr(s.date,1,10)=?
+                  AND d.source_url=? AND d.normalized_sha256=?
+                  AND r.category=? AND r.observed_name=? AND r.time_s=?
+                  AND r.rank=1 AND r.status='ok' AND r.championship='ÖM'""",
+                (int(event_id), event['stage_number'], event['event_date'], event['result_url'],
+                 event['normalized_sha256'], decision['category'], decision['winner'], decision['time_s'])).fetchall()
+            if len(matches) != 1 or not decision.get('reason'):
+                raise ValueError(f"Jury decision no longer matches the official source: {event_id}/{decision.get('category')}")
+            stage_id = matches[0][0]
+            if not cur.execute("SELECT 1 FROM national_minimum_starters WHERE stage_id=? AND category=?",
+                               (stage_id, decision['category'])).fetchone():
+                raise ValueError(f"Jury decision has no starter check: {event_id}/{decision['category']}")
+            cur.execute("INSERT INTO national_jury_decision VALUES (?,?,?,?)",
+                        (stage_id, decision['category'], event['result_url'], decision['reason']))
+            cur.execute("UPDATE national_minimum_starters SET state='jury_exception' WHERE stage_id=? AND category=?",
+                        (stage_id, decision['category']))
 
 
 def apply_official_national_titles(cur, titles):
@@ -7092,6 +7139,7 @@ def main():
               WHERE cse.stage_id=result.stage_id AND cse.evidence_kind='official_additional_classification')""")
 
     national_category_evidence_path = ROOT / "site/data/national-category-evidence.json"
+    national_category_evidence = {}
     if national_category_evidence_path.exists():
         national_category_evidence = json.loads(national_category_evidence_path.read_text())
         apply_confirmed_national_category_exclusions(cur, national_category_evidence)
@@ -7246,6 +7294,7 @@ def main():
     # See e.g. event 4306 H17: two finishers and one DNF started.
     eligibility_by_event = json.loads(USER_ELIGIBILITY_PATH.read_text()) if USER_ELIGIBILITY_PATH.exists() else {}
     apply_national_minimum_starters(cur, eligibility_by_event)
+    apply_national_jury_decisions(cur, national_category_evidence)
     cur.execute("DROP TABLE ineligible_starter")
 
     # national_rank: placement among ONLY the finishers still championship-

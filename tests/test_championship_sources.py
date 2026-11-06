@@ -223,6 +223,43 @@ class ChampionshipAuditTests(unittest.TestCase):
         actual = cur.execute("SELECT championship,championship_eligibility_state FROM result WHERE stage_id=10005397").fetchone()
         self.assertEqual(actual, ("ÖM", "provisional"))
 
+    def test_ski_pursuit_only_final_is_a_championship_and_jury_is_source_pinned(self):
+        cur = self.con.cursor()
+        evidence = json.loads((ROOT / 'site/data/national-category-evidence.json').read_text())
+        event = evidence['events']['5396']
+        scope = {'events': {'5396': event}}
+        cur.execute("INSERT INTO event (id,title,date_from) VALUES (5396,'ÖM Verfolgung','2026-03-01')")
+        cur.execute("INSERT INTO stage VALUES (91,5396,1,'Sprint','2026-03-01',NULL)")
+        cur.execute("INSERT INTO stage VALUES (92,5396,2,'Verfolgung','2026-03-01',NULL)")
+        cur.execute("INSERT INTO source_document (id,event_id,source_type,source_url,normalized_sha256) VALUES ('final',5396,'pdf',?,?)",
+                    (event['result_url'], event['normalized_sha256']))
+        db.insert_result(cur, stage_id=91, category='H-17', person_id=901, rank=1, status='ok', source='test', championship='ÖM')
+        db.insert_result(cur, stage_id=92, category='Herren Elite', person_id=902, rank=1, status='ok', source='test', championship='ÖM')
+        for number, decision in enumerate(event['jury_decisions'], 1):
+            db.insert_result(cur, stage_id=92, category=decision['category'], person_id=910+number,
+                observed_name=decision['winner'], time_s=decision['time_s'], rank=1, status='ok',
+                source='test', source_document_id='final', championship='ÖM',
+                championship_eligibility_state='eligible')
+            cur.execute("INSERT INTO national_minimum_starters VALUES (92,?,2,0,'insufficient')", (decision['category'],))
+        self.assertEqual(db.apply_confirmed_national_event_scopes(cur, scope), 2)
+        self.assertEqual(cur.execute("SELECT championship FROM result WHERE stage_id=91").fetchone()[0], None)
+        self.assertEqual(cur.execute("SELECT championship FROM result WHERE category='Herren Elite'").fetchone()[0], None)
+        db.apply_national_jury_decisions(cur, scope)
+        db.compute_national_ranks(cur)
+        self.assertEqual(cur.execute("SELECT eligible_starters,state FROM national_minimum_starters WHERE stage_id=92 ORDER BY category").fetchall(),
+                         [(2,'jury_exception'), (2,'jury_exception')])
+        self.assertEqual(cur.execute("SELECT national_rank FROM result WHERE stage_id=92 AND championship='ÖM' ORDER BY category").fetchall(), [(1,), (1,)])
+        cur.execute("UPDATE source_document SET normalized_sha256='changed' WHERE id='final'")
+        with self.assertRaisesRegex(ValueError, 'no longer matches'):
+            db.apply_national_jury_decisions(cur, scope)
+
+    def test_ski_pursuit_elite_overview_is_not_a_second_start_or_title(self):
+        self.assertEqual(db.CHAMPIONSHIP_SOURCE_CONFIG['5396-2']['mode'], 'reference')
+        config = db.CHAMPIONSHIP_SOURCE_CONFIG['5396-3']
+        self.assertTrue(config['explicit_eligibility'])
+        self.assertIn('Damen ab 21 Elite', config['eligible_categories'])
+        self.assertNotIn('Offen Kurz', config['eligible_categories'])
+
     def test_invitation_adds_only_missing_class_and_not_eligibility(self):
         cur = self.con.cursor()
         db.insert_result(cur, stage_id=1, category="D21-E", person_id=10, status="ok", rank=1, source="test")

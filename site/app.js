@@ -953,6 +953,9 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
   const hasNationalStarterChecks = query(
     "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'national_minimum_starters'"
   ).length > 0;
+  const hasNationalJuryDecisions = query(
+    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'national_jury_decision'"
+  ).length > 0;
 
   const allStages = query(
     `SELECT s.* FROM stage s WHERE s.event_id = ?
@@ -1069,6 +1072,7 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
              cs.starters, cs.classified, cs.winner_time_s,
              nms.state AS minimum_state, nms.eligible_starters AS minimum_eligible,
              nms.unresolved_starters AS minimum_unresolved,
+             ${hasNationalJuryDecisions ? "(SELECT j.source_url FROM national_jury_decision j WHERE j.stage_id=r.stage_id AND j.category=r.category)" : "NULL"} AS jury_source_url,
              COUNT(DISTINCT CASE WHEN r.result_kind = 'pair'
                    THEN 'p:' || COALESCE(r.rank, '') || ':' || r.status || ':' ||
                         COALESCE(r.time_s, '') || ':' || COALESCE(r.club, '')
@@ -1180,6 +1184,7 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
           ${regionalCode && c.award_hold ? `<p class="sub dim">Medaillenvergabe offen: ${esc(c.award_hold)}</p>` : ""}
           ${!regionalCode && c.minimum_state === "insufficient" ? `<p class="sub dim">Keine ÖM-/ÖSTM-Medaillen: weniger als drei wertungsberechtigte Starter im Datenstand.</p>` : ""}
           ${!regionalCode && c.minimum_state === "unresolved" ? `<p class="sub dim">ÖM-/ÖSTM-Medaillen offen: ${c.minimum_eligible} Starter sicher berechtigt, ${c.minimum_unresolved} ungeklärt; mindestens drei erforderlich.</p>` : ""}
+          ${!regionalCode && c.minimum_state === "jury_exception" ? `<p class="sub dim">Meisterschaftswertung aufgrund eines Jury-Entscheids. ${c.jury_source_url ? `<a href="${esc(c.jury_source_url)}" target="_blank" rel="noopener">Offizielle Ergebnisliste ↗</a>` : ""}</p>` : ""}
           <table>
             <thead><tr><th class="num">Pl</th><th>Name</th><th class="hide-sm">Verein</th>
               <th class="num">Zeit</th><th class="num">Diff</th></tr></thead>

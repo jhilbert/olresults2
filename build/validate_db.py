@@ -43,6 +43,7 @@ FINGERPRINT_ORDER = {
     "championship_entry_result": "championship_entry_id, result_id",
     "regional_award_hold": "championship_instance_id",
     "national_minimum_starters": "stage_id, category",
+    "national_jury_decision": "stage_id, category",
     "award": "id",
 }
 
@@ -226,15 +227,17 @@ def collect(db_path, eligibility_path):
                 f"{awards_without_positive_eligibility} medals lack positive eligibility evidence")
         invalid_minimum = scalar(con, """SELECT COUNT(*) FROM national_minimum_starters
             WHERE eligible_starters < 0 OR unresolved_starters < 0
-               OR state NOT IN ('met', 'insufficient', 'unresolved')
+               OR state NOT IN ('met', 'insufficient', 'unresolved', 'jury_exception')
                OR (state = 'met' AND eligible_starters < 3)
                OR (state = 'insufficient' AND eligible_starters + unresolved_starters >= 3)
-               OR (state = 'unresolved' AND (eligible_starters >= 3 OR eligible_starters + unresolved_starters < 3))""")
+               OR (state = 'unresolved' AND (eligible_starters >= 3 OR eligible_starters + unresolved_starters < 3))
+               OR (state = 'jury_exception' AND NOT EXISTS (SELECT 1 FROM national_jury_decision j
+                     WHERE j.stage_id=national_minimum_starters.stage_id AND j.category=national_minimum_starters.category))""")
         if invalid_minimum:
             raise RuntimeError(f"{invalid_minimum} national minimum-starter checks are inconsistent")
         medals_without_minimum = scalar(con, """SELECT COUNT(*) FROM result r
             JOIN national_minimum_starters m ON m.stage_id = r.stage_id AND m.category = r.category
-            WHERE m.state != 'met' AND r.national_rank IS NOT NULL
+            WHERE m.state NOT IN ('met','jury_exception') AND r.national_rank IS NOT NULL
               AND NOT (m.state = 'unresolved' AND r.national_rank = 1 AND EXISTS
                 (SELECT 1 FROM official_national_title t WHERE t.result_id=r.id))""")
         if medals_without_minimum:

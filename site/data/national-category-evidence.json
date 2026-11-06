@@ -123,6 +123,23 @@
       "categories":["D21-E","H21-E"],
       "scope":"Nur 8. AC Mittel D/H21-E ist ÖSTM. 7. AC Massenstart und 9. AC Sprint sowie alle übrigen Kategorien sind ausschließlich AC oder Rahmenbewerb."
     },
+    "5396": {
+      "event_date":"2026-03-01", "stage_number":2,
+      "label":"Ski-O ÖM Verfolgung 2026: Ausschreibung und offizielle Endwertung",
+      "url":"https://anne-cdn.oefol.at/public/2026/02/JryRBgU4e8lVOaKwzJgsj1i6qyDrcJtwP0sDsFUW.pdf",
+      "sha256":"39775d2dde4dc353d355f727f81fd53aa8ccaafe1fccde84d7ffe3554992a60e",
+      "result_url":"https://anne-cdn.oefol.at/public/2026/03/QNwXnUj5RY1YTYoUP3Tw6JGJkhxMq1K7LfxAhGA7.pdf",
+      "result_sha256":"93d9d86ef5b7ffc38ff6fdfc1ace0750b7cc9ee5d1f39749f8210cde0eb713cd",
+      "normalized_sha256":"2ca529400d9f9f71d813289f6b0e2b437e87af651994d681b30e4ca3a526b94f",
+      "reviewed_on":"2026-11-06", "result_kinds":["individual"],
+      "complete_event_scope":true, "apply_category_inference":true, "default_championship":"ÖM",
+      "categories":["Damen bis 12","Damen bis 14","Damen bis 17","Damen bis 20","Damen ab 21 Elite","Damen ab 35","Damen ab 45","Damen ab 55","Damen ab 65","Herren bis 12","Herren bis 14","Herren bis 17","Herren ab 21 Elite","Herren Kurz","Herren ab 35","Herren ab 45","Herren ab 55","Herren ab 65","Herren ab 75"],
+      "jury_decisions":[
+        {"category":"Herren ab 75","winner":"Hechl Georg","time_s":3017,"reason":"Jury-Entscheid laut offizieller Endwertung: Einem Teilnehmer wurde am Start eine falsche Karte gegeben."},
+        {"category":"Herren bis 17","winner":"Wildbichler Hannes","time_s":5292,"reason":"Jury-Entscheid laut offizieller Endwertung: H17 und D17 wurden nach vorheriger Information zusammengelegt."}
+      ],
+      "scope":"Der 5. AC Sprint ist nur die erste Etappe; ausschließlich die Verfolgungs-Endwertung ist ÖM. Die altersübergreifende Elite-Übersicht ist keine zusätzliche Meisterschaft und kein weiterer Start. H75 und H17 sind ausdrücklich aufgrund von Jury-Entscheiden gewertet."
+    },
     "5411": {
       "event_date":"2026-10-17", "stage_number":1,
       "label":"Veranstalter-Ausschreibung Sopron MTBO 2026: Samstag",
