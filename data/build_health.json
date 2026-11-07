@@ -1,17 +1,17 @@
 {
   "counts": {
-    "audit_issue": 6045,
-    "award": 9385,
+    "audit_issue": 5879,
+    "award": 9276,
     "championship_entry": 16643,
     "championship_entry_result": 18551,
-    "championship_instance": 7404,
+    "championship_instance": 7327,
     "championship_jurisdiction": 10,
-    "championship_result": 33347,
+    "championship_result": 32958,
     "championship_rule_set": 10,
-    "championship_source_entry": 324,
+    "championship_source_entry": 290,
     "club_jurisdiction": 54,
     "event": 4125,
-    "national_minimum_starters": 3376,
+    "national_minimum_starters": 3297,
     "official_national_title": 86,
     "person": 30747,
     "person_alias": 37527,
@@ -21,18 +21,18 @@
     "person_tombstone": 5529,
     "regional_award_hold": 5,
     "regional_category_mapping": 4439,
-    "result": 267208,
+    "result": 267180,
     "result_club_evidence": 747,
-    "result_list": 28007,
+    "result_list": 28005,
     "source_document": 1920,
     "stage": 1735,
     "verification_assertion": 695
   },
   "eligibility": {
-    "decisions": 1684,
+    "decisions": 1685,
     "people": 135
   },
-  "logical_sha256": "00c97af81b430396ed482a4a1a56b66c3666a04960162634d56f1f3c7d7d3a21",
+  "logical_sha256": "7efb2954969c83fff904bc9a51d2c1605cda8a10879ca6308c3f947a0a5d0a2a",
   "quality": {
     "awards_without_positive_eligibility": 0,
     "club_evidence_mismatch": 0,
@@ -56,7 +56,7 @@
   },
   "result_by_kind": {
     "family": 3961,
-    "individual": 238485,
+    "individual": 238457,
     "pair": 2916,
     "relay": 17436,
     "team": 4410
@@ -68,7 +68,7 @@
     "liveresultat": 1254,
     "sportident-center": 48,
     "sportsoftware-html": 112591,
-    "sportsoftware-pdf": 108376,
+    "sportsoftware-pdf": 108348,
     "sportsoftware-text": 3805
   },
   "schema_version": 14
