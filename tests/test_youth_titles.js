@@ -99,6 +99,9 @@ test("club ÖSTM view separates individual and team medals and keeps one club me
   const combined = isolated.clubHtml('Naturfreunde Wien','2026','om',{});
   assert.match(combined,/<div class="stat"><b>1<\/b><span>Silber<\/span>/);
   assert.match(combined,/<div class="stat"><b>2<\/b><span>Gold<\/span>/);
+  assert.match(combined,/<h3>ÖSTM<\/h3>[\s\S]*?<b>1<\/b><span>Gold<\/span>[\s\S]*?<b>1<\/b><span>Silber<\/span>/);
+  assert.match(combined,/<h3>ÖM<\/h3>[\s\S]*?<b>1<\/b><span>Gold<\/span>/);
+  assert.match(combined,/<h3>Gesamt<\/h3>[\s\S]*?<b>2<\/b><span>Gold<\/span>/);
 });
 
 test("club Landesmeisterschaft summary counts a team once but lists each athlete", () => {

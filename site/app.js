@@ -1867,6 +1867,16 @@ function clubDetailHtml(name, year, medalType, { withChangeButton, hrefBase, vie
     : allPodiums.filter((r) => r.rank <= 3 && !isKoHeat(r.category));
   const podiums = year ? typeFiltered.filter((r) => seasonYear(r.date, r.sport_type) === year) : typeFiltered;
   const {gold, silver, bronze} = clubMedalCounts(podiums, mode !== "all");
+  const renderStats = (counts) => `<div class="stats">
+      <div class="stat"><b>${counts.gold}</b><span>Gold</span></div>
+      <div class="stat"><b>${counts.silver}</b><span>Silber</span></div>
+      <div class="stat"><b>${counts.bronze}</b><span>Bronze</span></div>
+    </div>`;
+  const summary = mode === "om" ? `<div class="club-medal-summaries">
+      <section><h3>ÖSTM</h3>${renderStats(clubMedalCounts(podiums.filter((r) => r.championship === "ÖSTM")))}</section>
+      <section><h3>ÖM</h3>${renderStats(clubMedalCounts(podiums.filter((r) => r.championship === "ÖM")))}</section>
+      <section><h3>Gesamt</h3>${renderStats({gold,silver,bronze})}</section>
+    </div>` : renderStats({gold,silver,bronze});
 
   const yearChip = (val, label) => `<a class="chip ${(!year && !val) || year === val ? "active" : ""}"
       href="${base}${val ? "/" + val : ""}${modeSuffix}">${label}</a>`;
@@ -1883,11 +1893,7 @@ function clubDetailHtml(name, year, medalType, { withChangeButton, hrefBase, vie
       ${yearChip(null, "Alle")}
       ${years.map((y) => yearChip(y, y)).join("")}
     </div>
-    <div class="stats">
-      <div class="stat"><b>${gold}</b><span>Gold</span></div>
-      <div class="stat"><b>${silver}</b><span>Silber</span></div>
-      <div class="stat"><b>${bronze}</b><span>Bronze</span></div>
-    </div>
+    ${summary}
     <p class="sub dim">Vereinssumme: Einzelmedaillen und Teammedaillen je Team einmal. In der Tabelle zählt jede Medaille für jede beteiligte Person.</p>
     ${tableHtml}`;
 }
