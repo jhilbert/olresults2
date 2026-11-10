@@ -9,7 +9,37 @@ const {
   regionalCategoryLabel,
   youthTitleCategory,
   youthTitleGrant,
+  clubMedalCounts,
 } = require("../site/domain_rules.js");
+
+test("club medal counts one team once while preserving ties and different races", () => {
+  const base = {event_id: 1, stage_id: 2, result_list_id: 'relay', category: 'Mixed',
+    championship: 'ÖSTM', national_rank: 2, rank: 2, result_kind: 'relay',
+    club_name: 'Naturfreunde Wien', team_number: '18', team_name: 'NF Wien 2'};
+  const rows = [
+    {...base, result_id:'1',person_id:'11'}, {...base,result_id:'2',person_id:'12'},
+    {...base, result_id:'3',person_id:'11'}, // same runner, second leg
+    {...base, result_id:'4',person_id:'13',team_number:'19',team_name:'NF Wien 3'}, // tied team
+    {...base, result_id:'5',person_id:'14',event_id:2,stage_id:3}, // another event
+    {...base, result_id:'6',person_id:'15',result_kind:'individual',team_number:null,national_rank:1},
+  ];
+  assert.deepEqual(clubMedalCounts(rows), {gold:1, silver:3, bronze:0});
+});
+
+test("pair, regional entries and mixed-club teams keep correct independent units", () => {
+  const base = {event_id:1, stage_id:2, result_list_id:'pair',category:'D-14',
+    championship:'ÖM',national_rank:1,rank:1,result_kind:'pair',club_name:'Club A'};
+  const pair = [
+    {...base, person_id:'1',person_name:'Anna A',note:'Partner: Bea B'},
+    {...base, person_id:'2',person_name:'Bea B',note:'Partner: Anna A'},
+    {...base, person_id:'3',person_name:'Clara C',note:'Partner: Dora D'},
+    {...base, person_id:'4',person_name:'Dora D',note:'Partner: Clara C'},
+  ];
+  assert.deepEqual(clubMedalCounts(pair), {gold:2,silver:0,bronze:0});
+  assert.deepEqual(clubMedalCounts([{...base,regional_entry_id:'entry1'},
+    {...base,regional_entry_id:'entry1'},{...base,regional_entry_id:'entry2'}]),
+    {gold:2,silver:0,bronze:0});
+});
 
 test("calendar disciplines use January through December", () => {
   assert.equal(seasonYear("2025-01-01", "footOrienteering"), "2025");

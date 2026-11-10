@@ -173,6 +173,8 @@ h2 { font-size: 17px; margin: 28px 0 10px; letter-spacing: -0.2px; }
 
 /* stat cards */
 .stats { display: flex; gap: 12px; flex-wrap: wrap; margin: 18px 0; }
+.medal-table-scroll { overflow-x: auto; }
+.medal-breakdown-table { min-width: 750px; }
 .stat {
   background: var(--card); border: 1px solid var(--line);
   border-radius: var(--radius); padding: 14px 20px; min-width: 130px;

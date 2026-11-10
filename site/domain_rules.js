@@ -76,6 +76,42 @@
     : kind === "wien" && gender === "D" ? 110
     : kind === "wien" && gender === "H" ? 90 : null;
 
+  // One club medal belongs to a competitor unit, not to each team member.
+  // Include the stage, source class, championship and placing so different
+  // races, team numbers reused in another class, and distinct titles stay apart.
+  const clubMedalUnitKey = (row) => {
+    const prefix = [row.event_id, row.stage_id, row.result_list_id, row.category,
+      row.championship, row.national_rank ?? row.rank];
+    if (row.regional_entry_id) return JSON.stringify([row.club_name, "regional", row.regional_entry_id]);
+    if (!["relay", "team", "pair"].includes(row.result_kind)) {
+      return JSON.stringify([...prefix, "individual", row.result_id ?? row.person_id]);
+    }
+    if (row.result_kind === "pair" && String(row.note || "").startsWith("Partner: ") && row.person_name) {
+      const members = [row.person_name, ...row.note.slice(9).split(", ")]
+        .map((name) => name.trim().toLocaleLowerCase("de-AT")).sort();
+      return JSON.stringify([...prefix, row.club_name, "pair", members]);
+    }
+    const team = row.team_number != null && row.team_number !== "" ? ["number", String(row.team_number)]
+      : row.team_name ? ["name", row.team_name] : null;
+    // No reliable team identity: never silently merge two different teams.
+    return JSON.stringify([...prefix, row.club_name, row.result_kind,
+      team || ["unresolved", row.result_id ?? row.person_id]]);
+  };
+
+  const clubMedalCounts = (rows, isNational = true) => {
+    const seen = new Set(), counts = { gold: 0, silver: 0, bronze: 0 };
+    for (const row of rows) {
+      const rank = isNational ? row.national_rank : row.rank;
+      const field = rank === 1 ? "gold" : rank === 2 ? "silver" : rank === 3 ? "bronze" : null;
+      if (!field) continue;
+      const key = clubMedalUnitKey(row);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      counts[field]++;
+    }
+    return counts;
+  };
+
   // One championship_entry represents one competing person, pair or team.
   // A started competitor counts even with DNF, MP or DSQ; DNS and unknown
   // statuses cannot establish a start. Do not restrict this to the displayed
@@ -137,6 +173,8 @@
     regionalCategoryLabel,
     youthTitleCategory,
     youthTitleGrant,
+    clubMedalUnitKey,
+    clubMedalCounts,
     regionalStarterCountsSql,
   };
 }));

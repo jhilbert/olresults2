@@ -277,6 +277,20 @@ class ChampionshipAuditTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Incomplete reviewed'):
             db.apply_confirmed_national_event_scopes(cur, {'events': {'5202': incomplete}})
 
+    def test_purbach_2026_mixed_sprint_is_ostm_not_om(self):
+        cur = self.con.cursor()
+        event = json.loads((ROOT / 'site/data/national-category-evidence.json').read_text())['events']['5124']
+        scope = {'events': {'5124': event}}
+        cur.execute("INSERT INTO event (id,title,date_from) VALUES (5124,'Mixed Sprint Staffel','2026-03-14')")
+        cur.execute("INSERT INTO stage VALUES (94,5124,1,NULL,'2026-03-14',NULL)")
+        for pid, category in ((11,'DHHD17-'),(12,'DHHD17-'),(13,'HDH-16')):
+            db.insert_result(cur,stage_id=94,person_id=pid,category=category,rank=1,status='ok',
+                             result_kind='relay',source='test',championship='ÖM',championship_eligibility_state='eligible')
+        self.assertEqual(db.apply_confirmed_national_event_scopes(cur,scope),2)
+        self.assertEqual(db.apply_confirmed_national_category_additions(cur,scope),2)
+        self.assertEqual(cur.execute("SELECT category,championship FROM result WHERE stage_id=94 ORDER BY person_id").fetchall(),
+                         [('DHHD17-','ÖSTM'),('DHHD17-','ÖSTM'),('HDH-16','ÖM')])
+
     def test_2026_faistenau_long_has_championship_but_cancelled_classes_do_not(self):
         cur = self.con.cursor()
         event = json.loads((ROOT / 'site/data/national-category-evidence.json').read_text())['events']['5201']

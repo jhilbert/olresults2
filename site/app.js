@@ -99,6 +99,7 @@ const {
   regionalCategoryLabel,
   youthTitleCategory,
   youthTitleGrant,
+  clubMedalCounts,
   regionalStarterCountsSql,
 } = window.OLRDomainRules;
 
@@ -517,13 +518,15 @@ function preferredRegionalCode(regions) {
   return regions.find((r) => r.code === "WIEN")?.code || regions[0]?.code || null;
 }
 
-function medalGroupRows({ mode, regionalCode, regions, hrefFor, includeAll = false, includeYouth = false }) {
+function medalGroupRows({ mode, regionalCode, regions, hrefFor, includeAll = false, includeYouth = false, includeOstm = false }) {
   const defaultRegion = preferredRegionalCode(regions);
   return `<div class="chips">
       ${includeAll ? `<a class="badge champ-badge champ-toggle ${mode === "all" ? "active" : ""}"
         href="${hrefFor("all")}">${mode === "all" ? "✓ " : ""}Alle Medaillen</a>` : ""}
       <a class="badge champ-badge champ-toggle ${mode === "om" ? "active" : ""}"
         href="${hrefFor("om")}">${mode === "om" ? "✓ " : ""}ÖM/ÖSTM</a>
+      ${includeOstm ? `<a class="badge champ-badge champ-toggle ${mode === "ostm" ? "active" : ""}"
+        href="${hrefFor("ostm")}">${mode === "ostm" ? "✓ " : ""}ÖSTM</a>` : ""}
       ${includeYouth ? `<a class="badge champ-badge champ-toggle ${mode === "youth" ? "active" : ""}"
         href="${hrefFor("youth")}">${mode === "youth" ? "✓ " : ""}Jugend-Meistertitel</a>` : ""}
       ${defaultRegion ? `<a class="badge champ-badge champ-toggle ${mode === "lm" ? "active" : ""}"
@@ -1338,8 +1341,8 @@ function fetchPodiums({ club, personId, dw, includeAdditional = false }) {
   // rank by PERSON (renderRankedMedalTable) skip person_id-less rows
   // themselves instead, since there's no one to attribute them to there.
   const base = query(`
-    SELECT r.rank, r.national_rank, r.category, r.category_full, r.result_kind, r.championship,
-           r.status, r.out_of_competition, r.time_s, r.team_number,
+    SELECT CAST(r.id AS TEXT) AS result_id, r.rank, r.national_rank, r.category, r.category_full, r.result_kind, r.championship,
+           r.status, r.out_of_competition, r.time_s, r.team_number, r.team_name, r.note,
            r.championship_source_scope, r.championship_eligibility_state, r.identity_state,
            r.result_list_id, ont.source_url AS official_national_title_url,
            e.id AS event_id, e.title AS event_title, e.sport_type, s.title AS stage_title,
@@ -1368,10 +1371,10 @@ function fetchPodiums({ club, personId, dw, includeAdditional = false }) {
   const extraParams = [];
   if (club) { extraConds.push("r.official_club = ?"); extraParams.push(club); }
   if (personId) { extraConds.push("r.person_id = ?"); extraParams.push(personId); }
-  const additional = query(`SELECT DISTINCT cse.observed_rank AS rank, cse.observed_rank AS national_rank,
+  const additional = query(`SELECT DISTINCT CAST(r.id AS TEXT) AS result_id, cse.observed_rank AS rank, cse.observed_rank AS national_rank,
       cse.category, cse.category AS category_full, 'individual' AS result_kind,
       cse.championship_type AS championship, cse.observed_status AS status,
-      0 AS out_of_competition, cse.observed_time_s AS time_s, NULL AS team_number,
+      0 AS out_of_competition, cse.observed_time_s AS time_s, NULL AS team_number, NULL AS team_name, NULL AS note,
       cse.source_scope AS championship_source_scope, 'eligible' AS championship_eligibility_state,
       r.identity_state, r.result_list_id, NULL AS official_national_title_url,
       e.id AS event_id, e.title AS event_title, e.sport_type, s.title AS stage_title,
@@ -1404,7 +1407,7 @@ function fetchRegionalPodiums({ jurisdiction, club, personId, dw }) {
   const params = [jurisdiction];
   if (club) { conds.push(`r.official_club = ?`); params.push(club); }
   if (personId) { conds.push(`r.person_id = ?`); params.push(personId); }
-  return query(`
+  const rows = query(`
     SELECT DISTINCT ce.id AS regional_entry_id,
            ce.regional_rank AS rank, ce.regional_rank AS national_rank,
            ci.category, ci.category AS category_full, ci.detection_basis,
@@ -1429,6 +1432,16 @@ function fetchRegionalPodiums({ jurisdiction, club, personId, dw }) {
       LEFT JOIN person p ON p.id = r.person_id
      WHERE ${conds.join(" AND ")}${dw.sql}
      ORDER BY date DESC`, [...params, ...dw.params]);
+  // A regional entry can link multiple legs of the same person. SELECT
+  // DISTINCT alone cannot remove those when the individual leg times differ.
+  const seen = new Set();
+  return rows.filter((row) => {
+    if (row.person_id == null) return true;
+    const key = JSON.stringify([row.regional_entry_id, row.person_id]);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 // One row per runner: Gold/Silber/Bronze/Summe medal counts, sorted like a
@@ -1442,21 +1455,23 @@ function fetchRegionalPodiums({ jurisdiction, club, personId, dw }) {
 // ahead), the plain overall rank otherwise - national_rank is null on the
 // vast majority of non-championship results, so using it unconditionally
 // would silently undercount every podium outside ÖM/ÖSTM.
-function renderRankedMedalTable(podiums, { showClub, isOm, capOutput }) {
+function renderRankedMedalTable(podiums, { showClub, isOm, capOutput, splitKinds = false }) {
   const medalRank = (r) => (isOm ? r.national_rank : r.rank);
-  const showOstm = isOm && podiums.some((r) => r.championship === "ÖSTM");
+  const showOstm = isOm && !splitKinds && podiums.some((r) => r.championship === "ÖSTM");
   const byPerson = new Map();
   for (const r of podiums) {
     if (r.person_id == null) continue;  // a "family" result has no individual to attribute it to
     if (!byPerson.has(r.person_id)) {
       byPerson.set(r.person_id, {
         person_id: r.person_id, person_name: r.person_name, club_name: r.club_name,
-        gold: 0, silver: 0, bronze: 0, ostmGold: 0, ostmSilver: 0, ostmBronze: 0, entries: [],
+        gold: 0, silver: 0, bronze: 0, ostmGold: 0, ostmSilver: 0, ostmBronze: 0,
+        individual: [0, 0, 0], team: [0, 0, 0], entries: [],
       });
     }
     const p = byPerson.get(r.person_id);
     const mr = medalRank(r);
     if (mr === 1) p.gold++; else if (mr === 2) p.silver++; else if (mr === 3) p.bronze++;
+    if (mr >= 1 && mr <= 3) p[["relay", "team", "pair"].includes(r.result_kind) ? "team" : "individual"][mr - 1]++;
     if (r.championship === "ÖSTM") {
       if (mr === 1) p.ostmGold++; else if (mr === 2) p.ostmSilver++; else if (mr === 3) p.ostmBronze++;
     }
@@ -1500,24 +1515,26 @@ function renderRankedMedalTable(podiums, { showClub, isOm, capOutput }) {
     }
   }
   const medalLabel = { 1: "Gold", 2: "Silber", 3: "Bronze" };
-  const cols = (showClub ? 7 : 6) + (showOstm ? 1 : 0);
+  const cols = splitKinds ? (showClub ? 12 : 11) : (showClub ? 7 : 6) + (showOstm ? 1 : 0);
 
   return `
-  <table>
-    <thead><tr>
+  <div class="medal-table-scroll"><table class="${splitKinds ? "medal-breakdown-table" : ""}">
+    ${splitKinds ? `<thead><tr><th rowspan="2" class="num"></th><th rowspan="2">Läufer:in</th>${showClub ? `<th rowspan="2" class="hide-sm">Verein</th>` : ""}
+      <th colspan="3" class="num">Einzel</th><th colspan="3" class="num">Team</th><th colspan="3" class="num">Summe</th></tr>
+      <tr>${[0,1,2].map(() => `<th class="num">Gold</th><th class="num">Silber</th><th class="num">Bronze</th>`).join("")}</tr></thead>` : `<thead><tr>
       <th class="num"></th><th>Läufer:in</th>${showClub ? `<th class="hide-sm">Verein</th>` : ""}
       <th class="num">Gold</th><th class="num">Silber</th>
       <th class="num">Bronze</th><th class="num">Summe</th>${showOstm ? `<th class="num">ÖSTM</th>` : ""}
-    </tr></thead>
+    </tr></thead>`}
     <tbody>${shown.length ? shown.map((p) => `
       <tr class="expandable" data-toggle="${p.person_id}">
         <td class="num dim">${p.place}.</td>
         <td>${runnerNameHtml(p.person_id, p.person_name)} <span class="expand-icon">▸</span></td>
         ${showClub ? `<td class="hide-sm dim">${esc(p.club_name || "")}</td>` : ""}
-        <td class="num">${p.gold || ""}</td>
+        ${splitKinds ? `${p.individual.map((n) => `<td class="num">${n || ""}</td>`).join("")}${p.team.map((n) => `<td class="num">${n || ""}</td>`).join("")}${[p.gold,p.silver,p.bronze].map((n) => `<td class="num"><b>${n || ""}</b></td>`).join("")}` : `<td class="num">${p.gold || ""}</td>
         <td class="num">${p.silver || ""}</td>
         <td class="num">${p.bronze || ""}</td>
-        <td class="num"><b>${p.gold + p.silver + p.bronze}</b></td>
+        <td class="num"><b>${p.gold + p.silver + p.bronze}</b></td>`}
         ${showOstm ? `<td class="num nowrap">${p.ostmGold || p.ostmSilver || p.ostmBronze ? `${p.ostmGold}-${p.ostmSilver}-${p.ostmBronze}` : ""}</td>` : ""}
       </tr>
       <tr class="detail-row" data-detail="${p.person_id}" hidden>
@@ -1530,7 +1547,7 @@ function renderRankedMedalTable(podiums, { showClub, isOm, capOutput }) {
         </td>
       </tr>`).join("") : `<tr><td colspan="${cols}" class="dim">Keine Podestplätze</td></tr>`}
     </tbody>
-  </table>`
+  </table></div>`
   + (truncated ? `<p class="sub dim">Top ${capOutput} von ${people.length} Läufer:innen mit Medaillen gezeigt – grenze mit Verein, Läufer:in oder Saison weiter ein.</p>` : "");
 }
 
@@ -1566,16 +1583,13 @@ function renderChronoMedalTable(podiums, { showClub }) {
 // foreign/unaffiliated athlete) can't be attributed to any club, so is
 // simply excluded here - they still count in the per-runner table.
 function renderClubMedalTable(podiums, { isOm }) {
-  const medalRank = (r) => (isOm ? r.national_rank : r.rank);
   const byClub = new Map();
   for (const r of podiums) {
     if (!r.club_name) continue;
-    if (!byClub.has(r.club_name)) byClub.set(r.club_name, { name: r.club_name, gold: 0, silver: 0, bronze: 0 });
-    const c = byClub.get(r.club_name);
-    const mr = medalRank(r);
-    if (mr === 1) c.gold++; else if (mr === 2) c.silver++; else if (mr === 3) c.bronze++;
+    if (!byClub.has(r.club_name)) byClub.set(r.club_name, []);
+    byClub.get(r.club_name).push(r);
   }
-  const clubs = [...byClub.values()].sort((a, b) =>
+  const clubs = [...byClub.entries()].map(([name, rows]) => ({name, ...clubMedalCounts(rows, isOm)})).sort((a, b) =>
     b.gold - a.gold || b.silver - a.silver || b.bronze - a.bronze || a.name.localeCompare(b.name, "de-AT"));
   let place = 0, prevKey = null;
   clubs.forEach((c, i) => {
@@ -1780,13 +1794,13 @@ function clubDetailHtml(name, year, medalType, { withChangeButton, hrefBase, vie
   // The youth-title grant is specific to Naturfreunde Wien, not a general
   // championship medal view. Also guard old/deep links after a club change.
   const includeYouth = name === "Naturfreunde Wien";
-  const isOm = medalType === "om";
+  const isOm = medalType === "om" || medalType === "ostm";
   const regions = regionalJurisdictions({ club: name });
   if (regionalCode && !regions.some((r) => r.code === regionalCode)) regionalCode = null;
-  const mode = regionalCode ? "lm" : (medalType === "youth" && includeYouth ? "youth" : isOm ? "om" : "all");
+  const mode = regionalCode ? "lm" : (medalType === "youth" && includeYouth ? "youth" : medalType === "ostm" ? "ostm" : isOm ? "om" : "all");
   const dw = disciplineWhere("e.sport_type");
 
-  const modeSuffix = mode === "lm" ? `/lm/${regionalCode}` : (mode === "om" ? "/om" : mode === "youth" ? "/youth" : "");
+  const modeSuffix = mode === "lm" ? `/lm/${regionalCode}` : (mode === "om" ? "/om" : mode === "ostm" ? "/ostm" : mode === "youth" ? "/youth" : "");
 
   const membersHref = `${base}${year ? "/" + year : ""}/members`;
   const resultsHref = `${base}${year ? "/" + year : ""}${modeSuffix}`;
@@ -1837,9 +1851,9 @@ function clubDetailHtml(name, year, medalType, { withChangeButton, hrefBase, vie
     const yearChip = (val, label) => `<a class="chip ${(!year && !val) || year === val ? "active" : ""}"
       href="${base}${val ? "/" + val : ""}/youth">${label}</a>`;
     const hrefFor = (targetMode, code = null) => `${base}${year ? "/" + year : ""}${
-      targetMode === "lm" ? `/lm/${code || preferredRegionalCode(regions)}` : targetMode === "om" ? "/om" : targetMode === "youth" ? "/youth" : ""}`;
+      targetMode === "lm" ? `/lm/${code || preferredRegionalCode(regions)}` : targetMode === "om" ? "/om" : targetMode === "ostm" ? "/ostm" : targetMode === "youth" ? "/youth" : ""}`;
     const inSeason = (r) => !year || seasonYear(r.date, r.sport_type) === year;
-    return header + medalGroupRows({ mode, regionalCode, regions, hrefFor, includeAll: true, includeYouth: true })
+    return header + medalGroupRows({ mode, regionalCode, regions, hrefFor, includeAll: true, includeYouth: true, includeOstm: true })
       + `<div class="chips">${yearChip(null, "Alle")}${years.map((y) => yearChip(y, y)).join("")}</div>`
       + renderYouthTitleTable(national.filter(inSeason), vienna.filter(inSeason), { year, club: name });
   }
@@ -1849,25 +1863,22 @@ function clubDetailHtml(name, year, medalType, { withChangeButton, hrefBase, vie
     : fetchPodiums({ club: name, dw, includeAdditional: isOm });
   const years = [...new Set(allPodiums.map((r) => seasonYear(r.date, r.sport_type)))].sort((a, b) => b - a);
   const typeFiltered = mode === "lm" ? allPodiums : isOm
-    ? allPodiums.filter((r) => r.championship && r.national_rank <= 3)
+    ? allPodiums.filter((r) => r.championship && r.national_rank <= 3 && (mode !== "ostm" || r.championship === "ÖSTM"))
     : allPodiums.filter((r) => r.rank <= 3 && !isKoHeat(r.category));
   const podiums = year ? typeFiltered.filter((r) => seasonYear(r.date, r.sport_type) === year) : typeFiltered;
-  const medalRank = (r) => (mode === "om" || mode === "lm" ? r.national_rank : r.rank);
-  const gold = podiums.filter((r) => medalRank(r) === 1).length;
-  const silver = podiums.filter((r) => medalRank(r) === 2).length;
-  const bronze = podiums.filter((r) => medalRank(r) === 3).length;
+  const {gold, silver, bronze} = clubMedalCounts(podiums, mode !== "all");
 
   const yearChip = (val, label) => `<a class="chip ${(!year && !val) || year === val ? "active" : ""}"
       href="${base}${val ? "/" + val : ""}${modeSuffix}">${label}</a>`;
   const hrefFor = (targetMode, code = null) => `${base}${year ? "/" + year : ""}${
-    targetMode === "lm" ? `/lm/${code || preferredRegionalCode(regions)}` : (targetMode === "om" ? "/om" : targetMode === "youth" ? "/youth" : "")}`;
+    targetMode === "lm" ? `/lm/${code || preferredRegionalCode(regions)}` : (targetMode === "om" ? "/om" : targetMode === "ostm" ? "/ostm" : targetMode === "youth" ? "/youth" : "")}`;
 
-  const tableHtml = mode === "om" || mode === "lm"
-    ? renderRankedMedalTable(podiums, { showClub: false, isOm: true })
+  const tableHtml = mode === "om" || mode === "lm" || mode === "ostm"
+    ? renderRankedMedalTable(podiums, { showClub: false, isOm: true, splitKinds: mode === "ostm" })
     : renderChronoMedalTable(podiums, { showClub: false });
 
   return header + `
-    ${medalGroupRows({ mode, regionalCode, regions, hrefFor, includeAll: true, includeYouth })}
+    ${medalGroupRows({ mode, regionalCode, regions, hrefFor, includeAll: true, includeYouth, includeOstm: true })}
     <div class="chips">
       ${yearChip(null, "Alle")}
       ${years.map((y) => yearChip(y, y)).join("")}
@@ -1877,6 +1888,7 @@ function clubDetailHtml(name, year, medalType, { withChangeButton, hrefBase, vie
       <div class="stat"><b>${silver}</b><span>Silber</span></div>
       <div class="stat"><b>${bronze}</b><span>Bronze</span></div>
     </div>
+    <p class="sub dim">Vereinssumme: Einzelmedaillen und Teammedaillen je Team einmal. In der Tabelle zählt jede Medaille für jede beteiligte Person.</p>
     ${tableHtml}`;
 }
 
@@ -1919,24 +1931,24 @@ function viewClubsPage(year, medalType, view, regionalCode = null) {
     const { years } = competitionYearCounts(dw);
     const regions = regionalJurisdictions();
     if (regionalCode && !regions.some((r) => r.code === regionalCode)) regionalCode = null;
-    const mode = regionalCode ? "lm" : "om";
+    const mode = regionalCode ? "lm" : medalType === "ostm" ? "ostm" : "om";
     const podiumsAll = mode === "lm"
       ? fetchRegionalPodiums({ jurisdiction: regionalCode, dw })
       : fetchPodiums({ dw, includeAdditional: true });
     const typeFiltered = mode === "lm" ? podiumsAll
-      : podiumsAll.filter((r) => r.championship && r.national_rank <= 3);
+      : podiumsAll.filter((r) => r.championship && r.national_rank <= 3 && (mode !== "ostm" || r.championship === "ÖSTM"));
     const podiums = year ? typeFiltered.filter((r) => seasonYear(r.date, r.sport_type) === year) : typeFiltered;
-    const modeSuffix = mode === "lm" ? `/lm/${regionalCode}` : "";
+    const modeSuffix = mode === "lm" ? `/lm/${regionalCode}` : mode === "ostm" ? "/ostm" : "";
     const yearChip = (val, label) => `<a class="chip ${(!year && !val) || year === val ? "active" : ""}"
         href="#/clubs${val ? "/" + val : ""}${modeSuffix}">${label}</a>`;
     const hrefFor = (targetMode, code = null) => `#/clubs${year ? "/" + year : ""}${
-      targetMode === "lm" ? `/lm/${code || preferredRegionalCode(regions)}` : (targetMode === "om" ? "/om" : "")}`;
+      targetMode === "lm" ? `/lm/${code || preferredRegionalCode(regions)}` : (targetMode === "om" ? "/om" : targetMode === "ostm" ? "/ostm" : "")}`;
     app.innerHTML = `
       <h1>Vereine</h1>
       ${clubSearchHtml()}
       <p class="sub">${mode === "lm" ? `${esc(regions.find((r) => r.code === regionalCode)?.short_name)} Vereins-Rangliste` : "Bundesweite Vereins-Rangliste"} – oder wähle oben einen Verein.</p>
       <div class="chips">${yearChip(null, "Alle")}${years.map(([yr]) => yearChip(yr, yr)).join("")}</div>
-      ${medalGroupRows({ mode, regionalCode, regions, hrefFor })}
+      ${medalGroupRows({ mode, regionalCode, regions, hrefFor, includeOstm: true })}
       ${renderClubMedalTable(podiums, { isOm: true })}`;
   }
   wireExpandableMedalRows();
@@ -2076,7 +2088,7 @@ function route() {
   else if ((m = hash.match(/^#\/club\/([^/]+)(?:\/(\d{4}))?\/lm\/(WIEN|NOE|BGLD|STMK|OOE|SBG|TIR|KTN|VBG)\/?$/))) {
     viewClub(decodeURIComponent(m[1]), m[2], null, null, m[3]); setActiveNav();
   }
-  else if ((m = hash.match(/^#\/club\/([^/]+)(?:\/(\d{4}))?(?:\/(om))?(?:\/(members))?/))) {
+  else if ((m = hash.match(/^#\/club\/([^/]+)(?:\/(\d{4}))?(?:\/(om|ostm))?(?:\/(members))?/))) {
     viewClub(decodeURIComponent(m[1]), m[2], m[3], m[4]); setActiveNav();
   }
   else if ((m = hash.match(/^#\/clubs(?:\/(\d{4}))?\/lm\/(WIEN|NOE|BGLD|STMK|OOE|SBG|TIR|KTN|VBG)\/?$/))) {
@@ -2085,7 +2097,7 @@ function route() {
   else if ((m = hash.match(/^#\/clubs(?:\/(\d{4}))?\/youth\/?$/))) {
     viewClubsPage(m[1], "youth"); setActiveNav("clubs");
   }
-  else if ((m = hash.match(/^#\/clubs(?:\/(\d{4}))?(?:\/(om))?(?:\/(members))?/))) {
+  else if ((m = hash.match(/^#\/clubs(?:\/(\d{4}))?(?:\/(om|ostm))?(?:\/(members))?/))) {
     viewClubsPage(m[1], m[2], m[3]); setActiveNav("clubs");
   }
   else if ((m = hash.match(/^#\/runners(?:\/(\d{4}))?\/lm\/(WIEN|NOE|BGLD|STMK|OOE|SBG|TIR|KTN|VBG)\/medals\/?$/))) {

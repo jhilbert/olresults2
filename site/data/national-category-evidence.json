@@ -82,6 +82,17 @@
       "excluded_from_national_championship_categories":["Damen bis 14 Einzel","Herren bis 14 Einzel"],
       "scope":"Die Ausschreibung nennt nur die Mannschaftsklassen als ÖM; Einzelläufer sind Rahmenbewerbe. Die ÖFOL-Meistertafel bestätigt das D−14-Siegerteam Mika und Sona Asenbauer sowie Anna Skern."
     },
+    "5124": {
+      "event_date":"2026-03-14", "stage_number":1,
+      "label":"Ausschreibung Mixed Sprint Staffel Purbach 2026, Seite 2",
+      "url":"https://anne-cdn.oefol.at/public/2026/01/lJXGPOUuVyeKUuxWmOgMhcEhHSecVm0uUMkgOBR4.pdf",
+      "sha256":"95aa08cd6c20169c6e9f2affe775c31ca6a6df25875a711fe350eb94933a7656",
+      "reviewed_on":"2026-11-10", "result_kinds":["relay"],
+      "complete_event_scope":true, "apply_category_inference":true, "default_championship":"ÖM",
+      "category_championship_types":{"DHHD17-":"ÖSTM"},
+      "categories":["DHHD17-","HDH-16","HDH35-","HDH50-"],
+      "scope":"Mixed Sprint 17− (D-H-H-D) ist ÖSTM; Nachwuchs −16 und Senioren 35−/50− sind ÖM."
+    },
     "5201": {
       "event_date":"2026-01-10", "stage_number":1,
       "label":"Ausschreibung und Ergebnis 1. Ski-O AC / ÖM Lang 2026",

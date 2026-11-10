@@ -70,6 +70,75 @@ test("youth-title view is restricted to Naturfreunde Wien including old direct l
   assert.match(ownDeep, /Jugend-Meistertitel/);
 });
 
+test("club ÖSTM view separates individual and team medals and keeps one club medal", () => {
+  const isolated = vm.createContext({window:{OLRDomainRules:rules}, document:{getElementById:()=>({})},
+    location:{search:""}, localStorage:{getItem:()=>null}, URLSearchParams});
+  vm.runInContext(source.slice(0, bootIndex) + `
+    query = () => [{n: 3, runners: 2}]; regionalJurisdictions = () => [];
+    fetchPodiums = () => globalThis.fixture;
+    globalThis.clubHtml = clubDetailHtml;`, isolated);
+  const base = {event_id:5124,stage_id:1,stage_number:1,event_title:'Mixed',date:'2026-03-14',
+    sport_type:'footOrienteering',result_list_id:'team-list',category:'Mixed',club_name:'Naturfreunde Wien',
+    rank:2,national_rank:2,championship:'ÖSTM',status:'ok',result_kind:'relay',team_number:'18'};
+  isolated.fixture = [
+    {...base,person_id:'1',person_name:'Anna',result_id:'1'},
+    {...base,person_id:'2',person_name:'Bea',result_id:'2'},
+    {...base,person_id:'1',person_name:'Anna',result_id:'3',result_kind:'individual',
+      result_list_id:'individual',category:'D21-E',rank:1,national_rank:1},
+    {...base,person_id:'2',person_name:'Bea',result_id:'4',championship:'ÖM',
+      result_list_id:'om',category:'H-14',rank:1,national_rank:1},
+  ];
+  const html = isolated.clubHtml('Naturfreunde Wien','2026','ostm',{});
+  assert.match(html,/href="#\/club\/Naturfreunde%20Wien\/2026\/ostm"/);
+  assert.match(html,/<span>Gold<\/span>/);
+  assert.match(html,/<div class="stat"><b>1<\/b><span>Silber<\/span>/);
+  assert.match(html,/<th colspan="3" class="num">Einzel<\/th>/);
+  assert.match(html,/<th colspan="3" class="num">Team<\/th>/);
+  assert.doesNotMatch(html,/>ÖM<\/span> ·/);
+  assert.match(html,/Anna/); assert.match(html,/Bea/);
+  const combined = isolated.clubHtml('Naturfreunde Wien','2026','om',{});
+  assert.match(combined,/<div class="stat"><b>1<\/b><span>Silber<\/span>/);
+  assert.match(combined,/<div class="stat"><b>2<\/b><span>Gold<\/span>/);
+});
+
+test("club Landesmeisterschaft summary counts a team once but lists each athlete", () => {
+  const isolated = vm.createContext({window:{OLRDomainRules:rules}, document:{getElementById:()=>({})},
+    location:{search:""}, localStorage:{getItem:()=>null}, URLSearchParams});
+  vm.runInContext(source.slice(0, bootIndex) + `
+    query = () => [{n:3,runners:3}];
+    regionalJurisdictions = () => [{code:'WIEN',short_name:'Wiener MS'}];
+    fetchRegionalPodiums = () => globalThis.fixture;
+    globalThis.clubHtml = clubDetailHtml;`, isolated);
+  const base = {event_id:1,stage_id:2,stage_number:1,event_title:'Wr MS',date:'2026-05-01',
+    sport_type:'footOrienteering',result_list_id:'team',category:'Mixed',club_name:'Naturfreunde Wien',
+    regional_entry_id:'team1',rank:1,national_rank:1,championship:'Wiener MS',status:'ok',
+    result_kind:'relay',team_number:'10'};
+  isolated.fixture = [
+    {...base,person_id:'1',person_name:'Anna'}, {...base,person_id:'2',person_name:'Bea'},
+    {...base,person_id:'3',person_name:'Cleo'},
+  ];
+  const html = isolated.clubHtml('Naturfreunde Wien','2026',null,{regionalCode:'WIEN'});
+  assert.match(html,/<div class="stat"><b>1<\/b><span>Gold<\/span>/);
+  assert.match(html,/Anna/); assert.match(html,/Bea/); assert.match(html,/Cleo/);
+  assert.match(html,/je Team einmal/);
+});
+
+test("regional podium query counts a runner with two relay legs only once", () => {
+  const isolated = vm.createContext({window:{OLRDomainRules:rules}, document:{getElementById:()=>({})},
+    location:{search:""}, localStorage:{getItem:()=>null}, URLSearchParams});
+  vm.runInContext(source.slice(0, bootIndex) + `
+    query = () => globalThis.fixture;
+    globalThis.fetch = fetchRegionalPodiums;`, isolated);
+  isolated.fixture = [
+    {regional_entry_id:'team1', person_id:'1', time_s:500},
+    {regional_entry_id:'team1', person_id:'1', time_s:600},
+    {regional_entry_id:'team1', person_id:'2', time_s:700},
+    {regional_entry_id:'team2', person_id:'1', time_s:800},
+  ];
+  const rows = isolated.fetch({jurisdiction:'WIEN',dw:{sql:'',params:[]}});
+  assert.equal(rows.length, 3);
+});
+
 test("2024 Vienna D14 winner with dated club mapping counts toward youth title", () => {
   const row = { person_id: "9030", person_name: "Matilda Buschek", event_id: 4251,
     date: "2024-04-20", stage_number: 1, result_list_id: "list-d14", stage_id: 1,
