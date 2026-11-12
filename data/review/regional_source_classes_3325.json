@@ -1,0 +1,288 @@
+{
+  "schema_version": 1,
+  "events": {
+    "3325": {
+      "date": "2021-10-09",
+      "stage_number": 1,
+      "jurisdictions": {
+        "WIEN": {
+          "partial": true,
+          "evidence_kind": "official-results",
+          "url": "https://anne-cdn.oefol.at/public/legacy/event_3325_ergebnisliste-wr-nw-sen-ms-wr-ask-ms-2021-10-09.pdf",
+          "result_document_url": "https://anne-cdn.oefol.at/public/legacy/event_3325_ergebnisliste-wr-nw-sen-ms-wr-ask-ms-2021-10-09.pdf",
+          "sha256": "0b5da502c513970f0477f18d741c8369bd667ef425745f7509dc8dc92e572f33",
+          "normalized_sha256": "2f42690ff865968c565d2abb04548ea181dbfd825116449f3423be2e8edff710",
+          "note": "Die Wiener Rangspalten und Klassenteilungen stehen in der offiziellen ANNE-Ergebnisliste; der ASKÖ-Rang ist separat und kein zweiter Start.",
+          "categories": {
+            "ASKÖ MS Damen -12": {
+              "D-12": [
+                "SKERN Anna",
+                "BUSCHEK Matilda",
+                "MACHOLD Cleo",
+                "SCHREIBER Matilda",
+                "BECK Maria",
+                "URBANEK Annina",
+                "MILLARD Merryn"
+              ],
+              "__unassigned__": []
+            },
+            "ASKÖ MS Damen 13-14": {
+              "D13-14": [
+                "PISKORZ Kiara-Sophie",
+                "ASENBAUER Sona",
+                "ASENBAUER Mika",
+                "MEIZER Katharina"
+              ],
+              "__unassigned__": []
+            },
+            "ASKÖ MS Damen 35-": {
+              "D35-": [
+                "SKERN Marina",
+                "KRAIL Elisabeth",
+                "PISKORZ Veronika"
+              ],
+              "__unassigned__": []
+            },
+            "ASKÖ MS Damen 45-": {
+              "D45-": [
+                "HINTERPLATTNER Herlinde",
+                "GAUDERNAK Elisabeth",
+                "MACHOLD Natalia"
+              ],
+              "D50-": [
+                "BONEK Claudia",
+                "PALME Guni",
+                "CALVET Christine",
+                "TIEFENBÖCK Riki",
+                "KOVACS Margit"
+              ],
+              "__unassigned__": [
+                "ZETTL Karin"
+              ]
+            },
+            "ASKÖ MS Damen 55-": {
+              "D55-": [
+                "GOLLMANN Birgit",
+                "GASSNER Irene",
+                "HOFSTÄTTER Sabine",
+                "HILBERT Sabine",
+                "MICKO Roswitha"
+              ],
+              "__unassigned__": []
+            },
+            "ASKÖ MS Damen 65-": {
+              "D65-": [],
+              "__unassigned__": [
+                "NILSSON Gunnel",
+                "RIEDL Maria"
+              ]
+            },
+            "ASKÖ MS Herren -12": {
+              "H-12": [
+                "URBANEK Lauri",
+                "HINTERPLATTNER Oskar",
+                "IMRISKA Adam"
+              ],
+              "__unassigned__": []
+            },
+            "ASKÖ MS Herren 13-14": {
+              "H13-14": [],
+              "__unassigned__": [
+                "DOBLER Linus",
+                "DAVITT James"
+              ]
+            },
+            "ASKÖ MS Herren 15-18": {
+              "H15-18": [
+                "BUSCHEK Anton",
+                "CALVET Oliver",
+                "BALLIK Simon",
+                "DOBLER Theo",
+                "STÖCHER Jacopo"
+              ],
+              "__unassigned__": []
+            },
+            "ASKÖ MS Herren 35-": {
+              "H35-": [
+                "SAMEC Fabian",
+                "PERAC Nikola",
+                "IMRISKA Samuel",
+                "KAINZBAUER Peter"
+              ],
+              "H40-": [
+                "JESCHKE Stephan",
+                "KOLAR Hannes",
+                "SZABO Attila",
+                "HARING Alexander",
+                "RITTLER Alexander"
+              ],
+              "__unassigned__": []
+            },
+            "ASKÖ MS Herren 45-": {
+              "H45-": [
+                "BALLIK Thomas",
+                "SCHNEIDER Hartmut",
+                "POELL Matthias",
+                "SRB Alexander",
+                "DOBLER Georg"
+              ],
+              "H50-": [
+                "WALDHÄUSL Wolfgang",
+                "KROUPA Günther",
+                "HILBERT Josef",
+                "BUSCHEK Michael",
+                "FRIEDL Wolfgang"
+              ],
+              "__unassigned__": [
+                "KUGLER Werner"
+              ]
+            },
+            "ASKÖ MS Herren 55-": {
+              "H55-": [
+                "ZAPLETAL Josef",
+                "PIETSCH Wolfgang",
+                "GÖSCHL Erich",
+                "BIEL Axel",
+                "TIEFENBÖCK Wilhelm",
+                "HOFSTÄTTER Felix",
+                "SCHIEFER Mario",
+                "ALTMANN Robert",
+                "HUEMER Thomas",
+                "HAMPL Manfred"
+              ],
+              "__unassigned__": []
+            },
+            "ASKÖ MS Herren 65- + Herren 75-": {
+              "H65-": [
+                "PURGATHOFER Werner",
+                "BOSINA Martin",
+                "HUEMER Meinrad",
+                "WERTHER Wolfgang",
+                "SCHWARZ Robert",
+                "GENEVOIS Frédéric"
+              ],
+              "H70-": [
+                "BONEK Ernst",
+                "SIEGERT Reinhard",
+                "KEMPPAINEN Markku",
+                "KAINZBAUER Josef",
+                "KOCHMANN Günther"
+              ],
+              "__unassigned__": [
+                "CZEMBIREK Heinz",
+                "SRB Walter",
+                "HARING Karl"
+              ]
+            }
+          },
+          "official_ranks": {
+            "D-12": {
+              "SKERN Anna": 1,
+              "BUSCHEK Matilda": 2,
+              "MACHOLD Cleo": 3,
+              "SCHREIBER Matilda": 4,
+              "BECK Maria": 5,
+              "URBANEK Annina": 6,
+              "MILLARD Merryn": 7
+            },
+            "D13-14": {
+              "PISKORZ Kiara-Sophie": 1,
+              "ASENBAUER Sona": 2,
+              "ASENBAUER Mika": 3,
+              "MEIZER Katharina": 4
+            },
+            "D35-": {
+              "SKERN Marina": 1,
+              "KRAIL Elisabeth": 2,
+              "PISKORZ Veronika": 3
+            },
+            "D50-": {
+              "BONEK Claudia": 1,
+              "PALME Guni": 2,
+              "CALVET Christine": 3,
+              "TIEFENBÖCK Riki": 4,
+              "KOVACS Margit": 5
+            },
+            "D45-": {
+              "HINTERPLATTNER Herlinde": 1,
+              "GAUDERNAK Elisabeth": 2,
+              "MACHOLD Natalia": 3
+            },
+            "D55-": {
+              "GOLLMANN Birgit": 1,
+              "GASSNER Irene": 2,
+              "HOFSTÄTTER Sabine": 3,
+              "HILBERT Sabine": 4,
+              "MICKO Roswitha": 5
+            },
+            "H-12": {
+              "URBANEK Lauri": 1,
+              "HINTERPLATTNER Oskar": 2,
+              "IMRISKA Adam": 3
+            },
+            "H15-18": {
+              "BUSCHEK Anton": 1,
+              "CALVET Oliver": 2,
+              "BALLIK Simon": 3,
+              "DOBLER Theo": 4
+            },
+            "H40-": {
+              "JESCHKE Stephan": 1,
+              "KOLAR Hannes": 2,
+              "SZABO Attila": 3,
+              "HARING Alexander": 4,
+              "RITTLER Alexander": 5
+            },
+            "H35-": {
+              "SAMEC Fabian": 1,
+              "PERAC Nikola": 2,
+              "IMRISKA Samuel": 3,
+              "KAINZBAUER Peter": 4
+            },
+            "H50-": {
+              "WALDHÄUSL Wolfgang": 1,
+              "KROUPA Günther": 2,
+              "HILBERT Josef": 3,
+              "BUSCHEK Michael": 4,
+              "FRIEDL Wolfgang": 5
+            },
+            "H45-": {
+              "BALLIK Thomas": 1,
+              "SCHNEIDER Hartmut": 2,
+              "POELL Matthias": 3,
+              "SRB Alexander": 4,
+              "DOBLER Georg": 5
+            },
+            "H55-": {
+              "ZAPLETAL Josef": 1,
+              "PIETSCH Wolfgang": 2,
+              "GÖSCHL Erich": 3,
+              "BIEL Axel": 4,
+              "TIEFENBÖCK Wilhelm": 5,
+              "HOFSTÄTTER Felix": 6,
+              "SCHIEFER Mario": 7,
+              "ALTMANN Robert": 8,
+              "HUEMER Thomas": 9,
+              "HAMPL Manfred": 10
+            },
+            "H65-": {
+              "PURGATHOFER Werner": 1,
+              "BOSINA Martin": 2,
+              "HUEMER Meinrad": 3,
+              "WERTHER Wolfgang": 4,
+              "SCHWARZ Robert": 5,
+              "GENEVOIS Frédéric": 6
+            },
+            "H70-": {
+              "BONEK Ernst": 1,
+              "SIEGERT Reinhard": 2,
+              "KEMPPAINEN Markku": 3,
+              "KAINZBAUER Josef": 4,
+              "KOCHMANN Günther": 5
+            }
+          }
+        }
+      }
+    }
+  }
+}

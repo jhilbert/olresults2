@@ -18,7 +18,14 @@ const context = vm.createContext({
   localStorage: { getItem: () => null },
   URLSearchParams,
 });
-vm.runInContext(source.slice(0, bootIndex) + "\nglobalThis.renderYouth = renderYouthTitleTable; globalThis.formatDate = fmtDate;", context);
+vm.runInContext(source.slice(0, bootIndex) + "\nglobalThis.renderYouth = renderYouthTitleTable; globalThis.formatDate = fmtDate; globalThis.unitKey = teamUnitKey;", context);
+
+test("club-local Mannschaft numbers do not group different teams", () => {
+  const a = {result_kind:"team", team_number:"1", team_name:"Verein A 1"};
+  const b = {result_kind:"team", team_number:"1", team_name:"Verein B 1"};
+  assert.notEqual(context.unitKey(a), context.unitKey(b));
+  assert.equal(context.unitKey(a), context.unitKey({...a}));
+});
 
 test("calendar dates and ISO stage timestamps display without time or timezone shift", () => {
   assert.equal(context.formatDate("2026-09-27T00:00:00.000000Z"), "27.09.2026");
@@ -93,7 +100,8 @@ test("club ÖSTM view separates individual and team medals and keeps one club me
   assert.match(html,/<span>Gold<\/span>/);
   assert.match(html,/<div class="stat"><b>1<\/b><span>Silber<\/span>/);
   assert.match(html,/<th colspan="3" class="num">Einzel<\/th>/);
-  assert.match(html,/<th colspan="3" class="num">Team<\/th>/);
+  assert.match(html,/<th colspan="3" class="num team-medal-col">Team<\/th>/);
+  assert.equal((html.match(/class="num team-medal-col"/g) || []).length, 10);
   assert.doesNotMatch(html,/>ÖM<\/span> ·/);
   assert.match(html,/Anna/); assert.match(html,/Bea/);
   const combined = isolated.clubHtml('Naturfreunde Wien','2026','om',{});
@@ -102,6 +110,49 @@ test("club ÖSTM view separates individual and team medals and keeps one club me
   assert.match(combined,/<h3>ÖSTM<\/h3>[\s\S]*?<b>1<\/b><span>Gold<\/span>[\s\S]*?<b>1<\/b><span>Silber<\/span>/);
   assert.match(combined,/<h3>ÖM<\/h3>[\s\S]*?<b>1<\/b><span>Gold<\/span>/);
   assert.match(combined,/<h3>Gesamt<\/h3>[\s\S]*?<b>2<\/b><span>Gold<\/span>/);
+});
+
+test("club success chart uses annual club gold units and links to matching views", () => {
+  const isolated = vm.createContext({window:{OLRDomainRules:rules}, document:{getElementById:()=>({})},
+    location:{search:""}, localStorage:{getItem:()=>null}, URLSearchParams});
+  vm.runInContext(source.slice(0, bootIndex) + `
+    query = () => [{n:3,runners:2}]; regionalJurisdictions = () => [{code:'WIEN',short_name:'Wiener MS'}];
+    fetchPodiums = () => globalThis.national; fetchRegionalPodiums = () => globalThis.regional;
+    globalThis.clubHtml = clubDetailHtml;`, isolated);
+  const base = {event_id:1,stage_id:2,result_list_id:'t',category:'Mixed',club_name:'Naturfreunde Wien',
+    result_kind:'relay',team_number:'18',rank:1,national_rank:1,championship:'ÖSTM',
+    date:'2026-03-14',sport_type:'footOrienteering'};
+  isolated.national = [{...base,person_id:'1'},{...base,person_id:'2'}];
+  isolated.regional = [{...base,regional_entry_id:'w',championship:'Wiener MS'},
+    {...base,regional_entry_id:'w',championship:'Wiener MS',person_id:'2'}];
+  const html = isolated.clubHtml('Naturfreunde Wien',null,'success',{hrefBase:'#/clubs'});
+  assert.match(html,/Erfolgsstatistik/);
+  assert.match(html,/2026: 1 Gold bei ÖM\/ÖSTM/);
+  assert.match(html,/2026: 1 Gold bei Wiener MS/);
+  assert.match(html,/href="#\/clubs\/2026\/om"/);
+  assert.match(html,/href="#\/clubs\/2026\/lm\/WIEN"/);
+  assert.match(html,/Jahreswerte als Tabelle/);
+  assert.ok(html.indexOf('Landes MS') < html.indexOf('Jugend-Meistertitel'));
+  assert.ok(html.indexOf('Landes MS') < html.indexOf('Erfolgsstatistik'));
+  assert.ok(html.indexOf('Erfolgsstatistik') < html.indexOf('Jugend-Meistertitel'));
+});
+
+test("historical club aggregates are identified and hidden when disciplines are filtered", () => {
+  const isolated = vm.createContext({window:{OLRDomainRules:rules}, document:{getElementById:()=>({})},
+    location:{search:""}, localStorage:{getItem:()=>null}, URLSearchParams});
+  vm.runInContext(source.slice(0, bootIndex) + `
+    query = () => [{n:1,runners:1}]; regionalJurisdictions = () => [];
+    fetchPodiums = () => []; fetchRegionalPodiums = () => [];
+    clubSuccessHistory = { 'Naturfreunde Wien': {source_label:'Vereinsstatistik',years:{'2000':{national:7,vienna:11}}} };
+    globalThis.clubHtml = clubDetailHtml;
+    globalThis.filterOnlyFoot = () => { disciplineFilter = new Set(['footOrienteering']); };`, isolated);
+  const all = isolated.clubHtml('Naturfreunde Wien',null,'success',{});
+  assert.match(all,/2000 · ÖM\/ÖSTM: 7 Gold · Quelle Vereinsstatistik/);
+  assert.match(all,/11 <small class="dim">Verein<\/small>/);
+  assert.doesNotMatch(all,/href="#\/club\/Naturfreunde%20Wien\/2000\/om"/);
+  isolated.filterOnlyFoot();
+  const filtered = isolated.clubHtml('Naturfreunde Wien',null,'success',{});
+  assert.doesNotMatch(filtered,/2000 · ÖM\/ÖSTM: 7 Gold/);
 });
 
 test("club Landesmeisterschaft summary counts a team once but lists each athlete", () => {
@@ -124,6 +175,7 @@ test("club Landesmeisterschaft summary counts a team once but lists each athlete
   assert.match(html,/<div class="stat"><b>1<\/b><span>Gold<\/span>/);
   assert.match(html,/Anna/); assert.match(html,/Bea/); assert.match(html,/Cleo/);
   assert.match(html,/je Team einmal/);
+  assert.ok(html.indexOf('Landes MS') < html.indexOf('Jugend-Meistertitel'));
 });
 
 test("regional podium query counts a runner with two relay legs only once", () => {

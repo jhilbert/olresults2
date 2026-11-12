@@ -14,6 +14,7 @@ category:
 """
 import argparse
 from collections import defaultdict
+import hashlib
 import html as html_mod
 import json
 import re
@@ -1141,6 +1142,66 @@ def parse_bracket_html(html_text):
     return parsed
 
 
+def parse_team_document(html_text):
+    """Parse SportSoftware Mannschaft rows with one shared team result.
+
+    This layout has one row per team, separate club/team-number/member cells,
+    and no leg times. Its category headings sometimes omit starter counts.
+    """
+    ex = TableExtractor()
+    ex.feed(html_text)
+    categories, current = [], None
+    pending_rank = pending_championship = None
+    for table in ex.tables:
+        for row in table:
+            if not row:
+                continue
+            first = row[0].strip()
+            if (len(row) >= 3 and not any(row[1:])
+                    and re.fullmatch(r"[DH]\s*(?:-?\d+)(?:\s*-\s*\d+|\s*-)?(?:\s+Elite)?", first, re.I)):
+                current = {"name": first, "results": [], "sourceUnitCount": 0}
+                categories.append(current)
+                pending_rank = pending_championship = None
+                continue
+            if current is None:
+                continue
+            annotation = " ".join(cell for cell in row if cell).strip()
+            rank, championship = parse_champion_annotation(annotation)
+            if rank is not None and len([cell for cell in row if cell]) == 1:
+                pending_rank, pending_championship = rank, championship
+                continue
+            if len(row) < 7 or not row[1].strip() or row[1].strip() == "Verein":
+                continue
+            club, number = row[1].strip(), row[2].strip()
+            members = [name.strip() for name in row[3:-1] if name.strip()]
+            time_text = row[-1].strip()
+            seconds = parse_time_loose(time_text)
+            status = "ok" if seconds is not None else (parse_status(time_text) or "unknown")
+            if not members and status == "unknown" and not first.isdigit():
+                continue
+            rank = int(first) if first.isdigit() else pending_rank
+            ooc = is_ooc_status(first)
+            team_name = f"{club} {number}".strip()
+            current["sourceUnitCount"] += 1
+            for name in members or [""]:
+                result = {"name": name, "club": club, "teamName": team_name,
+                          "teamNumber": number or None, "resultKind": "team",
+                          "timeText": time_text, "teamTimeText": time_text, "status": status}
+                if not name:
+                    result["memberlessTeam"] = True
+                if seconds is not None:
+                    result["timeS"] = result["teamTimeS"] = seconds
+                if rank is not None:
+                    result["rank"] = rank
+                if pending_championship:
+                    result["championship"] = pending_championship
+                if ooc:
+                    result["outOfCompetition"] = True
+                current["results"].append(result)
+            pending_rank = pending_championship = None
+    return [c for c in categories if c["results"]]
+
+
 def parse_relay_document(html_text):
     """Parse a clean (non-split-times) SportSoftware relay result table:
 
@@ -1186,6 +1247,7 @@ def parse_relay_document(html_text):
                      # between the two even though both start with a blank cell)
     sprint_relay_mode = False  # English OS2010 layout: member rows start with
                      # an explicit numeric Leg instead of an empty Pl cell
+    member_year_idx = None  # Set only by an explicit Jg/year-of-birth header.
 
     def flush():
         nonlocal pending_team
@@ -1247,6 +1309,8 @@ def parse_relay_document(html_text):
                       "teamName": pending_team["name"],
                       "leg": i + 1, "legCount": len(names),
                       "teamTimeText": pending_team.get("timeText") or ""}
+            if m.get("yearOfBirth") is not None:
+                result["yearOfBirth"] = m["yearOfBirth"]
             if pending_team.get("timeS") is not None:
                 result["teamTimeS"] = pending_team["timeS"]
             if pending_team.get("outOfCompetition"):
@@ -1283,6 +1347,7 @@ def parse_relay_document(html_text):
                 has_stnr = True
                 team_row_len = member_row_len = None
                 sprint_relay_mode = False
+                member_year_idx = None
                 current = {"name": m.group("name").strip(),
                            "declaredStarters": category_starter_count(m), "results": []}
                 current.update(parse_course_info(" ".join(row[1:])))
@@ -1302,6 +1367,8 @@ def parse_relay_document(html_text):
                     and row[1].strip() == "Name"):
                 if first == "Leg":
                     sprint_relay_mode = True
+                member_year_idx = next((i for i, label in enumerate(row)
+                                        if label.strip().casefold() in {"jg", "jg.", "year of birth"}), None)
                 continue  # inner (member) header row
 
             # champion annotation, split across cells - either the plain-digit
@@ -1316,6 +1383,16 @@ def parse_relay_document(html_text):
             common_rank, common_championship = parse_champion_annotation(
                 annotation_text)
             if common_rank is not None:
+                # Some exports print the title inside the member table,
+                # immediately AFTER an already ranked/timed team header.
+                # It describes that team, not a new one: flushing here would
+                # create a personless team and reinterpret the first runner
+                # as the next team's header (2019 Mixed-Sprintstaffel).
+                if (pending_team is not None and not pending_team["members"]
+                        and pending_team.get("rank") == common_rank):
+                    pending_team["championship"] = (common_championship
+                                                    or pending_team.get("championship"))
+                    continue
                 flush()
                 pending_rank = common_rank
                 pending_championship = common_championship
@@ -1365,6 +1442,17 @@ def parse_relay_document(html_text):
                     team_row_len = team_row_len or len(row)
                 idx = staffel_idx if len(row) > staffel_idx else (len(row) - 1)
                 team_name = row[idx].strip() if idx >= 0 and row[idx] else ""
+                # Some OS2010 exports put the championship announcement and
+                # the team in the *same* timed row. Keep the printed overall
+                # rank (it may be 2 behind an ineligible guest), but detach
+                # the title annotation before club/team matching.
+                inline_champion = re.match(
+                    r"^\s*(und\s+.*?meister(?:in|innen)?\b.*?)(?:\s*\.{2,}\s*)(.+)$",
+                    team_name, re.I)
+                if inline_champion:
+                    championship_val = (classify_championship_text(inline_champion.group(1))
+                                        or championship_val)
+                    team_name = inline_champion.group(2).strip()
                 team_number = ""
                 if has_stnr:
                     team_number = next((
@@ -1412,7 +1500,14 @@ def parse_relay_document(html_text):
                 if cell and (TIME_TOKEN_RE.search(cell) or parse_status(cell)):
                     leg_time = cell
                     break
-            pending_team["members"].append({"name": name, "timeText": leg_time})
+            member = {"name": name, "timeText": leg_time}
+            if member_year_idx is not None and member_year_idx < len(row):
+                yob = row[member_year_idx].strip()
+                if yob.isdigit() and len(yob) in (2, 4):
+                    year = int(yob)
+                    member["yearOfBirth"] = (year + (2000 if year <= 26 else 1900)
+                                             if year < 100 else year)
+            pending_team["members"].append(member)
 
     flush()
     return [c for c in categories if c["results"]]
@@ -1796,6 +1891,10 @@ def main():
                 cats = parse_vienna_sprint_relay_html(text)
             elif "NÖ Schul MS - 19.04.2016 / Mannschaftswertungen" in text:
                 cats = parse_noe_school_team_html(text)
+            elif (re.search(r"L(?:ä|&auml;)ufer\s*1\b", text, re.I)
+                  and re.search(r"L(?:ä|&auml;)ufer\s*2\b", text, re.I)
+                  and re.search(r"\bVerein\b", text, re.I)):
+                cats = parse_team_document(text)
             elif list_type == "overall":
                 empty += 1  # split-times / cumulative-standings report: redundant, skip
                 out_path.unlink(missing_ok=True)  # stale output from an earlier, buggier run
@@ -1858,6 +1957,13 @@ def main():
                 "docTitle": extract_html_title(text),
                 "categories": cats,
             }
+            # Preserve the reviewed source snapshot only while it still
+            # matches the bytes parsed; a future changed attachment must not
+            # be attributed to an older archived copy.
+            archived = ROOT / "data/review/archived_sources/2016/1812-0.html"
+            if ((eid, n) == (1812, 0) and archived.is_file()
+                    and hashlib.sha256(data).digest() == hashlib.sha256(archived.read_bytes()).digest()):
+                normalized_document["snapshotPath"] = archived.relative_to(ROOT).as_posix()
             if stage_documents:
                 normalized_document["stageDocuments"] = stage_documents
             out_path.write_text(json.dumps(

@@ -10,7 +10,32 @@ const {
   youthTitleCategory,
   youthTitleGrant,
   clubMedalCounts,
+  annualClubGoldSeries,
 } = require("../site/domain_rules.js");
+
+test("annual gold history counts winning teams once and does not invent older coverage", () => {
+  const national = {event_id:1,stage_id:1,result_list_id:'r',category:'H21',championship:'ÖSTM',
+    result_kind:'relay',team_number:'7',national_rank:1,club_name:'A',date:'2024-12-05',sport_type:'skiOrienteering'};
+  const regional = {event_id:2,stage_id:2,result_list_id:'v',category:'H14',championship:'Wiener MS',
+    result_kind:'pair',regional_entry_id:'winning-team',national_rank:1,club_name:'A',date:'2026-05-01',sport_type:'footOrienteering'};
+  const rows = annualClubGoldSeries([{...national,person_id:'1'}, {...national,person_id:'2'},
+    {...national,event_id:3,stage_id:3,result_list_id:'silver',national_rank:2,date:'2026-05-01',sport_type:'footOrienteering'}],
+    [{...regional,person_id:'1'}, {...regional,person_id:'2'}]);
+  assert.deepEqual(rows,[{year:'2025',national:1,vienna:null},{year:'2026',national:0,vienna:1}]);
+  assert.deepEqual(annualClubGoldSeries([national], [], {startYear:2024})[0],
+    {year:'2024',national:null,vienna:null});
+  const later = {...regional,event_id:3,stage_id:3,regional_entry_id:'later',date:'2028-05-01'};
+  assert.deepEqual(annualClubGoldSeries([{...national,person_id:'1'}], [later])[2],
+    {year:'2027',national:null,vienna:null});
+  assert.deepEqual(annualClubGoldSeries([],[]),[]);
+  const history = {years:{'2000':{national:7,vienna:11},'2012':{national:34,vienna:25}}};
+  const historic = annualClubGoldSeries([national],[],{history});
+  assert.deepEqual(historic[0], {year:'2000',national:7,vienna:11,source:'club'});
+  assert.deepEqual(historic.find((r) => r.year === '2012'),
+    {year:'2012',national:34,vienna:25,source:'club'});
+  assert.deepEqual(historic.find((r) => r.year === '2013'),
+    {year:'2013',national:null,vienna:null});
+});
 
 test("club medal counts one team once while preserving ties and different races", () => {
   const base = {event_id: 1, stage_id: 2, result_list_id: 'relay', category: 'Mixed',
@@ -36,6 +61,18 @@ test("pair, regional entries and mixed-club teams keep correct independent units
     {...base, person_id:'4',person_name:'Dora D',note:'Partner: Clara C'},
   ];
   assert.deepEqual(clubMedalCounts(pair), {gold:2,silver:0,bronze:0});
+  const namesInSourceOrder = [
+    {...base,person_id:'5',person_name:'Erik Bonek',observed_name:'Bonek Erik',note:'Partner: Jandl Florian'},
+    {...base,person_id:'6',person_name:'Florian Jandl',observed_name:'Jandl Florian',note:'Partner: Bonek Erik'},
+    {...base,person_id:'7',person_name:'Ylvi Kastner',observed_name:'Kastner Yl',note:'Partner: Tiefenböck Rita'},
+    {...base,person_id:'8',person_name:'Rita Tiefenböck',observed_name:'Tiefenböck Rita',note:'Partner: Kastner Yl'},
+  ];
+  assert.deepEqual(clubMedalCounts(namesInSourceOrder), {gold:2,silver:0,bronze:0});
+  const combined = [
+    {...base,person_id:'9',person_name:'Sofia Calvet',observed_name:'Calvet Sofia Kastner M',note:'Partner: Maya Kastner'},
+    {...base,person_id:'10',person_name:'Maya Kastner',observed_name:'Calvet Sofia Kastner M',note:'Partner: Sofia Calvet'},
+  ];
+  assert.deepEqual(clubMedalCounts(combined), {gold:1,silver:0,bronze:0});
   assert.deepEqual(clubMedalCounts([{...base,regional_entry_id:'entry1'},
     {...base,regional_entry_id:'entry1'},{...base,regional_entry_id:'entry2'}]),
     {gold:2,silver:0,bronze:0});

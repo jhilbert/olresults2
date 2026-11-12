@@ -1,6 +1,155 @@
 {
   "schema_version": 1,
   "events": {
+    "1668": {
+      "date":"2016-09-11", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true, "evidence_kind":"invitation",
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_1668_aus-kirchberg-neu.pdf",
+        "sha256":"d0b15d2a60be5e9ca1347aec7c804021b7a995fe6a3b148c9a604c0da0d6638d",
+        "normalized_sha256":"93f249dfbf48727b93a0b1f614a192b167ac7d67a7f1eb696af6dde2c66971c0",
+        "note":"Ausschreibung Seite 2 nennt die Wiener Mitteldistanzklassen; gemeinsame Ergebnislisten werden nach belegtem Verein aufgeteilt. Die WOLV-Jahresliste belegt bei H-14 ausdrücklich keine Wertung.",
+        "award_holds":{"H-14":{"url":"http://www.wolv.at/docs/med16.pdf", "reason":"Laut WOLV-Jahresliste keine Wertung, weil die Starter demselben Verein angehören."}},
+        "categories":{"Damen -14":"D-14", "Herren -14":"H-14", "Damen 15- Wien":"D15-", "Herren 15- Wien":"H15-", "Damen 45-":"D45-", "Herren 45-":"H45-", "Damen 55-":"D55-", "Herren 60- Wien":"H60-"}
+      }}
+    },
+    "1697": {
+      "date":"2016-10-15", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true, "evidence_kind":"official-shared-results",
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_1697_erg151016.pdf",
+        "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_1697_erg151016.pdf",
+        "sha256":"e81c0c42f1df5d1bc0fe9b64da582c8d03fd13666d5cc229395a889d52f9999f",
+        "normalized_sha256":"53d86b171045e8aad8cfa5f3eae2d61bba7e5b5cf554543e61edc79312df4775",
+        "note":"Die Ergebnisliste nennt LM Nacht für Wien, NÖ, Steiermark und Burgenland; die Wiener Zuordnung erfolgt aus Vereinsdaten. Die WOLV-Jahresliste 2016 bestätigt die Veranstaltung und Kategorien. Die Quelle führt H45/H50 sowie H55/H60 jeweils nur gemeinsam.",
+        "award_holds":{
+          "D19-":{"url":"http://www.wolv.at/docs/med16.pdf", "reason":"Die WOLV-Jahresliste nennt bei drei Starterinnen desselben Vereins ausdrücklich keine Wiener Wertung."},
+          "H45-":{"url":"http://www.wolv.at/docs/med16.pdf", "reason":"Die WOLV-Jahresliste trennt H45 und H50; in der ANNE-Ergebnisliste ist nur eine gemeinsame H45-Klasse ausgewiesen."},
+          "H55-":{"url":"http://www.wolv.at/docs/med16.pdf", "reason":"Die WOLV-Jahresliste trennt H55 und H60; in der ANNE-Ergebnisliste ist nur eine gemeinsame H55-Klasse ausgewiesen."}
+        },
+        "categories":{"H -14":"H-14", "D -14":"D-14", "H 15-18":"H15-18", "D 15-18":"D15-18", "H 19-":"H19-", "D 19-":"D19-", "H 35-":"H35-", "D 35-":"D35-", "H 45-/ H40 Bgld.":"H45-", "D 45-/ D40 Bgld.":"D45-", "H 55-":"H55-", "D 55-":"D55-", "H 65-":"H65-"}
+      }}
+    },
+    "3326": {
+      "date":"2021-10-10", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true, "evidence_kind":"official-results",
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_3326_staffel-ergebnis-2021-10-10-13-28.pdf",
+        "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_3326_staffel-ergebnis-2021-10-10-13-28.pdf",
+        "sha256":"acaa9794711e3cc2486d0fa9677268c056ae903e0253d40af3e374ceb680a561",
+        "normalized_sha256":"f5c9e7ee96840af2f036b69dc6ee53ffdf9bfc8e84c1ba4d628a4393c2f5ec4f",
+        "note":"Die getrennten W-Klassen sind die Wiener Wertung. Ausschreibung für 9./10.10.2021: event_3325_ausschreibung-ol-09-10-10-2021-1.pdf, SHA-256 80628c0bd249968d5d43244aa106ac3878276968cc9aeca17ccde2f3f1080d54. Die Bahnliste ist keine zweite Wertung.",
+        "categories":{"W Damen 15-":"D15-", "W Damen 100-":"D100-", "W Herren -14":"H-14", "W Herren 15-":"H15-", "W Herren 120-":"H120-", "W Herren 150-":"H150-"}
+      }}
+    },
+    "3504": {
+      "date":"2021-11-07", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true, "evidence_kind":"invitation",
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_3504_a1-ausschreibung-mix-2021-november-sonntag.pdf",
+        "sha256":"81413e2f8ea132647448ebe71ea694eac859d55e165d865b3a9bc23001bcf1c8",
+        "normalized_sha256":"f423297ca4e1660f6ba93c5f9bcefc7ef57a2eec221d0db15e72626d35a6aaa4",
+        "note":"Ausschreibung belegt vier Wiener Klassen; die gemeinsame Ergebnisliste enthält auch NÖ und Gäste und wird nach Vereinszugehörigkeit getrennt. Die WOLV-Jahresliste bestätigt drei Wiener Meisterteams und keine Wertung in Nachwuchs -16.",
+        "award_holds":{"Mixed bis 16":{"url":"http://www.wolv.at/docs/med21.pdf", "reason":"Die offizielle Wiener Jahresliste weist bei zwei Teams ausdrücklich keine Meisterschaftswertung aus."}},
+        "categories":{"Mix -16":"Mixed bis 16", "Mix 17-":"Mixed ab 17", "Mix 35-":"Mixed ab 35", "Mix 50-":"Mixed ab 50"}
+      }}
+    },
+    "3503": {
+      "date":"2021-11-07", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true, "evidence_kind":"official-results",
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_3503_results-sprint.pdf",
+        "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_3503_results-sprint.pdf",
+        "sha256":"4c5975cf0128c0e2310c7a68e15d20ed834293f665b5820cd07c917e75777e55",
+        "normalized_sha256":"438a1cbcb0b6c360c770b2407e93a9bf19f565913a855ab972a1dc37b752a934",
+        "note":"Wiener D-14: die WOLV-Jahresliste nennt ausdrücklich keine Meisterschaftswertung, da alle gestarteten Läuferinnen demselben Verein angehörten.",
+        "award_holds":{"D-14":{"url":"http://www.wolv.at/docs/med21.pdf", "reason":"Die offizielle WOLV-Jahresliste weist für diese Klasse ausdrücklich keine Wertung aus: Starterinnen nur aus einem Verein."}},
+        "categories":{"D 14 Wien":"D-14"}
+      }}
+    },
+    "2441": {
+      "date":"2018-10-13", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true,
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_2441_ausschr-rohr-18.pdf",
+        "sha256":"6f45014c3d3253681c4d8aaba31e3e49cea2df9355ee08be8873b0c7eb7129c4",
+        "note":"Wiener Nacht-MS laut Ausschreibung; die gemeinsame Ergebnisliste wird nach Vereinszugehörigkeit getrennt. Die im PDF unvollständig geparsten U14-Paare bleiben ausgeschlossen.",
+        "award_holds":{"H55-":{"url":"http://www.wolv.at/docs/med18.pdf", "reason":"Die WOLV-Jahresliste unterscheidet H55 und H60, die ANNE-Ergebnisliste zeigt nur eine gemeinsame H55-Klasse. Die abweichende Wertung bleibt offen."}},
+        "categories":{"D 15-18":"D15-18", "D 19 A":"D19-", "D 35-":"D35-", "D 45-":"D45-", "D 55-":"D55-", "H 15-18":"H15-18", "H 19 A":"H19-", "H 35-":"H35-", "H 45-":"H45-", "H 55-":"H55-", "H 65-":"H65-"}
+      }}
+    },
+    "2448": {
+      "date":"2018-09-23", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true,
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_2448_ausschreibung-mixedsprint2018.pdf",
+        "sha256":"bbe93244a180354db56a5bfc79cb69c7baf41005f75969c3d52f26b32e5f7a8c",
+        "note":"Drei Wiener Mixed-Sprintstaffelklassen laut Ausschreibung; die zusätzliche Senioren-35-Wertung ist wegen Quellenwiderspruchs nicht als Titel bestätigt.",
+        "award_holds":{"Mixed ab 35":{"url":"http://www.wolv.at/docs/med18.pdf", "reason":"Die WOLV-Jahresliste und Ergebnisliste nennen eine Senioren-35-Wertung; die vorliegende Ausschreibung nennt nur die Klasse ab 50. Der Widerspruch bleibt offen."}},
+        "categories":{"HDH-16 W":"Mixed bis 16", "HDH 17-W":"Mixed ab 17", "HDH 50-W":"Mixed ab 50", "HDH 35-W":"Mixed ab 35"}
+      }}
+    },
+    "2172": {
+      "date":"2018-06-17", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true,
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_2172_ausschreibung-jakob-2018-lang-ms.pdf",
+        "sha256":"59d2875a4a908766615c824a725e2cc178cb81b04ee5b53381c36bc357eb42ba",
+        "note":"Wiener Langdistanz laut Ausschreibung und gesonderter Wiener Ergebnisliste. Diese enthält auch Gäste anderer Landesverbände; deshalb nach Vereinszugehörigkeit abgrenzen.",
+        "award_holds":{
+          "D15-18":{"url":"http://www.wolv.at/docs/med18.pdf", "reason":"Die WOLV-Jahresliste weist für die drei Starterinnen desselben Vereins ausdrücklich keine Wertung aus."},
+          "D45-":{"url":"http://www.wolv.at/docs/med18.pdf", "reason":"Die ANNE-Ergebnisliste zeigt Guni Palme vor Barbara Kastner in einer gemeinsamen D45-Klasse; die WOLV-Jahresliste unterscheidet D45 und D50. Ohne in der Ergebnisliste ausgewiesene Teilung bleibt die Wertung offen."}
+        },
+        "categories":{"Damen -12 Wien":"D-12", "Damen -14 Wien":"D-14", "Damen 15-18 Wien":"D15-18", "Damen 19- Wien":"D19-", "Damen 35- Wien":"D35-", "Damen 45- Wien":"D45-", "Damen 55- Wien":"D55-", "Herren -14 Wien":"H-14", "Herren 15-18 Wien":"H15-18", "Herren 19- Wien":"H19-", "Herren 35- Wien":"H35-", "Herren 45- Wien":"H45-", "Herren 55- Wien":"H55-", "Herren 65- Wien":"H65-"}
+      }}
+    },
+    "2644": {
+      "date":"2019-04-27", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true,
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_2644_aus1.pdf",
+        "sha256":"538af15113929d0564753eff71bb774364d1f14cc8b8965d11ba00ee1cc167df",
+        "note":"Wiener Meisterschaftsklassen laut Ausschreibung; gemeinsame Klassen werden anhand der Vereinszugehörigkeit getrennt.",
+        "categories":{"D -14":"D-14", "H -14":"H-14", "D15- Wien, D19-":"D15-", "H15- Wien, H19-":"H15-", "D 40- B/D 45- W u. NÖ":"D45-", "H 40- B/H 45- W u. NÖ":"H45-", "D 55-":"D55-", "H 60- W":"H60-"}
+      }}
+    },
+    "2522": {
+      "date":"2019-03-31", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true,
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_2522_auschreibung-noems-langdistanz.pdf",
+        "sha256":"010a50059a3ba808e4b9313f0ddea66630003c6c27cd4b3482f8ee30017ad129",
+        "note":"Wiener Nachwuchs- und Seniorenmeisterschaft laut Ausschreibung; die gemeinsame Ergebnisliste muss nach Vereinszugehörigkeit getrennt werden.",
+        "award_holds":{"H45-":{"url":"http://www.wolv.at/docs/med19.pdf", "reason":"Die gemeinsame ANNE-Ergebnisliste führt Ferri Gassner in H45- vor Günther Kroupa; die WOLV-Jahresliste nennt Kroupa in H45 und Gassner in H50. Eine Teilung dieser Quellklasse ist in der ANNE-Ergebnisliste nicht ausgewiesen; der Widerspruch bleibt ungeklärt."}},
+        "categories":{"Damen -12":"D-12", "Herren -12":"H-12", "Damen -14":"D-14", "Herren -14":"H-14", "Damen 15-18":"D15-18", "Herren 15-18":"H15-18", "Damen 35-":"D35-", "Herren 35-":"H35-", "Damen 45-/ Damen 40- Burgenland":"D45-", "Herren 45-/Herren 40- Burgenland":"H45-", "Damen 55-":"D55-", "Herren 55-":"H55-", "Damen 65-":"D65-", "Herren 65-":"H65-"}
+      }}
+    },
+    "2521": {
+      "date":"2019-03-30", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true,
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_2521_ergebnis-staffel.pdf",
+        "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_2521_ergebnis-staffel.pdf",
+        "sha256":"a6b17dbd5b70f83ce0ad46479d0e9bf5a24214a563db5a1f6b7eb605d53b194b",
+        "normalized_sha256":"5afbc28f0cce32b97bbfaef5a144378326f19797efb1b35e12e56c1447a54743",
+        "evidence_kind":"official-results",
+        "note":"Ausschließlich die in der Ergebnisliste ausdrücklich als Wien bezeichneten Staffelklassen; NÖ- und offene Klassen bleiben getrennt.",
+        "categories":{"Wien Damen -14":"D-14", "Wien Damen 15-":"D15-", "Wien Damen 80":"D80-", "Wien Damen 100":"D100-", "Wien Herren 15-":"H15-", "Wien Herren 120":"H120-", "Wien Herren 150":"H150-", "Wien Herren 180":"H180-"}
+      }}
+    },
+    "2533": {
+      "date":"2019-09-01", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true,
+        "url":"https://olc-wienerwald.at/2019/wrmsprint2019-ergebnis.pdf",
+        "result_document_url":"https://olc-wienerwald.at/2019/wrmsprint2019-ergebnis.pdf",
+        "sha256":"a387c12eb14863118ee80980a529b506d46594184f2d08fea79c4674be6fb6d0",
+        "normalized_sha256":"a79497ecdb464c7f5265f105cdcf89dec11e01c9479522720bad9565dbf1c402",
+        "evidence_kind":"official-results",
+        "note":"Offizielle Wiener Sprintmeisterschaftswertung; die separate NÖ-Liste und die Staffel sind nicht Bestandteil dieser Zuordnung.",
+        "categories":{"D -14":"D-14", "D 15-":"D15-", "D 45-":"D45-", "D 55-":"D55-", "H -14":"H-14", "H 15-":"H15-", "H 45-":"H45-", "H 55-":"H55-"}
+      }}
+    },
     "3847": {
       "date":"2022-10-08", "stage_number":1,
       "jurisdictions":{"WIEN":{
@@ -25,20 +174,151 @@
         }}
       }}
     },
+    "1989": {
+      "date":"2017-03-26", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "url":"http://www.wolv.at/docs/med17.pdf",
+        "sha256":"92726b638513fe84ef65235b37ddc6dd05fc9d4b1ec03e2b87e5c91b7f7942ac",
+        "evidence_kind":"official-results",
+        "note":"Die WOLV-Jahreswertung bestätigt für dieses gemeinsame Wien/NÖ/SVK-Ergebnis die drei Wiener Meisterschaftsklassen; die jeweiligen Teams stammen aus dem ANNE-Ergebnis.",
+        "categories":{"HDH -16":"Mixed Nachwuchs -16","HDH 17-":"Mixed Allgemein","HDH 50-":"Mixed Senioren 50-"}
+      }}
+    },
+    "2040": {
+      "date":"2017-09-10", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true,
+        "url":"http://www.wolv.at/docs/med17.pdf",
+        "sha256":"92726b638513fe84ef65235b37ddc6dd05fc9d4b1ec03e2b87e5c91b7f7942ac",
+        "evidence_kind":"official-results",
+        "award_holds":{"D 15-18":{"reason":"Keine Wiener Meisterschaftswertung: alle fünf Starterinnen stammen aus einem Verein.","url":"http://www.wolv.at/docs/med17.pdf"}},
+        "categories":{"Damen 15-18 Wien":"D 15-18"}
+      }}
+    },
+    "2381": {
+      "date":"2018-09-15", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_2381_ausschreibung-wechselland-ol-mittel-2018.pdf",
+        "sha256":"0e7234a1dbb4896a4de14dfb27a2217279055afa84e446797ec7b2fc05d6a302",
+        "categories":{"B W Damen -14":"D-14","B W Damen 55-":"D55-","B W Herren -14":"H-14","W Damen 15-":"D15-","W Damen 45-":"D45-","W Herren 15-":"H15-","W Herren 45-":"H45-","W Herren 60-":"H60-"}
+      }}
+    },
+    "2793": {
+      "date":"2019-09-01", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "url":"https://olc-wienerwald.at/2019/wrmsprintstaffel2019-ergebnis.pdf",
+        "result_document_url":"https://olc-wienerwald.at/2019/wrmsprintstaffel2019-ergebnis.pdf",
+        "sha256":"ed08d258a2794f7fe5e068837a7bc240dac363ee131c6019ef762a28e55eda43",
+        "evidence_kind":"official-results",
+        "categories":{"Allgemeine Kategorie":"Mixed Allgemein","Nachwuchs -16":"Mixed Nachwuchs -16","Senioren 35-":"Mixed Senioren 35-","Senioren 50-":"Mixed Senioren 50-"}
+      }}
+    },
+    "3150": {
+      "date":"2020-10-11", "stage_number":1,
+      "jurisdictions":{
+        "WIEN":{
+          "url":"https://anne-cdn.oefol.at/public/legacy/event_3150_ausschreibung-langdistanz-2020-update-21092020.pdf",
+          "sha256":"caf82d3646949d7837eee0b6d9a8f2cffaf0d87f9f42645f5cbd7af1b6d6d4aa",
+          "award_holds":{"D19-":{"url":"http://www.wolv.at/docs/med20.pdf", "reason":"Die WOLV-Jahresliste weist ausdrücklich keine Wertung aus: drei Starterinnen desselben Vereins."}},
+          "categories":{"Damen 19-":"D19-","Herren 19-":"H19-"}
+        },
+        "NOE":{
+          "url":"https://anne-cdn.oefol.at/public/legacy/event_3150_ausschreibung-langdistanz-2020-update-21092020.pdf",
+          "sha256":"caf82d3646949d7837eee0b6d9a8f2cffaf0d87f9f42645f5cbd7af1b6d6d4aa",
+          "categories":{"Damen 19-":"D19-","Herren 19-":"H19-"}
+        }
+      }
+    },
+    "3267": {
+      "date":"2021-06-19", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true,
+        "url":"http://www.wolv.at/docs/med21.pdf",
+        "sha256":"17658af3daba020b2a69513fef6087918a4a1b1ab45c757a46346f375a1977e3",
+        "evidence_kind":"official-results",
+        "award_holds":{"D 55":{"reason":"Keine Wiener Meisterschaftswertung: alle drei Starterinnen stammen aus einem Verein.","url":"http://www.wolv.at/docs/med21.pdf"}},
+        "categories":{"Damen 55- Wien":"D 55"}
+      }}
+    },
+    "3563": {
+      "date":"2022-03-26", "stage_number":1,
+      "jurisdictions":{
+        "WIEN":{
+          "url":"https://anne-cdn.oefol.at/public/legacy/event_3563_ausschreibung-landesmeisterschaften-sprint-mixedrelay.pdf",
+          "sha256":"23b1e10902a41022b2cda360cc262526e66dd31ce725f0a989d3814ab2d3466c",
+          "categories":{"Nachwuchs-16 W":"Nachwuchs -16","Allg. Klasse 17- W":"Allgemein 17-","Senioren 35- W":"Senioren 35-","Senioren 50- W":"Senioren 50-"}
+        },
+        "NOE":{
+          "url":"https://anne-cdn.oefol.at/public/legacy/event_3563_ausschreibung-landesmeisterschaften-sprint-mixedrelay.pdf",
+          "sha256":"23b1e10902a41022b2cda360cc262526e66dd31ce725f0a989d3814ab2d3466c",
+          "categories":{"Nachwuchs -16 NÖ":"Nachwuchs -16","Allg. Klasse 17- NÖ":"Allgemein 17-","Senioren 50- NÖ":"Senioren 50-"}
+        },
+        "STMK":{
+          "url":"https://anne-cdn.oefol.at/public/legacy/event_3563_ausschreibung-landesmeisterschaften-sprint-mixedrelay.pdf",
+          "sha256":"23b1e10902a41022b2cda360cc262526e66dd31ce725f0a989d3814ab2d3466c",
+          "categories":{"Nachwuchs-14 St":"Nachwuchs -14","Allg. Klasse 15- St":"Allgemein 15-"}
+        }
+      }
+    },
     "3584": {
       "date":"2023-04-22", "stage_number":1,
       "jurisdictions":{"WIEN":{
-        "url":"http://www.wolv.at/docs/med23.pdf",
-        "sha256":"b736bbc237dd816faf92efd26759b3439789d53ae32aab3a9ff605f76a6c594a",
+        "url":"http://www.wolv.at/events/2023/2023_Wr.Nacht-MS.pdf",
+        "sha256":"272339b01336ebb10c66034ddeb5f260482c08930756f35689cd82658a374857",
         "evidence_kind":"official-results",
-        "time_ranked_categories":["H-14"],
-        "note":"WOLV-Jahreswertung führt die regulären Damen- und Herrenpaare gemeinsam in H−14; AK-Teams bleiben außerhalb der Wertung.",
+        "official_ranks":{"H-14":{"Lauri & Adam Urbanek":1,"Annina & Anna Urbanek":2,"Oskar & Karla Hinterplattner":3,"Maria & Cleo Beck &":4}},
+        "note":"Die offizielle Wiener Tageswertung führt die Damen- und Herrenpaare gemeinsam in H−14; ihre gedruckten Ränge 3 und 4 widersprechen der Zeitenreihenfolge und bleiben als solche erhalten.",
         "categories":{
           "Wien Damen -14 *":"H-14", "Wien Herren -14 *":"H-14",
           "Wien Damen -18":"D-18", "Wien Damen 19-":"D19-", "Wien Damen 45-":"D45-", "Wien Damen 55-":"D55-",
-          "Wien Herren -18":"H-18", "Wien Herren 19-":"H19-", "Wien Herren 35-":"H35-", "Wien Herren 45-":"H45-", "Wien Herren 55-":"H55-", "Wien Herren 65-":"H65-", "Wien Herren 75-":"H75-"
+          "Wien Herren -18":"H-18", "Wien Herren 19-":"H19-", "Wien Herren 35-":"H35-", "Wien Herren 45-":"H45-",
+          "Wien Herren 55-":{"H55-":["Thomas Täuber","Axel Biel","Thomas Hlosta","Wilhelm Tiefenböck","Mario Schiefer","Robert Ditz","Erich Göschl"],"H60-":["Josef Zapletal","Andreas Cart","Manfred Hampl"],"__unassigned__":["Wolfgang Kradischnig"]},
+          "Wien Herren 65-":{"H65-":["Paul Grün","Frederic Genevois","Werner Purgathofer","Christian Norden","Martin Bosina","Tim Skern"],"H70-":["Meinrad Huemer","Helmut Schuster","Josef Kainzbauer"]},
+          "Wien Herren 75-":"H75-"
         }
       }}
+    },
+    "3641": {
+      "date":"2022-06-25", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true,
+        "url":"http://www.wolv.at/docs/med22.pdf",
+        "sha256":"8d075300f937aec270ba0a00478d4d85cf8fd95f5dbd24cc8ceb4947bb188a17",
+        "evidence_kind":"official-results",
+        "award_holds":{"H 150":{"reason":"Keine Wiener Meisterschaftswertung: nur Staffeln eines Vereins gestartet.","url":"http://www.wolv.at/docs/med22.pdf"}},
+        "categories":{"W Herren 150-":"H 150"}
+      }}
+    },
+    "3940": {
+      "date":"2023-06-03", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true,
+        "url":"http://www.wolv.at/events/2023/2023_Wr.Nachw.u.Sen-MS.pdf",
+        "sha256":"112e88057872d953285ef85091287d64ee665ee448b7e0f69de7a61df8f19122",
+        "evidence_kind":"official-results",
+        "categories":{
+          "Damen 45- Wien":{"D45-":["Skern Marina","Gaudernak Elisabeth","Buschek Elisabeth"],"D50-":["Kastner Barbara","Lyatoshinsky Polina","Zettl Karin","Kovacs Margit","Exler Doris"]},
+          "Herren 45- Wien":{"H45-":["Veitsberger Martin","Ballik Thomas","Kolar Hannes","Haring Alexander"],"H50-":["Puchegger Stephan","Kroupa Günther","Srb Alexander","Hilbert Josef","Paier Mario"]},
+          "Herren 55- Wien":{"H55-":["Gassner Ferri","Tiefenböck Wilhelm","Täuber Thomas","Biel Axel","Buschek Michael","Göschl Erich","Schiefer Mario"],"H60-":["Zapletal Josef","Blaschek Elmar","Hampl Manfred"],"__unassigned__":["Binder Gert Michael"]},
+          "Herren 65- Wien":{"H65-":["Purgathofer Werner","Grün Paul","Genevois Frederic","Dytlewski Nick","Schwarz Robert","Grassinger Helmut","Skern Tim","Werther Wolfgang","Huemer Thomas"],"H70-":["Huemer Meinrad","Schuster Helmut","Kainzbauer Josef"],"__unassigned__":["Hones Josef"]},
+          "Herren 75- Wien":{"H75-":["Siegert Reinhard","Haring Karl","Burmann Werner"],"H80-":["Bonek Ernst","Radil Klaus","Kochmann Günther","Srb Walter"]}
+        }
+      }}
+    },
+    "3954": {
+      "date": "2023-09-09", "stage_number": 1,
+      "jurisdictions": {
+        "WIEN": {
+          "url": "https://anne-cdn.oefol.at/public/legacy/event_3954_2023-09-09-wr-und-n-meisterschaft-sprint-mixed-sprint-ausschreibung.pdf",
+          "sha256": "b11502d69759694e16b16f29255e2f74863b200ff7a1cdefc6fe5dba977ec035",
+          "categories": {"W Nachwuchs -16": "Nachwuchs -16", "W Allgemeine Klasse": "Allgemein 17-", "W Senioren 35-": "Senioren 35-", "W Senioren 50-": "Senioren 50-"}
+        },
+        "NOE": {
+          "url": "https://anne-cdn.oefol.at/public/legacy/event_3954_2023-09-09-wr-und-n-meisterschaft-sprint-mixed-sprint-ausschreibung.pdf",
+          "sha256": "b11502d69759694e16b16f29255e2f74863b200ff7a1cdefc6fe5dba977ec035",
+          "categories": {"NÖ Nachwuchs -14": "Nachwuchs -14", "NÖ Allgemeine Klasse": "Allgemein 15-", "NÖ Senioren 50-": "Senioren 50-"}
+        }
+      }
     },
     "4251": {
       "date": "2024-04-20", "stage_number": 1,

@@ -8268,6 +8268,7 @@ def parse_wien_mixed_sprint_relay_pdf(path):
     categories = []
     current = None
     pending_team = None
+    pending_champion_rank = None
     value = r"(?:\d{1,2}:\d{2}(?::\d{2})?|MP|DNF|DNS|DSQ)"
     member_re = re.compile(
         rf"^(?P<leg>[123])\.\s+(?P<name>.+?)\s+"
@@ -8342,6 +8343,7 @@ def parse_wien_mixed_sprint_relay_pdf(path):
                     text = re.sub(r"\s+", " ", raw_line).strip()
                     if category_re.fullmatch(text):
                         flush_team()
+                        pending_champion_rank = None
                         name = re.sub(r"\s+\([^)]*\)\s+Time$", "", text)
                         name = re.sub(
                             r"\s+Teilzeit\s+Gesamtzeit$", "", name)
@@ -8354,6 +8356,16 @@ def parse_wien_mixed_sprint_relay_pdf(path):
                         categories.append(current)
                         continue
                     if current is None:
+                        continue
+                    # The official list prints the winner's placing on its
+                    # own line ("1. und Wiener Meister 2019") directly
+                    # before the unnumbered team header. Preserve that rank;
+                    # it is not a runner and does not describe a later team.
+                    champion = re.fullmatch(
+                        r"(\d+)\.\s+und\s+Wiener\s+(?:Landes)?Meister(?:in|innen)?\s+\d{4}",
+                        text, re.I)
+                    if champion:
+                        pending_champion_rank = int(champion.group(1))
                         continue
                     member_match = member_re.match(text)
                     if member_match and pending_team is not None:
@@ -8368,7 +8380,7 @@ def parse_wien_mixed_sprint_relay_pdf(path):
                         })
                         continue
                     team_match = team_re.match(text)
-                    if not team_match or text.startswith("1. und "):
+                    if not team_match:
                         continue
                     flush_team()
                     team_label = re.sub(
@@ -8386,13 +8398,14 @@ def parse_wien_mixed_sprint_relay_pdf(path):
                         ),
                         "rank": (
                             int(team_match.group("rank"))
-                            if team_match.group("rank") else None
+                            if team_match.group("rank") else pending_champion_rank
                         ),
                         "timeText": raw_value,
                         "timeS": seconds,
                         "status": status,
                         "members": [],
                     }
+                    pending_champion_rank = None
                     current["sourceUnitCount"] += 1
             flush_team()
 

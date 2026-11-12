@@ -14,6 +14,21 @@ konkreten Regressionstest oder einen Golden-Fall.
   gespeichert und eindeutig mit den bereits vorhandenen Leistungen verknüpft;
   zusätzliche Ergebniszeilen beziehungsweise Starts werden nicht erzeugt.
 
+## Fehlende ÖM-Veranstaltungen 2015
+
+Ein zeitgenössischer [STOLV-Bericht](https://stolv.at/news/fuss-ol/1018-oem-mixed-staffel-und-oem-staffel-in-salzburg-152015)
+verlinkt für 1. und 2. Mai die alten ANNE-Events 1423 (Mixed-Sprintstaffel)
+und 1424 (Staffel). Für die [ÖM Mitteldistanz vom 3. Mai in Adnet](https://stolv.at/news/fuss-ol/1019-oem-mitteldistanz-2015-in-adnet)
+verlinkt der Verband Event 1425. Diese drei Events fehlen im vorliegenden
+ANNE-Kalender; die alten ANNE-Detailseiten meldeten bei Prüfung am 10.11.2026
+eine ungültige Veranstaltungs-ID. Die Veranstalter-Originale wurden über das
+Internetarchiv wiedergefunden und unter `data/review/archived_sources/2015/`
+gesichert. `ingest/parse_archived_2015.py` erstellt daraus reproduzierbar die
+Ergebnisdaten; das separate Archiv-Eventregister schützt sie vor Verlust beim
+nächsten ANNE-Sync. Für die Mitteldistanz wird die ausgeschriebene
+Meisterschaftswertung als solche übernommen, die zusätzliche Austria-Cup-Liste
+ergänzt andere Klassen ohne doppelte Starts.
+
 ## Zulässige Ausnahmearten
 
 | Bereich | Produktionsregister | Zweck |
@@ -325,7 +340,12 @@ stillschweigend vertauscht werden.
   Event verkürzte Teamlabel „Naturfreunde“ wird anhand der vom WOLV
   veröffentlichten Teamaufstellungen und der verifizierten Mitgliederliste
   eventbezogen Naturfreunde Wien zugeordnet; dieselbe Abkürzung wird nicht
-  pauschal bei anderen Veranstaltungen aufgelöst.
+  pauschal bei anderen Veranstaltungen aufgelöst. In H150− sind zwei
+  Naturfreunde-Staffeln und eine OLC-Wienerwald-Staffel gestartet; Letztere
+  ist in der ANNE-Ergebnisliste mit MP ausgewiesen. Sie zählt als ein
+  gestartetes Team, obwohl ihr Rang und ihre Gesamtzeit fehlen. Eine
+  technische Kollision mit einem gleichnamigen, ebenfalls unplatzierten
+  Team in H15− hatte sie zuvor aus der Starterzählung verdrängt.
 - Event `5496`, Nachwuchs/Senioren 2026: Die offizielle WOLV-Liste
   `http://www.wolv.at/events/2026/Wr.NW%20u.Sen-MS%2026.pdf` (SHA-256
   `3b06a7c5c5f6555dd2cfae1251059dc5de2d5d0c434f2d63f50e80da5b2032cd`)
@@ -345,6 +365,141 @@ stillschweigend vertauscht werden.
   Meister H−14; die WOLV-Jahresliste nennt an der entsprechenden Stelle
   Adam Imriska, obwohl Adam laut Tagesliste in H15− startete. Keine
   automatische Personenvertauschung allein aufgrund der Jahresübersicht.
+- Event `5495`, Wiener Staffel 2026, D15−: Das ANNE-Ergebnis (Ergebnis-ID
+  `142845`, zuletzt aktualisiert am 14.10.2026) nennt Tina Tiefenböck und
+  Annina Urbanek; die WOLV-Jahresliste nennt Tina Tiefenböck und Livia
+  Radon. Gemäß `CHAMP-REG-ANNE-NAME-001` bleibt die ANNE-Teamaufstellung
+  bindend. Der abweichende WOLV-Eintrag ist ein Quellenwiderspruch, kein
+  Beleg für eine andere Personenzuordnung oder eine zweite Medaille.
+- Event `2058`, Wiener Nachtmeisterschaft 2017: Die ANNE-Ergebnisliste
+  enthält in Herren −14 drei Zweierteams sowie einen Einzelstart AK. Die
+  Quellenpersonen bleiben einzeln erhalten; jedes Zweierteam zählt bei der
+  Vereinswertung nur einmal. Eine Zuordnung des AK-Einzelstarts zu einem
+  anderen Team wird nicht erfunden.
+- Event `2040`, Wiener Langdistanz 2017, D15–18: Die WOLV-Jahresliste
+  bestätigt keine Meisterwertung wegen Startern aus nur einem Verein. Die
+  gelistete DNS-Person zählt nicht als gestartet; das Ergebnis bleibt ohne
+  Meistertitel erhalten.
+- Event `1989`, Wiener Mixed-Sprintstaffel 2017: Die ANNE-Ergebnisliste
+  liefert die Teamaufstellungen; WOLV-Jahresliste und Veranstalterarchiv
+  belegen die drei Wiener Meisterschaftsklassen. Eine fehlende ANNE-
+  Ausschreibung wird dabei nicht als vorhandene Quelle ausgegeben.
+- Event `1973`, ÖM Mixed-Sprintstaffel 2017: ANNE enthält dieselbe Staffel
+  als vorläufige PDF und als endgültige HTML-Ergebnisliste. Die endgültige
+  Liste ist die Ergebnisquelle; die vorläufige Liste ist kein zweiter Start
+  und keine zweite Medaille. Der quellenbestätigte Nachwuchstitel bezieht
+  sich auf die Mannschaft in der endgültigen Liste.
+- Events `1893` und `1977`, ÖM 2017: Die ÖFOL-Meistertafel bestätigt
+  Ferdinand Gassner H80 sowie die beiden exakt aufgeführten Wiener
+  Staffelsiegerteams. Wo die Berechtigung weiterer Starter unbekannt ist,
+  wird nur der konkrete offizielle Sieg bestätigt. Max Pietsch bleibt eine
+  Quellenperson ohne daraus abgeleitete ÖFOL-ID.
+- Event `2381`, Wiener Mitteldistanz 2018: Die ANNE-Ausschreibung
+  `https://anne-cdn.oefol.at/public/legacy/event_2381_ausschreibung-wechselland-ol-mittel-2018.pdf`
+  (SHA-256 `0e7234a1dbb4896a4de14dfb27a2217279055afa84e446797ec7b2fc05d6a302`)
+  nennt acht Wiener Kategorien. In der gemeinsamen Klasse `B W Damen -14`
+  werden die Wiener und burgenländischen Starter nach belegter
+  Vereinszugehörigkeit getrennt; Corinna Biel ist in Wien Erste.
+- Event `2441`, Wiener Nachtmeisterschaft 2018: Der ANNE-Ergebnisname
+  `Radon Thomas` und die WOLV-Jahreswertung belegen für diese konkrete
+  Zeile den Verein Naturfreunde Wien. Die in der ANNE-Zeile abgeschnittene
+  Angabe `Naturfreunde` bleibt als Quellenbeobachtung erhalten.
+- Event `2551`, ÖM/ÖSTM Mixed-Sprintstaffel 2019: In der ANNE-Ergebnisliste
+  `https://anne-cdn.oefol.at/public/legacy/event_2551_ms-ergebnisse-zirbenlandopen2019.html`
+  steht die Titelzeile im Mitgliedsblock nach dem Teamkopf. Der Parser
+  erhält deshalb Teamname, Startnummer und alle Legs des bereits begonnenen
+  Teams, statt die Titelzeile als Beginn eines neuen Teams zu behandeln.
+  Die Schreibweise „Janis Bonek“ bleibt die beobachtete ANNE-Schreibweise;
+  eine Personenzuordnung folgt nicht allein aus der ÖFOL-Jahresliste.
+- Event `2612`, ÖM Mannschaft 2019, D19−: Ausschreibung, ANNE-Ergebnis und
+  ÖFOL-Meistertafel bestätigen das Team Ylvi Kastner / Tina Tiefenböck /
+  Jasmina Gassner. Bei ungeklärter Berechtigung anderer Mannschaften wird
+  ausschließlich der offizielle Titel quellengebunden bestätigt.
+- Event `2798`, ÖM Nacht 2019, H18E: Ausschreibung, ANNE-Ergebnis und
+  ÖFOL-Meistertafel bestätigen Erik Bonek als Sieger. Die Berechtigung
+  anderer Starter bleibt getrennt davon ungeklärt.
+- Event `2793`, Wiener Mixed-Sprintstaffel 2019: Die unter
+  `https://olc-wienerwald.at/2019/wrmsprintstaffel2019-ergebnis.pdf`
+  (SHA-256 `ed08d258a2794f7fe5e068837a7bc240dac363ee131c6019ef762a28e55eda43`)
+  veröffentlichte Ergebnisliste ist bei ANNE zusätzlich am gleichzeitigen
+  Einzel-Sprint `2533` angehängt. Der Inhalt gehört zum eigenständigen
+  Staffel-Event `2793` und wird nur dort einmal eingelesen. Bei vier
+  Siegerteams steht Rang 1 getrennt als Titelzeile vor dem Teamnamen; der
+  Parser übernimmt ihn samt allen Legs. Die Nachwuchs-Klasse hatte laut
+  Liste nur zwei gestartete Teams und erhält keinen Titel.
+- Event `2916`, ÖM Ski-O Lang 2020: Die separate ANNE-ÖM-Wertung
+  `https://anne-cdn.oefol.at/public/legacy/event_2916_ergebnisse-ski-o-oem-lang-2020.pdf`
+  (SHA-256 `cbe6ce4fcd5fa32ab672db30413457fdfaa35a7f16f81939971a26f9dab84478`)
+  weist Adam Cech in H−14 ausdrücklich als nicht ÖM-berechtigt und David
+  Perktold als Meister aus. Die widersprechende ÖFOL-Meistertafel wird für
+  diesen Titel nicht übernommen. Die aktualisierte Ausschreibung für Event
+  `2917` bestätigt daneben ausdrücklich die ÖM Mitteldistanz am Folgetag;
+  die frühere Fassung von `2916` ist hierfür überholt.
+- Event `3150`, Wiener und NÖ Langdistanz 2020: Die ANNE-Ausschreibung
+  `https://anne-cdn.oefol.at/public/legacy/event_3150_ausschreibung-langdistanz-2020-update-21092020.pdf`
+  (SHA-256 `caf82d3646949d7837eee0b6d9a8f2cffaf0d87f9f42645f5cbd7af1b6d6d4aa`)
+  nennt für beide Länder ausschließlich D/H19− als Meisterschaftsklassen.
+  Die gemeinsame Ergebnisliste wird anhand der Vereinszuordnung getrennt;
+  andere Klassen sind für Wien und NÖ Rahmenbewerbe.
+- Event `3267`, Wiener Mitteldistanz 2021, D55−: Drei Starterinnen eines
+  einzigen Vereins belegen laut ANNE die Plätze 1–3. Die offizielle
+  WOLV-Jahreswertung `http://www.wolv.at/docs/med21.pdf` erklärt ausdrücklich
+  „keine Wertung“; Ergebnisse bleiben sichtbar, der Titel wird nicht gezählt.
+- Event `3322`, Sprint 2021: Die ANNE-Ausschreibung
+  `https://anne-cdn.oefol.at/public/legacy/event_3322_ausschreibung-final-15-8.pdf`
+  (SHA-256 `af288ca91c5087dfb4bbcaa766f87e699eee5647c2f9918310c79f1deac3f10b`)
+  nennt nur D/H−12, −14, −16E, −18E und −20E als ÖM. Die Seniorenklassen
+  sind ausschließlich Austria-Cup beziehungsweise Tiroler Meisterschaft.
+- Event `3481`, ÖM Nacht 2021, D20E: Das ANNE-Ergebnis führt Maya Kastner
+  auf Platz 1; die Ausschreibung und ÖFOL-Meistertafel bestätigen die
+  ÖM-Klasse und ihren Titel. Die Berechtigung einer anderen Starterin bleibt
+  ungeklärt; der offizielle Titel ist quellengebunden einzeln bestätigt.
+- Event `3563`, Mixed-Sprintstaffel am 26.03.2022: Die ANNE-Ausschreibung
+  `https://anne-cdn.oefol.at/public/legacy/event_3563_ausschreibung-landesmeisterschaften-sprint-mixedrelay.pdf`
+  (SHA-256 `23b1e10902a41022b2cda360cc262526e66dd31ce725f0a989d3814ab2d3466c`)
+  nennt die konkreten Wiener, niederösterreichischen und steirischen
+  Meisterschaftsklassen; offene Rahmenkategorien zählen nicht. Die Besetzung
+  folgt dem ANNE-Ergebnis und jede Staffel zählt nur einmal je Verein.
+- Event `3641`, Wiener Staffel 2022, H150−: Die
+  [WOLV-Jahreswertung](http://www.wolv.at/docs/med22.pdf) erklärt ausdrücklich
+  „keine Wertung“ wegen Staffeln nur eines Vereins. Auch in den ANNE-Daten
+  sind ausschließlich Teams von Naturfreunde Wien als gestartete Wiener Teams
+  erkennbar. Die Ergebnisse bleiben sichtbar; eine Vereinsmedaille wird in
+  dieser Klasse nicht gezählt.
+- Event `3584`, Wiener Nachtmeisterschaft 2023: Die offizielle Wiener
+  Tageswertung `http://www.wolv.at/events/2023/2023_Wr.Nacht-MS.pdf`
+  (SHA-256 `272339b01336ebb10c66034ddeb5f260482c08930756f35689cd82658a374857`)
+  veröffentlicht H55−/H60− und H65−/H70− getrennt. Nur die dort
+  namentlich veröffentlichten ANNE-Quellpersonen werden zugeordnet.
+  H−14 ist eine gemeinsame Wertung der getrennt gedruckten Damen- und
+  Herrenpaare. Die Tagesliste druckt Platz 3 und 4 entgegen der Zeitfolge;
+  die publizierten Ränge bleiben erhalten. ANNE nennt das Siegerpaar Lauri
+  Urbanek und Adam Imriska; der zweite Nachname war in der Parser-Zelle in
+  den Verein verrutscht und wird aus der ANNE-Zeile wiederhergestellt.
+- Event `3940`, Wiener Nachwuchs-/Seniorenmeisterschaft 2023: Die offizielle
+  Wiener Tagesliste `http://www.wolv.at/events/2023/2023_Wr.Nachw.u.Sen-MS.pdf`
+  (SHA-256 `112e88057872d953285ef85091287d64ee665ee448b7e0f69de7a61df8f19122`)
+  veröffentlicht die geteilten Klassen D45−/D50−, H45−/H50−,
+  H55−/H60−, H65−/H70− und H75−/H80−. Die expliziten Teilnehmerlisten
+  werden mit den Namen des ANNE-Ergebnisses verknüpft; nicht in der
+  Wiener Tagesliste enthaltene Gäste bleiben unzugeordnet. Der automatisch
+  gelesene Rang und die Startbedingung werden für jede Teilklasse getrennt
+  ermittelt; die Liste ist keine pauschale Erlaubnis, andere Altersklassen
+  rechnerisch zu teilen.
+- Event `3954`, Wiener und NÖ Mixed-Sprintstaffel 2023: Die ANNE-Ausschreibung
+  `https://anne-cdn.oefol.at/public/legacy/event_3954_2023-09-09-wr-und-n-meisterschaft-sprint-mixed-sprint-ausschreibung.pdf`
+  (SHA-256 `b11502d69759694e16b16f29255e2f74863b200ff7a1cdefc6fe5dba977ec035`)
+  nennt die jeweils vier Wiener und drei niederösterreichischen Klassen.
+  Die Teammitglieder und Wertungen stammen aus den ANNE-Ergebnissen; ein
+  Team zählt als ein Starter beziehungsweise eine Vereinsmedaille.
+- Event `4028`, ÖM Mitteldistanz 2023: Die Ausschreibung
+  `https://anne-cdn.oefol.at/public/legacy/event_4028_2023-10-21-ac-ausschreibung.pdf`
+  (SHA-256 `1bd195e523c09dffbac97a1806ee424e93be862d68ee998a8a738d0f9691815f`)
+  nennt H80− als ÖM-Kategorie. ANNE führt Ernst Bonek als Sieger und die
+  ÖFOL-Meistertafel bestätigt ihn als Meister. Drei Personen starteten;
+  weil die Berechtigung des dritten Starters nicht eindeutig vorliegt,
+  wird ausschließlich der belegte Titel bestätigt. Es wird keine zusätzliche
+  Starterberechtigung oder weitere Medaille erfunden.
 - Event `4251`, NÖ und Wiener Mitteldistanzmeisterschaft am 20.04.2024:
   Die vom Nutzer benannte Ausschreibung
   `https://anne-cdn.oefol.at/public/legacy/event_4251_ausschreibung-no-w-ms24-mittel.pdf`
@@ -361,8 +516,14 @@ stillschweigend vertauscht werden.
   Die unabhängige WOLV-Liste `http://www.wolv.at/events/2024/Wr.MS_mittel_24.pdf`
   belegt darüber hinaus für die im Quelleintrag verkürzten Namen die zwei
   unterschiedlichen Personen Sabine und Franz Wareyka-Glaner sowie für
-  Nick Dytlewski den Verein Naturfreunde Wien. Die Korrekturen gelten nur für
-  diese Quellzeilen; der ursprüngliche Parserwert bleibt beobachtbar.
+  Nick Dytlewski den Verein Naturfreunde Wien. Dieselbe Tagesliste (SHA-256
+  `9055a917e04dfc23b7a398f27c5d8d2f7a5887c2bcc7e5d7ed5e647709a991fb`)
+  ergänzt den in der ANNE-Liste zu „Naturfreunde“ abgeschnittenen Verein für
+  Anja Arbter, Ulrike Tiefenböck, Ute Hierzegger, Annina Urbanek, Thomas
+  Radon und Herwig Hierzegger. Name, Kategorie und Zeit beziehungsweise
+  DNS wurden mit der ANNE-Ergebniszeile abgeglichen. Die Korrekturen gelten
+  nur für diese Quellzeilen; der ursprüngliche Parserwert bleibt beobachtbar
+  und eine Vereinskorrektur allein bestätigt keine Personenidentität.
 - Event `4300`, NÖ/W Mixed-Sprintstaffel am 30.06.2024: Die Ausschreibung
   `https://anne-cdn.oefol.at/public/legacy/event_4300_ausschreibung-ol-sprint-und-mixsprint-30-06-2024-mit-29-05-2024.pdf`
   (SHA-256 `d4e43ac12aa201b795be3a446f6d91cca3d1dd8bcd6a24a02fbc56612ea83c6d`)
@@ -474,3 +635,69 @@ stillschweigend vertauscht werden.
   dokumentiert und wird hier nicht als Nachweis einer einzelnen D/H-Klasse
   interpretiert. Die Ausschreibung belegt ausschließlich die Klasse, nicht
   Sieger, Titelvergabe oder individuelle Startberechtigung.
+- Event `2082`, ÖM Mannschaft 2017: Die ANNE-PDF-Ergebnisliste
+  `https://anne-cdn.oefol.at/public/legacy/event_2082_ergebnisliste-oem-mannschaft2017.pdf`
+  enthält vor den bereits erfassten Einzel-Rahmenbewerben zwölf Teamklassen
+  mit insgesamt 84 Mannschaften. Ihre Quelle liegt als `2082-1.pdf` unter
+  `data/review/archived_sources/2017`; die Normalisierung kann mit
+  `ingest/parse_archived_2017.py --check` reproduziert werden. Die in der
+  Quelle ausdrücklich bezeichneten Meister werden als ÖM, nicht ÖSTM,
+  interpretiert. Eine Mannschaft hat eine gemeinsame Zeit und keine Legs;
+  die offenen Rahmenbewerbe und eine Klasse ohne ausgewiesenen Meistertitel
+  werden dadurch nicht automatisch zu Meisterschaften. Die zugehörige
+  Ausschreibung (`2082-invitation.pdf`, SHA-256
+  `638b088ba7b2091a486d8763c117103d69fc577942b99dde0a3fbd3bc5d38ad3`)
+  benennt die ÖM-Klassen und die Rahmenbewerbe. Bei Maria Beck nennt die
+  Ergebnisliste Jahrgang 2004; eine gleichnamige ANNE-Person mit Jahrgang
+  2009 wird daher nicht automatisch zugeordnet. Die ÖFOL-Meistertafel
+  bestätigt den Mannschaftstitel unabhängig von dieser offenen Identität.
+- Events `3325` und `3326`, Wiener Nachwuchs-/Senioren- und
+  Staffelmeisterschaft 2021: Die gemeinsame Ausschreibung
+  `https://anne-cdn.oefol.at/public/legacy/event_3325_ausschreibung-ol-09-10-10-2021-1.pdf`
+  (SHA-256 `80628c0bd249968d5d43244aa106ac3878276968cc9aeca17ccde2f3f1080d54`)
+  nennt für beide Tage eigene Wiener Meisterschaftsklassen. Für den 9.10.
+  enthält die offizielle Wiener/ASKÖ-Ergebnisliste 96 Laufleistungen mit
+  getrennten Wertungsspalten; die tatsächlich gedruckten Klassenteilungen
+  und Wiener Ränge werden aus dem archivierten Original reproduziert. Für
+  den 10.10. gilt die Ergebnisliste mit den getrennten W-Kategorien, nicht
+  die zusätzliche Bahnliste als zweite Wertung.
+- Event `3504`, Wiener Mixed-Sprintstaffel 2021: Die Ausschreibung
+  `https://anne-cdn.oefol.at/public/legacy/event_3504_a1-ausschreibung-mix-2021-november-sonntag.pdf`
+  nennt vier Wiener Klassen. Die gemeinsame Ergebnisliste enthält weitere
+  Landesverbände; die Wiener Ranglisten werden getrennt. Der WOLV nennt
+  für Nachwuchs -16 ausdrücklich keine Wertung; die drei anderen
+  Wiener Siegerteams sind in seiner Jahresliste aufgeführt.
+- Event `3503`, Wiener Sprint 2021: Die Wiener D-14-Rangliste bleibt
+  sichtbar. Die WOLV-Jahresliste weist ausdrücklich keine Wertung aus,
+  weil die gestarteten Läuferinnen nur einem Verein angehörten. Deshalb
+  wird aus dieser Klasse kein Meistertitel abgeleitet.
+- Wiener Gold 2020: Die WOLV-Jahresliste `http://www.wolv.at/docs/med20.pdf`
+  nennt Wiener Meisterschaften am 5. und 6. September; die weiteren
+  geplanten Wiener Läufe wurden abgesagt. Die Veranstaltungen sind beim
+  Abgleich getrennt zu berücksichtigen; eine abweichende Jahressumme in
+  einer internen Zusammenfassung ist kein Grund, bestätigte Titel zu löschen.
+- Event `3150`, Wiener Langdistanz 2020: Die Ausschreibung belegt D19 und
+  H19; die WOLV-Jahresliste weist für D19 ausdrücklich keine Wertung aus,
+  weil die drei Starterinnen demselben Verein angehörten. Die Ergebnisliste
+  bleibt sichtbar, aber aus D19 wird kein Meistertitel abgeleitet.
+- Event `1668`, Wiener Mitteldistanz 2016: Die ANNE-Ausschreibung
+  `https://anne-cdn.oefol.at/public/legacy/event_1668_aus-kirchberg-neu.pdf`
+  (SHA-256 `d0b15d2a60be5e9ca1347aec7c804021b7a995fe6a3b148c9a604c0da0d6638d`)
+  belegt die acht Wiener Klassen. Soweit die Ergebnisliste mehrere
+  Landesverbände zusammenführt, erfolgt die Trennung anhand der belegten
+  Vereinszugehörigkeit. In H−14 gibt es laut WOLV-Jahresliste keine
+  Wertung, da nur ein Verein vertreten war.
+- Event `1697`, gemeinsame Nacht-Landesmeisterschaft 2016: Die Ergebnisliste
+  `https://anne-cdn.oefol.at/public/legacy/event_1697_erg151016.pdf` nennt im
+  Titel Wien, NÖ, Steiermark und Burgenland. Wiener Leistungen werden über
+  ihre Vereinszugehörigkeit getrennt; die WOLV-Jahresliste
+  `http://www.wolv.at/docs/med16.pdf` dient als Querprüfung. Gut lesbare
+  Zweierteams der Kinderklassen werden pro Person erfasst und als ein Paar
+  gewertet. Der im PDF unvollständige Vorname von Sofia Calvet wird durch
+  die WOLV-Liste belegt. Max Pietsch ist laut Nutzer zumindest zeitweise
+  Mitglied der Naturfreunde Wien gewesen; auch die Ergebnisliste nennt ihn
+  2016 für den Verein. Die Vereinszugehörigkeit belegt jedoch keine der
+  möglichen ÖFOL-Identitäten, weshalb die konkrete Quellenperson ungeklärt
+  bleibt. D19 hat laut WOLV keine
+  Wertung; H45 und H55 bleiben für Medaillen gesperrt, weil nur der WOLV
+  Altersklassen teilt und die ANNE-Ergebnisliste sie zusammenführt.

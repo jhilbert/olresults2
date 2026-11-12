@@ -1,6 +1,62 @@
 {
   "schema_version": 1,
   "events": {
+    "3322": {
+      "event_date":"2021-09-19", "stage_number":1,
+      "label":"ÖM Nachwuchs Sprint 2021; Tiroler Meisterschaft Senioren",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_3322_ausschreibung-final-15-8.pdf",
+      "sha256":"af288ca91c5087dfb4bbcaa766f87e699eee5647c2f9918310c79f1deac3f10b",
+      "reviewed_on":"2026-11-12", "result_kinds":["individual"],
+      "complete_event_scope":true, "default_championship":"ÖM",
+      "categories":["Damen bis 12","Herren bis 12","Damen bis 14","Herren bis 14","Damen bis 16 Elite","Herren bis 16 Elite","Damen bis 18 Elite","Herren bis 18 Elite","Damen bis 20 Elite","Herren bis 20 Elite"],
+      "scope":"Ausschreibung Seite 3: Nur D/H bis 12, 14, 16E, 18E und 20E sind ÖM. Senioren sind Austria-Cup- beziehungsweise Tiroler Meisterschaftsklassen, keine ÖM."
+    },
+    "2082": {
+      "event_date":"2017-09-03", "stage_number":1,
+      "label":"Ausschreibung ÖM Mannschaft 2017",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_2082_ausschreibung-austriacup2017-oem-mannschaft.pdf",
+      "sha256":"638b088ba7b2091a486d8763c117103d69fc577942b99dde0a3fbd3bc5d38ad3",
+      "reviewed_on":"2026-11-11", "result_kinds":["team"],
+      "categories":["H 19-", "D 19-", "H -14", "D -14", "H 15-18", "D 15-18", "H 40-", "D 40-", "H 50-", "D 50-", "H 60-"],
+      "scope":"Die Ausschreibung bezeichnet die Mannschaftsklassen als ÖM; Offen und Einzelstarter sind Rahmenbewerbe. Die Titelvergabe wird separat geprüft."
+    },
+    "1812": {
+      "event_date":"2016-10-02", "stage_number":1,
+      "label":"Ausschreibung ÖM Mannschaft 2016",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_1812_einladung-und-auschreibung-m-mannschaft-2016.pdf",
+      "sha256":"536c028efa2c699e4e5e49dc6a7b760287fe0a19311eecf4ee8c60461602c856",
+      "reviewed_on":"2026-11-10", "result_kinds":["team"],
+      "categories":["H 19 Elite", "D 19 Elite", "H -14", "D -14", "H 15-18", "D 15-18", "H 40-", "D 40-", "H 50-", "D 50-", "H 60-"],
+      "scope":"Die ausgeschriebenen Mannschaftsklassen sind ÖM, auch die allgemeine Klasse; Einzelstarter sind Rahmenbewerbe."
+    },
+    "1423": {
+      "event_date":"2015-05-01", "stage_number":1,
+      "label":"Archivierte Ausschreibung ÖM Mixed-Sprintstaffel 2015",
+      "url":"https://web.archive.org/web/20170501211739/http://www.ol-sbg.at/OEMS_2015/Ausschreibung.pdf",
+      "sha256":"f34a8e65525e6825aa0b222f09c4f8ceb7b776c9a40cbc657b76ccf37906c70b",
+      "reviewed_on":"2026-11-10", "result_kinds":["relay"],
+      "categories":["Elite", "D/H -16", "D/H 50-"],
+      "scope":"Die Ausschreibung nennt die drei Meisterschaftsklassen; Offen ist Rahmenbewerb."
+    },
+    "1424": {
+      "event_date":"2015-05-02", "stage_number":1,
+      "label":"Archivierte Ausschreibung ÖSTM und ÖM Staffel 2015",
+      "url":"https://web.archive.org/web/20170501211739/http://www.ol-sbg.at/OEMS_2015/Ausschreibung.pdf",
+      "sha256":"f34a8e65525e6825aa0b222f09c4f8ceb7b776c9a40cbc657b76ccf37906c70b",
+      "reviewed_on":"2026-11-10", "result_kinds":["relay"],
+      "categories":["Damen 19- Elite", "Herren 19- Elite", "Damen -12", "Herren -12", "Damen -14", "Herren -14", "Herren -16", "Damen -18", "Herren -18", "Damen 40-", "Herren 40-", "Damen 50-", "Herren 50-", "Herren 60-"],
+      "category_championship_types":{"Damen 19- Elite":"ÖSTM", "Herren 19- Elite":"ÖSTM"},
+      "scope":"D/H 19 Elite sind ÖSTM; die ausgeschriebenen übrigen Klassen ÖM."
+    },
+    "1425": {
+      "event_date":"2015-05-03", "stage_number":1,
+      "label":"Archivierte Ausschreibung ÖM Nachwuchs und Senioren Mittel 2015",
+      "url":"https://web.archive.org/web/20170501211739/http://www.ol-sbg.at/OEMS_2015/Ausschreibung.pdf",
+      "sha256":"f34a8e65525e6825aa0b222f09c4f8ceb7b776c9a40cbc657b76ccf37906c70b",
+      "reviewed_on":"2026-11-10", "result_kinds":["individual"],
+      "categories":["Damen -12", "Herren -12", "Damen -14", "Herren -14", "Damen -16 Elite", "Herren -16 Elite", "Damen -18 Elite", "Herren -18 Elite", "Damen -20 Elite", "Herren -20 Elite", "Damen 35-", "Herren 35-", "Damen 40-", "Herren 40-", "Damen 45-", "Herren 45-", "Damen 50-", "Herren 50-", "Damen 55-", "Herren 55-", "Damen 60-", "Herren 60-", "Damen 65-", "Herren 65-", "Damen 70-", "Herren 70-", "Herren 75-"],
+      "scope":"Die ausgeschriebenen ÖM-Klassen stammen aus der separaten Veranstalterwertung; Elite 21 und weitere Cupklassen sind keine ÖM."
+    },
     "1080": {
       "event_date":"2014-09-20", "stage_number":1, "label":"Ausschreibung ÖM Mittel 2014, Seite 1",
       "url":"https://anne-cdn.oefol.at/public/legacy/event_1080_Ausschreibung%20OEM%20Mittel.pdf",

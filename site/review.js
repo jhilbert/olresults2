@@ -333,7 +333,7 @@ function renderDetail() {
     LEFT JOIN audit_issue ai ON ai.result_id = r.id
     WHERE r.result_list_id = ? GROUP BY r.id
     ORDER BY r.rank IS NULL, r.rank, COALESCE(r.team_number, r.team_name, r.club),
-             r.leg_number, r.time_s`, [list.id]);
+             CASE WHEN r.result_kind='team' THEN r.team_name END, r.leg_number, r.time_s`, [list.id]);
   const issues = query(`SELECT severity, code, message FROM audit_issue
     WHERE result_list_id = ? ORDER BY CASE severity WHEN 'blocker' THEN 0 WHEN 'warning' THEN 1 ELSE 2 END, code`, [list.id]);
   const regionalMappings = query(`
@@ -365,7 +365,8 @@ function renderDetail() {
   const parsedUnitIndex = new Map();
   for (const row of rows) {
     const isTeam = ["relay", "team", "pair"].includes(row.result_kind);
-    const key = !isTeam ? null : row.team_number
+    const key = !isTeam ? null : row.result_kind === "team" && row.team_number && row.team_name
+      ? `team:number:${row.team_number}:name:${row.team_name}` : row.team_number
       ? `${row.result_kind}:number:${row.team_number}`
       : row.result_kind === "pair"
         ? `${row.result_kind}:rank:${row.rank ?? ""}:status:${row.status}:time:${row.time_s ?? ""}:club:${row.club || ""}`

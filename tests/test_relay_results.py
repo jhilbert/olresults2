@@ -6,6 +6,7 @@ import re
 import sqlite3
 import sys
 import unittest
+from unittest.mock import MagicMock, patch
 from pathlib import Path
 
 
@@ -44,6 +45,36 @@ BUILD_SPEC.loader.exec_module(build_db)
 
 
 class RelayStructureTests(unittest.TestCase):
+    def test_relay_title_between_team_header_and_first_leg_keeps_team(self):
+        source = """<table><tr><td>Allgemeine Klasse (2)</td></tr></table>
+        <table><tr><th>Pl</th><th>Stnr</th><th>Staffel</th><th>Zeit</th></tr>
+        <tr><td>1</td><td>2</td><td>Naturfreunde Wien 1</td><td>52:32</td></tr></table>
+        <table><tr><td colspan="3">1. und Staatsmeisterinnen/Staatsmeister 2019</td></tr>
+        <tr><td></td><td>Anika Gassner</td><td>96</td><td>13:06</td></tr>
+        <tr><td></td><td>Nicolas Kastner</td><td>98</td><td>12:41</td></tr>
+        <tr><td></td><td>Janis Bonek</td><td>97</td><td>13:01</td></tr>
+        <tr><td></td><td>Jasmina Gassner</td><td>99</td><td>13:44</td></tr></table>"""
+        rows = html_parser.parse_relay_document(source)[0]["results"]
+        self.assertEqual([r["name"] for r in rows],
+                         ["Anika Gassner", "Nicolas Kastner", "Janis Bonek", "Jasmina Gassner"])
+        self.assertTrue(all(r["teamName"] == "Naturfreunde Wien 1" and r["rank"] == 1
+                            and r["championship"] == "ÖSTM" for r in rows))
+
+    def test_wien_mixed_relay_detached_champion_rank_applies_to_team(self):
+        page = MagicMock()
+        page.extract_text.return_value = "\n".join([
+            "Senioren 35-", "1. und Wiener Meister 2019", "Naturfreunde Wien 1 46:31",
+            "1. Thomas Radon 14:07 14:07", "2. Barbara Kastner 15:27 29:34",
+            "3. Günther Kroupa 16:57 46:31", "2. WAT 2 53:42",
+            "1. Stephan Puchegger 15:47 15:47", "2. Sonja Ecke-Wihan 22:09 37:56",
+            "3. Alexander Srb 15:46 53:42"])
+        document = MagicMock()
+        document.__enter__.return_value.pages = [page]
+        with patch("pdfplumber.open", return_value=document):
+            categories = pdf_parser.parse_wien_mixed_sprint_relay_pdf("unused.pdf")
+        rows = categories[0]["results"]
+        self.assertEqual([r["rank"] for r in rows], [1, 1, 1, 2, 2, 2])
+        self.assertEqual(categories[0]["sourceUnitCount"], 2)
     def setUp(self):
         """Skip cache-backed integration cases in a clean Git checkout.
 
@@ -2199,6 +2230,47 @@ class RelayStructureTests(unittest.TestCase):
             self.assertEqual(
                 {r["outOfCompetition"] for r in by_number[team_number]}, {True})
             self.assertEqual({r["status"] for r in by_number[team_number]}, {"ok"})
+
+    def test_inline_relay_champion_is_separated_from_the_team_name(self):
+        text = """<table><tr><td>Herren 19- Elite (2)</td></tr>
+        <tr><td>Pl</td><td>Stnr</td><td>Staffel</td><td>Zeit</td></tr>
+        <tr><td>2</td><td></td><td>und österreichischer Meister 2015 ... Naturfreunde Wien 1</td><td>1:40:00</td></tr>
+        <tr><td></td><td>Person Eins</td><td></td><td>30:00</td></tr>
+        <tr><td></td><td>Person Zwei</td><td></td><td>35:00</td></tr>
+        </table>"""
+        result = html_parser.parse_relay_document(text)[0]["results"]
+        self.assertEqual(len(result), 2)
+        for row in result:
+            self.assertEqual((row["rank"], row["teamName"], row["championship"]),
+                             (2, "Naturfreunde Wien 1", "ÖM"))
+
+    def test_relay_leg_placement_is_not_mistaken_for_birth_year(self):
+        text = """<table><tr><td>Herren -12 (1)</td></tr>
+        <tr><td>Pl</td><td>Stnr</td><td>Staffel</td><td>Zeit</td></tr>
+        <tr><td>1</td><td>12</td><td>WAT-OL 1</td><td>50:00</td></tr>
+        <tr><td></td><td>Name</td><td>EPl</td><td>Zeit</td></tr>
+        <tr><td></td><td>Person Eins</td><td>05</td><td>30:00</td></tr></table>"""
+        result = html_parser.parse_relay_document(text)[0]["results"][0]
+        self.assertNotIn("yearOfBirth", result)
+
+    def test_mannschaft_html_is_a_team_with_one_shared_time_and_no_legs(self):
+        text = """<table><tr><td>H -14</td><td></td><td></td></tr></table>
+        <table><tr><th>Pl</th><th>Verein</th><th>Team</th><th>Läufer 1</th>
+          <th>Läufer 2</th><th>Läufer 3</th><th>Zeit</th></tr></table>
+        <table><tr><td>1. und Österr. Meister 2016</td></tr>
+        <tr><td></td><td>Naturfreunde Wien</td><td>1</td><td>Deubel Jonas</td>
+          <td>Pietsch Max</td><td>Calvet Oliver</td><td>50:06</td></tr>
+        <tr><td>AK</td><td>WAT-OL</td><td>2</td><td>Person Eins</td>
+          <td>Person Zwei</td><td>Person Drei</td><td>Fehlst</td></tr></table>"""
+        category = html_parser.parse_team_document(text)[0]
+        self.assertEqual(category["sourceUnitCount"], 2)
+        self.assertEqual(len(category["results"]), 6)
+        for row in category["results"][:3]:
+            self.assertEqual((row["resultKind"], row["rank"], row["championship"], row["timeS"]),
+                             ("team", 1, "ÖM", 3006))
+            self.assertNotIn("leg", row)
+        for row in category["results"][3:]:
+            self.assertEqual((row["status"], row["outOfCompetition"], row["teamNumber"]), ("mp", True, "2"))
 
     def test_relay_team_label_keeps_source_club_and_safe_official_mapping(self):
         source_club = build_db.source_club_for_team(

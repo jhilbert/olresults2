@@ -21,7 +21,14 @@ ROOT = SITE.parent
 DB = SITE / "data" / "results.db"
 DECISIONS = ROOT / "data" / "review" / "verification.json"
 CHAMPIONSHIP_CATALOG = ROOT / "data" / "review" / "championship_catalog.json"
-os.chdir(SITE)
+
+
+def review_source_path(relative_path):
+    """Permit only local raw or reviewed archive snapshots, including symlink checks."""
+    path = (ROOT / relative_path).resolve()
+    roots = ((ROOT / "data" / "raw" / "anne").resolve(),
+             (ROOT / "data" / "review" / "archived_sources").resolve())
+    return path if any(root in path.parents for root in roots) and path.is_file() else None
 
 
 class NoCacheHandler(SimpleHTTPRequestHandler):
@@ -51,9 +58,8 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
                        WHERE rl.id = ?""", (list_id,)).fetchone()
             if not row or not row[0]:
                 return self.send_error(404, "Kein lokaler Quell-Snapshot")
-            path = (ROOT / row[0]).resolve()
-            raw_root = (ROOT / "data" / "raw" / "anne").resolve()
-            if raw_root not in path.parents or not path.is_file():
+            path = review_source_path(row[0])
+            if path is None:
                 return self.send_error(404, "Quell-Snapshot nicht gefunden")
             content = path.read_bytes()
             self.send_response(200)
@@ -126,6 +132,7 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
+    os.chdir(SITE)
     requested_port = int(sys.argv[1]) if len(sys.argv) > 1 else 8643
     ports = [requested_port] if len(sys.argv) > 1 else range(requested_port, requested_port + 10)
     server = None

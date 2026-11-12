@@ -87,7 +87,14 @@
       return JSON.stringify([...prefix, "individual", row.result_id ?? row.person_id]);
     }
     if (row.result_kind === "pair" && String(row.note || "").startsWith("Partner: ") && row.person_name) {
-      const members = [row.person_name, ...row.note.slice(9).split(", ")]
+      // Partner notes preserve the source's spelling and name order. Use the
+      // source name too, so "Bonek Erik / Jandl Florian" yields the same
+      // pair key on both rows, even when the person index says "Erik Bonek".
+      // Some older rows contain both names in observed_name; in that case use
+      // the individually mapped name instead of the combined source label.
+      const observed = String(row.observed_name || "").trim();
+      const ownName = observed && observed.split(/\s+/).length <= 3 ? observed : row.person_name;
+      const members = [ownName, ...row.note.slice(9).split(", ")]
         .map((name) => name.trim().toLocaleLowerCase("de-AT")).sort();
       return JSON.stringify([...prefix, row.club_name, "pair", members]);
     }
@@ -110,6 +117,35 @@
       counts[field]++;
     }
     return counts;
+  };
+
+  // The graph is based on the same club-level unit count as the medal view.
+  // A year without any recorded podium is unavailable, not a proven zero.
+  const annualClubGoldSeries = (nationalRows, viennaRows, { startYear = null, history = null } = {}) => {
+    const national = nationalRows.filter((r) => ["ÖM", "ÖSTM"].includes(r.championship));
+    const validYear = (r) => seasonYear(r.date, r.sport_type);
+    const nYears = national.map(validYear).filter(Boolean);
+    const vYears = viennaRows.map(validYear).filter(Boolean);
+    const historicalYears = Object.entries(history?.years || {}).filter(([year, values]) =>
+      /^\d{4}$/.test(year) && Number.isInteger(values?.national) && values.national >= 0
+      && Number.isInteger(values?.vienna) && values.vienna >= 0).map(([year]) => Number(year));
+    const years = [...nYears, ...vYears].map(Number).filter(Number.isInteger).concat(historicalYears);
+    if (!years.length) return [];
+    const data = [];
+    const first = Number.isInteger(startYear) ? Math.min(startYear, ...years) : Math.min(...years);
+    for (let year = first; year <= Math.max(...years); year++) {
+      const inYear = (r) => validYear(r) === String(year);
+      const nationalYear = national.filter(inYear), viennaYear = viennaRows.filter(inYear);
+      const original = history?.years?.[String(year)];
+      if (historicalYears.includes(year)) {
+        data.push({year: String(year), national: original.national, vienna: original.vienna, source: "club"});
+        continue;
+      }
+      data.push({ year: String(year),
+        national: nationalYear.length ? clubMedalCounts(nationalYear).gold : null,
+        vienna: viennaYear.length ? clubMedalCounts(viennaYear).gold : null });
+    }
+    return data;
   };
 
   // One championship_entry represents one competing person, pair or team.
@@ -175,6 +211,7 @@
     youthTitleGrant,
     clubMedalUnitKey,
     clubMedalCounts,
+    annualClubGoldSeries,
     regionalStarterCountsSql,
   };
 }));

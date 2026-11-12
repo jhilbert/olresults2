@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "clubs": {
+    "Naturfreunde Wien": {
+      "source_label": "Vereinsinterne Erfolgsstatistik 2000–2026, Stand 09.11.2026",
+      "source_file": "Erfolgsstatistik 2000 - 2026  FG 20261109.xlsx",
+      "source_sha256": "c5ce5957377985bea4be03f9ad19d8ff5b3cc06ace67774dae97b347c61d8210",
+      "source_range": "Tabelle1!Q5:S17",
+      "period": "Kalenderjahr",
+      "scope": "Alle Disziplinen; ÖM einschließlich ÖSTM sowie Wiener MS. Jahresaggregate, keine Einzelresultate.",
+      "years": {
+        "2000": {"national": 7, "vienna": 11},
+        "2001": {"national": 4, "vienna": 13},
+        "2002": {"national": 8, "vienna": 12},
+        "2003": {"national": 9, "vienna": 12},
+        "2004": {"national": 15, "vienna": 15},
+        "2005": {"national": 13, "vienna": 21},
+        "2006": {"national": 15, "vienna": 11},
+        "2007": {"national": 17, "vienna": 16},
+        "2008": {"national": 10, "vienna": 17},
+        "2009": {"national": 16, "vienna": 20},
+        "2010": {"national": 23, "vienna": 23},
+        "2011": {"national": 35, "vienna": 22},
+        "2012": {"national": 34, "vienna": 25}
+      }
+    }
+  }
+}

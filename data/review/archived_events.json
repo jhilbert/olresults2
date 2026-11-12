@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "description": "Quellenbelegte Veranstaltungen, die im aktuellen ANNE-Kalender fehlen; die ANNE-IDs bleiben erhalten.",
+  "events": [
+    {
+      "id": 1423,
+      "shortTitle": "ÖM Mixed Sprint Staffel",
+      "dateFrom": "2015-05-01",
+      "location": "Hallein",
+      "competitionType": "relay",
+      "sportType": "footOrienteering",
+      "eventType": "competition",
+      "url": "https://stolv.at/news/fuss-ol/1018-oem-mixed-staffel-und-oem-staffel-in-salzburg-152015"
+    },
+    {
+      "id": 1424,
+      "shortTitle": "ÖSTM und ÖM Staffel",
+      "dateFrom": "2015-05-02",
+      "location": "Adnet",
+      "competitionType": "relay",
+      "sportType": "footOrienteering",
+      "eventType": "competition",
+      "url": "https://stolv.at/news/fuss-ol/1018-oem-mixed-staffel-und-oem-staffel-in-salzburg-152015"
+    },
+    {
+      "id": 1425,
+      "shortTitle": "ÖM Nachwuchs und Senioren Mitteldistanz, 1. AC",
+      "dateFrom": "2015-05-03",
+      "location": "Adnet",
+      "competitionType": "single",
+      "sportType": "footOrienteering",
+      "eventType": "competition",
+      "url": "https://web.archive.org/web/20151118095110/http://www.oefol.at/anne/?p=1&q=3&id=1425"
+    }
+  ]
+}

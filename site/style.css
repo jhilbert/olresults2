@@ -175,9 +175,33 @@ h2 { font-size: 17px; margin: 28px 0 10px; letter-spacing: -0.2px; }
 .stats { display: flex; gap: 12px; flex-wrap: wrap; margin: 18px 0; }
 .medal-table-scroll { overflow-x: auto; }
 .medal-breakdown-table { min-width: 750px; }
+.medal-breakdown-table .team-medal-col { background: #f0f1f1; }
+.medal-breakdown-table tbody tr:hover .team-medal-col { background: #e9eaea; }
 .club-medal-summaries { display: flex; flex-wrap: wrap; gap: 8px 28px; }
 .club-medal-summaries h3 { margin: 12px 0 0; }
 .club-medal-summaries .stats { margin: 8px 0 12px; }
+.success-statistics { margin: 8px 0 24px; }
+.success-statistics h2 { font-size: 20px; margin-bottom: 3px; }
+.success-statistics > .sub { margin-bottom: 12px; }
+.success-legend { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 10px 0; color: var(--ink-soft); font-size: 13px; font-weight: 600; }
+.success-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.success-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+.success-national { fill: #d65425; background: #d65425; }
+.success-vienna { fill: #408c9c; background: #408c9c; }
+.success-chart-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); }
+.success-scroll-hint { display: none; color: var(--ink-soft); font-size: 12px; margin-top: 6px; }
+@media (max-width: 900px) { .success-scroll-hint { display: block; } }
+.success-chart { display: block; width: 100%; height: auto; }
+.success-grid { stroke: #ebe9e7; stroke-width: 1; }
+.success-axis { fill: #77716d; font-size: 11px; }
+.success-missing { fill: #aaa4a0; font-size: 12px; }
+.success-bar:hover, .success-chart a:focus .success-bar { opacity: .72; }
+.success-chart a:focus { outline: none; }
+.success-chart a:focus .success-bar { stroke: #1c1917; stroke-width: 2; }
+.success-statistics > .sub.dim { margin-top: 12px; max-width: 780px; font-size: 12.5px; }
+.success-data { margin-top: 12px; }
+.success-data summary { color: var(--accent-dark); cursor: pointer; font-weight: 600; }
+.success-data table { margin-top: 10px; }
 .stat {
   background: var(--card); border: 1px solid var(--line);
   border-radius: var(--radius); padding: 14px 20px; min-width: 130px;
