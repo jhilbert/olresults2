@@ -367,6 +367,28 @@ class AnneIdentityTests(unittest.TestCase):
         self.assertEqual(cur.execute("SELECT person_id,status,team_status FROM result ORDER BY person_id").fetchall(),
                          [(1,"ok","ok"),(2,"mp","mp")])
 
+    def test_legacy_single_row_teams_do_not_share_status_or_start_count(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id,title) VALUES (1,'ÖM Mannschaft')")
+        cur.execute("INSERT INTO stage (id,event_id,number,date) VALUES (1,1,1,'2015-09-27')")
+        cur.execute("CREATE TEMP TABLE ineligible_starter (event_id INTEGER, person_id INTEGER)")
+        for pid, rank, status in ((1, 1, "ok"), (2, 2, "ok"), (3, None, "dns")):
+            cur.execute("INSERT INTO person (id,name,name_key) VALUES (?,?,?)", (pid,str(pid),str(pid)))
+            build_db.insert_result(cur, stage_id=1, result_list_id="list:test", category="D-14", person_id=pid,
+                result_kind="team", team_name="Naturfreunde Wien", club="Naturfreunde Wien", note="Mannschaft",
+                rank=rank, status=status, team_status=status, time_s=pid*100 if rank else None,
+                championship="ÖM", championship_eligibility_state="eligible", source="test")
+        build_db.normalize_team_results(cur)
+        self.assertEqual(cur.execute("SELECT person_id,status FROM result ORDER BY person_id").fetchall(),
+                         [(1,"ok"),(2,"ok"),(3,"dns")])
+        self.assertEqual(cur.execute("SELECT starters,classified FROM category_stats").fetchone(), (3,2))
+        build_db.apply_national_minimum_starters(cur)
+        self.assertEqual(cur.execute("SELECT eligible_starters,state FROM national_minimum_starters").fetchone(), (2,"insufficient"))
+        self.assertNotEqual(build_db.competitor_unit_key((1,"team",1,"ok",100,"Naturfreunde Wien","Mannschaft",None,"Naturfreunde Wien")),
+                            build_db.competitor_unit_key((2,"team",2,"ok",200,"Naturfreunde Wien","Mannschaft",None,"Naturfreunde Wien")))
+
     def test_relay_local_team_numbers_count_distinct_clubs_nationally(self):
         con = sqlite3.connect(":memory:")
         con.executescript(build_db.SCHEMA)
@@ -414,10 +436,98 @@ class AnneIdentityTests(unittest.TestCase):
         persons.from_anne(6511, "Max Pietsch", 2003)
         self.assertNotIn(pid, build_db.duplicate_identity_merge_edges(persons, [6511]))
 
+    def test_2016_national_night_winner_is_one_pair_without_guessed_anne_id(self):
+        original = {"name":"Deubel Jonas Pietsch M", "club":"Naturfreunde Wien", "rank":1,
+                    "timeS":1427, "status":"ok", "championship":"ÖM"}
+        result = build_db.expand_1710_published_winning_pair(1710, "Herren -14", [original])
+        self.assertEqual([r["name"] for r in result], ["Jonas Deubel", "Max Pietsch"])
+        self.assertTrue(all(r["resultKind"] == "pair" for r in result))
+        self.assertTrue(result[1]["sourceOnlyCandidate"])
+        self.assertTrue(all(r["originalObservedName"] == original["name"] for r in result))
+        self.assertEqual(build_db.expand_1710_published_winning_pair(1711, "Herren -14", [original]), [original])
+
     def test_anne_stage_timestamps_keep_the_stated_calendar_date(self):
         self.assertEqual(build_db.calendar_date("2026-09-27T00:00:00.000000Z"), "2026-09-27")
         self.assertEqual(build_db.calendar_date("2026-09-26"), "2026-09-26")
         self.assertIsNone(build_db.calendar_date(None))
+
+    def test_source_only_team_title_never_invents_members_or_starter_counts(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        item = next(x for x in json.loads(build_db.OFFICIAL_HISTORICAL_TITLES_PATH.read_text())["titles"]
+                    if x["event_id"] == 1555 and x["category"] == "Damen -14")
+        cur.execute("INSERT INTO event (id,title,date_from) VALUES (1555,'ÖM Mannschaft','2015-09-27')")
+        cur.execute("INSERT INTO stage (id,event_id,number,date) VALUES (1,1555,1,'2015-09-27')")
+        cur.execute("INSERT INTO national_minimum_starters VALUES (1,?,0,4,'unresolved')", (item["category"],))
+        cur.execute("INSERT INTO person (id,name,name_key) VALUES (-1,?,?)", (item["team_source_observation"],"test"))
+        cur.execute("INSERT INTO source_document (id,event_id,source_type,source_url,normalized_sha256) VALUES ('doc',1555,'html',?,?)",
+                    (item["result_url"], item["normalized_sha256"]))
+        build_db.insert_result(cur, stage_id=1, result_list_id=item["result_list_id"], source_document_id="doc",
+            category=item["category"], person_id=-1, observed_name=item["team_source_observation"], result_kind="team",
+            team_name=item["team_name"], official_club=item["club"], rank=1, time_s=item["time_s"], status="ok",
+            source="test", identity_state="candidate", championship=None, championship_eligibility_state="provisional")
+        build_db.apply_official_national_titles(cur, [{**item,"normalized_sha256":"wrong"},
+                                                    {**item,"team_source_observation":"wrong"}])
+        self.assertEqual(cur.execute("SELECT COUNT(*) FROM official_national_title").fetchone()[0], 0)
+        cur.execute("UPDATE national_minimum_starters SET state='insufficient'")
+        build_db.apply_official_national_titles(cur, [item])
+        self.assertEqual(cur.execute("SELECT COUNT(*) FROM official_national_title").fetchone()[0], 0)
+        cur.execute("UPDATE national_minimum_starters SET state='unresolved'")
+        build_db.apply_official_national_titles(cur, [item])
+        self.assertEqual(cur.execute("SELECT person_id,identity_state,identity_basis,national_rank,championship FROM result").fetchone(),
+                         (-1,"candidate","source-team-only",1,"ÖM"))
+        self.assertEqual(cur.execute("SELECT eligible_starters,unresolved_starters,state FROM national_minimum_starters").fetchone(),
+                         (0,4,"unresolved"))
+
+    def test_official_mannschaft_uses_shared_team_time_for_all_members(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        item = next(x for x in json.loads(build_db.OFFICIAL_HISTORICAL_TITLES_PATH.read_text())["titles"]
+                    if x["event_id"] == 851 and x["category"] == "Herren -14")
+        cur.execute("INSERT INTO event (id,title,date_from) VALUES (851,'ÖM Mannschaft','2013-06-23')")
+        cur.execute("INSERT INTO stage (id,event_id,number,date) VALUES (1,851,1,'2013-06-23')")
+        cur.execute("INSERT INTO national_minimum_starters VALUES (1,?,2,6,'unresolved')", (item["category"],))
+        cur.execute("INSERT INTO source_document (id,event_id,source_type,source_url,normalized_sha256) VALUES ('doc',851,'pdf',?,?)",
+                    (item["result_url"], item["normalized_sha256"]))
+        for pid in item["person_ids"]:
+            cur.execute("INSERT INTO person (id,name,name_key) VALUES (?,?,?)", (pid,str(pid),str(pid)))
+            build_db.insert_result(cur, stage_id=1, result_list_id=item["result_list_id"], source_document_id="doc",
+                category=item["category"], person_id=pid, result_kind="team", team_name=item["team_name"],
+                official_club=item["club"], rank=1, team_time_s=item["team_time_s"], status="ok", source="test",
+                identity_state="resolved", championship="ÖM", championship_eligibility_state="eligible")
+        build_db.apply_official_national_titles(cur, [{**item, "team_time_s": item["team_time_s"] + 1}])
+        self.assertEqual(cur.execute("SELECT COUNT(*) FROM official_national_title").fetchone()[0], 0)
+        build_db.apply_official_national_titles(cur, [item])
+        self.assertEqual(cur.execute("SELECT COUNT(*) FROM result WHERE national_rank=1").fetchone()[0], 3)
+
+    def test_official_pair_can_use_pinned_source_only_candidate_without_guessing_birth_year(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        item = next(x for x in json.loads(build_db.OFFICIAL_HISTORICAL_TITLES_PATH.read_text())["titles"]
+                    if x["event_id"] == 1710)
+        cur.execute("INSERT INTO event (id,title,date_from) VALUES (1710,'ÖM Nacht','2016-10-22')")
+        cur.execute("INSERT INTO stage (id,event_id,number,date) VALUES (1,1710,1,'2016-10-22')")
+        cur.execute("INSERT INTO national_minimum_starters VALUES (1,?,2,5,'unresolved')", (item["category"],))
+        cur.execute("INSERT INTO source_document (id,event_id,source_type,source_url,normalized_sha256) VALUES ('doc',1710,'pdf',?,?)",
+                    (item["result_url"], item["normalized_sha256"]))
+        for pid, name, state, basis in ((3759,"Jonas Deubel","resolved","legacy-name"),
+                                        (-3017603519659092116,"Max Pietsch","candidate","source-name-ambiguous")):
+            cur.execute("INSERT INTO person (id,name,name_key) VALUES (?,?,?)", (pid,name,build_db.name_key(name)))
+            build_db.insert_result(cur, stage_id=1, result_list_id=item["result_list_id"], source_document_id="doc",
+                category=item["category"], person_id=pid, observed_name="Deubel Jonas Pietsch M", result_kind="pair",
+                team_name=item["team_name"], official_club=item["club"], rank=1, time_s=item["time_s"],
+                status="ok", source="test", identity_state=state, identity_basis=basis,
+                championship="ÖM", championship_eligibility_state="eligible")
+        cur.execute("UPDATE result SET observed_name='different' WHERE person_id<0")
+        build_db.apply_official_national_titles(cur, [item])
+        self.assertEqual(cur.execute("SELECT COUNT(*) FROM official_national_title").fetchone()[0], 0)
+        cur.execute("UPDATE result SET observed_name='Deubel Jonas Pietsch M' WHERE person_id<0")
+        build_db.apply_official_national_titles(cur, [item])
+        self.assertEqual(cur.execute("SELECT COUNT(*) FROM result WHERE national_rank=1").fetchone()[0], 2)
+        self.assertEqual(cur.execute("SELECT identity_state FROM result WHERE person_id<0").fetchone()[0], "candidate")
 
     def test_official_champion_resolves_only_exact_winner_without_inventing_starters(self):
         con = sqlite3.connect(":memory:")
@@ -1301,6 +1411,15 @@ class AnneIdentityTests(unittest.TestCase):
                          "Naturfreunde")
         self.assertEqual(build_db.source_event_team_club(5156, "Naturfreunde", "Naturfreunde 1", "individual"),
                          "Naturfreunde")
+
+    def test_mixed_staffel_2015_clubs_require_explicit_unique_source_label(self):
+        for name, expected in (("Naturfreunde Wien 1", "Naturfreunde Wien"),
+                               ("WAT WAT 2", "WAT-OL"),
+                               ("GO Harzberg 1", "GO_Harzberg/Bad_Voeslau")):
+            self.assertEqual(build_db.source_event_team_club(1386, "", name, "relay"), expected)
+        for name in ("Mixed 1", "Naturfreunde Wien / WAT 1", "Naturfreunde Wien Extras 1"):
+            self.assertIsNone(build_db.source_event_team_club(1386, "", name, "relay"))
+        self.assertIsNone(build_db.source_event_team_club(1387, "", "Naturfreunde Wien 1", "relay"))
 
     def test_parenthesized_eastern_night_title_and_source_nat_codes(self):
         mappings = build_db.regional_mappings_for_list(

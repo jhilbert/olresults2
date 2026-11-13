@@ -49,6 +49,10 @@ test("club medal counts one team once while preserving ties and different races"
     {...base, result_id:'6',person_id:'15',result_kind:'individual',team_number:null,national_rank:1},
   ];
   assert.deepEqual(clubMedalCounts(rows), {gold:1, silver:3, bronze:0});
+  const historic = {...base, result_kind:'team', team_number:null, team_name:'Naturfreunde Wien',
+    note:'Mannschaft', national_rank:1, rank:1};
+  assert.deepEqual(clubMedalCounts([{...historic,result_id:'10'}, {...historic,result_id:'11'}]),
+    {gold:2, silver:0, bronze:0});
 });
 
 test("pair, regional entries and mixed-club teams keep correct independent units", () => {

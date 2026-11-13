@@ -211,6 +211,22 @@ class ChampionshipAuditTests(unittest.TestCase):
         rows = cur.execute("SELECT category,championship,championship_eligibility_state FROM result WHERE stage_id=120 ORDER BY person_id").fetchall()
         self.assertEqual(rows,[('D21-E','ÖM','provisional'),('H21-E','ÖM','provisional'),('D-K',None,'unknown')])
 
+    def test_2016_lang_is_first_stage_and_only_advertised_classes(self):
+        cur = self.con.cursor()
+        cur.execute("INSERT INTO event (id,title,date_from) VALUES (1637,'Waldviertel Festival','2016-05-14')")
+        cur.execute("INSERT INTO stage VALUES (120,1637,1,NULL,'2016-05-14',NULL)")
+        cur.execute("INSERT INTO stage VALUES (121,1637,2,NULL,'2016-05-15',NULL)")
+        for pid, stage, category in ((1,120,'Damen -18 Elite'),(2,120,'Herren -16 Elite'),
+                                     (3,120,'Damen 21- Elite'),(4,121,'Damen -18 Elite')):
+            db.insert_result(cur, stage_id=stage, person_id=pid, category=category,
+                             status='ok', rank=1, source='test')
+        events = json.loads((ROOT / 'site/data/national-category-evidence.json').read_text())['events']
+        scope = {'events':{'1637':events['1637']}}
+        db.apply_confirmed_national_event_scopes(cur, scope)
+        self.assertEqual(db.apply_confirmed_national_category_additions(cur, scope), 2)
+        self.assertEqual(cur.execute("SELECT person_id,championship,championship_eligibility_state FROM result WHERE stage_id IN (120,121) ORDER BY person_id").fetchall(),
+                         [(1,'ÖM','provisional'),(2,'ÖM','provisional'),(3,None,'unknown'),(4,None,'unknown')])
+
     def test_2026_night_elite_om_is_provisional_not_ostm(self):
         cur = self.con.cursor()
         cur.execute("INSERT INTO event (id,title,date_from,sport_type) VALUES (5397,'ÖM Nacht','2026-04-10','footOrienteering')")

@@ -200,6 +200,7 @@ def parse_legacy_team_text(text):
     kind = "team" if team_mode else "relay"
     label = "Mannschaft" if team_mode else "Staffel"
     categories, current, pending = [], None, None
+    pending_rank = None
 
     def flush():
         nonlocal pending
@@ -268,6 +269,7 @@ def parse_legacy_team_text(text):
         course_category = COURSE_CAT_LINE_RE.match(stripped)
         if category or course_category:
             flush()
+            pending_rank = None
             match = category or course_category
             name = match.group("name").strip()
             current = {
@@ -282,6 +284,12 @@ def parse_legacy_team_text(text):
             continue
         if current is None or re.match(r"^(?:Pl\b|Name\b)", stripped):
             continue
+        # OE/OS2003 can print the champion annotation on its own line;
+        # the next team header then begins with only its bib number.
+        announced_rank, _ = parse_champion_annotation(stripped)
+        if announced_rank is not None:
+            pending_rank = announced_rank
+            continue
         body, value = split_trailing_result_value(stripped)
         team = re.match(r"^(?:(?P<place>AK|\d+)\s+)?(?P<number>\d+)\s+(?P<name>.+)$",
                         body, re.I)
@@ -290,7 +298,7 @@ def parse_legacy_team_text(text):
             place = team.group("place") or ""
             seconds = parse_time_loose(value)
             pending = {
-                "rank": int(place) if place.isdigit() else None,
+                "rank": int(place) if place.isdigit() else pending_rank,
                 "outOfCompetition": is_ooc_status(place),
                 "number": team.group("number"), "name": team.group("name").strip(),
                 "timeText": value, "timeS": seconds,
@@ -298,6 +306,7 @@ def parse_legacy_team_text(text):
                           (parse_status(value) or "unknown"),
                 "members": [],
             }
+            pending_rank = None
             continue
         if pending is None:
             continue
@@ -386,13 +395,13 @@ def parse_headerless_result_text(text):
     return [category for category in categories if category["results"]]
 
 
-def parse_legacy_pre_text(text):
+def parse_legacy_pre_text(text, pair_text1=False):
     """Try the ordinary, team-block, then headerless historic text shapes."""
-    return (parse_text(text) or parse_legacy_team_text(text)
+    return (parse_text(text, pair_text1=pair_text1) or parse_legacy_team_text(text)
             or parse_headerless_result_text(text))
 
 
-def parse_text(text):
+def parse_text(text, pair_text1=False):
     categories = []
     current = None
     labels = starts = None
@@ -619,6 +628,16 @@ def parse_text(text):
             y = int(yob)
             result["yearOfBirth"] = y + (2000 if y <= 26 else 1900) if y < 100 else y
         repair_official_club_status_overflow(result)
+        # At the 2013 ÖM Nacht the optional Text1 column is explicitly the
+        # second runner in the -12/-14 pair classes. It is not generally a
+        # person column in OE exports, so this is enabled only for that source.
+        partner = (rec.get("Text1") or "").strip()
+        if (pair_text1 and partner and re.search(r"(?:-\s*1[24]|bis\s*1[24])\b", current["name"], re.I)):
+            expanded = expand_pair_result({**result, "name": name + " + " + partner}, current["name"])
+            if len(expanded) > 1:
+                current["results"].extend(expanded)
+                continue
+            result["note"] = "Partner laut Quelle: " + partner
         current["results"].extend(expand_pair_result(result, current.get("name")))
 
     parsed = [c for c in categories if c["results"]]
@@ -668,7 +687,8 @@ def collect_jobs():
                 continue
             if mime == "text/plain":
                 jobs.append((int(eid), n, f, "txt"))
-            elif mime == "text/link" and domain_of(url) in LINK_DOMAIN_ALLOWLIST:
+            elif mime == "text/link" and (domain_of(url) in LINK_DOMAIN_ALLOWLIST or
+                    (int(eid) == 883 and url == "http://www.olt-transdanubien.at/data/2013/wrnoe_staffelms_erg.htm")):
                 jobs.append((int(eid), n, f, "html"))
     return jobs
 
@@ -709,7 +729,8 @@ def main():
                 empty += 1
                 out_path.unlink(missing_ok=True)
                 continue
-            cats = parse_text(text)
+            cats = (parse_legacy_pre_text(text) if eid == 883
+                    else parse_text(text, pair_text1=(eid == 842)))
             if eid == 1110 and n == 1:
                 cats = repair_krems_2014_school_pairs(cats)
             if not cats:

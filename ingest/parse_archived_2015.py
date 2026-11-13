@@ -10,12 +10,16 @@ import argparse
 import json
 from pathlib import Path
 
-from parse_sportsoftware_html import decode, parse_document, parse_relay_document
+from parse_sportsoftware_html import decode, parse_document, parse_relay_document, parse_os2003_relay_pre_html
 
 ROOT = Path(__file__).resolve().parent.parent
 ARCHIVE = ROOT / "data/review/archived_sources/2015"
 OUT = ROOT / "data/normalized"
 SOURCES = (
+    (1368, 0, "1368-nachwuchs-senioren.pdf", "2015-06-13", "NWundSenMS2015_Ergebnis.pdf", "race-pdf",
+     "https://web.archive.org/web/20160207111656id_/http://www.nfwien-ol.at/images/stories/naturfreunde/Berichte/20150613NWundSenMS/NWundSenMS2015_Ergebnis.pdf"),
+    (1386, 0, "1386-mixed.html", "2015-04-12", "event_1386_noe_mixed_sprint_staffel.htm", "relay",
+     "https://anne-cdn.oefol.at/public/legacy/event_1386_noe_mixed_sprint_staffel.htm"),
     (1423, 0, "1423-mixed.html", "2015-05-01", "resultat-teamsprint.html", "relay",
      "https://web.archive.org/web/20160703225932id_/http://www.ol-sbg.at/OEMS_2015/resultat_teamsprint.html"),
     (1424, 0, "1424-relay.html", "2015-05-02", "resultat-staffel.html", "relay",
@@ -29,8 +33,17 @@ SOURCES = (
 
 def document(event_id, filename, date, label, kind, url):
     snapshot = ARCHIVE / filename
+    if kind == "race-pdf":
+        from parse_sportsoftware_pdf import parse_pdf
+        categories, _ = parse_pdf(snapshot)
+        if not categories:
+            raise ValueError(f"Empty archive source: {snapshot}")
+        return {"eventId": event_id, "source": "sportsoftware-pdf", "sourceUrl": url,
+                "snapshotPath": snapshot.relative_to(ROOT).as_posix(), "fileName": label,
+                "listType": "race", "docDate": date, "categories": categories}
     text = decode(snapshot.read_bytes())
-    categories = parse_relay_document(text) if kind == "relay" else parse_document(text)
+    categories = (parse_os2003_relay_pre_html(text) if event_id == 1386
+                  else parse_relay_document(text) if kind == "relay" else parse_document(text))
     if not categories:
         raise ValueError(f"Empty archive source: {snapshot}")
     if event_id == 1424:
@@ -49,8 +62,11 @@ def document(event_id, filename, date, label, kind, url):
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--check", action="store_true", help="verify committed normalized files only")
+    ap.add_argument("--event-id", type=int, help="only process one event")
     args = ap.parse_args()
     for event_id, index, filename, date, label, kind, url in SOURCES:
+        if args.event_id is not None and event_id != args.event_id:
+            continue
         path = OUT / f"{event_id}-{index}.json"
         content = json.dumps(document(event_id, filename, date, label, kind, url), ensure_ascii=False)
         if args.check:

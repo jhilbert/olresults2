@@ -5110,7 +5110,7 @@ def parse_oribos_relay_pdf(path):
     return [category for category in categories if category["results"]]
 
 
-def parse_relay_member_line(line, numbered_leg=False):
+def parse_relay_member_line(line, numbered_leg=False, one_digit_year=False):
     """Read the member's name and first (own-leg) result value.
 
     Detailed relay exports append cumulative time, combination, control and
@@ -5152,7 +5152,11 @@ def parse_relay_member_line(line, numbered_leg=False):
             # result cell blank. Preserve the named leg instead of silently
             # reducing the roster.
                 name_tokens, time_text = tokens, ""
-    if name_tokens and re.fullmatch(r"\d{2}|\d{4}", name_tokens[-1]):
+    # Some older Mannschaft result printers omit the leading zero from Jg:
+    # a printed "0" / "1" denotes a year, not part of a person's name.
+    # Restrict this to callers that explicitly recognize the team format.
+    year_pattern = r"\d{1,2}|\d{4}" if one_digit_year else r"\d{2}|\d{4}"
+    if name_tokens and re.fullmatch(year_pattern, name_tokens[-1]):
         name_tokens.pop()
     name = " ".join(name_tokens).strip()
     name = re.sub(r"^([^,]+),\s+(.+)$", r"\1 \2", name)
@@ -5711,7 +5715,8 @@ def parse_relay_pdf(path, team_mode=False):
 
                     direct_member = None
                     if pending_team is not None and (not line[0].isdigit() or is_leg_member):
-                        direct_member = parse_relay_member_line(line, numbered_leg=is_leg_member)
+                        direct_member = parse_relay_member_line(
+                            line, numbered_leg=is_leg_member, one_digit_year=team_mode)
                     if direct_member is not None:
                         pending_team["members"].append(direct_member)
                         continue

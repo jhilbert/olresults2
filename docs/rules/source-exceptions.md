@@ -29,6 +29,116 @@ nächsten ANNE-Sync. Für die Mitteldistanz wird die ausgeschriebene
 Meisterschaftswertung als solche übernommen, die zusätzliche Austria-Cup-Liste
 ergänzt andere Klassen ohne doppelte Starts.
 
+## Quellenabgleich ÖM 2013
+
+- Die ANNE-Originale zur ÖM Nacht (`842`), zur ÖM Mannschaft (`851`) und
+  zur Wiener/NÖ/steirischen Staffelmeisterschaft (`883`)
+  sind unter `data/review/archived_sources/2013/` für reproduzierbare Tests
+  gesichert. Ihr Inhalt wird durch `ingest/parse_archived_2013.py` mit
+  SHA-256-Prüfsummen kontrolliert und normalisiert.
+- Im Mannschafts-PDF sind die Geburtsjahre 2000 und 2001 als `0` und `1`
+  gedruckt. Diese Werte dürfen nicht zur Löschung der betroffenen Läufer
+  führen. Die ANNE-Originalwertung nennt im H14-Siegerteam Erik Bonek,
+  Jannis Bonek und Clemens Wolfram; im D14-Siegerteam Jasmina Gassner,
+  Ylvi Kastner und Tina Tiefenböck. Die Auswertung zählt pro Team eine
+  Vereinsmedaille, führt die namentlich belegten Mitglieder aber einzeln.
+- Bei der Nacht-ÖM stehen die zweiten Teilnehmer der Paarbewerbe D/H -12
+  und -14 in der `Text1`-Spalte. Nur für diese konkret geprüfte Quelle wird
+  `Text1` als Partner interpretiert; unvollständige Partnernamen bleiben als
+  Quellenhinweis erhalten und werden nicht zu einer Person erfunden.
+- Die genau belegten ÖM-Siegermannschaften der Staffel (`922`) und der
+  Mannschaft (`851`), der Nacht-Paarsieg H14 (`842`) und der Langdistanzsieg
+  D70 (`850`) sind mit Ergebnisquelle, Ausschreibung und ÖFOL-Meistertafel
+  im historischen Titelregister verknüpft. Die Bestätigung betrifft nur den
+  genannten Sieger beziehungsweise das Team; ungeklärte Berechtigungen
+  anderer Starter werden dadurch nicht automatisch bestätigt.
+- Die Wiener Sprintmeisterschaft (`812`) zeigt in der ANNE-API ausdrücklich
+  separate `W`-Klassen. Die getrennten Ergebnisse gelten als Wiener Wertung;
+  die WOLV-Jahresliste vom 6. April ist ein unabhängiger Quercheck.
+- Bei der Nachwuchs-/Seniorenveranstaltung `864` sind D/H19 laut
+  Ausschreibung ASKÖ-Meisterschaft beziehungsweise Rahmenbewerb, keine
+  Wiener oder niederösterreichische Landesmeisterschaft. Die übrigen, in
+  der Ergebnisliste tatsächlich getrennt erschienenen Altersklassen bleiben
+  gemäß Ausschreibung zugeordnet.
+- Die Ausschreibung der Veranstaltung `877` vom 1. September nennt für Wien
+  ausschließlich D/H17-W und für NÖ D/H19-N als allgemeine Meisterschaft.
+  Die weiteren Altersklassen sind dort für Wien und NÖ Rahmenbewerbe. Ein
+  `W`-Eintrag in der Nat-Spalte allein macht daraus keine Meisterschaft.
+- Die vollständige Wiener/NÖ/steirische Staffel-Ergebnisliste (`883`) war
+  trotz bestehender ANNE-Verlinkung bislang nicht importiert. Sie enthält
+  getrennte Landesklassen. Ein vor der Teamzeile gedruckter Meisterhinweis
+  überträgt den Rang auf die folgende Mannschaft; Legzeiten und Namen werden
+  aus der ANNE-Ergebnisquelle übernommen. Die WOLV-Jahresliste
+  `wolv-annual.pdf` ist als unabhängiger Quercheck archiviert (SHA-256
+  `68ebed4324b4f2af4c821e73d68c856cbeaec09f714adf799de1d4e12792bd66`).
+
+## Wiederhergestellte Landeswertungen und Mannschaftstitel 2014/2015
+
+- Die WOLV-Jahreslisten für den Quercheck sind unter
+  `data/review/archived_sources/2014/wolv-annual-sheet.html` (SHA-256
+  `50faa84ddb27ed4cbbc8a829ab7a88069898d59f24770d58aa5f7396f4d919ef`;
+  Quelldokument `http://www.wolv.at/docs/wrmeister2014-Dateien/sheet001.htm`)
+  und `data/review/archived_sources/2015/wolv-annual.pdf` (SHA-256
+  `ff53bc418307d15393c86ea0cdd2033b4efe66dd57581119a1380b9dc9b1efd4`;
+  `http://www.wolv.at/docs/med15.pdf`) gesichert. Für Namen und Teamaufstellungen
+  bleiben die ANNE-Ergebnisse vorrangig.
+- Event `1368`, Wiener/NÖ Nachwuchs- und Seniorenmeisterschaft 2015: Die
+  ursprünglich auf ANNE verlinkte Datei ist beim Verein nicht mehr unter
+  ihrer alten Adresse erreichbar. Die im Internetarchiv gesicherte
+  Original-Ergebnisliste liegt als `1368-nachwuchs-senioren.pdf` unter
+  `data/review/archived_sources/2015/`; alle 33 Klassen mit 239 Ergebniszeilen
+  stimmen mit den jeweils gedruckten Klassenkopfzahlen überein. Wien und NÖ
+  werden nur den ausdrücklich bezeichneten Quellklassen zugeordnet.
+- Event `1386`, Wiener/NÖ Mixed-Sprintstaffel 2015: Die auf ANNE verlinkte
+  OS2003-Liste weist drei Wiener und drei niederösterreichische Klassen
+  getrennt aus. Die Originaldatei ist als `1386-mixed.html` archiviert;
+  `parse_archived_2015.py` normalisiert die 72 Teams und 216 Mitgliederzeilen
+  reproduzierbar. Legzeiten werden anhand der tatsächlichen Spaltenköpfe
+  gelesen; ein namentlich genannter Läufer ohne Legzeit bleibt erhalten. Da
+  keine Vereinsspalte vorhanden ist, werden ausschließlich eindeutige exakte
+  Vereinsnamen und bekannte Schreibweisen im Teamnamen zugeordnet; ein
+  mehrdeutiger Name wie „Mixed“ bleibt ohne angenommene Vereinszugehörigkeit.
+- Event `1555`, ÖM Mannschaft 2015: Ausschreibung, ANNE-Ergebnis und
+  ÖFOL-Meistertafel belegen sechs Naturfreunde-Wien-Siegerteams. Die
+  ANNE-Ergebnisse nennen jedoch nur gemeinsame Nachnamen pro Mannschaft.
+  Deshalb wird jeder exakt belegte Titel nur für den Verein gezählt; die
+  betroffenen Personen werden nicht geraten und erhalten keine individuellen
+  Medaillen. Die offizielle Titelbestätigung ist an Klasse, Quell-Hash,
+  Teamnamen, beobachtete Nachnamen, Rang und Zeit gebunden. In diesem alten
+  Format bezeichnet jede vollständige Nachnamenzeile ein eigenes Team: Zwei
+  Teams desselben Vereins dürfen weder bei der Starterzählung noch beim
+  Status zusammengefasst werden.
+- Event `1203`, Wiener Nachwuchs-/Seniorenmeisterschaft 2014: Die
+  ANNE-Ausschreibung nennt die Wiener Meisterschaftsklassen. Für die
+  gemeinsamen Quellklassen erfolgt die Trennung anhand der belegten
+  Vereinszugehörigkeit; die bereits separat in der Quelle ausgewiesenen
+  Wiener Klassen bleiben eigenständig. Weitere Klassenteilungen werden
+  nicht aus der WOLV-Jahresliste erfunden.
+- Events `1314`, `1448`, `1551` und `1423`, ÖM 2015: ANNE-Ergebnis und
+  die jeweilige Ausschreibung bestätigen die Titel von Nicolas Kastner
+  (MTBO Sprint H17), Josef Zapletal / Robert Ditz (Ski-O Staffel H50),
+  Jonas Deubel / Max Pietsch (Nacht H12) und dem Mixed-Sprintstaffelteam
+  Rita Tiefenböck / Jakob Wolfram / Joergen Deubel / Anna Pietsch. Der
+  Mixed-Sprint-Titel ist ausdrücklich in der Veranstalter-Ergebnisliste
+  ausgeschrieben; für die übrigen Titel dient die ÖFOL-Meistertafel als
+  zusätzlicher Quercheck. Max bleibt eine Quellenperson ohne abgeleitete
+  ÖFOL-ID; Starterzahlen und andere Berechtigungen werden nicht erfunden.
+- Event `1080`, ÖM Mittel 2014 D70: Ausschreibung, ANNE-Ergebnis und
+  ÖFOL-Meistertafel belegen Anneliese Bonek. Drei Läuferinnen sind
+  klassifiziert; bei offener Einzelberechtigung der übrigen wird nur der
+  konkret belegte Titel bestätigt.
+- Event `1710`, ÖM Nacht 2016 H14: Die ANNE-Ergebnisliste druckt
+  `Deubel Jonas Pietsch M` als einen Paarstart; die ÖFOL-Meistertafel nennt
+  Jonas Deubel und Max Pietsch. Der Start ist eine Vereinsmedaille, keine
+  zwei Einzelmedaillen. Max wird als quellgebundener Kandidat geführt;
+  eine ÖFOL-ID oder Gleichsetzung mit einer ähnlich benannten Person wird
+  nicht angenommen.
+- Event `1637`, Waldviertel Festival 2016: Die Ausschreibung nennt die
+  Nachwuchs- und Seniorenklassen der ersten Etappe als ÖM Langdistanz.
+  Die AC-Klasse D/H21E und die zweite und dritte Etappe sind keine ÖM Lang.
+  Die Kategoriezuordnung belegt weder die Einzelberechtigung noch einen
+  Titel; diese werden weiterhin getrennt geprüft.
+
 ## Zulässige Ausnahmearten
 
 | Bereich | Produktionsregister | Zweck |

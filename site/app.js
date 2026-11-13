@@ -922,6 +922,8 @@ function viewRunnersPage(year, omGroup, ansicht, regionalCode = null) {
 
 function teamUnitKey(result) {
   if (!['relay', 'team', 'pair'].includes(result.result_kind)) return null;
+  if (result.result_kind === 'team' && result.note === 'Mannschaft' && !result.team_number)
+    return `team:source-row:${result.id}`;
   if (result.result_kind === 'team' && result.team_number && result.team_name)
     return `team:number:${result.team_number}:name:${result.team_name}`;
   if (result.team_number) return `${result.result_kind}:number:${result.team_number}`;
@@ -1085,6 +1087,8 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
              COUNT(DISTINCT CASE WHEN r.result_kind = 'pair'
                    THEN 'p:' || COALESCE(r.rank, '') || ':' || r.status || ':' ||
                         COALESCE(r.time_s, '') || ':' || COALESCE(r.club, '')
+                   WHEN r.result_kind = 'team' AND r.note = 'Mannschaft' AND r.team_number IS NULL
+                   THEN 'r:' || r.id
                    WHEN r.result_kind = 'team' AND r.team_number IS NOT NULL AND r.team_name IS NOT NULL
                    THEN 'n:' || r.team_number || ':t:' || r.team_name
                    WHEN r.result_kind IN ('relay', 'team')
@@ -1196,7 +1200,7 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
           ${regionalCode === "WIEN" && c.championship_starters < 3 ? `<p class="sub dim">Keine Medaillen ausgewiesen: ${c.championship_starters} wertungsberechtigte Starter im Datenstand; mindestens 3 erforderlich. Unvollständige Daten sind zu prüfen.</p>` : ""}
           ${regionalCode && c.award_hold ? `<p class="sub dim">Medaillenvergabe offen: ${esc(c.award_hold)}</p>` : ""}
           ${!regionalCode && c.minimum_state === "insufficient" ? `<p class="sub dim">Keine ÖM-/ÖSTM-Medaillen: weniger als drei wertungsberechtigte Starter im Datenstand.</p>` : ""}
-          ${!regionalCode && c.minimum_state === "unresolved" ? `<p class="sub dim">ÖM-/ÖSTM-Medaillen offen: ${c.minimum_eligible} Starter sicher berechtigt, ${c.minimum_unresolved} ungeklärt; mindestens drei erforderlich.</p>` : ""}
+          ${!regionalCode && c.minimum_state === "unresolved" ? `<p class="sub dim">${results.some((r) => r.national_rank && r.championship_source_scope === "winner_only") ? "Einzelne Titel sind durch die offizielle Meisterwertung belegt; die übrige Wertung bleibt offen." : "ÖM-/ÖSTM-Medaillen offen."} ${c.minimum_eligible} Starter sicher berechtigt, ${c.minimum_unresolved} ungeklärt; mindestens drei erforderlich.</p>` : ""}
           ${!regionalCode && c.minimum_state === "jury_exception" ? `<p class="sub dim">Meisterschaftswertung aufgrund eines Jury-Entscheids. ${c.jury_source_url ? `<a href="${esc(c.jury_source_url)}" target="_blank" rel="noopener">Offizielle Ergebnisliste ↗</a>` : ""}</p>` : ""}
           <table>
             <thead><tr><th class="num">Pl</th><th>Name</th><th class="hide-sm">Verein</th>
@@ -1229,7 +1233,7 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
                   <td class="num dim">${team.status === "ok" && team.time_behind_s ? "+" + fmtTime(team.time_behind_s) : ""}</td>
                 </tr>${team.result_kind === "pair" ? "" : unit.rows.map((r) => `<tr class="team-member">
                   <td class="num dim"></td>
-                  <td>${runnerNameHtml(r.person_id, r.person_name)}${r.result_kind === "relay" ? `<span class="leg-label">Leg ${r.leg_number || "?"}/${r.leg_count || unit.rows.length}</span>` : ""}</td>
+                  <td>${runnerNameHtml(r.person_id, r.person_name, { hasResults: r.identity_basis !== "source-team-only" && !(r.result_kind === "team" && r.note === "Mannschaft") })}${r.result_kind === "relay" ? `<span class="leg-label">Leg ${r.leg_number || "?"}/${r.leg_count || unit.rows.length}</span>` : ""}</td>
                   <td class="hide-sm dim"></td><td class="num">${r.result_kind === "relay" ? individualTime(r) : ""}</td><td></td>
                 </tr>`).join("")}`;
             }).join("")}
@@ -1357,7 +1361,7 @@ function fetchPodiums({ club, personId, dw, includeAdditional = false }) {
   const base = query(`
     SELECT CAST(r.id AS TEXT) AS result_id, r.rank, r.national_rank, r.category, r.category_full, r.result_kind, r.championship,
            r.status, r.out_of_competition, r.time_s, r.team_number, r.team_name, r.note,
-           r.championship_source_scope, r.championship_eligibility_state, r.identity_state,
+           r.championship_source_scope, r.championship_eligibility_state, r.identity_state, r.identity_basis,
            r.result_list_id, ont.source_url AS official_national_title_url,
            e.id AS event_id, e.title AS event_title, e.sport_type, s.title AS stage_title,
            s.id AS stage_id, s.number AS stage_number,
@@ -1390,7 +1394,7 @@ function fetchPodiums({ club, personId, dw, includeAdditional = false }) {
       cse.championship_type AS championship, cse.observed_status AS status,
       0 AS out_of_competition, cse.observed_time_s AS time_s, NULL AS team_number, NULL AS team_name, NULL AS note,
       cse.source_scope AS championship_source_scope, 'eligible' AS championship_eligibility_state,
-      r.identity_state, r.result_list_id, NULL AS official_national_title_url,
+      r.identity_state, r.identity_basis, r.result_list_id, NULL AS official_national_title_url,
       e.id AS event_id, e.title AS event_title, e.sport_type, s.title AS stage_title,
       s.id AS stage_id, s.number AS stage_number, COALESCE(s.date,e.date_from) AS date,
       CAST(p.id AS TEXT) AS person_id, cse.observed_name AS observed_name, COALESCE(p.name,cse.observed_name) AS person_name,
@@ -1473,7 +1477,12 @@ function renderRankedMedalTable(podiums, { showClub, isOm, capOutput, splitKinds
   const medalRank = (r) => (isOm ? r.national_rank : r.rank);
   const showOstm = isOm && !splitKinds && podiums.some((r) => r.championship === "ÖSTM");
   const byPerson = new Map();
+  const sourceTeamsWithoutRoster = new Set();
   for (const r of podiums) {
+    if (r.identity_basis === "source-team-only") {
+      sourceTeamsWithoutRoster.add(r.result_id);
+      continue;
+    }
     if (r.person_id == null) continue;  // a "family" result has no individual to attribute it to
     if (!byPerson.has(r.person_id)) {
       byPerson.set(r.person_id, {
@@ -1562,6 +1571,7 @@ function renderRankedMedalTable(podiums, { showClub, isOm, capOutput, splitKinds
       </tr>`).join("") : `<tr><td colspan="${cols}" class="dim">Keine Podestplätze</td></tr>`}
     </tbody>
   </table></div>`
+  + (sourceTeamsWithoutRoster.size ? `<p class="sub dim">${sourceTeamsWithoutRoster.size} Mannschaftsergebnis${sourceTeamsWithoutRoster.size === 1 ? "" : "se"} ohne eindeutig belegte Einzelpersonen ${sourceTeamsWithoutRoster.size === 1 ? "ist" : "sind"} in der Vereinszählung enthalten, aber nicht einzelnen Läufer:innen zugeordnet.</p>` : "")
   + (truncated ? `<p class="sub dim">Top ${capOutput} von ${people.length} Läufer:innen mit Medaillen gezeigt – grenze mit Verein, Läufer:in oder Saison weiter ein.</p>` : "");
 }
 

@@ -3,6 +3,169 @@
   "scope": "Quellenbestätigte historische ÖM-Meisterteams; keine künstlichen Starterzahlen",
   "titles": [
     {
+      "event_id":1710, "date":"2016-10-22", "stage_number":1, "category":"Herren -14",
+      "result_list_id":"list:9f8bb89b5b20eaadf16757d6", "result_kind":"pair", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "time_s":1427, "person_ids":[3759,-3017603519659092116],
+      "candidate_roster":{"-3017603519659092116":{"name":"Max Pietsch", "year_of_birth":null, "source_observation":"Deubel Jonas Pietsch M"}},
+      "normalized_sha256":"93b32af348362cdf0af5f858d856181725439eb332b41050dcc546e3ac5a8c3c", "eligibility_from_official_champion":true,
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1710_m-nacht-zgl-8-ac-2016.pdf", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1710_m-nacht-ol-2016-ausschreibung.pdf", "invitation_sha256":"c267f2eb3eccf9b80482d3321ebeb48eff1e044471cd1f531acf93d0849e2b78",
+      "note":"ANNE nennt das Paar Deubel Jonas / Pietsch M, die ÖFOL-Meistertafel Jonas Deubel / Max Pietsch. Max bleibt ein quellgebundener Kandidat ohne behauptete ÖFOL-ID."
+    },
+    {
+      "event_id":842, "date":"2013-10-19", "stage_number":1, "category":"Herren -12",
+      "result_list_id":"list:f1a731ff3fc602858ad9924b", "result_kind":"pair", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "time_s":798, "person_ids":[1662,3259],
+      "normalized_sha256":"5a54b1e4b2208ed6367f0d8904d955947add004645cb410f76b9a3ef0acd0775", "eligibility_from_official_champion":true,
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_842_OEMNacht2013.html", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_842_Oesterreichische%20Nacht-Meisterschaft%202013%20-%20Einladung%20und%20Ausschreibung.pdf", "invitation_sha256":"f810472819107892d84f7164f9805d02b69fe2fceca9a9edd0c0bec26a619f10",
+      "note":"ANNE und ÖFOL-Meistertafel belegen Erik Bonek / Florian Jandl als Siegerpaar H12; die Berechtigung weiterer Paarstarts bleibt ungeklärt."
+    },
+    {
+      "event_id":851, "date":"2013-06-23", "stage_number":1, "category":"Damen -14",
+      "result_list_id":"list:924f4d378d8f49d43b3b338b", "result_kind":"team", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "team_time_s":1963, "person_ids":[1690,7276,2710],
+      "normalized_sha256":"7663b7d73c4c00eb94944648a15f206c5d84a68ce619b0a5dece6ce253394b2e",
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_851_erg_mann.pdf", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_851_Einladung%20_oem_mann_neu.pdf", "invitation_sha256":"173a0413b14215c2a5bae76a9d116b735cfe87086ed65b6df76b5e5ca6cfdf2e",
+      "note":"Die Originalwertung bezeichnet Jasmina Gassner, Ylvi Kastner und Tina Tiefenböck ausdrücklich als österreichische Meisterinnen D14."
+    },
+    {
+      "event_id":850, "date":"2013-06-22", "stage_number":1, "category":"Damen 70-",
+      "result_list_id":"list:32166ed1131d220aef5868a4", "result_kind":"individual", "club":"Naturfreunde Wien", "team_name":null, "time_s":2793, "person_ids":[1660],
+      "normalized_sha256":"06963235f9216bdece0f40b3f350e6a73f0314cd23c4432d0dda4e2b68f0c918", "eligibility_from_official_champion":true,
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_850_erg_lang.pdf", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_850_Einladung%204%20AC_neu.pdf", "invitation_sha256":"bda3a655db4160d993e54620b30622ff4f81508d941f5aacac4f51cb886e0bfe",
+      "note":"ANNE-Ergebnis, Ausschreibung und ÖFOL-Meistertafel bestätigen Anneliese Bonek als ÖM Lang D70; die Berechtigung weiterer Starter bleibt offen."
+    },
+    {
+      "event_id":842, "date":"2013-10-19", "stage_number":1, "category":"Herren -14",
+      "result_list_id":"list:8ef436e0d629bfeba26a9eca", "result_kind":"pair", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "time_s":986, "person_ids":[1690,1664],
+      "normalized_sha256":"5a54b1e4b2208ed6367f0d8904d955947add004645cb410f76b9a3ef0acd0775", "eligibility_from_official_champion":true,
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_842_OEMNacht2013.html", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_842_Oesterreichische%20Nacht-Meisterschaft%202013%20-%20Einladung%20und%20Ausschreibung.pdf", "invitation_sha256":"f810472819107892d84f7164f9805d02b69fe2fceca9a9edd0c0bec26a619f10",
+      "note":"Ergebnis und ÖFOL-Meistertafel nennen Jasmina Gassner und Jannis Bonek; die Ausschreibung bestätigt den Paarbewerb H14."
+    },
+    {
+      "event_id":851, "date":"2013-06-23", "stage_number":1, "category":"Herren -14",
+      "result_list_id":"list:55ed4d622da5f52e9e1d04dc", "result_kind":"team", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "team_time_s":2344, "person_ids":[1662,1664,6783],
+      "normalized_sha256":"7663b7d73c4c00eb94944648a15f206c5d84a68ce619b0a5dece6ce253394b2e",
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_851_erg_mann.pdf", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_851_Einladung%20_oem_mann_neu.pdf", "invitation_sha256":"173a0413b14215c2a5bae76a9d116b735cfe87086ed65b6df76b5e5ca6cfdf2e",
+      "note":"Die Originalwertung bezeichnet Erik Bonek, Jannis Bonek und Clemens Wolfram als österreichische Meister; die Ausschreibung bestätigt H14."
+    },
+    {
+      "event_id":851, "date":"2013-06-23", "stage_number":1, "category":"Damen 35-",
+      "result_list_id":"list:1189ff0cbfb2dd949ac294fc", "result_kind":"team", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "team_time_s":4492, "person_ids":[1649,1709,1661],
+      "normalized_sha256":"7663b7d73c4c00eb94944648a15f206c5d84a68ce619b0a5dece6ce253394b2e",
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_851_erg_mann.pdf", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_851_Einladung%20_oem_mann_neu.pdf", "invitation_sha256":"173a0413b14215c2a5bae76a9d116b735cfe87086ed65b6df76b5e5ca6cfdf2e",
+      "note":"Die Originalwertung bezeichnet Vera Arbter, Manuela Hlosta und Claudia Bonek ausdrücklich als österreichische Meisterinnen D35."
+    },
+    {
+      "event_id":922, "date":"2013-05-26", "stage_number":1, "category":"Damen -12",
+      "result_list_id":"list:1b6bc5793c4d8e8dbfc58f3d", "result_kind":"relay", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "team_time_s":3184, "person_ids":[7307,6700,3165],
+      "normalized_sha256":"524f0523c156bcb229d73daa8a1300cd2d50f6d6b26b4e3b2d1d4ae6ab1ce062", "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_922_Ergebnis_OEStM_Staffel_2013.pdf", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_922_Ausschreibung_OeM_Staffel_2013.pdf", "invitation_sha256":"e5cd742739a870409478c5d515b33734c8cd866e681ff6a31460d471e3341774",
+      "note":"ANNE-Originalergebnis bezeichnet Maya Kastner, Sofia Calvet und Rita Tiefenböck als Meisterinnen D12."
+    },
+    {
+      "event_id":922, "date":"2013-05-26", "stage_number":1, "category":"Damen -14",
+      "result_list_id":"list:baa33e7e280c0fc12e7a4f5e", "result_kind":"relay", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "team_time_s":3930, "person_ids":[2710,7276,1690],
+      "normalized_sha256":"524f0523c156bcb229d73daa8a1300cd2d50f6d6b26b4e3b2d1d4ae6ab1ce062", "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_922_Ergebnis_OEStM_Staffel_2013.pdf", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_922_Ausschreibung_OeM_Staffel_2013.pdf", "invitation_sha256":"e5cd742739a870409478c5d515b33734c8cd866e681ff6a31460d471e3341774",
+      "note":"Originalergebnis und Meistertafel belegen das D14-Siegerteam; nur die Siegerstaffel wird bestätigt."
+    },
+    {
+      "event_id":922, "date":"2013-05-26", "stage_number":1, "category":"Herren -12",
+      "result_list_id":"list:f23e9f09218e3f1cfb72a8da", "result_kind":"relay", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "team_time_s":2828, "person_ids":[6452,3259,6784],
+      "normalized_sha256":"524f0523c156bcb229d73daa8a1300cd2d50f6d6b26b4e3b2d1d4ae6ab1ce062", "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_922_Ergebnis_OEStM_Staffel_2013.pdf", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_922_Ausschreibung_OeM_Staffel_2013.pdf", "invitation_sha256":"e5cd742739a870409478c5d515b33734c8cd866e681ff6a31460d471e3341774",
+      "note":"Originalergebnis und Meistertafel belegen das H12-Siegerteam; nur die Siegerstaffel wird bestätigt."
+    },
+    {
+      "event_id":922, "date":"2013-05-26", "stage_number":1, "category":"Herren -14",
+      "result_list_id":"list:ebd03ec98e980f5559cae653", "result_kind":"relay", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "team_time_s":3314, "person_ids":[1662,6783,1664],
+      "normalized_sha256":"524f0523c156bcb229d73daa8a1300cd2d50f6d6b26b4e3b2d1d4ae6ab1ce062", "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_922_Ergebnis_OEStM_Staffel_2013.pdf", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_922_Ausschreibung_OeM_Staffel_2013.pdf", "invitation_sha256":"e5cd742739a870409478c5d515b33734c8cd866e681ff6a31460d471e3341774",
+      "note":"Originalergebnis und Meistertafel belegen das H14-Siegerteam; nur die Siegerstaffel wird bestätigt."
+    },
+    {
+      "event_id":922, "date":"2013-05-26", "stage_number":1, "category":"Herren -16",
+      "result_list_id":"list:60bcc305f438bb84dc305467", "result_kind":"relay", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "team_time_s":6769, "person_ids":[6912,3258,6741],
+      "normalized_sha256":"524f0523c156bcb229d73daa8a1300cd2d50f6d6b26b4e3b2d1d4ae6ab1ce062", "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_922_Ergebnis_OEStM_Staffel_2013.pdf", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_922_Ausschreibung_OeM_Staffel_2013.pdf", "invitation_sha256":"e5cd742739a870409478c5d515b33734c8cd866e681ff6a31460d471e3341774",
+      "note":"Originalergebnis und Meistertafel belegen das H16-Siegerteam; nur die Siegerstaffel wird bestätigt."
+    },
+    {
+      "event_id":1080, "date":"2014-09-20", "stage_number":1, "category":"D 70-",
+      "result_list_id":"list:f08e518f787ee384da89c750", "result_kind":"individual", "club":"Naturfreunde Wien", "team_name":null, "time_s":2213, "person_ids":[1660],
+      "normalized_sha256":"9735933bba80e087b531ba20d741d00f5c93f34ef4faef230b33acd4a0dc8615", "eligibility_from_official_champion":true,
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1080_Ergebnisse_Mittel.html",
+      "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1080_Ausschreibung%20OEM%20Mittel.pdf", "invitation_sha256":"75ab208545b302f16c9a3c40b5e82452d721888627672c1a687049489b7d599c",
+      "note":"ANNE-Ergebnis, ÖM-Ausschreibung und ÖFOL-Meistertafel bestätigen Anneliese Bonek als ÖM Mittel D70. Drei Läuferinnen sind klassifiziert; Einzelberechtigung weiterer Teilnehmerinnen bleibt ungeklärt."
+    },
+    {
+      "event_id":1423, "date":"2015-05-01", "stage_number":1, "category":"D/H -16",
+      "result_list_id":"list:1e4fface19d21c93203ab777", "result_kind":"relay", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien 2", "team_time_s":3269, "person_ids":[3165,6784,6452,3228],
+      "normalized_sha256":"9f4428e9a33f8af01052456a618a416091e6096c9081da19951fb88b61bb0875",
+      "source_url":"https://web.archive.org/web/20160703225932id_/http://www.ol-sbg.at/OEMS_2015/resultat_teamsprint.html", "result_url":"https://web.archive.org/web/20160703225932id_/http://www.ol-sbg.at/OEMS_2015/resultat_teamsprint.html",
+      "invitation_url":"https://web.archive.org/web/20170501211739/http://www.ol-sbg.at/OEMS_2015/Ausschreibung.pdf", "invitation_sha256":"f34a8e65525e6825aa0b222f09c4f8ceb7b776c9a40cbc657b76ccf37906c70b",
+      "note":"Die offizielle Veranstalter-Ergebnisliste bezeichnet das Team Rita Tiefenböck / Jakob Wolfram / Joergen Deubel / Anna Pietsch ausdrücklich als österreichischen Meister; die Ausschreibung bestätigt die ÖM-Klasse. Andere Teams bleiben in ihrer Berechtigung ungeklärt."
+    },
+    {
+      "event_id":1448, "date":"2015-02-22", "stage_number":1, "category":"Herren 50-",
+      "result_list_id":"list:da1da780e71e3219e8960480", "result_kind":"relay", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien 1", "team_time_s":2280, "person_ids":[3207,1680],
+      "normalized_sha256":"4a9d2a93a68946aaf12b76c48a84193afe4f9bd4c3b7d12fce2567bef474cdce",
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1448_erg220215.html",
+      "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1448_OEM%20Staffelv22.02.2015.pdf", "invitation_sha256":"3982bec92358abb3fe2bd95e79cb33d1e23e21117813cd4e2ae581969df74f9c",
+      "note":"Ausschreibung, ANNE und ÖFOL-Meistertafel bestätigen Josef Zapletal / Robert Ditz als ÖM-Ski-O-Staffelsieger H50. Drei Teams aus verschiedenen Vereinen sind klassifiziert; die Einzelberechtigung anderer Teams bleibt offen."
+    },
+    {
+      "event_id":1551, "date":"2015-10-17", "stage_number":1, "category":"Herren -12",
+      "result_list_id":"list:acd4b4035c170088f8f8a69e", "result_kind":"pair", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "time_s":790, "person_ids":[3759,-1358964357158606339],
+      "candidate_roster":{"-1358964357158606339":{"name":"Pietsch Max", "year_of_birth":2003}},
+      "normalized_sha256":"17758fc3316b7845164c0ed42e4b1a930edb868b65bc65c7ebe775008a247849", "eligibility_from_official_champion":true,
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1551_ac_09_15_erg.html",
+      "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1551_Ausschreibung%20OeM%20NachtOL_2015_9AC_final.pdf", "invitation_sha256":"34d936c9fd368cbd526bf6bd8f56e1ffbce9ff070481dca0380ac17e89f8e713",
+      "note":"ANNE, Ausschreibung und ÖFOL-Meistertafel bestätigen Jonas Deubel / Max Pietsch als ÖM-Nacht-Paar. Max bleibt eine Quellenperson ohne automatische ÖFOL-ID; 2003 sichert nur den vorhandenen Kandidatendatensatz und ist kein belegter Jahrgang."
+    },
+    {
+      "event_id":1314, "date":"2015-04-25", "stage_number":1, "category":"Herren 15-17",
+      "result_list_id":"list:4a7342d21634015b50d6a8ab", "result_kind":"individual", "club":"Naturfreunde Wien", "team_name":null, "time_s":1639, "person_ids":[6912],
+      "normalized_sha256":"ede5b96444541cdc9832d5bb92ce47d2af3b75e9888daea91574fde702ce04c6",
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1314_ergebnis.htm",
+      "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1314_Aussschreibung%20.docx", "invitation_sha256":"93e89ac59b746b8cdf768d3b615642463474ea8064596ecf856789005be8ed3a",
+      "note":"ANNE-Ergebnis, Ausschreibung und ÖFOL-Meistertafel bestätigen Nicolas Kastner als ÖM MTBO Sprint H17. Andere Starter bleiben in ihrer Berechtigung ungeklärt."
+    },
+    {
+      "event_id":1555, "date":"2015-09-27", "stage_number":1, "category":"Damen -14",
+      "result_list_id":"list:9200860d7b6c0744c1ba4965", "result_kind":"team", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "time_s":2708,
+      "team_source_observation":"Kastner Hufnagel Tiefenböck", "normalized_sha256":"de10926e2c26b523e327722e76f1116d0381229d906e86c912c4ba1442ab96a9", "eligibility_from_official_champion":true,
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1555_oem_mannschaft.html", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1555_AusschreibungSeebenstein2015.pdf", "invitation_sha256":"84ec25c2e5e463c39caa77992b58fc39773df4d808a49bfe66a6f64884f85b22",
+      "note":"ANNE und ÖFOL-Meistertafel bestätigen das Siegerteam. Da die Ergebnisliste nur Nachnamen nennt, wird ausschließlich der Mannschaftstitel und keine Einzelperson bestätigt."
+    },
+    {
+      "event_id":1555, "date":"2015-09-27", "stage_number":1, "category":"Damen 15-18",
+      "result_list_id":"list:4ee85934958517ef41098ce3", "result_kind":"team", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "time_s":3270,
+      "team_source_observation":"Gassner Kastner Tiefenböck", "normalized_sha256":"de10926e2c26b523e327722e76f1116d0381229d906e86c912c4ba1442ab96a9", "eligibility_from_official_champion":true,
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1555_oem_mannschaft.html", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1555_AusschreibungSeebenstein2015.pdf", "invitation_sha256":"84ec25c2e5e463c39caa77992b58fc39773df4d808a49bfe66a6f64884f85b22",
+      "note":"ANNE und ÖFOL-Meistertafel bestätigen das Siegerteam; die nur durch Nachnamen dokumentierten Einzelpersonen bleiben unzugeordnet."
+    },
+    {
+      "event_id":1555, "date":"2015-09-27", "stage_number":1, "category":"Damen 19-",
+      "result_list_id":"list:8f224177395b9ed7e92adcf6", "result_kind":"team", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "time_s":4776,
+      "team_source_observation":"Arbter Arbter Radon", "normalized_sha256":"de10926e2c26b523e327722e76f1116d0381229d906e86c912c4ba1442ab96a9", "eligibility_from_official_champion":true,
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1555_oem_mannschaft.html", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1555_AusschreibungSeebenstein2015.pdf", "invitation_sha256":"84ec25c2e5e463c39caa77992b58fc39773df4d808a49bfe66a6f64884f85b22",
+      "note":"ANNE und ÖFOL-Meistertafel bestätigen das Siegerteam; die nur durch Nachnamen dokumentierten Einzelpersonen bleiben unzugeordnet."
+    },
+    {
+      "event_id":1555, "date":"2015-09-27", "stage_number":1, "category":"Herren  -14",
+      "result_list_id":"list:0971102a477020e161a69bd2", "result_kind":"team", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "time_s":2663,
+      "team_source_observation":"Deubel Jandl Wolfram", "normalized_sha256":"de10926e2c26b523e327722e76f1116d0381229d906e86c912c4ba1442ab96a9", "eligibility_from_official_champion":true,
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1555_oem_mannschaft.html", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1555_AusschreibungSeebenstein2015.pdf", "invitation_sha256":"84ec25c2e5e463c39caa77992b58fc39773df4d808a49bfe66a6f64884f85b22",
+      "note":"ANNE und ÖFOL-Meistertafel bestätigen das Siegerteam; die nur durch Nachnamen dokumentierten Einzelpersonen bleiben unzugeordnet."
+    },
+    {
+      "event_id":1555, "date":"2015-09-27", "stage_number":1, "category":"Herren 15 -18",
+      "result_list_id":"list:85c1be76984c34025265dd16", "result_kind":"team", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "time_s":3867,
+      "team_source_observation":"Bonek Jandl Bonek", "normalized_sha256":"de10926e2c26b523e327722e76f1116d0381229d906e86c912c4ba1442ab96a9", "eligibility_from_official_champion":true,
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1555_oem_mannschaft.html", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1555_AusschreibungSeebenstein2015.pdf", "invitation_sha256":"84ec25c2e5e463c39caa77992b58fc39773df4d808a49bfe66a6f64884f85b22",
+      "note":"ANNE und ÖFOL-Meistertafel bestätigen das Siegerteam; die nur durch Nachnamen dokumentierten Einzelpersonen bleiben unzugeordnet."
+    },
+    {
+      "event_id":1555, "date":"2015-09-27", "stage_number":1, "category":"Herren 50-",
+      "result_list_id":"list:e9c52e4bd160f013f7befc7a", "result_kind":"team", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "time_s":4641,
+      "team_source_observation":"Arbter Bonek Pietsch", "normalized_sha256":"de10926e2c26b523e327722e76f1116d0381229d906e86c912c4ba1442ab96a9", "eligibility_from_official_champion":true,
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1555_oem_mannschaft.html", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1555_AusschreibungSeebenstein2015.pdf", "invitation_sha256":"84ec25c2e5e463c39caa77992b58fc39773df4d808a49bfe66a6f64884f85b22",
+      "note":"ANNE und ÖFOL-Meistertafel bestätigen das Siegerteam; die nur durch Nachnamen dokumentierten Einzelpersonen bleiben unzugeordnet."
+    },
+    {
       "event_id":1893, "date":"2017-05-06", "stage_number":1, "category":"Herren 80-",
       "result_list_id":"list:20bd3a1ec1f44d89d62c0785", "result_kind":"individual", "club":"Naturfreunde Wien", "team_name":null, "time_s":3855, "person_ids":[1687],
       "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1893_2017-05-06-ac-ergebnisse.pdf",

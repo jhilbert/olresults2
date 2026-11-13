@@ -1,6 +1,138 @@
 {
   "schema_version": 1,
   "events": {
+    "812": {
+      "date":"2013-04-06", "stage_number":1,
+      "jurisdictions":{
+        "WIEN":{
+          "partial":true, "evidence_kind":"official-results", "url":"https://anne-api.oefol.at/v1/event/812/results", "result_document_url":"https://anne-api.oefol.at/v1/event/812/results",
+          "sha256":"ac5d1234d48c1c4378e969cb7767ffeff1757be7f6aa3a77633ba50e72acb3e0",
+          "note":"Die ANNE-Ergebnisse zeigen die Wiener Sprintklassen getrennt mit W; die WOLV-Jahresliste bestätigt die Wiener Meisterschaft am 6.4.2013.",
+          "categories":{"Damen -14 W":"D-14", "Damen 15- W":"D15-", "Damen 45- W":"D45-", "Damen 55- W":"D55-", "Herren -14 W":"H-14", "Herren 15- W":"H15-", "Herren 45- W":"H45-", "Herren 60- W":"H60-"}
+        },
+        "NOE":{
+          "partial":true, "evidence_kind":"official-results", "url":"https://anne-api.oefol.at/v1/event/812/results", "result_document_url":"https://anne-api.oefol.at/v1/event/812/results",
+          "sha256":"ac5d1234d48c1c4378e969cb7767ffeff1757be7f6aa3a77633ba50e72acb3e0",
+          "note":"NÖ-Klassen sind in der ANNE-Quelle getrennt ausgewiesen.",
+          "categories":{"Damen -12 NÖ":"D-12", "Damen 15-18 NÖ":"D15-18", "Damen 19- NÖ":"D19-", "Damen 35- NÖ":"D35-", "Damen 45- NÖ":"D45-", "Damen 55- NÖ":"D55-", "Herren -12 NÖ":"H-12", "Herren -14 NÖ":"H-14", "Herren 15-18 NÖ":"H15-18", "Herren 19- NÖ":"H19-", "Herren 35- NÖ":"H35-", "Herren 45- NÖ":"H45-", "Herren 55- NÖ":"H55-", "Herren 65- NÖ":"H65-"}
+        }
+      }
+    },
+    "864": {
+      "date":"2013-06-09", "stage_number":1,
+      "jurisdictions":{
+        "WIEN":{
+          "evidence_kind":"invitation", "url":"https://anne-cdn.oefol.at/public/legacy/event_864_20130503_Ausschreibung%20NW-Sen-MS%20Kaltenleutgeben.pdf", "sha256":"4389526956923753bdb6007d24180b264112fd340c87671edb99726efd27bf4d", "normalized_sha256":"4a8a8fe50edf4ea777569ceb82c8defdaa981d2f61c933ca457af7df1da07d65",
+          "note":"Die Ausschreibung unterscheidet Nachwuchs-/Seniorenmeisterschaft und ASKÖ-MS. D/H19 ist nur ASKÖ-MS beziehungsweise Rahmenbewerb, nicht Wiener Landesmeisterschaft. Quelle zeigt weitere tatsächlich geteilte Altersklassen.",
+          "categories":{"Wien Damen -12":"D-12", "Wien Damen -14":"D-14", "Wien Damen 15-18":"D15-18", "Wien Damen 35-":"D35-", "Wien Damen 45-":"D45-", "Wien Damen 50-":"D50-", "Wien Damen 55-":"D55-", "Wien Damen 65-":"D65-", "Wien Herren -12":"H-12", "Wien Herren -14":"H-14", "Wien Herren -16":"H-16", "Wien Herren -18":"H-18", "Wien Herren 35-":"H35-", "Wien Herren 40-":"H40-", "Wien Herren 45-":"H45-", "Wien Herren 50-":"H50-", "Wien Herren 55-":"H55-", "Wien Herren 60-":"H60-", "Wien Herren 65-":"H65-", "Wien Herren 70-":"H70-"}
+        },
+        "NOE":{
+          "evidence_kind":"invitation", "url":"https://anne-cdn.oefol.at/public/legacy/event_864_20130503_Ausschreibung%20NW-Sen-MS%20Kaltenleutgeben.pdf", "sha256":"4389526956923753bdb6007d24180b264112fd340c87671edb99726efd27bf4d", "normalized_sha256":"4a8a8fe50edf4ea777569ceb82c8defdaa981d2f61c933ca457af7df1da07d65",
+          "note":"D/H19 ist nicht als niederösterreichische Nachwuchs-/Seniorenmeisterschaft ausgeschrieben.",
+          "categories":{"NÖ Damen -12":"D-12", "NÖ Damen -14":"D-14", "NÖ Damen 15-18":"D15-18", "NÖ Damen 35-":"D35-", "NÖ Damen 45-":"D45-", "NÖ Damen 55-":"D55-", "NÖ Herren -12":"H-12", "NÖ Herren -14":"H-14", "NÖ Herren 15-18":"H15-18", "NÖ Herren 35-":"H35-", "NÖ Herren 45-":"H45-", "NÖ Herren 55-":"H55-", "NÖ Herren 65-":"H65-"}
+        }
+      }
+    },
+    "877": {
+      "date":"2013-09-01", "stage_number":1,
+      "jurisdictions":{
+        "WIEN":{
+          "evidence_kind":"invitation", "url":"https://anne-cdn.oefol.at/public/legacy/event_877_Ausschreibung.pdf", "sha256":"6a3076e9b1308ae4cba23bf4b116df12e8531a0fef0d8ccaff328dccbb2721e0", "normalized_sha256":"cc4700fc2309f74e86e5b4631b58b3b1148ae8d7a37b43e0b09f7f2d452e6682",
+          "note":"Die Ausschreibung nennt für Wien ausschließlich D/H17-W als Allgemeine Meisterschaft. Die übrigen Altersklassen sind für Wien ausdrücklich Rahmenbewerbe.",
+          "categories":{"Damen 17-Wien":"D17-", "H17-Wien":"H17-"}
+        },
+        "NOE":{
+          "evidence_kind":"invitation", "url":"https://anne-cdn.oefol.at/public/legacy/event_877_Ausschreibung.pdf", "sha256":"6a3076e9b1308ae4cba23bf4b116df12e8531a0fef0d8ccaff328dccbb2721e0", "normalized_sha256":"cc4700fc2309f74e86e5b4631b58b3b1148ae8d7a37b43e0b09f7f2d452e6682",
+          "note":"Die Ausschreibung nennt für NÖ nur die allgemeine Klasse D/H19-N; die weiteren Altersklassen sind für NÖ Rahmenbewerbe.",
+          "categories":{"D19-Bgld/NÖ":"D19-", "H19-Stmk,NÖ":"H19-"}
+        }
+      }
+    },
+    "883": {
+      "date":"2013-05-01", "stage_number":1,
+      "jurisdictions":{
+        "WIEN":{
+          "partial":true, "evidence_kind":"official-results",
+          "url":"http://www.olt-transdanubien.at/data/2013/wrnoe_staffelms_erg.htm",
+          "result_document_url":"http://www.olt-transdanubien.at/data/2013/wrnoe_staffelms_erg.htm",
+          "sha256":"b25bc14bc2b7aa18a50ebbda292675faf50c0db3fb430bf58893e90a202192ac",
+          "normalized_sha256":"f09f1164075d94d9fad965dd362b5226853e6254a5f4a73da50cf0a99463e8bb",
+          "note":"Auf ANNE verlinkte Originalergebnisliste weist Wiener Klassen und Meisterschaftsränge ausdrücklich aus; die WOLV-Jahresliste dient als Quercheck.",
+          "categories":{"Damen -14 Wien":"D-14", "Damen 15- Wien":"D15-", "Damen 35- Wien":"D35-", "Damen 45- Wien":"D45-", "Damen 55- Wien":"D55-", "Herren -14 Wien":"H-14", "Herren 15- Wien":"H15-", "Herren 35- Wien":"H35-", "Herren 45- Wien":"H45-", "Herren 55- Wien":"H55-"}
+        },
+        "NOE":{
+          "partial":true, "evidence_kind":"official-results",
+          "url":"http://www.olt-transdanubien.at/data/2013/wrnoe_staffelms_erg.htm", "result_document_url":"http://www.olt-transdanubien.at/data/2013/wrnoe_staffelms_erg.htm",
+          "sha256":"b25bc14bc2b7aa18a50ebbda292675faf50c0db3fb430bf58893e90a202192ac", "normalized_sha256":"f09f1164075d94d9fad965dd362b5226853e6254a5f4a73da50cf0a99463e8bb",
+          "note":"Die NÖ-Staffelklassen sind im Original ausdrücklich getrennt ausgewiesen.",
+          "categories":{"Damen -14 NÖ":"D-14", "Damen 15- NÖ":"D15-", "Damen 45- NÖ":"D45-", "Herren -14 NÖ":"H-14", "Herren 15- NÖ":"H15-", "Herren 45- NÖ":"H45-"}
+        },
+        "STMK":{
+          "partial":true, "evidence_kind":"official-results",
+          "url":"http://www.olt-transdanubien.at/data/2013/wrnoe_staffelms_erg.htm", "result_document_url":"http://www.olt-transdanubien.at/data/2013/wrnoe_staffelms_erg.htm",
+          "sha256":"b25bc14bc2b7aa18a50ebbda292675faf50c0db3fb430bf58893e90a202192ac", "normalized_sha256":"f09f1164075d94d9fad965dd362b5226853e6254a5f4a73da50cf0a99463e8bb",
+          "note":"Die steirischen Staffelklassen sind im Original ausdrücklich getrennt ausgewiesen.",
+          "categories":{"Damen -14 Stmk":"D-14", "Damen 15- Stmk":"D15-", "Herren -14 Stmk":"H-14", "Herren 15-18 Stmk":"H15-18", "Herren 19- Stmk":"H19-", "Herren 45- Stmk":"H45-"}
+        }
+      }
+    },
+    "1203": {
+      "date":"2014-09-27", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true, "evidence_kind":"invitation",
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_1203_Ausschreibung.pdf",
+        "sha256":"16a9be8104f40ac0666d12dde36ce8e0096873910d489a83790365b35ce6a4d6",
+        "normalized_sha256":"fbca8da94c15c262b43b4f4960fc74d1a70a80b4bbc59d9f23cae11c98ead45d",
+        "note":"Ausschreibung belegt die Wiener Nachwuchs- und Seniorenklassen. Gemeinsame ANNE-Klassen werden anhand der belegten Vereine aufgeteilt. Bereits getrennt veröffentlichte H40/H50/H60 und D50 bleiben eigenständige Quellwertungen; keine weiteren Altersklassen erfinden.",
+        "categories":{"Herren -14":"H-14", "Damen -14":"D-14", "Herren 15-18":"H15-18", "Damen 15-18":"D15-18", "Herren 35-":"H35-", "Damen 35-":"D35-", "Herren 45-":"H45-", "Damen 45-":"D45-", "Herren 55-":"H55-", "Damen 55-":"D55-", "Herren 65-":"H65-", "Damen 65-":"D65-"}
+      }}
+    },
+    "1368": {
+      "date":"2015-06-13", "stage_number":1,
+      "jurisdictions":{
+        "WIEN":{
+          "partial":true, "evidence_kind":"official-results",
+          "url":"https://web.archive.org/web/20160207111656id_/http://www.nfwien-ol.at/images/stories/naturfreunde/Berichte/20150613NWundSenMS/NWundSenMS2015_Ergebnis.pdf",
+          "result_document_url":"https://web.archive.org/web/20160207111656id_/http://www.nfwien-ol.at/images/stories/naturfreunde/Berichte/20150613NWundSenMS/NWundSenMS2015_Ergebnis.pdf",
+          "sha256":"25a7b843678d66da23d5d72ad60b09a62f5375a4a2adffd1ef14569bd2645153",
+          "normalized_sha256":"637af6255f61563d5dfd901aeb1f106be48100d2f046c027cfbee3086596abbd",
+          "note":"Archivierte, auf ANNE verlinkte Originalergebnisliste enthält eigenständige Wiener Klassen und Ränge; WOLV-Jahresliste bestätigt die Meisterschaft.",
+          "categories":{"D -12 Wien":"D-12", "D 13-14 Wien":"D13-14", "D 15-18 Wien":"D15-18", "D 35- Wien":"D35-", "D 45- Wien":"D45-", "D 55- Wien":"D55-", "D 65- Wien":"D65-", "H -12 Wien":"H-12", "H 13-14 Wien":"H13-14", "H 15-18 Wien":"H15-18", "H 35- Wien":"H35-", "H 40- Wien":"H40-", "H 45- Wien":"H45-", "H 50- Wien":"H50-", "H 55- Wien":"H55-", "H 60- Wien":"H60-", "H 65- Wien":"H65-"}
+        },
+        "NOE":{
+          "partial":true, "evidence_kind":"official-results",
+          "url":"https://web.archive.org/web/20160207111656id_/http://www.nfwien-ol.at/images/stories/naturfreunde/Berichte/20150613NWundSenMS/NWundSenMS2015_Ergebnis.pdf",
+          "result_document_url":"https://web.archive.org/web/20160207111656id_/http://www.nfwien-ol.at/images/stories/naturfreunde/Berichte/20150613NWundSenMS/NWundSenMS2015_Ergebnis.pdf",
+          "sha256":"25a7b843678d66da23d5d72ad60b09a62f5375a4a2adffd1ef14569bd2645153",
+          "normalized_sha256":"637af6255f61563d5dfd901aeb1f106be48100d2f046c027cfbee3086596abbd",
+          "note":"Originalergebnisliste weist die NÖ-Klassen getrennt aus; offene gemeinsame Rahmenklassen bleiben ohne Meisterschaftszuordnung.",
+          "categories":{"D -12 NÖ":"D-12", "D 35- NÖ":"D35-", "D 45- NÖ":"D45-", "D 55- NÖ":"D55-", "D 65- NÖ":"D65-", "H -12 NÖ":"H-12", "H -14 NÖ":"H-14", "H 15-18 NÖ":"H15-18", "H 35- NÖ":"H35-", "H 45- NÖ":"H45-", "H 55- NÖ":"H55-", "H 65- NÖ":"H65-"}
+        }
+      }
+    },
+    "1386": {
+      "date":"2015-04-12", "stage_number":1,
+      "jurisdictions":{
+        "WIEN":{
+          "partial":true, "evidence_kind":"official-results",
+          "url":"https://anne-cdn.oefol.at/public/legacy/event_1386_noe_mixed_sprint_staffel.htm",
+          "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_1386_noe_mixed_sprint_staffel.htm",
+          "sha256":"25583f9986fe88670733c6c3a74546a572e9ae8af231dd9decc6b398073ee511",
+          "normalized_sha256":"d47b71e3c598a0eef9960619476af98847c3eebcdc0ff31b19f837dfa05dde53",
+          "note":"ANNE-Ergebnisliste enthält drei ausdrücklich getrennte Wiener Klassen; die WOLV-Jahresliste bestätigt die Veranstaltung. Teammitglieder und Reihenfolge stammen aus ANNE.",
+          "categories":{"-16 W":"Mixed bis 16", "17- W":"Mixed ab 17", "50- W":"Mixed ab 50"}
+        },
+        "NOE":{
+          "partial":true, "evidence_kind":"official-results",
+          "url":"https://anne-cdn.oefol.at/public/legacy/event_1386_noe_mixed_sprint_staffel.htm",
+          "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_1386_noe_mixed_sprint_staffel.htm",
+          "sha256":"25583f9986fe88670733c6c3a74546a572e9ae8af231dd9decc6b398073ee511",
+          "normalized_sha256":"d47b71e3c598a0eef9960619476af98847c3eebcdc0ff31b19f837dfa05dde53",
+          "note":"ANNE-Ergebnisliste enthält drei getrennte niederösterreichische Klassen; der offene Rahmenbewerb ist keine Meisterschaftsklasse.",
+          "categories":{"-16 NÖ":"Mixed bis 16", "17- NÖ":"Mixed ab 17", "50- NÖ":"Mixed ab 50"}
+        }
+      }
+    },
     "1668": {
       "date":"2016-09-11", "stage_number":1,
       "jurisdictions":{"WIEN":{

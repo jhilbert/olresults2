@@ -792,6 +792,9 @@ def parse_os2003_relay_pre_html(html_text):
     categories = []
     current = None
     pending = None
+    member_name_start = 13
+    member_year_start = None
+    member_time_end = None
     category_re = re.compile(r"^(?P<name>.+?)\s+\((?P<count>\d+)\)\s*$")
 
     def result_value(value):
@@ -845,6 +848,16 @@ def parse_os2003_relay_pre_html(html_text):
 
     for raw_line in fixed.splitlines():
         line = raw_line.rstrip()
+        # OS2003 layouts vary: in the 2015 export the birth-year and first
+        # time columns start earlier than in the 2013 relay report. Derive
+        # boundaries from the printed header instead of chopping off names
+        # and reading the later cumulative time as an individual leg time.
+        header = re.search(r"\bName\b\s+\bJg\b\s+\bZeit\b\s+\bEPl\b", line, re.I)
+        if header:
+            member_name_start = line.index("Name", header.start())
+            member_year_start = line.index("Jg", member_name_start + 4)
+            member_time_end = line.index("EPl", member_year_start + 2)
+            continue
         category_match = category_re.fullmatch(line.strip())
         if category_match and not line.lstrip().startswith(("Pl ", "Name ")):
             flush()
@@ -877,9 +890,15 @@ def parse_os2003_relay_pre_html(html_text):
 
         if pending is None or len(line) < 48:
             continue
-        member_name = line[13:42].strip()
-        member_value = line[47:].strip()
-        if not member_name or not member_value:
+        if member_year_start is not None and member_time_end is not None:
+            member_name = line[member_name_start:member_year_start].strip()
+            member_value = line[member_year_start + 2:member_time_end].strip()
+        else:
+            member_name = line[13:42].strip()
+            member_value = line[47:].strip()
+        # A named last leg may have no individual time/status in the source
+        # (e.g. a timed-out team). Keep the person with unknown leg status.
+        if not member_name:
             continue
         seconds, status = result_value(member_value)
         pending["members"].append({
@@ -1884,8 +1903,11 @@ def main():
                     "blankStageMeansDns": True,
                 }])
                 cats = []
-            elif ("Bundesländer-Staffel Turracherhöhe 8.9.2013" in text
-                    and "<pre" in text.lower()):
+            elif ("<pre" in text.lower() and
+                  ("Bundesländer-Staffel Turracherhöhe 8.9.2013" in text
+                   or (re.search(r"\bOS2003\b", text, re.I)
+                       and re.search(r"\bStnr\s+Staffel\b", text, re.I)
+                       and re.search(r"\bEPl\s+Kombinat\b", text, re.I)))):
                 cats = parse_os2003_relay_pre_html(text)
             elif "Results Vienna Sprint Relay 2022" in text:
                 cats = parse_vienna_sprint_relay_html(text)
@@ -1907,7 +1929,7 @@ def main():
                     cats = parse_positioned_document(text, relay=True)
                 if not cats and "<pre" in text.lower():
                     from parse_sportsoftware_text import extract_pre_blocks, parse_legacy_pre_text
-                    cats = parse_legacy_pre_text(extract_pre_blocks(text))
+                    cats = parse_legacy_pre_text(extract_pre_blocks(text), pair_text1=(eid == 842))
             else:
                 cats = parse_document(text)
                 if not cats and "position:absolute" in text:
@@ -1917,7 +1939,7 @@ def main():
                     # instead of a table (e.g. team/Mannschaft lists) — parse it
                     # with the fixed-width text logic
                     from parse_sportsoftware_text import extract_pre_blocks, parse_legacy_pre_text
-                    cats = parse_legacy_pre_text(extract_pre_blocks(text))
+                    cats = parse_legacy_pre_text(extract_pre_blocks(text), pair_text1=(eid == 842))
                 if (not cats and re.search(r"<font\b", text, re.I)
                         and re.search(r"\bPl\s+.*\bName\s+.*\bVerein", text, re.I | re.S)):
                     # Older OE score exports are fixed-width reports wrapped
@@ -1964,6 +1986,16 @@ def main():
             if ((eid, n) == (1812, 0) and archived.is_file()
                     and hashlib.sha256(data).digest() == hashlib.sha256(archived.read_bytes()).digest()):
                 normalized_document["snapshotPath"] = archived.relative_to(ROOT).as_posix()
+            archived_mixed = ROOT / "data/review/archived_sources/2015/1386-mixed.html"
+            if (eid == 1386 and f["url"] == "https://anne-cdn.oefol.at/public/legacy/event_1386_noe_mixed_sprint_staffel.htm"
+                    and archived_mixed.is_file()
+                    and hashlib.sha256(data).digest() == hashlib.sha256(archived_mixed.read_bytes()).digest()):
+                # A normal re-scan of unchanged source bytes must reproduce
+                # the reviewed archive document exactly, including its source
+                # snapshot and pinned normalization hash.
+                from parse_archived_2015 import document as archive_document, SOURCES as archive_sources
+                source = next(item for item in archive_sources if item[0] == 1386)
+                normalized_document = archive_document(source[0], *source[2:])
             if stage_documents:
                 normalized_document["stageDocuments"] = stage_documents
             out_path.write_text(json.dumps(

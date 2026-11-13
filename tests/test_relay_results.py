@@ -45,6 +45,43 @@ BUILD_SPEC.loader.exec_module(build_db)
 
 
 class RelayStructureTests(unittest.TestCase):
+    def test_2013_regional_relay_champion_annotation_precedes_team_header(self):
+        source = ROOT / "data/review/archived_sources/2013/883-wien-noe-staffel.html"
+        text = text_parser.extract_pre_blocks(text_parser.decode(source.read_bytes()))
+        categories = text_parser.parse_legacy_pre_text(text)
+        self.assertEqual(len(categories), 23)
+        self.assertTrue(all(c["declaredStarters"] == c["sourceUnitCount"] for c in categories))
+        men = next(c for c in categories if c["name"] == "Herren -14 Wien")
+        winner = [r for r in men["results"] if r.get("rank") == 1]
+        self.assertEqual({r["name"] for r in winner}, {"Bonek Erik", "Wolfram Clemens", "Bonek Jannis"})
+        self.assertEqual({r["teamNumber"] for r in winner}, {"51"})
+        self.assertEqual([r["timeText"] for r in winner], ["17:26", "15:30", "14:59"])
+        self.assertTrue(all(r["teamTimeS"] == 2875 for r in winner))
+
+    def test_2013_mannschaft_one_digit_birth_year_is_not_a_missing_person(self):
+        source = ROOT / "data/review/archived_sources/2013/851-mannschaft.pdf"
+        teams = pdf_parser.parse_relay_pdf(source, team_mode=True)
+        for category, number, expected in (
+            ("Herren -14", "39", {"Bonek Erik", "Bonek Jannis", "Wolfram Clemens"}),
+            ("Damen -14", "115", {"Gassner Jasmina", "Kastner Ylvi", "Tiefenböck Tina"}),
+        ):
+            rows = next(c["results"] for c in teams if c["name"] == category)
+            self.assertEqual({r["name"] for r in rows if r.get("teamNumber") == number}, expected)
+        self.assertIsNone(pdf_parser.parse_relay_member_line("Kastner Ylvi 0"))
+        self.assertEqual(pdf_parser.parse_relay_member_line("Kastner Ylvi 0", one_digit_year=True)["name"], "Kastner Ylvi")
+
+    def test_2013_night_text1_youth_pairs_are_separate_runners(self):
+        source = ROOT / "data/review/archived_sources/2013/842-nacht.html"
+        text = text_parser.extract_pre_blocks(text_parser.decode(source.read_bytes()))
+        categories = text_parser.parse_legacy_pre_text(text, pair_text1=True)
+        boys = next(c for c in categories if c["name"] == "Herren -14")
+        winner = [r for r in boys["results"] if r.get("rank") == 1]
+        self.assertEqual({r["name"] for r in winner}, {"Gassner Jasmina", "Bonek Jannis"})
+        self.assertTrue(all(r.get("resultKind") == "pair" for r in winner))
+        ordinary = text_parser.parse_legacy_pre_text(text)
+        old_boys = next(c for c in ordinary if c["name"] == "Herren -14")
+        self.assertEqual(len([r for r in old_boys["results"] if r.get("rank") == 1]), 1)
+
     def test_relay_title_between_team_header_and_first_leg_keeps_team(self):
         source = """<table><tr><td>Allgemeine Klasse (2)</td></tr></table>
         <table><tr><th>Pl</th><th>Stnr</th><th>Staffel</th><th>Zeit</th></tr>

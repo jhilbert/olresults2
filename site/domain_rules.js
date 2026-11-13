@@ -98,6 +98,8 @@
         .map((name) => name.trim().toLocaleLowerCase("de-AT")).sort();
       return JSON.stringify([...prefix, row.club_name, "pair", members]);
     }
+    if (row.result_kind === "team" && row.note === "Mannschaft" && !row.team_number)
+      return JSON.stringify([...prefix, row.club_name, "team-source-row", row.result_id]);
     const team = row.team_number != null && row.team_number !== "" ? ["number", String(row.team_number)]
       : row.team_name ? ["name", row.team_name] : null;
     // No reliable team identity: never silently merge two different teams.

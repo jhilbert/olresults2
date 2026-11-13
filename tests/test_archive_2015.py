@@ -1,7 +1,9 @@
 import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "ingest"))
@@ -16,7 +18,7 @@ class Archive2015Tests(unittest.TestCase):
             self.assertEqual(archive.document(event, name, date, label, kind, url), expected)
 
     def test_relay_winners_keep_club_legs_and_championship(self):
-        source = archive.SOURCES[1]
+        source = next(item for item in archive.SOURCES if item[0] == 1424)
         doc = archive.document(source[0], *source[2:])
         women = next(c for c in doc["categories"] if c["name"] == "Damen 19- Elite")
         team = [r for r in women["results"] if r.get("teamName") == "Naturfreunde Wien 1"]
@@ -29,7 +31,8 @@ class Archive2015Tests(unittest.TestCase):
         self.assertEqual(max_pietsch["yearOfBirth"], 2005)
 
     def test_national_classification_is_a_subset_of_the_full_cup(self):
-        national, cup = (archive.document(source[0], *source[2:]) for source in archive.SOURCES[2:])
+        sources = [item for item in archive.SOURCES if item[0] == 1425]
+        national, cup = (archive.document(source[0], *source[2:]) for source in sources)
         overall = {c["name"]: c for c in cup["categories"]}
         self.assertEqual(len(national["categories"]), 27)
         self.assertEqual(sum(len(c["results"]) for c in national["categories"]), 369)
@@ -54,6 +57,47 @@ class Archive2015Tests(unittest.TestCase):
         self.assertEqual(normalized["snapshotPath"], snapshot.relative_to(ROOT).as_posix())
         self.assertEqual(len(normalized["categories"]), 11)
         self.assertEqual(sum(c["sourceUnitCount"] for c in normalized["categories"]), 109)
+
+    def test_2015_wien_and_noe_mixed_relay_keeps_teams_and_leg_times(self):
+        source = next(item for item in archive.SOURCES if item[0] == 1386)
+        doc = archive.document(source[0], *source[2:])
+        self.assertEqual(sum(c["sourceUnitCount"] for c in doc["categories"]), 72)
+        self.assertEqual(sum(len(c["results"]) for c in doc["categories"]), 216)
+        youth = next(c for c in doc["categories"] if c["name"] == "-16 W")
+        winners = [r for r in youth["results"] if r.get("rank") == 1]
+        self.assertEqual([r["name"] for r in winners], ["Jakob Wolfram", "Tina Tiefenböck", "Erik Bonek"])
+        self.assertEqual([r["timeS"] for r in winners], [535, 575, 525])
+        self.assertEqual([r["leg"] for r in winners], [1, 2, 3])
+        self.assertEqual({r["teamTimeS"] for r in winners}, {1635})
+        missing = next(r for c in doc["categories"] for r in c["results"] if r["name"] == "John Shelvin")
+        self.assertEqual(missing["individualStatus"], "unknown")
+
+    def test_2015_mixed_relay_rescan_preserves_reviewed_normalization(self):
+        source = next(item for item in archive.SOURCES if item[0] == 1386)
+        data = (archive.ARCHIVE / source[2]).read_bytes()
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            raw, files, out = root / "raw", root / "files", root / "normalized"
+            raw.mkdir()
+            (raw / "attachments.json").write_text(json.dumps({"1386": [{"url":source[6],
+                "fileName":source[4], "mimeType":"text/html"}]}))
+            with patch.object(sportsoftware, "RAW", raw), patch.object(sportsoftware, "FILES", files), \
+                    patch.object(sportsoftware, "OUT", out), patch.object(sportsoftware, "fetch", return_value=data), \
+                    patch.object(sys, "argv", ["parse", "--event-id", "1386"]):
+                self.assertEqual(sportsoftware.main(), 0)
+            self.assertEqual((out / "1386-0.json").read_bytes(),
+                             (ROOT / "data/normalized/1386-0.json").read_bytes())
+
+    def test_2015_wien_and_noe_junior_senior_results_complete(self):
+        source = next(item for item in archive.SOURCES if item[0] == 1368)
+        doc = archive.document(source[0], *source[2:])
+        self.assertEqual(len(doc["categories"]), 33)
+        self.assertEqual(sum(len(c["results"]) for c in doc["categories"]), 239)
+        for category in doc["categories"]:
+            self.assertEqual(len(category["results"]), category["declaredStarters"], category["name"])
+        d14 = next(c for c in doc["categories"] if c["name"] == "D 13-14 Wien")
+        self.assertEqual(d14["results"][0]["name"], "Tiefenböck Rita")
+        self.assertEqual(d14["results"][0]["timeS"], 1880)
 
 
 if __name__ == "__main__":

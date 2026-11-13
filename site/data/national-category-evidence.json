@@ -1,6 +1,25 @@
 {
   "schema_version": 1,
   "events": {
+    "1637": {
+      "event_date":"2016-05-14", "stage_number":1,
+      "label":"Ausschreibung ÖM Langdistanz 2016, Seite 2",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_1637_ausschreibung-ac.pdf",
+      "sha256":"3b81159cce6d1ad81e87211e88c758a3f84b0954a47be99dbcc463a42c11b3ef",
+      "reviewed_on":"2026-11-13", "result_kinds":["individual"],
+      "complete_event_scope":true, "apply_category_inference":true, "default_championship":"ÖM",
+      "categories":["Damen -12","Herren -12","Damen -14","Herren -14","Damen -16 Elite","Herren -16 Elite","Damen -18 Elite","Herren -18 Elite","Damen -20 Elite","Herren -20 Elite","Damen 35-","Herren 35-","Damen 40-","Herren 40-","Damen 45-","Herren 45-","Damen 50-","Herren 50-","Damen 55-","Herren 55-","Damen 60-","Herren 60-","Damen 65-","Herren 65-","Damen 70-","Herren 70-","Herren 75-"],
+      "scope":"Die Ausschreibung nennt die Langdistanz-Klassen für die erste Etappe. 21E und weitere AC-/Rahmenklassen sowie die Etappen 2 und 3 sind keine ÖM Lang. Die Kategorie allein bestätigt keine individuelle Berechtigung."
+    },
+    "1555": {
+      "event_date":"2015-09-27", "stage_number":1,
+      "label":"Ausschreibung ÖM Mannschaft 2015",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_1555_AusschreibungSeebenstein2015.pdf",
+      "sha256":"84ec25c2e5e463c39caa77992b58fc39773df4d808a49bfe66a6f64884f85b22",
+      "reviewed_on":"2026-11-12", "result_kinds":["team"],
+      "categories":["Damen -14", "Herren  -14", "Damen 15-18", "Herren 15 -18", "Damen 19-", "Herren 19-", "Damen 40-", "Herren 40-", "Damen 50-", "Herren 50-", "Herren 60-"],
+      "scope":"ÖM-Mannschaftsklassen laut Ausschreibung; Offen und Einzelstarter sind Rahmenbewerbe. Die Klassifizierung belegt weder einzelne Identitäten noch die Titelvergabe."
+    },
     "3322": {
       "event_date":"2021-09-19", "stage_number":1,
       "label":"ÖM Nachwuchs Sprint 2021; Tiroler Meisterschaft Senioren",

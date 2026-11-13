@@ -25,6 +25,8 @@ test("club-local Mannschaft numbers do not group different teams", () => {
   const b = {result_kind:"team", team_number:"1", team_name:"Verein B 1"};
   assert.notEqual(context.unitKey(a), context.unitKey(b));
   assert.equal(context.unitKey(a), context.unitKey({...a}));
+  const sourceRow = {result_kind:"team", note:"Mannschaft", team_name:"Naturfreunde Wien", id:1};
+  assert.notEqual(context.unitKey(sourceRow), context.unitKey({...sourceRow,id:2}));
 });
 
 test("calendar dates and ISO stage timestamps display without time or timezone shift", () => {
@@ -135,6 +137,23 @@ test("club success chart uses annual club gold units and links to matching views
   assert.ok(html.indexOf('Landes MS') < html.indexOf('Jugend-Meistertitel'));
   assert.ok(html.indexOf('Landes MS') < html.indexOf('Erfolgsstatistik'));
   assert.ok(html.indexOf('Erfolgsstatistik') < html.indexOf('Jugend-Meistertitel'));
+});
+
+test("source-only team medal counts for club but not for a fabricated runner", () => {
+  const isolated = vm.createContext({window:{OLRDomainRules:rules}, document:{getElementById:()=>({})},
+    location:{search:""}, localStorage:{getItem:()=>null}, URLSearchParams});
+  vm.runInContext(source.slice(0, bootIndex) + `
+    query = () => [{n:1,runners:0}]; regionalJurisdictions = () => [];
+    fetchPodiums = () => globalThis.fixture; globalThis.clubHtml = clubDetailHtml;`, isolated);
+  isolated.fixture = [{event_id:1555,stage_id:1,stage_number:1,event_title:'ÖM Mannschaft',
+    date:'2015-09-27',sport_type:'footOrienteering',result_list_id:'team-list',category:'Damen -14',
+    club_name:'Naturfreunde Wien',rank:1,national_rank:1,championship:'ÖM',status:'ok',
+    result_kind:'team',team_name:'Naturfreunde Wien',result_id:'1',person_id:'-1',
+    person_name:'Kastner Hufnagel Tiefenböck',identity_basis:'source-team-only'}];
+  const html = isolated.clubHtml('Naturfreunde Wien','2015','om',{});
+  assert.match(html,/<div class="stat"><b>1<\/b><span>Gold<\/span>/);
+  assert.doesNotMatch(html,/Kastner Hufnagel Tiefenböck/);
+  assert.match(html,/ohne eindeutig belegte Einzelpersonen/);
 });
 
 test("historical club aggregates are identified and hidden when disciplines are filtered", () => {

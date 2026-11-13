@@ -412,12 +412,16 @@ CREATE VIEW category_stats AS
 SELECT stage_id, category,
        COUNT(CASE WHEN result_kind != 'team' AND NOT (stage_id = 10005397 AND result_kind = 'pair') THEN 1 END)
          + COUNT(DISTINCT CASE WHEN result_kind = 'team' OR (stage_id = 10005397 AND result_kind = 'pair') THEN
-             CASE WHEN result_kind = 'team' AND team_number IS NOT NULL AND team_name IS NOT NULL
+             CASE WHEN result_kind = 'team' AND note = 'Mannschaft' AND team_number IS NULL
+               THEN 'r:' || id
+               WHEN result_kind = 'team' AND team_number IS NOT NULL AND team_name IS NOT NULL
                THEN 'n:' || team_number || ':t:' || team_name
                ELSE COALESCE('n:' || team_number, 't:' || team_name, 'r:' || id) END END) AS starters,
        SUM(CASE WHEN result_kind != 'team' AND NOT (stage_id = 10005397 AND result_kind = 'pair') AND status = 'ok' THEN 1 ELSE 0 END)
          + COUNT(DISTINCT CASE WHEN (result_kind = 'team' OR (stage_id = 10005397 AND result_kind = 'pair')) AND status = 'ok' THEN
-             CASE WHEN result_kind = 'team' AND team_number IS NOT NULL AND team_name IS NOT NULL
+             CASE WHEN result_kind = 'team' AND note = 'Mannschaft' AND team_number IS NULL
+               THEN 'r:' || id
+               WHEN result_kind = 'team' AND team_number IS NOT NULL AND team_name IS NOT NULL
                THEN 'n:' || team_number || ':t:' || team_name
                ELSE COALESCE('n:' || team_number, 't:' || team_name, 'r:' || id) END END) AS classified,
        MIN(CASE WHEN rank = 1 THEN time_s END)        AS winner_time_s
@@ -2142,6 +2146,7 @@ CLUB_SOURCE_ALIASES = {
     "FUN-OL NOE": "FUN.O NOe",
     "OLG DKB": "SKV OLG Deutsch Kaltenbrunn",
     "WAT": "WAT-OL",
+    "WAT WAT": "WAT-OL",
     "WAT.OL": "WAT-OL",
     "WAT OL": "WAT-OL",
     "WAT-OL WAT-OL": "WAT-OL",
@@ -2280,6 +2285,16 @@ def source_club_for_team(raw_club, team_name, kind):
 
 def source_event_team_club(event_id, raw_club, team_name, kind):
     club = source_club_for_team(raw_club, team_name, kind)
+    # The 2015 OS2003 relay export has no separate club column. Its team
+    # labels explicitly name a club, except e.g. "Mixed". Resolve only exact
+    # official names or known exact aliases, never fuzzy or embedded matches.
+    if event_id == 1386 and kind == "relay" and not club and team_name:
+        label = re.sub(r"\s+\d+$", "", team_name).strip()
+        aliases = {source.casefold(): target for source, target in CLUB_SOURCE_ALIASES.items()}
+        aliases["wat wat"] = "WAT-OL"
+        label = aliases.get(label.casefold(), label)
+        return next((official for official in OFFICIAL_CLUBS
+                     if official.casefold() == label.casefold()), None)
     # WOLV 2025 staffing lists use the short label "Naturfreunde"; the
     # named lineups and verified club roster identify these squads as Wien.
     # Never generalize this ambiguous short label to unrelated events.
@@ -4331,23 +4346,31 @@ def expand_1333_published_pairs(event_id, category, rows):
 def expand_1710_published_winning_pair(event_id, category, rows):
     """Resolve a truncated source pair using the independent ÖFOL winner list.
 
-    The result PDF prints only ``Calvet Sofia Kastner M``; the ÖFOL
-    Meistertafel identifies the second runner as Maya Kastner. Preserve the
-    exact observation and do not extend this inference to any other row.
+    The result PDF truncates each second name. The ÖFOL Meistertafel names
+    the missing runners. Max Pietsch remains a source-only candidate: a
+    similar ANNE name is not proof that it is the same person.
     """
     expanded = []
     for row in rows:
-        if (event_id, category, row.get("name"), row.get("club"),
-                row.get("rank"), row.get("timeS")) != (
-                1710, "Damen -14", "Calvet Sofia Kastner M",
-                "Naturfreunde Wien", 1, 846):
+        key = (event_id, category, row.get("name"), row.get("club"),
+               row.get("rank"), row.get("timeS"))
+        pairs = {
+            (1710, "Damen -14", "Calvet Sofia Kastner M", "Naturfreunde Wien", 1, 846):
+                ("Sofia Calvet", "Maya Kastner"),
+            (1710, "Herren -14", "Deubel Jonas Pietsch M", "Naturfreunde Wien", 1, 1427):
+                ("Jonas Deubel", "Max Pietsch"),
+        }
+        names = pairs.get(key)
+        if not names:
             expanded.append(row)
             continue
-        names = ("Sofia Calvet", "Maya Kastner")
         for i, name in enumerate(names):
-            expanded.append({**row, "name": name, "originalObservedName": row["name"],
-                             "yearOfBirth": None, "resultKind": "pair",
-                             "nameCanonicalOrder": True, "note": "Partner: " + names[1-i]})
+            member = {**row, "name": name, "originalObservedName": row["name"],
+                      "yearOfBirth": None, "resultKind": "pair",
+                      "nameCanonicalOrder": True, "note": "Partner: " + names[1-i]}
+            if category == "Herren -14" and name == "Max Pietsch":
+                member["sourceOnlyCandidate"] = True
+            expanded.append(member)
     return expanded
 
 
@@ -5130,7 +5153,8 @@ def normalize_team_results(cur):
         # Some relay result lists number teams within each club (both WAT 1
         # and Naturfreunde Wien 1). A bare number must never merge those
         # different teams or propagate one's MP/DNF onto the other.
-        identity = (f"n:{team_number}:t:{team_name.strip().casefold()}"
+        identity = (f"source-row:{rid}" if kind == "team" and note == "Mannschaft" and not team_number else
+                    f"n:{team_number}:t:{team_name.strip().casefold()}"
                     if team_number and team_name else
                     f"n:{team_number}" if team_number else
                     f"t:{(team_name or '').strip().casefold()}" if team_name else
@@ -5186,6 +5210,8 @@ def competitor_unit_key(row):
             return "pair:members:" + ":".join(sorted({
                 member.casefold() for member in members}))
         return f"pair:{rank}:{status}:{time_s}:{club or ''}"
+    if kind == "team" and note == "Mannschaft" and not team_number:
+        return f"team:source-row:{rid}"
     if kind in {"team", "relay"} and team_number and team_name:
         return f"{kind}:number:{team_number}:team:{team_name.strip().casefold()}"
     if team_number:
@@ -5974,6 +6000,8 @@ def _regional_unit_key(row):
     (rid, person_id, kind, team_number, team_name, club, _official_club,
      rank, _status, time_s, _ooc, *_provenance) = row
     if kind in {"relay", "team", "pair"}:
+        if kind == "team" and len(row) > 14 and row[14] == "Mannschaft" and not team_number:
+            return f"team:source-row:{rid}"
         # time_s is the individual's leg time; a shared team time is the
         # stable value for grouping all legs of the same unnumbered team.
         team_time_s = row[13] if len(row) > 13 else None
@@ -6386,7 +6414,7 @@ def populate_regional_championships(cur, catalog, club_jurisdictions, source_cla
         rows = cur.execute(
             """SELECT id, person_id, result_kind, team_number, team_name, club,
                       official_club, rank, status, time_s, out_of_competition,
-                      observed_nation, observed_name, team_time_s
+                      observed_nation, observed_name, team_time_s, note
                FROM result WHERE result_list_id = ? ORDER BY id""", (list_id,)).fetchall()
         units = defaultdict(list)
         allowed_names = official_split_filters.get((list_id, jurisdiction, category_key))
@@ -6584,7 +6612,8 @@ def apply_national_minimum_starters(cur, event_eligibility=None):
         elif kind in {"relay", "team"}:
             number_key = (f"number:{number}:team:{team}"
                           if number and team else f"number:{number}")
-            key = f"{kind}:" + (number_key if number else
+            key = f"{kind}:" + (f"source-row:{rid}" if kind == "team" and note == "Mannschaft" and not number else
+                               number_key if number else
                                f"team:{team}" if team else f"club:{club or ''}")
         else:
             continue
@@ -6638,7 +6667,9 @@ def compute_national_ranks(cur):
             SELECT COUNT(CASE WHEN r2.result_kind = 'individual' THEN 1 END)
                  + COUNT(DISTINCT CASE WHEN r2.result_kind = 'pair' THEN pu2.unit_key END)
                  + COUNT(DISTINCT CASE WHEN r2.result_kind IN ('relay', 'team')
-                                        THEN CASE WHEN r2.team_number IS NOT NULL AND r2.team_name IS NOT NULL
+                                        THEN CASE WHEN r2.result_kind='team' AND r2.note='Mannschaft' AND r2.team_number IS NULL
+                                             THEN 'r:' || r2.id
+                                             WHEN r2.team_number IS NOT NULL AND r2.team_name IS NOT NULL
                                              THEN 'n:' || r2.team_number || ':t:' || r2.team_name
                                              ELSE COALESCE('n:' || r2.team_number,
                                                       't:' || r2.team_name,
@@ -6705,15 +6736,22 @@ def apply_official_national_titles(cur, titles):
     All source observations and the full roster must still match.
     """
     for item in titles:
-        if item.get("result_kind") == "relay":
+        if (item.get("result_kind") == "relay" or
+                (item.get("result_kind") == "team" and item.get("team_time_s") is not None)):
             if item.get("team_time_s") is None:
-                raise ValueError("Official relay winner requires its shared team time")
+                raise ValueError("Official relay or team winner requires its shared team time")
             time_column, expected_time = "r.team_time_s", item["team_time_s"]
         else:
             time_column, expected_time = "r.time_s", item["time_s"]
         source_required = item.get("result_url") or ""
+        source_hash = item.get("normalized_sha256") or ""
+        team_observation = item.get("team_source_observation")
+        if team_observation is not None and (
+                item.get("result_kind") != "team" or not source_required or not source_hash
+                or not item.get("eligibility_from_official_champion")):
+            raise ValueError("Source-only team titles require an exact, source-pinned team observation")
         allow_provisional = int(item.get("eligibility_from_official_champion") is True)
-        rows = cur.execute(f"""SELECT r.id,r.person_id,r.identity_state,r.observed_name,p.year_of_birth FROM result r
+        rows = cur.execute(f"""SELECT r.id,r.person_id,r.identity_state,r.observed_name,p.year_of_birth,p.name,r.identity_basis FROM result r
             JOIN stage s ON s.id=r.stage_id JOIN event e ON e.id=s.event_id
             LEFT JOIN person p ON p.id=r.person_id
             JOIN national_minimum_starters m ON m.stage_id=r.stage_id AND m.category=r.category
@@ -6721,29 +6759,51 @@ def apply_official_national_titles(cur, titles):
               AND r.category=? AND r.result_list_id=? AND r.result_kind=?
               AND r.official_club=? AND r.team_name IS ? AND {time_column}=?
               AND r.rank=1 AND r.status='ok' AND r.out_of_competition=0
-              AND r.championship='ÖM'
+              AND (r.championship='ÖM' OR (?=1 AND r.championship IS NULL))
               AND (r.championship_eligibility_state='eligible' OR
                    (?=1 AND r.championship_eligibility_state IN ('unknown','provisional')))
               AND (?='' OR EXISTS (SELECT 1 FROM source_document d
                                     WHERE d.id=r.source_document_id AND d.source_url=?))
+              AND (?='' OR EXISTS (SELECT 1 FROM source_document d
+                                    WHERE d.id=r.source_document_id AND d.normalized_sha256=?))
               AND m.state IN ('met','unresolved')""",
             (item['event_id'], item['date'], item['stage_number'], item['category'],
              item['result_list_id'], item['result_kind'], item['club'], item['team_name'],
-             expected_time, allow_provisional, source_required, source_required)).fetchall()
-        if len(rows) != len(item['person_ids']) or {r[1] for r in rows} != set(item['person_ids']):
+             expected_time, int(team_observation is not None), allow_provisional, source_required, source_required,
+             source_hash, source_hash)).fetchall()
+        if team_observation is not None:
+            # The official championship and ANNE both identify the winning
+            # team, but ANNE prints only a combined list of surnames. Credit
+            # exactly one club medal without asserting any member identity.
+            if len(rows) != 1 or rows[0][2] != "candidate" or rows[0][3] != team_observation:
+                continue
+        elif len(rows) != len(item['person_ids']) or {r[1] for r in rows} != set(item['person_ids']):
             continue
         # A source-confirmed team title is not dependent on every runner
         # having a verified ÖFOL identity.  An expressly reviewed candidate
         # may be credited as an observed team member without changing their
         # identity_state; bind the exception to exact ID, name and birth year.
         candidate_roster = item.get("candidate_roster", {})
-        if any(state != "resolved" and not (
-                state == "candidate"
-                and (candidate := candidate_roster.get(str(person_id)))
-                and name_key(observed_name or "") == name_key(candidate.get("name") or "")
-                and isinstance(candidate.get("year_of_birth"), int)
-                and birth_year == candidate.get("year_of_birth"))
-               for _, person_id, state, observed_name, birth_year in rows):
+        def candidate_matches(person_id, state, observed_name, birth_year, person_name, identity_basis):
+            candidate = candidate_roster.get(str(person_id))
+            if state != "candidate" or not candidate:
+                return False
+            # A source-only transcription may intentionally have no birth
+            # year. Require the exact combined printed source observation,
+            # a negative source-only identity, and both source/hash pins.
+            if candidate.get("source_observation") is not None:
+                return (person_id < 0 and identity_basis == "source-name-ambiguous"
+                        and bool(source_required and source_hash)
+                        and observed_name == candidate["source_observation"]
+                        and name_key(person_name or "") == name_key(candidate.get("name") or "")
+                        and candidate.get("year_of_birth") is None and birth_year is None)
+            return (name_key(observed_name or "") == name_key(candidate.get("name") or "")
+                    and isinstance(candidate.get("year_of_birth"), int)
+                    and birth_year == candidate.get("year_of_birth"))
+
+        if team_observation is None and any(state != "resolved" and not candidate_matches(
+                person_id, state, observed_name, birth_year, person_name, identity_basis)
+               for _, person_id, state, observed_name, birth_year, person_name, identity_basis in rows):
             continue
         for result_id, *_ in rows:
             cur.execute("INSERT INTO official_national_title VALUES (?,?,?,?,?)",
@@ -6754,6 +6814,8 @@ def apply_official_national_titles(cur, titles):
                 cur.execute("""UPDATE result SET championship_eligibility_state='eligible',
                     championship_eligibility_basis='official_championship_ranking',
                     championship_source_scope='winner_only' WHERE id=?""", (result_id,))
+            if team_observation is not None:
+                cur.execute("UPDATE result SET championship='ÖM', identity_basis='source-team-only' WHERE id=?", (result_id,))
 
 
 def compute_time_behind(cur):
@@ -7523,11 +7585,15 @@ def main():
               AND ((result.result_kind = 'pair' AND r2.rank = result.rank)
                    OR (result.result_kind IN ('relay', 'team')
                        AND r2.result_kind = result.result_kind
-                       AND CASE WHEN r2.team_number IS NOT NULL AND r2.team_name IS NOT NULL
+                       AND CASE WHEN r2.result_kind='team' AND r2.note='Mannschaft' AND r2.team_number IS NULL
+                                THEN 'r:' || r2.id
+                                WHEN r2.team_number IS NOT NULL AND r2.team_name IS NOT NULL
                                 THEN 'n:' || r2.team_number || ':t:' || r2.team_name
                                 ELSE COALESCE('n:' || r2.team_number,
                                     't:' || r2.team_name, 'c:' || r2.club, '') END =
-                           CASE WHEN result.team_number IS NOT NULL AND result.team_name IS NOT NULL
+                           CASE WHEN result.result_kind='team' AND result.note='Mannschaft' AND result.team_number IS NULL
+                                THEN 'r:' || result.id
+                                WHEN result.team_number IS NOT NULL AND result.team_name IS NOT NULL
                                 THEN 'n:' || result.team_number || ':t:' || result.team_name
                                 ELSE COALESCE('n:' || result.team_number,
                                     't:' || result.team_name, 'c:' || result.club, '') END))
