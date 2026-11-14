@@ -10,8 +10,16 @@ const {
   youthTitleCategory,
   youthTitleGrant,
   clubMedalCounts,
+  isMedalRank,
   annualClubGoldSeries,
 } = require("../site/domain_rules.js");
+
+test("only actual podium ranks are medals", () => {
+  for (const rank of [1, 2, 3]) assert.equal(isMedalRank(rank), true);
+  for (const rank of [null, undefined, 0, 4, -1, 1.5, "1", NaN]) {
+    assert.equal(isMedalRank(rank), false, String(rank));
+  }
+});
 
 test("annual gold history counts winning teams once and does not invent older coverage", () => {
   const national = {event_id:1,stage_id:1,result_list_id:'r',category:'H21',championship:'ÖSTM',

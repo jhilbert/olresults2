@@ -107,6 +107,9 @@
       team || ["unresolved", row.result_id ?? row.person_id]]);
   };
 
+  // JavaScript considers null <= 3 true; an absent rank is not a medal.
+  const isMedalRank = (rank) => Number.isInteger(rank) && rank >= 1 && rank <= 3;
+
   const clubMedalCounts = (rows, isNational = true) => {
     const seen = new Set(), counts = { gold: 0, silver: 0, bronze: 0 };
     for (const row of rows) {
@@ -213,6 +216,7 @@
     youthTitleGrant,
     clubMedalUnitKey,
     clubMedalCounts,
+    isMedalRank,
     annualClubGoldSeries,
     regionalStarterCountsSql,
   };

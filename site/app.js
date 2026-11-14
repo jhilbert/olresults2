@@ -101,6 +101,7 @@ const {
   youthTitleCategory,
   youthTitleGrant,
   clubMedalCounts,
+  isMedalRank,
   annualClubGoldSeries,
   regionalStarterCountsSql,
 } = window.OLRDomainRules;
@@ -886,8 +887,8 @@ function viewRunnersPage(year, omGroup, ansicht, regionalCode = null) {
     // Gruppe choice, not locked to ÖM/ÖSTM - a runner's own full "Alle"
     // podium tally is a reasonable thing to want to see for themselves.
     const typeFiltered = mode === "lm" ? podiumsAll : mode === "om"
-      ? podiumsAll.filter((r) => r.championship && r.national_rank <= 3)
-      : podiumsAll.filter((r) => r.rank <= 3 && !isKoHeat(r.category));
+      ? podiumsAll.filter((r) => r.championship && isMedalRank(r.national_rank))
+      : podiumsAll.filter((r) => isMedalRank(r.rank) && !isKoHeat(r.category));
     const podiums = year ? typeFiltered.filter((r) => seasonYear(r.date, r.sport_type) === year) : typeFiltered;
     const yearChip = (val, label) => `<a class="chip ${(!year && !val) || year === val ? "active" : ""}"
         href="#/runners${val ? "/" + val : ""}${modeSuffix}/medals">${label}</a>`;
@@ -1479,6 +1480,7 @@ function renderRankedMedalTable(podiums, { showClub, isOm, capOutput, splitKinds
   const byPerson = new Map();
   const sourceTeamsWithoutRoster = new Set();
   for (const r of podiums) {
+    if (!isMedalRank(medalRank(r))) continue;
     if (r.identity_basis === "source-team-only") {
       sourceTeamsWithoutRoster.add(r.result_id);
       continue;
@@ -1940,8 +1942,8 @@ function clubDetailHtml(name, year, medalType, { withChangeButton, hrefBase, vie
     : fetchPodiums({ club: name, dw, includeAdditional: isOm });
   const years = [...new Set(allPodiums.map((r) => seasonYear(r.date, r.sport_type)))].sort((a, b) => b - a);
   const typeFiltered = mode === "lm" ? allPodiums : isOm
-    ? allPodiums.filter((r) => r.championship && r.national_rank <= 3 && (mode !== "ostm" || r.championship === "ÖSTM"))
-    : allPodiums.filter((r) => r.rank <= 3 && !isKoHeat(r.category));
+    ? allPodiums.filter((r) => r.championship && isMedalRank(r.national_rank) && (mode !== "ostm" || r.championship === "ÖSTM"))
+    : allPodiums.filter((r) => isMedalRank(r.rank) && !isKoHeat(r.category));
   const podiums = year ? typeFiltered.filter((r) => seasonYear(r.date, r.sport_type) === year) : typeFiltered;
   const {gold, silver, bronze} = clubMedalCounts(podiums, mode !== "all");
   const renderStats = (counts) => `<div class="stats">
@@ -2019,7 +2021,7 @@ function viewClubsPage(year, medalType, view, regionalCode = null) {
       ? fetchRegionalPodiums({ jurisdiction: regionalCode, dw })
       : fetchPodiums({ dw, includeAdditional: true });
     const typeFiltered = mode === "lm" ? podiumsAll
-      : podiumsAll.filter((r) => r.championship && r.national_rank <= 3 && (mode !== "ostm" || r.championship === "ÖSTM"));
+      : podiumsAll.filter((r) => r.championship && isMedalRank(r.national_rank) && (mode !== "ostm" || r.championship === "ÖSTM"));
     const podiums = year ? typeFiltered.filter((r) => seasonYear(r.date, r.sport_type) === year) : typeFiltered;
     const modeSuffix = mode === "lm" ? `/lm/${regionalCode}` : mode === "ostm" ? "/ostm" : "";
     const yearChip = (val, label) => `<a class="chip ${(!year && !val) || year === val ? "active" : ""}"

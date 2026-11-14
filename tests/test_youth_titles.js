@@ -114,6 +114,32 @@ test("club ÖSTM view separates individual and team medals and keeps one club me
   assert.match(combined,/<h3>Gesamt<\/h3>[\s\S]*?<b>2<\/b><span>Gold<\/span>/);
 });
 
+test("club championship medal views exclude results without a championship rank", () => {
+  const isolated = vm.createContext({window:{OLRDomainRules:rules}, document:{getElementById:()=>({})},
+    location:{search:""}, localStorage:{getItem:()=>null}, URLSearchParams});
+  vm.runInContext(source.slice(0, bootIndex) + `
+    query = () => [{n:4,runners:1}]; regionalJurisdictions = () => [];
+    fetchPodiums = () => globalThis.fixture;
+    globalThis.clubHtml = clubDetailHtml;
+    globalThis.medalTable = renderRankedMedalTable;`, isolated);
+  const base = {event_id:5411,stage_id:1,stage_number:1,event_title:'MTBO ohne Medaille',
+    date:'2026-10-17',sport_type:'mountainbikeOrienteering',result_list_id:'r',category:'D-17',
+    club_name:'Naturfreunde Wien',rank:1,national_rank:null,championship:'ÖM',status:'ok',
+    result_kind:'individual',person_id:'42',person_name:'Matilda Buschek',result_id:'1'};
+  isolated.fixture = [base, {...base,event_id:5412,event_title:'MTBO ohne Rang',national_rank:undefined},
+    {...base,event_id:5280,event_title:'MTBO mit Silber',national_rank:2,result_id:'3'},
+    {...base,event_id:5203,event_title:'ÖSTM Bronze',championship:'ÖSTM',national_rank:3,result_id:'4'}];
+  for (const mode of ['om','ostm']) {
+    const html = isolated.clubHtml('Naturfreunde Wien','2026',mode,{});
+    assert.doesNotMatch(html,/undefined|MTBO ohne Medaille|MTBO ohne Rang/);
+    assert.match(html,/Bronze/);
+    if (mode === 'om') assert.match(html,/Silber/);
+  }
+  const defensive = isolated.medalTable(isolated.fixture,{showClub:false,isOm:true});
+  assert.doesNotMatch(defensive,/undefined|MTBO ohne Medaille|MTBO ohne Rang/);
+  assert.match(defensive,/MTBO mit Silber/);
+});
+
 test("club success chart uses annual club gold units and links to matching views", () => {
   const isolated = vm.createContext({window:{OLRDomainRules:rules}, document:{getElementById:()=>({})},
     location:{search:""}, localStorage:{getItem:()=>null}, URLSearchParams});
