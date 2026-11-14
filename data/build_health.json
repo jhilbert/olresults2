@@ -1,38 +1,38 @@
 {
   "counts": {
-    "audit_issue": 5986,
-    "award": 9570,
-    "championship_entry": 17126,
-    "championship_entry_result": 19324,
-    "championship_instance": 7411,
+    "audit_issue": 6046,
+    "award": 9636,
+    "championship_entry": 17638,
+    "championship_entry_result": 20098,
+    "championship_instance": 7467,
     "championship_jurisdiction": 10,
-    "championship_result": 34120,
+    "championship_result": 34303,
     "championship_rule_set": 10,
     "championship_source_entry": 659,
     "club_jurisdiction": 54,
     "event": 4136,
-    "national_minimum_starters": 3344,
-    "official_national_title": 144,
-    "person": 30814,
-    "person_alias": 37598,
-    "person_club_membership": 12287,
-    "person_identifier": 4095,
+    "national_minimum_starters": 3353,
+    "official_national_title": 191,
+    "person": 30837,
+    "person_alias": 37623,
+    "person_club_membership": 12291,
+    "person_identifier": 4096,
     "person_redirect": 20485,
     "person_tombstone": 5535,
     "regional_award_hold": 20,
-    "regional_category_mapping": 4480,
-    "result": 269444,
+    "regional_category_mapping": 4531,
+    "result": 270265,
     "result_club_evidence": 747,
-    "result_list": 28168,
-    "source_document": 1927,
-    "stage": 1742,
+    "result_list": 28231,
+    "source_document": 1930,
+    "stage": 1745,
     "verification_assertion": 695
   },
   "eligibility": {
     "decisions": 1720,
     "people": 135
   },
-  "logical_sha256": "bca10b804fb7b6e45a86fec59b25113fe7b4c2407fdc4ba40d1ce1232d2d0198",
+  "logical_sha256": "1bd9bcd16756f0fc370d73be204ca7fdc452fb91a81631b47cf06099b759b015",
   "quality": {
     "awards_without_positive_eligibility": 0,
     "club_evidence_mismatch": 0,
@@ -56,10 +56,10 @@
   },
   "result_by_kind": {
     "family": 3988,
-    "individual": 239299,
-    "pair": 2952,
-    "relay": 18218,
-    "team": 4987
+    "individual": 239500,
+    "pair": 3026,
+    "relay": 18711,
+    "team": 5040
   },
   "result_by_source": {
     "anne-api": 40738,
@@ -67,9 +67,9 @@
     "club-table": 690,
     "liveresultat": 1254,
     "sportident-center": 48,
-    "sportsoftware-html": 114538,
-    "sportsoftware-pdf": 108363,
-    "sportsoftware-text": 3805
+    "sportsoftware-html": 114790,
+    "sportsoftware-pdf": 108655,
+    "sportsoftware-text": 4082
   },
   "schema_version": 14
 }
