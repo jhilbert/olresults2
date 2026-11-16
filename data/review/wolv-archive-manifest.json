@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "years": {
+    "1994": {
+      "path": "data/review/archived_sources/1994/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister-Dateien/sheet001.htm",
+      "sha256": "58e0841dc6c81f50db4f28226dbd170c92d95e7b2127a4422df9110d324f7d63"
+    },
+    "1995": {
+      "path": "data/review/archived_sources/1995/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister-Dateien/sheet002.htm",
+      "sha256": "3ccfd249b293a12d988daaf907095eaf9ca34cb2b1342d02fc50d73f716f65a2"
+    },
+    "1996": {
+      "path": "data/review/archived_sources/1996/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister-Dateien/sheet003.htm",
+      "sha256": "bfb72424f0eb09efcf375b92d6921844d184f7b3284dfa22808a74a75090c192"
+    },
+    "1997": {
+      "path": "data/review/archived_sources/1997/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister-Dateien/sheet004.htm",
+      "sha256": "8b62ad4d29bd60cb66fc3dec3872a4dbc4547b01e9e38738666fcffe47b6cbef"
+    },
+    "1998": {
+      "path": "data/review/archived_sources/1998/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister-Dateien/sheet005.htm",
+      "sha256": "8848fbd81533ae7facda1d46d9c6cc5693ee99e5013b46eb26dfe64f350c53c8"
+    },
+    "1999": {
+      "path": "data/review/archived_sources/1999/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister-Dateien/sheet006.htm",
+      "sha256": "8d0af729cce57e8e8ce82eed4edd90639336fb1ff7d8e6c32f001f8624ebacb9"
+    },
+    "2000": {
+      "path": "data/review/archived_sources/2000/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister-Dateien/sheet007.htm",
+      "sha256": "e9e090cac687f1a2825d261fee2f50605fabd3694c8e72dc6ed6cee8c4f77261"
+    },
+    "2001": {
+      "path": "data/review/archived_sources/2001/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister-Dateien/sheet008.htm",
+      "sha256": "31f72fc8c43065f8dea89117800167439aa7e588966999df181bb71bb9a529aa"
+    },
+    "2002": {
+      "path": "data/review/archived_sources/2002/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister-Dateien/sheet009.htm",
+      "sha256": "4b0288197b679992256c780fbd9f3fc8553e659c8a33d35350e236702d177f3f"
+    },
+    "2003": {
+      "path": "data/review/archived_sources/2003/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister-Dateien/sheet010.htm",
+      "sha256": "0d3649ac3e300560590287dfe3dad4c1ecce0aa307d7920b8e01ab2de4814bed"
+    },
+    "2004": {
+      "path": "data/review/archived_sources/2004/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister-Dateien/sheet011.htm",
+      "sha256": "e44fff6da78228efd98ce09266cf917fe70e699cb8acf93cb238f19a80969d16"
+    },
+    "2005": {
+      "path": "data/review/archived_sources/2005/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister-Dateien/sheet012.htm",
+      "sha256": "3db6ac69ed9f182a45f75c78e280262eb15a052f2791dd2cdc5510fd72aab16b"
+    },
+    "2006": {
+      "path": "data/review/archived_sources/2006/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister-Dateien/sheet013.htm",
+      "sha256": "a68d310069108732b78a767d8a724034d6b069408db2a12ff4d675d1b9aa34ec"
+    },
+    "2007": {
+      "path": "data/review/archived_sources/2007/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister-Dateien/sheet014.htm",
+      "sha256": "da50ce1293e8ccf0120a541468eec53dd9168089356322ad13c96d7bd57e40d8"
+    },
+    "2008": {
+      "path": "data/review/archived_sources/2008/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister-Dateien/sheet015.htm",
+      "sha256": "44125536d912e3cc8645614a856c5bdbde8a0c557a93ad72eff84fb07b817416"
+    },
+    "2009": {
+      "path": "data/review/archived_sources/2009/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister-Dateien/sheet016.htm",
+      "sha256": "32be543e8615a44ff4bcd59908c8c1bccc8f0c2efda4b25ffb78056ca088482f"
+    },
+    "2010": {
+      "path": "data/review/archived_sources/2010/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister-Dateien/sheet017.htm",
+      "sha256": "008f1a555e457636f687c590e84eade283edb390009139ec5beca41ed09ebc56"
+    },
+    "2011": {
+      "path": "data/review/archived_sources/2011/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister-Dateien/sheet018.htm",
+      "sha256": "c33f8bc6bb949d7d7fa570f315540e9f31856fabcc65076c68a3deae631111ee"
+    },
+    "2012": {
+      "path": "data/review/archived_sources/2012/wolv-annual.pdf",
+      "url": "http://www.wolv.at/docs/med12.pdf",
+      "sha256": "84246a4fab17fe20f1f456bb6e0005ccea49efa8516dcb5b82b1a7bff545207d"
+    },
+    "2013": {
+      "path": "data/review/archived_sources/2013/wolv-annual.pdf",
+      "url": "http://www.wolv.at/docs/med13.pdf",
+      "sha256": "68ebed4324b4f2af4c821e73d68c856cbeaec09f714adf799de1d4e12792bd66"
+    },
+    "2014": {
+      "path": "data/review/archived_sources/2014/wolv-annual-sheet.html",
+      "url": "http://www.wolv.at/docs/wrmeister2014-Dateien/sheet001.htm",
+      "sha256": "50faa84ddb27ed4cbbc8a829ab7a88069898d59f24770d58aa5f7396f4d919ef"
+    },
+    "2015": {
+      "path": "data/review/archived_sources/2015/wolv-annual.pdf",
+      "url": "http://www.wolv.at/docs/med15.pdf",
+      "sha256": "ff53bc418307d15393c86ea0cdd2033b4efe66dd57581119a1380b9dc9b1efd4"
+    },
+    "2016": {
+      "path": "data/review/archived_sources/2016/wolv-annual.pdf",
+      "url": "http://www.wolv.at/docs/med16.pdf",
+      "sha256": "4c238398ed33163e73112b3cd942667b60b248cadc051cf8ac8f4a4b97dcc97b"
+    },
+    "2017": {
+      "path": "data/review/archived_sources/2017/wolv-annual.pdf",
+      "url": "http://www.wolv.at/docs/med17.pdf",
+      "sha256": "92726b638513fe84ef65235b37ddc6dd05fc9d4b1ec03e2b87e5c91b7f7942ac"
+    },
+    "2018": {
+      "path": "data/review/archived_sources/2018/wolv-annual.pdf",
+      "url": "http://www.wolv.at/docs/med18.pdf",
+      "sha256": "5b39bd6faa6bb9a84abd040b4c0372f3f3d968f72c07762f4b37e0d718e0247e"
+    },
+    "2019": {
+      "path": "data/review/archived_sources/2019/wolv-annual.pdf",
+      "url": "http://www.wolv.at/docs/med19.pdf",
+      "sha256": "b0b635a59b847f4460e08a0f8efecea2ab376e4510a3fbe417f1600bf195c6d0"
+    },
+    "2020": {
+      "path": "data/review/archived_sources/2020/wolv-annual.pdf",
+      "url": "http://www.wolv.at/docs/med20.pdf",
+      "sha256": "1784067e3a9a4919b75089bce0a13dfba33ee08ffd2934ea9b6d14aa163d3304"
+    },
+    "2021": {
+      "path": "data/review/archived_sources/2021/wolv-annual.pdf",
+      "url": "http://www.wolv.at/docs/med21.pdf",
+      "sha256": "17658af3daba020b2a69513fef6087918a4a1b1ab45c757a46346f375a1977e3"
+    },
+    "2022": {
+      "path": "data/review/archived_sources/2022/wolv-annual.pdf",
+      "url": "http://www.wolv.at/docs/med22.pdf",
+      "sha256": "8d075300f937aec270ba0a00478d4d85cf8fd95f5dbd24cc8ceb4947bb188a17"
+    },
+    "2023": {
+      "path": "data/review/archived_sources/2023/wolv-annual.pdf",
+      "url": "http://www.wolv.at/docs/med23.pdf",
+      "sha256": "b736bbc237dd816faf92efd26759b3439789d53ae32aab3a9ff605f76a6c594a"
+    },
+    "2024": {
+      "path": "data/review/archived_sources/2024/wolv-annual.pdf",
+      "url": "http://www.wolv.at/docs/med24.pdf",
+      "sha256": "7607aba56af0c3b6eb369bd0701be9be06187ec5e21aa175507178212d5e7e54"
+    },
+    "2025": {
+      "path": "data/review/archived_sources/2025/wolv-annual.pdf",
+      "url": "http://www.wolv.at/docs/med25.pdf",
+      "sha256": "c7cd28be4cb71648a71c37b6e0c7ab134e1fe6adc1bd1d39fad2884c0a500150"
+    },
+    "2026": {
+      "path": "data/review/archived_sources/2026/wolv-annual.pdf",
+      "url": "http://www.wolv.at/docs/med26.pdf",
+      "sha256": "d7aaba1ea954e6fc32b66b42808d263394729fed2e00b586cde7f4179e60e6b1"
+    }
+  }
+}

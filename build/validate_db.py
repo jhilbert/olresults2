@@ -27,6 +27,7 @@ FINGERPRINT_ORDER = {
     "person_redirect": "old_id",
     "person_tombstone": "old_id",
     "source_document": "id",
+    "course_result": "id",
     "championship_source_entry": "id",
     "result_list": "id",
     "result": "id",
@@ -68,6 +69,8 @@ def logical_fingerprint(con):
     """Hash logical rows in canonical order, independent of SQLite page layout."""
     digest = hashlib.sha256()
     for table, order_by in FINGERPRINT_ORDER.items():
+        if table == "course_result" and not scalar(con, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='course_result'"):
+            continue  # Older published databases predate the separate course view.
         digest.update(f"table:{table}\n".encode())
         cursor = con.execute(f"SELECT * FROM {table} ORDER BY {order_by}")
         for row in cursor:
@@ -75,6 +78,20 @@ def logical_fingerprint(con):
                 row, ensure_ascii=False, separators=(",", ":")).encode())
             digest.update(b"\n")
     return digest.hexdigest()
+
+
+def validate_course_isolation(con):
+    if not scalar(con, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='course_result'"):
+        return
+    overlap = scalar(con, """SELECT COUNT(*) FROM result r WHERE r.source_document_id IN
+        (SELECT DISTINCT source_document_id FROM course_result)""")
+    if overlap:
+        raise RuntimeError(f"{overlap} course-source rows leaked into ordinary results")
+    wrong_event = scalar(con, """SELECT COUNT(*) FROM course_result cr
+        JOIN source_document sd ON sd.id=cr.source_document_id
+        JOIN stage s ON s.id=cr.stage_id WHERE sd.event_id != s.event_id""")
+    if wrong_event:
+        raise RuntimeError(f"{wrong_event} course rows refer to a different event")
 
 
 def collect(db_path, eligibility_path):
@@ -88,6 +105,7 @@ def collect(db_path, eligibility_path):
         fk_errors = con.execute("PRAGMA foreign_key_check").fetchall()
         if fk_errors:
             raise RuntimeError(f"SQLite foreign_key_check found {len(fk_errors)} errors")
+        validate_course_isolation(con)
         counts = {table: scalar(con, f"SELECT COUNT(*) FROM {table}") for table in CORE_COUNTS}
         for table in ("source_document", "championship_source_entry", "result_club_evidence", "official_national_title",
                       "person_identifier", "person_club_membership", "person_alias", "person_redirect",

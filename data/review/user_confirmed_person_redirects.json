@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "scope": "Nutzerbestätigte einzelne Personen-Zuordnungen; bestehende Personen werden nicht überschrieben.",
+  "decisions": [
+    {
+      "event_id": 5370,
+      "source_name": "Vito Saprata",
+      "person_name": "Vito Satrapa",
+      "oefol_id": 7317,
+      "club": "OLC Wienerwald",
+      "basis": "Nutzerbestätigung; Name und Vereinszugehörigkeit im ANNE-Personenregister"
+    },
+    {
+      "scope": "name_club",
+      "source_name": "Franz Glaner",
+      "person_name": "Franz Wareyka-Glaner",
+      "oefol_id": 2314,
+      "club": "WAT-OL",
+      "basis": "Nutzerbestätigung: Franz Glaner von WAT-OL ist Franz Wareyka-Glaner (ÖFOL-ID 2314)"
+    }
+  ],
+  "redirects": {"-3642095400232799634": 7317}
+}

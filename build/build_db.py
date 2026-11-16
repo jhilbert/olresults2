@@ -169,6 +169,22 @@ CREATE TABLE source_document (
     normalized_sha256 TEXT,
     parser_version TEXT
 );
+-- A course list is an alternative view of a race, never additional starts.
+-- Keep it physically separate from result and person/championship indexes.
+CREATE TABLE course_result (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    stage_id INTEGER NOT NULL REFERENCES stage(id),
+    source_document_id TEXT NOT NULL REFERENCES source_document(id),
+    category TEXT NOT NULL,
+    name TEXT NOT NULL,
+    club TEXT,
+    rank INTEGER,
+    status TEXT NOT NULL,
+    time_s INTEGER,
+    observed_time TEXT,
+    out_of_competition INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX idx_course_result_stage ON course_result(stage_id, source_document_id, category);
 CREATE TABLE result_list (
     id TEXT PRIMARY KEY,
     stage_id INTEGER NOT NULL REFERENCES stage(id),
@@ -657,7 +673,10 @@ def clean_club(name):
     clubName in the raw API response, not something our own parsing adds."""
     if not name:
         return name
-    return CLUB_JUNK_PREFIX_RE.sub("", repair_mojibake(name)).strip()
+    value = CLUB_JUNK_PREFIX_RE.sub("", repair_mojibake(name)).strip()
+    # The original cell remains in observed_club. Only remove a separate
+    # state marker if the remainder is independently an exact known club.
+    return strip_regional_club_prefix(value, OFFICIAL_CLUBS) if "OFFICIAL_CLUBS" in globals() else value
 
 
 # ANNE's structured API tags every result row with its own 'championship'
@@ -1133,6 +1152,10 @@ FOREIGN_HOST_REQUIRE_OFFICIAL_CLUB_EVENTS = {5280}
 # result (including the very next day's) spells the same Naturfreunde Wien
 # runner "Anika Gassner" - verified against the club's own Excel medal sheet.
 KNOWN_NAME_TYPOS = {
+    # User-confirmed source typo in the 2026 Vienna night race. The original
+    # observed name remains in result provenance; the corrected name matches
+    # the /user register and OLC Wienerwald membership (ÖFOL-ID 7317).
+    (5370, "Vito Saprata"): "Vito Satrapa",
     # The fixed-width 2013 Nachtlauf export splits the last three letters
     # across the Name/Verein boundary: ``Christina Hell | man OK gittis...``.
     # The full physical source line unambiguously spells Christina Hellman.
@@ -1340,6 +1363,7 @@ MEMBER_MAPPING_PUBLIC_PATH = ROOT / "data" / "member_index" / "naturfreunde_wien
 PERSON_REDIRECT_PATH = Path(os.environ.get(
     "OLRESULTS_PERSON_REDIRECT_PATH", ROOT / "data" / "person_id_redirects.json"))
 REVIEWED_2015_REDIRECT_PATH = ROOT / "data" / "review" / "official_2015_person_redirects.json"
+USER_CONFIRMED_PERSON_REDIRECT_PATH = ROOT / "data" / "review" / "user_confirmed_person_redirects.json"
 # Build byproducts (private, regenerated each run): the review worklist and
 # any BoR-vs-DB id conflicts worth a human look.
 PENDING_REVIEW_PATH = PRIVATE / "pending_review.json"
@@ -2184,6 +2208,32 @@ CLUB_SOURCE_ALIASES = {
     "GOs Harzberg": "GO_Harzberg/Bad_Voeslau",
 }
 
+REGIONAL_CLUB_PREFIX_RE = re.compile(r"^(?:W|N|NÖ|NOE|B|BGLD|ST|STMK|OÖ|OOE|S|SBG|T|TIR|K|KTN|V|VBG)\s+(.+)$", re.I)
+
+
+def strip_regional_club_prefix(name, official):
+    """Remove a standalone state marker only when the rest is an exact club.
+
+    Exact full club names and aliases take precedence; ambiguous labels and
+    unaffiliated runners are left untouched. Team suffixes remain intact.
+    """
+    raw = (name or "").strip()
+    exact = {club.casefold(): club for club in official}
+    aliases = {alias.casefold(): target for alias, target in CLUB_SOURCE_ALIASES.items()}
+    if raw.casefold() in exact or raw.casefold() in aliases:
+        return raw
+    match = REGIONAL_CLUB_PREFIX_RE.fullmatch(raw)
+    if not match:
+        return raw
+    remainder = match.group(1).strip()
+    team = CLUB_SUFFIX_NUM_RE.match(remainder)
+    base = team.group(1).strip() if team else remainder
+    candidate = aliases.get(base.casefold(), exact.get(base.casefold(), base))
+    abbreviation = NF_ABBREV_RE.match(candidate)
+    if abbreviation:
+        candidate = exact.get(f"Naturfreunde {abbreviation.group(1).strip()}".casefold(), candidate)
+    return remainder if candidate.casefold() in exact else raw
+
 
 def load_official_clubs():
     """Current ANNE clubs plus deliberately curated historical ÖFOL clubs.
@@ -2212,7 +2262,7 @@ def canonicalize_official_club(name, official):
     mistaken for a prefixed variant of some other, unrelated bare name."""
     if not name:
         return None
-    cur = name.rstrip("*").strip()
+    cur = strip_regional_club_prefix(name.rstrip("*").strip(), official)
     # a team-number suffix ('NF Wien 1') can stack with the NF abbreviation
     # - strip the suffix first (unconditionally; a lone trailing digit is
     # never part of a real club name) so the NF-expansion below sees the
@@ -2223,11 +2273,22 @@ def canonicalize_official_club(name, official):
         cur = m.group(1).strip()
     source_aliases = {source.casefold(): target
                       for source, target in CLUB_SOURCE_ALIASES.items()}
+    official_casefold = {candidate.casefold(): candidate for candidate in official}
+    # A relay export may append its team code (e.g. "WAT-OL WAT#1").
+    # Only strip it if the entire preceding club is an exact known club or
+    # alias; never infer a club from a mixed-club team label.
+    team_code = re.fullmatch(r"(.+?)\s+[A-Za-z0-9ÄÖÜäöü-]{2,12}#\d+", cur)
+    if team_code:
+        prefix = team_code.group(1).strip()
+        candidate = source_aliases.get(prefix.casefold(), prefix)
+        if candidate.casefold() in official_casefold:
+            cur = official_casefold[candidate.casefold()]
+        elif sum(club.casefold() in prefix.casefold() for club in official) > 1:
+            return None
     cur = source_aliases.get(cur.casefold(), cur)
     # Club spelling in historical exports often differs only in upper/lower
     # case (for example "LZ Omaha" vs the ANNE registry's "LZ OMAHA").
     # This is an exact case-insensitive match, not a fuzzy club guess.
-    official_casefold = {candidate.casefold(): candidate for candidate in official}
     cur = official_casefold.get(cur.casefold(), cur)
     while cur not in official:
         changed = False
@@ -2722,6 +2783,10 @@ class PersonRegistry:
         self.last_names = set()                # lowercased lastNames from the API
         self.anne_ids = set()                   # source-supplied ANNE identifiers
         self.anne_profiles = anne_profiles or AnneProfileIndex.empty()
+        self.confirmed_name_club = []
+        if USER_CONFIRMED_PERSON_REDIRECT_PATH.exists():
+            decisions = json.loads(USER_CONFIRMED_PERSON_REDIRECT_PATH.read_text()).get("decisions", [])
+            self.confirmed_name_club = [d for d in decisions if d.get("scope") == "name_club"]
 
     def add_first_name(self, name):
         """Record a firstName seen in the ANNE API, for reorder_first_last's
@@ -2809,6 +2874,28 @@ class PersonRegistry:
     def from_legacy(self, name, yob, club=None, *, strict_yob=False):
         yob = self._identity_year(yob)
         nk = name_key(name)
+        for decision in self.confirmed_name_club:
+            if nk != name_key(decision["source_name"]):
+                continue
+            confirmed_club = decision["club"]
+            resolved_club = canonicalize_official_club(club, {confirmed_club})
+            # Some relay exports duplicate WAT's name and append a team tag.
+            # Accept only an all-WAT label, never another or a mixed club.
+            duplicated_wat = confirmed_club == "WAT-OL" and bool(re.fullmatch(
+                r"WAT(?:[-.]?OL)?\s+WAT(?:[-.]?OL)?(?:[#_]\d+)?", (club or "").strip(), re.I))
+            if resolved_club != confirmed_club and not duplicated_wat:
+                continue
+            uid = int(decision["oefol_id"])
+            profile = self.anne_profiles.by_id.get(uid, {})
+            if strict_yob and yob is not None and profile.get("year_of_birth") not in (None, yob):
+                continue
+            # Do not register this abbreviated name globally: the same name
+            # in another club must not silently inherit this decision.
+            official_name = profile.get("name") or decision["person_name"]
+            pid = self.from_anne(uid, official_name, profile.get("year_of_birth") or yob,
+                                 profile.get("nationality"))
+            self.record(pid, official_name, authoritative=True)
+            return pid, "user-confirmed-name-club", 1.0, "resolved"
         profile_matches, profile_basis = self.anne_profiles.match(name, yob, club)
         if strict_yob and yob is not None:
             profile_matches = [p for p in profile_matches
@@ -2884,16 +2971,23 @@ EVENT_SPORT_TYPE_OVERRIDES = {
 }
 
 
+def supported_event_date(event):
+    """Keep old source files, but exclude pre-2013 events from published results."""
+    date = (event.get("dateFrom") or "")[:10]
+    return not date or date >= "2013-01-01"
+
+
 def load_events(cur):
     events = {e["id"]: e for e in json.loads((RAW / "events.json").read_text())
-              if not is_bewertung_clone(e) and e["id"] not in EXCLUDED_EVENTS}
+              if not is_bewertung_clone(e) and e["id"] not in EXCLUDED_EVENTS
+              and supported_event_date(e)}
     # Explicitly recovered archive-only events are separate from the ANNE
     # snapshot: a future upstream refresh must never erase them. If ANNE later
     # restores one, its own event record takes precedence.
     archive_events = ROOT / "data" / "review" / "archived_events.json"
     if archive_events.exists():
         for event in json.loads(archive_events.read_text()).get("events", []):
-            if event["id"] not in EXCLUDED_EVENTS:
+            if event["id"] not in EXCLUDED_EVENTS and supported_event_date(event):
                 existing = events.get(event["id"])
                 if existing and (existing.get("dateFrom") or "")[:10] != event["dateFrom"][:10]:
                     raise ValueError(f"Archived event {event['id']} conflicts with ANNE date")
@@ -3838,7 +3932,7 @@ ETAPPE_FILENAME_RE = re.compile(
 # after-e02.pdf" mapping onto Etappe 2 alongside the real "results-e02.pdf".
 JUNK_DOC_FILENAME_RE = re.compile(r"-split\.|results-after-e\d+", re.I)
 COURSE_VIEW_FILENAME_RE = re.compile(
-    r"(?:nach[\s._-]*bahnen|by[\s._-]*courses?)", re.I)
+    r"(?:bahn(?:en|e)?(?![a-z])|(?:nach|by)[\s._-]*courses?(?![a-z]))", re.I)
 
 # ANNE describes these historic umbrella events as single-stage even though
 # their independent result documents prove multiple competition dates. Keep
@@ -4031,6 +4125,24 @@ def drop_redundant_course_views(docs):
             and stage_key(doc) in preferred
         )
     ]
+
+
+def store_course_results(cur, stage_id, source_document_id, doc):
+    """Retain a source-only course view, without creating any person results."""
+    rows = []
+    for category in doc.get("categories", []):
+        for result in category.get("results", []):
+            raw_status = result.get("status", "unknown")
+            status, ooc = normalize_status(raw_status, result.get("timeText") or raw_status,
+                                           result.get("outOfCompetition"))
+            rows.append((stage_id, source_document_id, category.get("name") or "Bahn",
+                         result.get("originalObservedName", result.get("name")) or "",
+                         result.get("originalObservedClub", result.get("club")), result.get("rank"),
+                         status, result.get("timeS"), result.get("timeText"), int(ooc)))
+    cur.executemany("""INSERT INTO course_result
+        (stage_id,source_document_id,category,name,club,rank,status,time_s,observed_time,out_of_competition)
+        VALUES (?,?,?,?,?,?,?,?,?,?)""", rows)
+    return len(rows)
 
 
 def correct_legacy_stage_dates(docs, events):
@@ -4529,6 +4641,15 @@ def select_preferred_event_documents(docs, events):
             or d.get("sourceUrl") == PREFERRED_EVENT_RESULT_URLS[d["eventId"]]]
 
 
+def redundant_2021_night_partial_pair(doc, category, row, has_full_pair):
+    """Do not import a partial duplicate when the official pair is present."""
+    return (has_full_pair and doc.get("eventId") == 3401
+            and doc.get("fileName") == "event_3401_20211009-092048-endergebnis-nacht-ms-2021.html"
+            and category.get("name") == "Herren -14 Wien"
+            and row.get("name") == "Dobler Linus"
+            and row.get("club") == "MTV Hernals" and row.get("timeS") == 2107)
+
+
 def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
     n = 0
     # Each legacy file's own SportSoftware <title> names the specific race it
@@ -4553,9 +4674,19 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
     docs = [d for d in docs if not JUNK_DOC_FILENAME_RE.search(d.get("fileName") or "")]
     docs = select_preferred_event_documents(docs, events)
     docs, _n_dropped = drop_cross_event_duplicate_docs(docs)
+    has_3401_full_pair = any(
+        d.get("eventId") == 3401
+        and d.get("fileName") == "event_3401_ergebnisliste-wr-nacht-ms-gpl-grossmittel-2021-10-08.pdf"
+        and any(c.get("name") == "Herren -14" and any(
+            r.get("name") == "DOBLER Linus FISCHER Jonas"
+            and r.get("club") == "MTV Hernals" and r.get("timeS") == 2107
+            for r in c.get("results", [])) for c in d.get("categories", []))
+        for d in docs)
     correct_legacy_stage_dates(docs, events)
     map_docs_to_anne_stages(docs)
-    docs = drop_redundant_course_views(docs)
+    # Course views are retained below in course_result, never in result.
+    # In particular this also keeps a course-only source visible at the event
+    # without turning its course placements into personal results or medals.
     # plain result lists before split-time lists, so duplicates resolve
     # in favour of the cleaner source. Also prefer a dedicated relay
     # ("Staffel") export over a same-event 'race'-listType file covering
@@ -4597,13 +4728,15 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
     }
     dates_by_event = defaultdict(set)
     for d in docs:
-        if d.get("docDate") and d["eventId"] in multiday_events:
+        if (d.get("docDate") and d["eventId"] in multiday_events
+                and not COURSE_VIEW_FILENAME_RE.search(d.get("fileName") or "")):
             dates_by_event[d["eventId"]].add(d["docDate"])
     seen = set()
     for doc in docs:
         eid = doc["eventId"]
         event = events.get(eid)
-        source_config = CHAMPIONSHIP_SOURCE_CONFIG.get(
+        is_course_view = bool(COURSE_VIEW_FILENAME_RE.search(doc.get("fileName") or ""))
+        source_config = None if is_course_view else CHAMPIONSHIP_SOURCE_CONFIG.get(
             Path(doc["_normalizedPath"]).stem)
         if not event or doc.get("listType") not in ("race", "relay"):
             continue
@@ -4661,6 +4794,10 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                                event_dates.index(doc["docDate"]) + 1)
         else:
             sid = default_stage(cur, event, stage_ids)
+        if is_course_view:
+            source_document_id = register_legacy_document(cur, doc)
+            store_course_results(cur, sid, source_document_id, doc)
+            continue
         if eid in anne_event_ids and not source_config and cur.execute(
                 "SELECT 1 FROM result WHERE stage_id = ? AND source = 'anne-api' LIMIT 1",
                 (sid,)).fetchone():
@@ -4747,6 +4884,8 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                     n += 1
                 continue
             for r in cat["results"]:
+                if redundant_2021_night_partial_pair(doc, cat, r, has_3401_full_pair):
+                    continue
                 # a parsed row may carry several runners (a pair): the parser
                 # emits one entry per runner already, each with its own name
                 # and a note; treat them uniformly here
@@ -6122,6 +6261,15 @@ def load_regional_source_classes():
     if payload.get("schema_version") != 1 or not isinstance(payload.get("events"), dict):
         raise ValueError("Invalid reviewed regional source class catalog")
     events = dict(payload["events"])
+    for event_id, event in events.items():
+        for jurisdiction, scope in event.get("jurisdictions", {}).items():
+            for source in (scope.get("rank_correction_source"), scope.get("wolv_age_split")):
+                if not source:
+                    continue
+                path = (ROOT / source.get("path", "")).resolve()
+                if (not path.is_relative_to(ROOT.resolve()) or not path.is_file()
+                        or file_sha256(path) != source.get("sha256")):
+                    raise ValueError(f"Regional rank correction source mismatch: {event_id}/{jurisdiction}")
     # Positional transcription of the 2021 combined Vienna/ASKÖ result is
     # generated together with its normalized results from the archived PDF.
     extra_path = ROOT / "data/review/regional_source_classes_3325.json"
@@ -6266,8 +6414,12 @@ def populate_regional_championships(cur, catalog, club_jurisdictions, source_cla
             definition = evidence.get("categories", {}).get(category)
             if not definition or jurisdiction not in REGIONAL_JURISDICTIONS:
                 continue
+            age_split = evidence.get("wolv_age_split") if isinstance(definition, dict) else None
+            if age_split and (source_url != age_split.get("result_document_url")
+                              or normalized_sha256 != age_split.get("normalized_sha256")):
+                raise ValueError(f"Age split source differs: {event_id}/{category}")
             if isinstance(definition, dict):
-                if evidence.get("evidence_kind") != "official-results":
+                if evidence.get("evidence_kind") != "official-results" and not age_split:
                     raise ValueError("Explicit class splits require an official result list")
                 source_names = [name_key(row[0] or "") for row in cur.execute(
                     "SELECT observed_name FROM result WHERE result_list_id = ?", (list_id,))]
@@ -6283,6 +6435,7 @@ def populate_regional_championships(cur, catalog, club_jurisdictions, source_cla
             else:
                 definitions = [(definition, None)]
             for canonical, names in definitions:
+                mapping_kind = "wolv-age-split" if age_split else evidence.get("evidence_kind", "invitation")
                 category_key = regional_category_key(canonical)
                 ranks = evidence.get("official_ranks", {}).get(canonical)
                 if ranks:
@@ -6303,15 +6456,18 @@ def populate_regional_championships(cur, catalog, club_jurisdictions, source_cla
                     "jurisdiction": jurisdiction,
                     "canonical_category": canonical,
                     "category_key": category_key,
-                    "state": "confirmed", "evidence_kind": evidence.get("evidence_kind", "invitation"),
-                    "evidence_text": evidence["url"] + " sha256:" + evidence["sha256"],
-                    "confidence": 1.0, "partition_required": names is None and (
+                    "state": "confirmed", "evidence_kind": mapping_kind,
+                    "evidence_text": evidence["url"] + " sha256:" + evidence["sha256"] + (
+                        " | WOLV-Podest; Alterszuordnung rekonstruiert: " + age_split["url"]
+                        + " sha256:" + age_split["sha256"] if age_split else ""),
+                    "confidence": 0.9 if age_split else 1.0, "partition_required": bool(age_split) or (names is None and (
                         not evidence.get("result_document_url")
-                        or evidence.get("evidence_kind") == "official-shared-results"),
+                        or evidence.get("evidence_kind") == "official-shared-results")),
                     "rank_by_time": canonical in evidence.get("time_ranked_categories", []),
                     "award_hold": evidence.get("award_holds", {}).get(canonical),
                     "source_sha256": evidence["sha256"],
-                    "source_detail": (json.dumps({"names": sorted(names or []), "ranks": ranks or {}},
+                    "source_detail": (json.dumps({"names": sorted(names or []), "ranks": ranks or {},
+                                                  **({"wolv_age_split_sha256": age_split["sha256"]} if age_split else {})},
                                                  ensure_ascii=False, sort_keys=True)
                                       if names is not None or ranks else ""),
                 })
@@ -6365,7 +6521,7 @@ def populate_regional_championships(cur, catalog, club_jurisdictions, source_cla
     for (jurisdiction, stage_id, category_key), observations in grouped.items():
         observations.sort(key=lambda item: (
             item[0]["state"] == "confirmed",
-            {"source_nat": 4, "document": 3, "invitation": 3, "official-results": 3, "official-shared-results": 3, "category": 2,
+            {"source_nat": 4, "document": 3, "invitation": 3, "official-results": 3, "official-shared-results": 3, "wolv-age-split": 3, "category": 2,
              "event_title": 1}[item[0]["evidence_kind"]]),
             reverse=True)
         best = observations[0][0]
@@ -6402,7 +6558,7 @@ def populate_regional_championships(cur, catalog, club_jurisdictions, source_cla
             AND ci.category_key = m.category_key AND ci.championship_type = 'LMS'
            WHERE m.state != 'rejected' AND ci.state != 'rejected'
            ORDER BY (ci.state = 'confirmed') DESC,
-                    CASE m.evidence_kind WHEN 'document' THEN 3 WHEN 'invitation' THEN 3 WHEN 'official-results' THEN 3 WHEN 'official-shared-results' THEN 3
+                    CASE m.evidence_kind WHEN 'document' THEN 3 WHEN 'invitation' THEN 3 WHEN 'official-results' THEN 3 WHEN 'official-shared-results' THEN 3 WHEN 'wolv-age-split' THEN 3
                          WHEN 'source_nat' THEN 4
                          WHEN 'category' THEN 2 ELSE 1 END DESC""").fetchall()
     claimed = {}
@@ -7355,6 +7511,9 @@ def main():
         redirects = json.loads(PERSON_REDIRECT_PATH.read_text())
         if REVIEWED_2015_REDIRECT_PATH.exists():
             reviewed_redirects = json.loads(REVIEWED_2015_REDIRECT_PATH.read_text())["redirects"]
+            redirects = reconcile_reviewed_person_redirects(redirects, reviewed_redirects, surviving_people)
+        if USER_CONFIRMED_PERSON_REDIRECT_PATH.exists():
+            reviewed_redirects = json.loads(USER_CONFIRMED_PERSON_REDIRECT_PATH.read_text())["redirects"]
             redirects = reconcile_reviewed_person_redirects(redirects, reviewed_redirects, surviving_people)
         for old_id, new_id in redirects.items():
             old_id, new_id = int(old_id), int(new_id)

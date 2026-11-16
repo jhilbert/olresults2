@@ -1,0 +1,621 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+  <head>
+    <title>ANNE - Das Österreichische Orientierungssport-Meldesystem</title>
+    <meta name="description" content="ANNE ist die Plattform des &ouml;sterreichischen Orientierungssports bez&uuml;glich Meldewesen." />
+    <meta name="keywords" content="ANNE,anne,Das &Ouml;sterreichische Orientierungssport-Meldesystem,Orientierungssport,Orientierungslauf,MTBO,MBO,Mountainbike Orienteering,Ski-OL,&Ouml;FOL,&Ouml;sterreichischer Fachverband f&uuml;r Orientierungslauf,Meldungen,Meldesystem" />
+    <meta name="robots" content="index,follow" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link href="css/jquery-ui/jquery-ui.min.css" rel="stylesheet" type="text/css" />
+    <link href="css/jquery-ui/jquery-ui.theme.min.css" rel="stylesheet" type="text/css" />
+    <link href="css/default.css?v=1.0" rel="stylesheet" type="text/css" />
+    <link rel="icon" href="img/icons/favicon.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="img/icons/favicon.ico" type="image/x-icon" />
+    <script language="JavaScript" type="text/javascript" src="js/basic_functions.js"></script>
+	<script language="JavaScript" type="text/javascript" src="js/ajax_library.js"></script>
+	<script language="JavaScript" type="text/javascript" src="js/jquery.js"></script>
+	<script language="JavaScript" type="text/javascript" src="js/jquery-ui.min.js"></script>
+  <!-- Fathom -->
+  <script src="https://cdn.usefathom.com/script.js" data-site="RIMFKOKT" defer></script>
+  <!-- / Fathom -->
+  </head>
+  <body>
+    <a name="top"></a>
+    <table border="0" cellpadding="0" cellspacing="0" width="780" align="center" style="margin-top: 20px;"><tbody><tr><td style="background-color: #60006d22; border: 1px solid #64006dff; color: #64006dff; padding: 10px;">
+      Du befindest dich auf der alten Version von ANNE. Hier geht's zur neuen Version:
+      <br /><br />
+      <div style="text-align: center;"><a href="https://anne.orienteeringaustria.at" style="font-size: 16px; font-weight: bold; color: #64006dff;">https://anne.orienteeringaustria.at</a></div>
+      <br /><br />
+      Die alte Version steht als Archiv noch bis Ende 2026 zur Verfügung. Der Login ist nicht mehr möglich.
+      <br /><br />
+      Ab 2027 werden alle Links auf die alte Version automatisch auf die neue Version weitergeleitet.
+      <br /><br />
+      Dein ANNE-Team
+    </td></tr></tbody></table>
+    <table border="0" cellpadding="0" cellspacing="0" width="780" align="center">
+      <tr id="prh01">
+        <td width="29" class="fw_head_white" height="1"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td width="151" class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td width="256" class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td width="1" class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td width="85" class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td width="1" class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td width="85" class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td width="1" class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td width="85" class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td width="1" class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td width="85" class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <!-- <td width="1" class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td> -->
+        <!-- <td width="85" class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td> -->
+      </tr>
+      <tr id="prh02">
+        <td class="fw_head_white" height="23"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_logo" rowspan="4"><img src="img/fw/logo_em.gif" border="0" alt="ANNE Logo eingebettet" title="ANNE Logo eingebettet" width="151" height="74" /></td>
+        <td class="fw_locale_selector" colspan="9">
+          <!-- BEGIN LOCALES -->
+          <!--
+          <a href="?p=1&amp;q=3&amp;id=2533&amp;l=en_GB"><img src="img/icons/locale_en_GB.gif" border="0" alt="English" title="English" width="16" height="11" /></a>
+          <a href="?p=1&amp;q=3&amp;id=2533&amp;l=de_AT"><img src="img/icons/locale_de_AT.gif" border="0" alt="Deutsch" title="Deutsch" width="16" height="11" /></a>
+          <a href="?p=1&amp;q=3&amp;id=2533&amp;l=fr_FR"><img src="img/icons/locale_fr_FR.gif" border="0" alt="Fran&ccedil;ais" title="Fran&ccedil;ais" width="16" height="11" /></a>
+          <a href="?p=1&amp;q=3&amp;id=2533&amp;l=es_ES"><img src="img/icons/locale_es_ES.gif" border="0" alt="Espa&ntilde;ol" title="Espa&ntilde;ol" width="16" height="11" /></a>
+          <a href="?p=1&amp;q=3&amp;id=2533&amp;l=it_IT"><img src="img/icons/locale_it_IT.gif" border="0" alt="Italiano" title="Italiano" width="16" height="11" /></a>
+          <a href="?p=1&amp;q=3&amp;id=2533&amp;l=sv_SE"><img src="img/icons/locale_sv_SE.gif" border="0" alt="Svenska" title="Svenska" width="16" height="11" /></a>
+          <a href="?p=1&amp;q=3&amp;id=2533&amp;l=no_NO"><img src="img/icons/locale_no_NO.gif" border="0" alt="Norsk" title="Norsk" width="16" height="11" /></a>
+          <a href="?p=1&amp;q=3&amp;id=2533&amp;l=fi_FI"><img src="img/icons/locale_fi_FI.gif" border="0" alt="Suomi" title="Suomi" width="16" height="11" /></a>
+          <a href="?p=1&amp;q=3&amp;id=2533&amp;l=hu_HU"><img src="img/icons/locale_hu_HU.gif" border="0" alt="Magyar" title="Magyar" width="16" height="11" /></a>
+          -->
+          <!-- END LOCALES -->
+        </td>
+      </tr>
+      <tr id="prh03">
+        <td class="fw_head_white" height="5"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_white" id="nav_item_01"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_white" id="nav_item_02"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_white" id="nav_item_03"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_white" id="nav_item_04"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <!-- <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td> -->
+        <!-- <td class="fw_head_white" id="nav_item_05"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td> -->
+      </tr>
+      <tr id="prh04">
+        <!-- BEGIN MAIN NAVIGATION ITEMS -->
+        <td class="fw_head_blue" height="30"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_blue"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_blue_nav_item"><a href="?p=0" class="nav_item" onmouseover="changeStyleClass('nav_item_01','fw_head_darkblue_nav_item');" onmouseout="changeStyleClass('nav_item_01','fw_head_white');">Start</a></td>
+        <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_red_nav_item"><a href="?p=1" class="nav_item" onmouseover="changeStyleClass('nav_item_02','fw_head_darkred_nav_item');" onmouseout="changeStyleClass('nav_item_02','fw_head_white');">Events</a></td>
+        <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_blue_nav_item"><a href="?p=2" class="nav_item" onmouseover="changeStyleClass('nav_item_03','fw_head_darkblue_nav_item');" onmouseout="changeStyleClass('nav_item_03','fw_head_white');">Suche</a></td>
+        <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_blue_nav_item"><a href="?p=3" class="nav_item" onmouseover="changeStyleClass('nav_item_04','fw_head_darkblue_nav_item');" onmouseout="changeStyleClass('nav_item_04','fw_head_white');">Hilfe</a></td>
+        <!-- <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td> -->
+        <!-- <td class="fw_head_blue_nav_item"><a href="?p=4" class="nav_item" onmouseover="changeStyleClass('nav_item_05','fw_head_darkblue_nav_item');" onmouseout="changeStyleClass('nav_item_05','fw_head_white');">Forum</a></td> -->
+        <!-- END MAIN NAVIGATION ITEMS -->
+      </tr>
+      <tr id="prh05">
+        <td class="fw_head_white" height="16"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_red"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+        <!-- <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td> -->
+        <!-- <td class="fw_head_white"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td> -->
+      </tr>
+      <tr id="prh06">
+        <td class="fw_breadcrumbs" height="17" colspan="11">
+<a href="?" class="breadcrumb">ANNE</a> / <a href="?p=1&amp;q=0" class="breadcrumb">Events</a> / <a href="?p=1&amp;q=3&amp;id=2533" class="breadcrumb">Veranstaltungsdetails</a>          <!-- Fathom -->
+          <script>
+            window.addEventListener( 'load', () => fathom.trackEvent( 'events-veranstaltungsdetails', { _value: '2533' } ) )
+          </script>
+          <!-- / Fathom -->
+        </td>
+      </tr>
+      <tr id="prh07">
+        <td class="fw_date" colspan="3">Montag, 16. November 2026 - 18:44:55</td>
+        <td class="fw_login_info" colspan="8">
+        </td>
+      </tr>
+      <tr>
+        <td class="fw_body_white" colspan="11" id="to_print">
+<table border="0" cellpadding="0" cellspacing="0" width="780" align="center" style="margin-top: 20px;"><tbody><tr><td style="background-color: #60006d22; border: 1px solid #64006dff; color: #64006dff; padding: 10px; text-align: center;">
+  <a href="https://anne.orienteeringaustria.at/event/2533" style="font-size: 16px; font-weight: bold; color: #64006dff;">Dieses Event in der neuen ANNE-Version ansehen</a>
+</td></tr></tbody></table>
+<br />
+          <table align="center" border="0" cellpadding="3" cellspacing="0" width="770" class="event_table">
+            <tr>
+              <td class="table_header_grey">Sonntag,  1. September 2019</td>
+              <td class="table_header_grey" align="right"><a href="?p=1&amp;q=3&amp;id=2533" class="white">[Permalink]</a></td>
+            </tr>
+            <tr>
+              <td class="event_title" colspan="2"><div style="overflow:hidden;"><a href="?p=1&amp;q=3&amp;id=2533" class="event_title">Wiener &amp; Niederösterreichische Meisterschaft Sprint-OL</a></div></td>
+            </tr>
+            <tr>
+              <td valign="top" width="210">
+                <div align="center"><img src="img/pictograms/1_medium.gif" border="0" alt="Piktogramm mittel" title="Piktogramm mittel" width="100" height="100" /></div>
+                <br /><br />
+                <!-- BEGIN TABLE actions -->
+                <table align="center" border="0" cellpadding="0" cellspacing="0" width="200">
+                  <tr>
+                    <td width="200" height="10" colspan="5"><img src="img/table_labels/de_AT/actions.gif" border="0" alt="Bild für Tabellenüberschrift: Aktionen" title="Bild für Tabellenüberschrift: Aktionen" width="200" height="10" /></td>
+                  </tr>
+                  <tr>
+                    <td width="1" height="1" bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td width="8"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td width="182"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td width="8"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td width="1" bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#0e5f8e" height="5"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td colspan="3"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr id="tr_actions">
+                    <td bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td>
+                      <ul class="black">
+                        <li><a href="?p=0&amp;q=126&amp;id=2533">Für diese Veranstaltung melden</a></li>
+                        <li><a href="?p=1&amp;q=4&amp;id=2533">Meldungen</a></li>
+                        <li><a href="?p=1&amp;q=5&amp;id=2533">Ergebnisse</a></li>
+                                              </ul>
+                    </td>
+                    <td><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#0e5f8e" height="8"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td><img src="img/fw/table_edge_rb.gif" border="0" alt="Bild für Tabellenecke" title="Bild für Tabellenecke" width="8" height="8" onclick="changeDisplay('tr_actions');" /></td>
+                    <td bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#0e5f8e" height="1" colspan="5"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                </table>
+                <!-- END TABLE ACTIONS -->
+                <br /><br />
+                                <!-- BEGIN TABLE NOTIFICATION -->
+                <table align="center" border="0" cellpadding="0" cellspacing="0" width="200">
+                  <tr>
+                    <td width="200" height="10" colspan="5"><img src="img/table_labels/de_AT/notification.gif" border="0" alt="Bild für Tabellenüberschrift: Benachrichtigung" title="Bild für Tabellenüberschrift: Benachrichtigung" width="200" height="10" /></td>
+                  </tr>
+                  <tr>
+                    <td width="1" height="1" bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td width="8"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td width="182"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td width="8"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td width="1" bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#0e5f8e" height="5"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td colspan="3"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr id="tr_notification">
+                    <td bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td>
+<img src="img/icons/error.gif" border="0" alt="Bild Fehler" title="Bild Fehler" width="9" height="9" align="bottom" /> Login erforderlich!
+          <br /><br />
+          Du musst dich einloggen und diese Seite ansehen zu können. Falls du bereits eingelogged bist, hast du keine Berechtigung diese Seite anzusehen.
+          <br /><br />
+          <ul class="blue">
+            <li><a class="ul_blue" href="?p=0&amp;q=1&amp;continue_p=1&amp;continue_q=3&amp;continue_id=2533">Zum Login</a></li>
+			<li><a class="ul_blue" href="?p=0&amp;q=8">Passwort vergessen?</a></li>
+			<!--
+            <li><a class="ul_blue" href="?p=0&amp;q=9">Gratis Registrierung</a></li>
+			<li><a class="ul_blue" href="?p=0&amp;q=10">Warum soll ich mich registrieren?</a></li>
+			-->
+          </ul>                    </td>
+                    <td><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#0e5f8e" height="8"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td><img src="img/fw/table_edge_rb.gif" border="0" alt="Bild für Tabellenecke" title="Bild für Tabellenecke" width="8" height="8" onclick="changeDisplay('tr_notification');" /></td>
+                    <td bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#0e5f8e" height="1" colspan="5"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                </table>
+                <!-- END TABLE NOTIFICATION -->
+                <br /><br />
+                <!-- BEGIN TABLE RATING -->
+                <table align="center" border="0" cellpadding="0" cellspacing="0" width="200">
+                  <tr>
+                    <td width="200" height="10" colspan="5"><img src="img/table_labels/de_AT/rating.gif" border="0" alt="Bild für Tabellenüberschrift: Bewertung" title="Bild für Tabellenüberschrift: Bewertung" width="200" height="10" /></td>
+                  </tr>
+                  <tr>
+                    <td width="1" height="1" bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td width="8"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td width="182"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td width="8"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td width="1" bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#0e5f8e" height="5"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td colspan="3"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr id="tr_rating">
+                    <td bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td>
+                      <img src="img/icons/information.gif" alt="" class="icon" /> <span class="information">Diese Veranstaltung kann nicht bewertet werden.</span><br /><br />                    </td>
+                    <td><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#0e5f8e" height="8"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td><img src="img/fw/table_edge_rb.gif" border="0" alt="Bild für Tabellenecke" title="Bild für Tabellenecke" width="8" height="8" onclick="changeDisplay('tr_rating');" /></td>
+                    <td bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#0e5f8e" height="1" colspan="5"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                </table>
+                <!-- END TABLE RATING -->
+                <br /><br />
+                <!-- BEGIN TABLE COMMENTS -->
+                <table align="center" border="0" cellpadding="0" cellspacing="0" width="200">
+                  <tr>
+                    <td width="200" height="10" colspan="5"><img src="img/table_labels/de_AT/comments.gif" border="0" alt="Bild für Tabellenüberschrift: Kommentare" title="Bild für Tabellenüberschrift: Kommentare" width="200" height="10" /></td>
+                  </tr>
+                  <tr>
+                    <td width="1" height="1" bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td width="8"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td width="182"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td width="8"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td width="1" bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#0e5f8e" height="5"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td colspan="3"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr id="tr_comments">
+                    <td bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td>
+Keine Kommentare vorhanden.<br />                    </td>
+                    <td><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#0e5f8e" height="8"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                    <td><img src="img/fw/table_edge_rb.gif" border="0" alt="Bild für Tabellenecke" title="Bild für Tabellenecke" width="8" height="8" onclick="changeDisplay('tr_comments');" /></td>
+                    <td bgcolor="#0e5f8e"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr>
+                    <td bgcolor="#0e5f8e" height="1" colspan="5"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                </table>
+                <!-- END TABLE COMMENTS -->
+              </td>
+              <td valign="top">
+                <table border="0" cellpadding="0" cellspacing="3">
+                  <tr>
+                    <td colspan="3" class="little_table_header">Veranstaltungsdetails</td>
+                  </tr>
+                  <tr>
+                    <td class="bg_lightblue" height="1" colspan="3"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr>
+                    <td valign="top"><b>ANNE Id</b></td>
+                    <td valign="top"><div style="overflow:hidden;">2533</div></td>
+                  </tr>
+                  <tr>
+                    <td valign="top" width="150"><b>Ort</b></td>
+                    <td valign="top" width="390"><div style="overflow:hidden;">Wien 2., Rotundenplatz</div></td>
+<!--                    <td valign="top" width="30" align="right" rowspan="5">--><!--</td>-->
+                  </tr>
+                  <tr>
+                    <td valign="top"><b>Durchführender Verein</b></td>
+                    <td valign="top"><div style="overflow:hidden;"><a href="?p=2&amp;q=4&amp;id=56">OLC Wienerwald</a></div></td>
+                  </tr>
+                  <tr>
+                    <td valign="top"><b>Veranstaltungstyp</b></td>
+                    <td valign="top"><div style="overflow:hidden;">Einzelwettkampf</div></td>
+                  </tr>
+                  <tr>
+                    <td valign="top"><b>Meldeschluss</b></td>
+                    <td valign="top"><div style="overflow:hidden;">Freitag, 23. August 2019 - 23:59:00</div></td>
+                  </tr>
+                  <tr>
+                    <td valign="top"><b>Nachmeldeschluss</b></td>
+                    <td valign="top"><div style="overflow:hidden;">Montag, 26. August 2019 - 23:59:00</div></td>
+                  </tr>
+	<tr>
+		<td colspan="3">&nbsp;</td>
+	</tr>
+	<tr>
+		<td colspan="3"><img src="img/icons/links.gif" border="0" alt="Bild Links" title="Bild Links" width="13" height="13" align="top" /> <b>Links</b></td>
+	</tr>
+	<tr>
+		<td colspan="3">
+			<ul class="blue">
+				
+                        <li><div style="overflow:hidden;"><a class="ul_blue" href="https://olc-wienerwald.at/2019/wrmsprint2019_ausschreibung.pdf" target="_blank">Einladung und Ausschreibung</a></div></li>
+                        <li><div style="overflow:hidden;"><a class="ul_blue" href="https://olc-wienerwald.at/2019/wrmsprint2019-ergebnis.pdf" target="_blank">Ergebnis Wiener Meisterschaft Sprint</a></div></li>
+                        <li><div style="overflow:hidden;"><a class="ul_blue" href="https://olc-wienerwald.at/2019/wrmsprintstaffel2019-ergebnis.pdf" target="_blank">Ergebnis Wiener Meisterschaft Sprintstaffel</a></div></li>
+                        <li><div style="overflow:hidden;"><a class="ul_blue" href="http://voc.ol-sport.at/#news" target="_blank">Ergebnisse, Fotos, etc.</a></div></li>			</ul>
+		</td>
+	</tr>
+	<tr>
+		<td colspan="3">&nbsp;</td>
+	</tr>
+	<tr>
+		<td colspan="3"><img src="img/icons/attachments.gif" border="0" alt="Bild Anhänge" title="Bild Anhänge" width="10" height="13" align="top" /> <b>Anhänge</b></td>
+	</tr>
+	<tr>
+		<td colspan="3">
+			<ul class="blue">
+				<li><div style="overflow:hidden;"><a class="ul_blue" href="files/uploaded/event_2533_noemsprint2019-noemresult.pdf" target="_blank">Ergebnis Niederösterreichische Meisterschaft Sprint</a></div></li><li><div style="overflow:hidden;"><a class="ul_blue" href="files/uploaded/event_2533_wettkampfgebiet.pdf" target="_blank">Wettkampfgebiet</a></div></li>			</ul>
+		</td>
+	</tr>
+                  <tr>
+                    <td colspan="3">&nbsp;</td>
+                  </tr>
+                  <tr>
+                    <td colspan="3" class="little_table_header">Kategorien</td>
+                  </tr>
+                  <tr>
+                    <td class="bg_lightblue" height="1" colspan="3"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr>
+                    <td colspan="3">
+                 <!--     <img src="img/icons/warning.gif" border="0" alt="Bild Achtung" title="Bild Achtung" width="9" height="9" align="bottom" />
+                      <span class="warning">Der Meldeschluss ist bereits vorbei! Das Nenngeld ist möglicherweise erhöht worden.</span>
+                      <br /><br />-->
+                      <table border="0" cellpadding="1" cellspacing="0" class="event_table" width="540">
+                        <tr>
+                          <td class="table_header_blue">Kategorie</td>
+                          <td class="table_header_blue" align="center">Nenngeld</td>
+                          <td class="table_header_blue" align="center">ÖFOL-Lizenz erforderlich</td>
+                          <td class="table_header_blue" align="center">WRE</td>
+                        </tr>
+
+
+                        <tr class="cal_out_white">
+                          <td>Damen 15- W</td>
+                          <td align="center">&euro; 18,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_grey">
+                          <td>Herren 15- W</td>
+                          <td align="center">&euro; 18,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_white">
+                          <td>Damen -14 W</td>
+                          <td align="center">&euro; 9,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_grey">
+                          <td>Herren -14 W</td>
+                          <td align="center">&euro; 9,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_white">
+                          <td>Damen 45- W</td>
+                          <td align="center">&euro; 18,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_grey">
+                          <td>Herren 45- W</td>
+                          <td align="center">&euro; 18,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_white">
+                          <td>Damen 55- W</td>
+                          <td align="center">&euro; 18,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_grey">
+                          <td>Herren 60- W</td>
+                          <td align="center">&euro; 18,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_white">
+                          <td>Damen 19- N</td>
+                          <td align="center">&euro; 18,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_grey">
+                          <td>Herren 19- N</td>
+                          <td align="center">&euro; 18,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_white">
+                          <td>Damen -12 N</td>
+                          <td align="center">&euro; 9,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_grey">
+                          <td>Herren -12 N</td>
+                          <td align="center">&euro; 9,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_white">
+                          <td>Damen -14 N</td>
+                          <td align="center">&euro; 9,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_grey">
+                          <td>Herren -14 N</td>
+                          <td align="center">&euro; 9,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_white">
+                          <td>Damen 15-18 N</td>
+                          <td align="center">&euro; 9,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_grey">
+                          <td>Herren 15-18 N</td>
+                          <td align="center">&euro; 9,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_white">
+                          <td>Damen 35- N</td>
+                          <td align="center">&euro; 18,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_grey">
+                          <td>Herren 35- N</td>
+                          <td align="center">&euro; 18,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_white">
+                          <td>Damen 45- N</td>
+                          <td align="center">&euro; 18,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_grey">
+                          <td>Herren 45- N</td>
+                          <td align="center">&euro; 18,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_white">
+                          <td>Damen 55- N</td>
+                          <td align="center">&euro; 18,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_grey">
+                          <td>Herren 55- N</td>
+                          <td align="center">&euro; 18,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_white">
+                          <td>Herren 65- N</td>
+                          <td align="center">&euro; 18,00</td>
+                          <td align="center"><img src="img/icons/success.gif" border="0" alt="Bild erfolgreich" title="Bild erfolgreich" width="9" height="9" align="bottom" /></td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_grey">
+                          <td>Newcomer</td>
+                          <td align="center">&euro; 19,00</td>
+                          <td align="center">&nbsp;</td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_white">
+                          <td>Herren Open</td>
+                          <td align="center">&euro; 19,00</td>
+                          <td align="center">&nbsp;</td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>
+                        <tr class="cal_out_grey">
+                          <td>Damen Open</td>
+                          <td align="center">&euro; 19,00</td>
+                          <td align="center">&nbsp;</td>
+                          <td align="center">&nbsp;</td>
+			  
+                        </tr>                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td colspan="3" class="little_table_header">Unterschiedliches</td>
+                  </tr>
+                  <tr>
+                    <td class="bg_lightblue" height="1" colspan="3"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+                  </tr>
+                  <tr>
+                    <td colspan="2"><div style="overflow:hidden;"></div>
+                                        </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr id="prh08">
+        <td colspan="11" height="15"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+      </tr>
+
+      <tr id="prh09">
+              <td valign="bottom" align="right" colspan="11"><a href="javascript:void(0);" onclick="document.getElementById('print_content').value=(document.getElementById('content')!=null ? document.getElementById('content').innerHTML : document.getElementById('to_print').innerHTML);document.getElementById('print_form').submit();"><img src="img/icons/print.gif" border="0" alt="Druckerfreundliches Format" title="Druckerfreundliches Format" width="15" height="15" /></a></td>
+      </tr>
+      <tr>
+        <td class="fw_bottom_info_grey" colspan="11" height="1"><img src="img/1x1/transparent.gif" border="0" alt="Bild 1x1 transparent" title="Bild 1x1 transparent" width="1" height="1" /></td>
+      </tr>
+      <tr>
+        <td class="fw_bottom_info_white" colspan="11">
+          Copyright &copy; 2006-2026 | <a href="https://www.oefol.at/datenschutz/" target="_blank">Datenschutzerklärung</a>
+          <br />
+          ANNE - Das Österreichische Orientierungssport-Meldesystem ist ein Service des <a href="https://www.oefol.at" target="_blank" class="bottom">Österreichischen Fachverbands für Orientierungslauf</a>.          <img src="img/icons/oefol.gif" border="0" alt="Österreichischer Orientierungslaufverband Logo" title="Österreichischer Orientierungslaufverband Logo" width="23" height="13" align="top" />
+        </td>
+      </tr>
+      <tr id="prh10">
+        <td class="fw_page_creation_time" colspan="11">Seitenerstellung: 0.026628017425537. DBi: 0.0077040195465088</td>
+      </tr>
+    </table>
+    <form method="post" target="_blank" action="./print/index.php" id="print_form"><input type="hidden" name="print_content" id="print_content" value="" /></form>
+      </body>
+</html>

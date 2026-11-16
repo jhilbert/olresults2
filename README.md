@@ -29,6 +29,14 @@ site/      static frontend (sql.js), deployed to GitHub Pages
 cloudflare/anne-gateway/  narrow ANNE read gateway + private R2 state
 ```
 
+The independent 1994–2026 WOLV medal archive is available at `site/wolv/`.
+`python3 build/build_wolv_pilot.py --copy-source` creates its separate SQLite
+source database, a browser JSON read model, and public copies of the archived
+PDF and HTML sources. Both the local sync and Pages build run it. Source cells and
+non-award reasons are retained; comparisons never modify ANNE results.
+Published event results exclude events dated before 2013, while the source
+snapshots and separately attributed club history for 2000–2012 are retained.
+
 ## Data sources
 
 | Tier | Source | Coverage | Quality |

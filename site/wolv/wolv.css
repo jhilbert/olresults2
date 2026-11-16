@@ -1,0 +1,26 @@
+.wolv-page { padding-top: 30px; padding-bottom: 60px; }
+.wolv-page h1 { margin-bottom: 6px; }
+.wolv-eyebrow { color: #9b6c00; font-size: 12px; font-weight: 700; letter-spacing: .09em; }
+.wolv-source { margin: 20px 0 12px; }
+#wolv-year { margin: 10px 0 0 8px; padding: 7px 30px 7px 10px; border: 1px solid #d6d0cb; border-radius: 8px; background: #fff; color: #1c1917; font: inherit; }
+.wolv-group { margin-top: 32px; }
+.wolv-group h2 { margin-bottom: 2px; }
+.wolv-group > p { margin-bottom: 14px; }
+.wolv-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,300px),1fr)); gap: 12px; }
+.wolv-card { background: #fff; border: 1px solid #e5e1dd; border-radius: 13px; padding: 16px; }
+.wolv-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.wolv-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+.wolv-card h3 { margin: 0; font-size: 17px; }
+.wolv-actual { color: #68605b; font-size: 12px; margin-top: 3px; }
+.wolv-badge { border-radius: 999px; padding: 4px 9px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.wolv-match { color: #176a3b; background: #e3f5e9; }
+.wolv-mismatch { color: #a12c25; background: #fce9e6; }
+.wolv-unknown { color: #6a5d42; background: #f4f0e8; }
+.wolv-medals { padding: 0; list-style: none; margin: 12px 0; }
+.wolv-medals li { display: grid; grid-template-columns: 26px 1fr; gap: 6px; padding: 4px 0; }
+.wolv-place { font-weight: 700; color: #8c6500; }
+.wolv-raw { color: #625a54; font-size: 13px; white-space: pre-line; overflow-wrap: anywhere; margin: 10px 0 0; }
+.wolv-conflict { color: #8b2924; font-size: 13px; line-height: 1.5; }
+.wolv-uncertain { color: #695526; font-size: 13px; line-height: 1.5; }
+.wolv-card details { font-size: 12px; color: #6c635e; margin-top: 10px; }
+.wolv-card summary { cursor: pointer; }

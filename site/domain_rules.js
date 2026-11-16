@@ -169,6 +169,15 @@
             AND started.status IN ('ok', 'dnf', 'mp', 'dsq'))
      GROUP BY starter.championship_instance_id`;
 
+  // A split regional class has its own winner; a source-wide time gap may
+  // refer to a different class. Never infer gaps for unfinished/missing times.
+  const regionalTimeBehind = (result, winnerTime) => {
+    if (!result || result.status !== 'ok' || result.regional_rank == null ||
+        !Number.isFinite(result.time_s) || !Number.isFinite(winnerTime)) return null;
+    const gap = result.time_s - winnerTime;
+    return gap > 0 ? gap : null;
+  };
+
   // Fachliche Ergebnisreihenfolge: zuerst Damen, dann Herren, danach
   // gemischte/offene/Rahmenklassen; innerhalb eines Blocks jung nach alt.
   const compareResultCategories = (left, right) => {
@@ -219,5 +228,6 @@
     isMedalRank,
     annualClubGoldSeries,
     regionalStarterCountsSql,
+    regionalTimeBehind,
   };
 }));

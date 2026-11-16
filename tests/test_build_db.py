@@ -13,6 +13,44 @@ SPEC.loader.exec_module(build_db)
 
 
 class AnneIdentityTests(unittest.TestCase):
+    def test_user_confirmed_glaner_alias_is_scoped_to_wat_ol(self):
+        profiles = build_db.AnneProfileIndex([{
+            "oefol_id": 2314, "first_name": "Franz", "last_name": "Wareyka-Glaner",
+            "year_of_birth": 1981,
+            "active_memberships": [{"club": {"name": "WAT-OL"}}],
+        }])
+        registry = build_db.PersonRegistry(profiles)
+        for spelling, club in [("Franz Glaner", "WAT-OL"), ("Glaner Franz", "WAT"),
+                               ("Glaner, Franz", "WAT-OL 1"), ("Franz Glaner", "WAT-OL WAT#1")]:
+            self.assertEqual(registry.from_legacy(spelling, None, club),
+                             (2314, "user-confirmed-name-club", 1.0, "resolved"))
+        self.assertNotEqual(registry.from_legacy("Franz Glaner", None, "OLC Graz")[0], 2314)
+        self.assertNotEqual(registry.from_legacy("Franz Glaner", None, "WAT-OL OLC Graz")[0], 2314)
+        self.assertNotEqual(registry.from_legacy("Franz Glaner", 1990, "WAT-OL", strict_yob=True)[0], 2314)
+        self.assertNotEqual(registry.from_legacy("Franz Glaner", None, None)[0], 2314)
+
+    def test_confirmed_vito_satrapa_source_typo_maps_to_anne_registry(self):
+        profiles = build_db.AnneProfileIndex([{
+            "oefol_id": 7317, "first_name": "Vito", "last_name": "Satrapa",
+            "year_of_birth": 1994,
+            "active_memberships": [{"club": {"name": "OLC Wienerwald"}}],
+        }])
+        corrected = build_db.clean_result_name(5370, "Vito Saprata")
+        self.assertEqual(corrected, "Vito Satrapa")
+        self.assertEqual(build_db.clean_result_name(9999, "Vito Saprata"), "Vito Saprata")
+        self.assertEqual(build_db.PersonRegistry(profiles).from_legacy(corrected, None, "OLC Wienerwald"),
+                         (7317, "anne-registry-name-club", 0.95, "resolved"))
+        redirects = json.loads((ROOT / "data/review/user_confirmed_person_redirects.json").read_text())["redirects"]
+        old = "-3642095400232799634"
+        self.assertEqual(build_db.reconcile_reviewed_person_redirects({}, redirects, {7317})[old], 7317)
+        self.assertNotIn(old, build_db.reconcile_reviewed_person_redirects({}, redirects, {7317, int(old)}))
+
+    def test_published_event_scope_excludes_before_2013_without_deleting_sources(self):
+        self.assertFalse(build_db.supported_event_date({"dateFrom": "2012-12-31T23:00:00Z"}))
+        self.assertTrue(build_db.supported_event_date({"dateFrom": "2013-01-01"}))
+        self.assertTrue(build_db.supported_event_date({"dateFrom": "2026-11-01"}))
+        self.assertTrue(build_db.supported_event_date({"dateFrom": None}))
+
     def test_reviewed_2015_redirects_retarget_existing_aliases_without_hiding_people(self):
         old = {"-10": -1, "-20": -2, "-30": -4}
         reviewed = {"-1": -3, "-2": -5, "-4": -6}
@@ -101,7 +139,7 @@ class AnneIdentityTests(unittest.TestCase):
         self.assertEqual([(r["name"],r["note"]) for r in dns], [("Maria Beck","Partner: unbekannt")])
         self.assertEqual(build_db.normalized_source_unit_count(rows), len(category["results"]))
 
-    def test_2023_wolv_combines_four_eligible_u14_pairs_by_published_rank(self):
+    def test_2023_wolv_combines_four_eligible_u14_pairs_by_corrected_rank(self):
         con = sqlite3.connect(":memory:")
         con.executescript(build_db.SCHEMA)
         cur = con.cursor()
@@ -128,11 +166,11 @@ class AnneIdentityTests(unittest.TestCase):
             JOIN result r ON r.id=cer.result_id JOIN championship_instance ci ON ci.id=ce.championship_instance_id
             WHERE ci.jurisdiction='WIEN' AND ci.category='H-14' GROUP BY ce.id ORDER BY ce.regional_rank""").fetchall()
         self.assertEqual(entries, [(1,"Lauri & Adam Urbanek",2),(2,"Annina & Anna Urbanek",2),
-                                   (3,"Oskar & Karla Hinterplattner",2),(4,"Maria & Cleo Beck &",2)])
+                                   (3,"Maria & Cleo Beck &",2),(4,"Oskar & Karla Hinterplattner",2)])
 
-    def test_2023_published_split_classes_cover_every_anne_source_row(self):
+    def test_reviewed_split_classes_cover_every_anne_source_row(self):
         evidence = build_db.load_regional_source_classes()
-        for event_id in (3584, 3940):
+        for event_id in (3584, 3940, 3812, 3847):
             document = json.loads((ROOT / f"data/normalized/{event_id}-0.json").read_text())
             categories = evidence[str(event_id)]["jurisdictions"]["WIEN"]["categories"]
             by_name = {category["name"]: category for category in document["categories"]}
@@ -144,6 +182,42 @@ class AnneIdentityTests(unittest.TestCase):
                     assigned = sorted(build_db.name_key(person) for people in split.values() for person in people)
                     self.assertEqual(source, assigned)
                     self.assertEqual(len(assigned), len(set(assigned)))
+
+    def test_2022_youth_senior_wien_split_uses_original_times(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id,title) VALUES (3812,'NÖ + W Jugend Senioren')")
+        cur.execute("INSERT INTO stage (id,event_id,number,date) VALUES (1,3812,1,'2022-09-18')")
+        cur.execute("INSERT INTO source_document (id,event_id,source_type,file_name) VALUES ('doc',3812,'html','source.html')")
+        category = next(c for c in json.loads((ROOT / 'data/normalized/3812-0.json').read_text())['categories'] if c['name'] == 'Damen 45- W')
+        cur.execute("INSERT INTO result_list (id,stage_id,source_document_id,category,parsed_entries,parsed_rows,input_fingerprint) VALUES ('list',1,'doc',?,9,9,'f')", (category['name'],))
+        for i, row in enumerate(category['results'],1):
+            build_db.insert_result(cur,stage_id=1,result_list_id='list',category=category['name'],person_id=i,
+                observed_name=row['name'],club=row['club'],official_club=row['club'],result_kind='individual',
+                rank=row.get('rank'),time_s=row.get('timeS'),status=row['status'],source='test')
+        evidence = build_db.load_regional_source_classes()
+        build_db.populate_regional_championships(cur,{}, {'Naturfreunde Wien':'WIEN','OLC Wienerwald':'WIEN',
+            'MTV Hernals':'WIEN','WAT-OL':'WIEN','OLT Transdanubien':'WIEN'},evidence)
+        actual = cur.execute('''SELECT ci.category,ce.regional_rank,r.observed_name FROM championship_instance ci
+            JOIN championship_entry ce ON ce.championship_instance_id=ci.id
+            JOIN championship_entry_result cer ON cer.championship_entry_id=ce.id
+            JOIN result r ON r.id=cer.result_id WHERE ci.jurisdiction='WIEN'
+            ORDER BY ci.category,ce.regional_rank''').fetchall()
+        self.assertEqual(actual, [('D45-',1,'Skern Marina'),('D45-',2,'Hinterplattner Herlinde'),
+            ('D45-',3,'Gaudernak Elisabeth'),('D45-',4,'Machold Natalia'),
+            ('D50-',1,'Bonek Claudia'),('D50-',2,'Palme Guni'),('D50-',3,'Wlcek Sonja'),
+            ('D50-',4,'Zettl Karin'),('D50-',5,'Tagesen Eva')])
+
+    def test_2022_night_source_splits_and_sprint_are_pinned(self):
+        scopes = build_db.load_regional_source_classes()
+        sprint = scopes['3562']['jurisdictions']['WIEN']
+        self.assertEqual(sprint['categories']['Damen bis 12 Wien'],'DH-12')
+        self.assertEqual(sprint['categories']['Herren bis 12 Wien'],'DH-12')
+        self.assertIn('DH-12',sprint['time_ranked_categories'])
+        night = scopes['3847']['jurisdictions']['WIEN']['categories']
+        self.assertEqual(night['D 15-18']['D15-16'],['Piskorz Kiara-Sophie','Meizer Katharina','Radon Zoe'])
+        self.assertIn('Siegert Reinhard',night['H60-(St)/H65-(W,NOe,B)']['H70-'])
 
     def test_2023_mixed_sprint_championship_classes_follow_invitation(self):
         scopes = build_db.load_regional_source_classes()["3954"]["jurisdictions"]
@@ -1333,6 +1407,35 @@ class AnneIdentityTests(unittest.TestCase):
             JOIN result r ON r.id=cer.result_id""").fetchall()
         self.assertEqual(rows, [("Anna", "eligible")])
 
+    def test_separate_official_regional_classes_override_combined_source(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id,title) VALUES (1,'Wiener Nachtmeisterschaft')")
+        cur.execute("INSERT INTO stage (id,event_id,number,date) VALUES (1,1,1,'2021-10-08')")
+        cur.execute("INSERT INTO source_document (id,event_id,source_type,file_name,source_url,normalized_sha256) VALUES ('general',1,'test','general.html','https://example.org/general','g')")
+        cur.execute("INSERT INTO source_document (id,event_id,source_type,file_name,source_url,normalized_sha256) VALUES ('official',1,'test','vienna.pdf','https://example.org/vienna','v')")
+        for lid, doc, category in (("combined", "general", "Herren 65- Wien"),
+                                    ("h65", "official", "Herren 65-"),
+                                    ("h70", "official", "Herren 70-")):
+            cur.execute("INSERT INTO result_list (id,stage_id,source_document_id,category,parsed_entries,parsed_rows,input_fingerprint) VALUES (?,1,?,?,2,2,?)", (lid,doc,category,lid))
+        for lid, category, pid, name, rank in (("combined","Herren 65- Wien",1,"Meinrad Huemer",1),
+                                                ("combined","Herren 65- Wien",2,"Markku Kemppainen",2),
+                                                ("h65","Herren 65-",1,"Meinrad Huemer",1),
+                                                ("h70","Herren 70-",2,"Markku Kemppainen",1)):
+            build_db.insert_result(cur,stage_id=1,result_list_id=lid,category=category,person_id=pid,
+                observed_name=name,official_club="WAT-OL",status="ok",rank=rank,time_s=800,source="test")
+        evidence={"1":{"date":"2021-10-08","stage_number":1,"jurisdictions":{"WIEN":{
+            "partial":True,"url":"https://example.org/vienna","result_document_url":"https://example.org/vienna",
+            "normalized_sha256":"v","sha256":"a"*64,"evidence_kind":"official-results",
+            "categories":{"Herren 65-":"H65-","Herren 70-":"H70-"}}}}}
+        build_db.populate_regional_championships(cur,{}, {"WAT-OL":"WIEN"},evidence)
+        rows=cur.execute("""SELECT ci.category,r.person_id FROM championship_entry ce
+            JOIN championship_instance ci ON ci.id=ce.championship_instance_id
+            JOIN championship_entry_result cer ON cer.championship_entry_id=ce.id
+            JOIN result r ON r.id=cer.result_id ORDER BY r.person_id""").fetchall()
+        self.assertEqual(rows,[("H65-",1),("H70-",2)])
+
     def test_official_shared_result_document_still_partitions_states(self):
         con = sqlite3.connect(":memory:")
         con.executescript(build_db.SCHEMA)
@@ -1352,7 +1455,7 @@ class AnneIdentityTests(unittest.TestCase):
         self.assertEqual(cur.execute("select r.observed_name from championship_entry ce join championship_entry_result cer on cer.championship_entry_id=ce.id join result r on r.id=cer.result_id").fetchall(), [("Wiener",)])
         self.assertEqual(cur.execute("select partition_required from regional_category_mapping where jurisdiction='WIEN'").fetchone(), (1,))
 
-    def test_2019_vienna_sources_keep_split_class_conflict_on_hold(self):
+    def test_2019_vienna_sources_use_wolv_backed_age_splits(self):
         reviewed = build_db.load_regional_source_classes()
         relay = reviewed["2521"]["jurisdictions"]["WIEN"]
         self.assertEqual(relay["categories"]["Wien Herren 150"], "H150-")
@@ -1360,7 +1463,12 @@ class AnneIdentityTests(unittest.TestCase):
         self.assertIn("normalized_sha256", relay)
         long_distance = reviewed["2522"]["jurisdictions"]["WIEN"]
         self.assertEqual(long_distance["categories"]["Damen 15-18"], "D15-18")
-        self.assertIn("H45-", long_distance["award_holds"])
+        self.assertEqual(set(long_distance["categories"]["Herren 45-/Herren 40- Burgenland"]),
+                         {"H45-", "H50-", "__unassigned__"})
+        self.assertIn("Günther Kroupa", long_distance["categories"]["Herren 45-/Herren 40- Burgenland"]["H45-"])
+        self.assertEqual(reviewed["2533"]["jurisdictions"]["WIEN"]["categories"]["H 55-"], "H60-")
+        self.assertEqual(set(reviewed["2632"]["jurisdictions"]["WIEN"]["categories"]["Damen 45- Wien"]),
+                         {"D45-", "D50-"})
         self.assertEqual(reviewed["2644"]["jurisdictions"]["WIEN"]["categories"]["D15- Wien, D19-"], "D15-")
         long_2018 = reviewed["2172"]["jurisdictions"]["WIEN"]
         self.assertEqual(long_2018["categories"]["Damen 19- Wien"], "D19-")
@@ -1394,6 +1502,31 @@ class AnneIdentityTests(unittest.TestCase):
         con.execute("UPDATE result SET observed_name='Unbekannt' WHERE observed_name='Berta B'")
         with self.assertRaisesRegex(ValueError, "Official split does not exactly match"):
             build_db.populate_regional_championships(cur, {}, {"WAT-OL": "WIEN"}, evidence)
+
+    def test_wolv_age_split_keeps_source_scope_and_state_partition(self):
+        con=sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur=con.cursor()
+        cur.execute("INSERT INTO event (id,title) VALUES (1,'Wien und NÖ')")
+        cur.execute("INSERT INTO stage (id,event_id,number,date) VALUES (1,1,1,'2019-03-31')")
+        cur.execute("INSERT INTO source_document (id,event_id,source_type,source_url,normalized_sha256) VALUES ('doc',1,'test','https://example.org/results','norm')")
+        cur.execute("INSERT INTO result_list (id,stage_id,source_document_id,category,parsed_entries,parsed_rows,input_fingerprint) VALUES ('l',1,'doc','H45',3,3,'f')")
+        for pid,name,club in ((1,'Anna A','WAT-OL'),(2,'Berta B','WAT-OL'),(3,'Cecilia C','NÖ Verein')):
+            build_db.insert_result(cur,stage_id=1,result_list_id='l',category='H45',person_id=pid,
+                observed_name=name,official_club=club,status='ok',rank=pid,time_s=100*pid,source='test')
+        age={'url':'https://example.org/wolv','sha256':'c'*64,'result_document_url':'https://example.org/results','normalized_sha256':'norm'}
+        evidence={'1':{'date':'2019-03-31','stage_number':1,'jurisdictions':{'WIEN':{
+            'partial':True,'url':'https://example.org/invitation','sha256':'a'*64,'wolv_age_split':age,
+            'categories':{'H45':{'H45-':['Anna A','Cecilia C'],'H50-':['Berta B']}}}}}}
+        build_db.populate_regional_championships(cur,{}, {'WAT-OL':'WIEN','NÖ Verein':'NOE'},evidence)
+        rows=cur.execute('''SELECT ci.category,ci.detection_basis,r.observed_name FROM championship_entry ce
+            JOIN championship_instance ci ON ci.id=ce.championship_instance_id
+            JOIN championship_entry_result cer ON cer.championship_entry_id=ce.id
+            JOIN result r ON r.id=cer.result_id ORDER BY ci.category''').fetchall()
+        self.assertEqual(rows,[('H45-','wolv-age-split','Anna A'),('H50-','wolv-age-split','Berta B')])
+        age['normalized_sha256']='different'
+        with self.assertRaisesRegex(ValueError,'Age split source differs'):
+            build_db.populate_regional_championships(cur,{}, {'WAT-OL':'WIEN'},evidence)
 
     def test_regional_relay_without_bib_groups_by_team_time_not_leg_time(self):
         first = (1, 101, "relay", None, "WAT-OL 1", "WAT-OL", "WAT-OL",
@@ -1569,6 +1702,35 @@ class AnneIdentityTests(unittest.TestCase):
             build_db.KNOWN_RESULT_CLUB_OVERRIDES[(3847, "Thomas Neuhold")],
             "Orienteering Klosterneuburg")
 
+    def test_relay_team_code_requires_an_exact_club(self):
+        clubs = {"WAT-OL", "Naturfreunde Wien"}
+        self.assertEqual(build_db.canonicalize_official_club("WAT-OL WAT#1", clubs), "WAT-OL")
+        self.assertEqual(build_db.canonicalize_official_club("Naturfreunde Wien NW#2", clubs), "Naturfreunde Wien")
+        self.assertIsNone(build_db.canonicalize_official_club("WAT-OL / Naturfreunde Wien WAT#1", clubs))
+
+    def test_2021_partial_pair_suppressed_only_with_confirming_source(self):
+        doc = {"eventId": 3401, "fileName": "event_3401_20211009-092048-endergebnis-nacht-ms-2021.html"}
+        category = {"name": "Herren -14 Wien"}
+        row = {"name": "Dobler Linus", "club": "MTV Hernals", "timeS": 2107}
+        self.assertTrue(build_db.redundant_2021_night_partial_pair(doc, category, row, True))
+        self.assertFalse(build_db.redundant_2021_night_partial_pair(doc, category, row, False))
+        self.assertFalse(build_db.redundant_2021_night_partial_pair(doc, category, {**row, "timeS": 2108}, True))
+        self.assertFalse(build_db.redundant_2021_night_partial_pair({**doc, "eventId": 1}, category, row, True))
+
+    def test_state_prefix_is_removed_only_for_an_exact_known_club(self):
+        clubs = build_db.load_official_clubs()
+        for source, expected in (("W WAT-OL", "WAT-OL"), ("W WAT", "WAT-OL"),
+                                 ("NÖ FUN-OL NÖ", "FUN.O NOe"),
+                                 ("W Naturfreunde Wien", "Naturfreunde Wien"),
+                                 ("NOE HSV OL Wiener Neustadt", "HSV OL Wiener Neustadt")):
+            self.assertEqual(build_db.canonicalize_official_club(source, clubs), expected)
+        self.assertEqual(build_db.clean_club("W WAT-OL"), "WAT-OL")
+        self.assertEqual(build_db.clean_club("NÖ FUN-OL NÖ"), "FUN-OL NÖ")
+        self.assertEqual(build_db.clean_club("B ad Vöslau"), "B ad Vöslau")
+        self.assertIsNone(build_db.canonicalize_official_club("W", clubs))
+        self.assertIsNone(build_db.canonicalize_official_club("NÖ", clubs))
+        self.assertEqual(build_db.strip_regional_club_prefix("W WAT-OL", {"W WAT-OL", "WAT-OL"}), "W WAT-OL")
+
     def test_clubless_regional_row_is_not_unresolved_membership(self):
         base = (1, 100, "individual", None, None)
         clubless = base + ("Vereinslos (no club)", None, 1, "ok", 1000, 0)
@@ -1733,6 +1895,39 @@ class AnneIdentityTests(unittest.TestCase):
             ["Ergebnisse_1Etappe_nach Kategorien.html",
              "Ergebnisse_2Etappe_nach_Bahnen.html"],
         )
+
+    def test_explicit_course_sources_are_only_stored_in_separate_table(self):
+        for name in ("event_4404_ergebnisse-bahnen.html", "event_1857_ergebnissebahn.pdf",
+                     "Ergebnisse nach Bahnen.html", "results_by_courses.html"):
+            self.assertTrue(build_db.COURSE_VIEW_FILENAME_RE.search(name), name)
+        for name in ("ergebnisse-bahnhof.html", "Ergebnisse_Kategorien.html", "Ergebnis-Bahnsprint.pdf"):
+            self.assertIsNone(build_db.COURSE_VIEW_FILENAME_RE.search(name), name)
+        con = sqlite3.connect(":memory:")
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id,title) VALUES (4404,'Nacht')")
+        cur.execute("INSERT INTO stage (id,event_id,number) VALUES (1,4404,1)")
+        cur.execute("INSERT INTO source_document (id,event_id,source_type) VALUES ('course',4404,'test')")
+        doc = {"categories": [{"name": "H18,H40,H45", "results": [
+            {"name": "Radon Thomas", "club": "Naturfreunde Wien", "rank": 6,
+             "status": "ok", "timeS": 3541, "timeText": "59:01"},
+            {"name": "Rittler Alexander", "club": "Naturfreunde Wien", "status": "dnf", "timeText": "Aufg"},
+        ]}]}
+        self.assertEqual(build_db.store_course_results(cur, 1, 'course', doc), 2)
+        self.assertEqual(cur.execute("SELECT category,name,rank,status,time_s FROM course_result ORDER BY id").fetchall(),
+                         [("H18,H40,H45", "Radon Thomas", 6, "ok", 3541),
+                          ("H18,H40,H45", "Rittler Alexander", None, "dnf", None)])
+        self.assertEqual(cur.execute("SELECT count(*) FROM result").fetchone()[0], 0)
+        self.assertEqual(cur.execute("SELECT count(*) FROM person").fetchone()[0], 0)
+
+    def test_2024_vienna_night_split_has_final_contiguous_ranks(self):
+        reviewed = build_db.load_regional_source_classes()["4404"]["jurisdictions"]["WIEN"]
+        self.assertEqual(reviewed["official_ranks"]["H45-"],
+                         {"Radon Thomas": 1, "Kolar Hannes": 2, "Ballik Thomas": 3})
+        self.assertEqual(reviewed["categories"]["W H 45-"]["H50-"],
+                         ["Veitsberger Martin", "Kroupa Günther", "Marksteiner Martin"])
+        self.assertEqual(reviewed["rank_correction_source"]["sha256"],
+                         "7607aba56af0c3b6eb369bd0701be9be06187ec5e21aa175507178212d5e7e54")
 
     def test_supplemental_attachment_reuses_existing_anne_stage(self):
         con = sqlite3.connect(":memory:")

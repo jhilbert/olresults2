@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WOLV-Medaillenarchiv – OLResults</title>
+<link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="wolv.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.3/sql-wasm.js"></script>
+</head><body>
+<header><div class="wrap header-inner"><a class="brand" href="../index.html#/">OL<span>Results</span></a><nav class="nav"><a href="../index.html#/events">Wettkämpfe</a><a href="../index.html#/clubs">Vereine</a><a href="../index.html#/runners">Läufer:innen</a><a class="active" href="./">Wiener MS</a></nav></div></header>
+<main class="wrap wolv-page"><p class="wolv-eyebrow">UNABHÄNGIGES QUELLENARCHIV</p><h1>Wiener Meisterschaften</h1>
+<p class="sub">Medaillen und Hinweise aus den offiziellen WOLV-Jahreslisten.</p>
+<label for="wolv-year">Jahr</label> <select id="wolv-year" aria-label="WOLV-Jahr auswählen"></select>
+<p class="wolv-source"><a id="wolv-source" href="#" target="_blank" rel="noopener">Original-Medaillenliste ansehen ↗</a> <span id="wolv-year-note"></span></p>
+<p class="sub dim">✓ Übereinstimmung mit ANNE; „WOLV-Podium · Altersrekonstruktion“ ist kein unabhängiger Podiumsvergleich. Ein einzelnes ✓ bei „keine Wertung“, „nicht ausgetragen“, abgesagten Bewerben oder einem Verweis auf eine gemeinsame Wertung kennzeichnet nur den WOLV-Hinweis · ✕ eindeutig abweichend · ✓ ANNE korrekt: Abweichung geprüft, ANNE-Ergebnis bestätigt · ? nicht eindeutig vergleichbar. Eine fehlende ANNE-Zuordnung ist kein Fehlernachweis.</p>
+<div id="wolv-archive" aria-live="polite"><p>Lade WOLV-Liste und Vergleich …</p></div></main>
+<footer><div class="wrap">Quelle: <a id="wolv-external" href="http://www.wolv.at/download.php">WOLV</a> · Vergleich: ANNE und OLResults</div></footer>
+<script src="wolv.js"></script></body></html>

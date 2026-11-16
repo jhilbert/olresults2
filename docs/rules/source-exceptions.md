@@ -4,6 +4,83 @@ Diese Seite ist das Register für eng begrenzte Ausnahmen gemäß `EXCEPT-001`.
 Sie ersetzt nicht den Test: Eine bestätigte Ausnahme braucht immer einen
 konkreten Regressionstest oder einen Golden-Fall.
 
+## Ergebnisumfang und WOLV-Archiv
+
+- Wiener Nacht-MS 2021, Event `3401`: Die vollständige Wiener Tageswertung
+  nennt in H−14 Linus Dobler und Jonas Fischer als gemeinsames Team auf Platz 2.
+  Nur wenn diese exakt belegte PDF-Zeile vorliegt, wird die zusätzliche,
+  unvollständige Einzelzeile Dobler aus der allgemeinen HTML-Liste nicht
+  als weiterer Start importiert. In D45 vergleicht die WOLV-Jahresliste
+  „Natalie Machold“ mit „Natalia Machold“ aus ANNE nur für Naturfreunde Wien;
+  die Originalschreibweisen bleiben erhalten. Die separate Wiener Tagesliste
+  trennt außerdem H65 und H70: Die gemeinsame H65-Bahn der HTML-Liste darf
+  keine zusätzliche H65-Medaille für Teilnehmer der H70-Wertung erzeugen.
+- Wiener Staffel-MS 2021, Event `3326`: Ein Vereinsfeld wie `WAT-OL WAT#1`
+  darf für den Vergleich auf `WAT-OL` zurückgeführt werden, wenn der Präfix
+  exakt ein bekannter Verein oder Alias ist. Kombinationen mehrerer Vereine
+  werden dadurch nicht einem einzigen Verein zugewiesen.
+- D55 Mittel 2020 (`3054`) und H45 Nacht 2021 (`3401`): Die WOLV-Jahresliste
+  nennt jeweils zweimal Platz 2. Die ANNE-Tageslisten belegen Platz 2 und 3
+  durch Namen und Zeiten. Die WOLV-Abweichung bleibt sichtbar; der Hinweis
+  „ANNE korrekt“ gilt nur für die exakt überprüften Podeste.
+- In D15 Mittel 2020 (`3054`) nennt die ANNE-Tagesliste Anika Gassner;
+  die WOLV-Jahresliste schreibt Annika. Der Vergleich berücksichtigt die
+  belegte Namensvariante nur für Naturfreunde Wien, ohne Quellen umzuschreiben.
+- Event `2764`, Wiener Langdistanz 13.10.2019: Laut archivierter
+  ANNE-Ausschreibung sind ausschließlich D/H19− Wiener Meisterschaftsklassen.
+  Die ebenfalls archivierte, von ANNE verlinkte Wiener Tagesergebnisliste
+  wurde mit den bereits importierten D/H19−-Ergebnissen auf Namen und Zeiten
+  vollständig verglichen. Die Klassen werden mit Ausschreibungsbeleg als
+  Wiener Wertung übernommen, ohne zusätzliche Starts einzufügen.
+- WOLV-Jahresliste 2019: Beim Extrahieren überlagern sich in einzelnen
+  Tabellenzellen Teilnehmerzahlen und erste Ränge. Die fünf visuell überprüften
+  Siegerzeilen werden repariert; der extrahierte Originaltext bleibt erhalten.
+  Bei D15 der Staffel wird der gedruckte Namensfehler „Jasminai“ nur im
+  Vergleich mit der vollständigen belegten Naturfreunde-Mannschaft erkannt.
+- Wiener Sprint 2019 (`2533`): Die offizielle Tagesliste bezeichnet die
+  Männer-Seniorenklasse irrtümlich H55. Die Ausschreibung (SHA-256
+  `2dee416a32473e770bd7f9e8f44fd9627642824b542de406ae1c4aeea559658c`),
+  die archivierte ANNE-Meldeliste und die WOLV-Jahresliste nennen H60;
+  nur die Wertungskategorie wird berichtigt, Rang und Leistung bleiben.
+- Wiener Nachwuchs/Senioren Lang 2019 (`2522`): Die H40-Zeile der WOLV-
+  Jahresliste ist laut Nutzerbestätigung aus 2018 kopiert; die Podeste sind
+  tatsächlich identisch. Sie bleibt als Quellenfehler mit „ANNE korrekt“
+  sichtbar und erzeugt keine Medaillen. WOLV belegt dagegen die Podeste
+  H45/H50 und H65/H70. Auf ausdrücklichen Nutzerwunsch sind weitere Läufer
+  nach belegtem Geburtsjahr in diese Klassen rekonstruiert; fehlende Jahre
+  bleiben unzugeordnet. Nick Dytlewski ist durch das H65-WOLV-Podest belegt.
+- Wiener Nacht-MS 2019 (`2632`): Die ANNE-Tagesliste ist ausdrücklich
+  vorläufig. Die WOLV-Jahresliste belegt getrennte Wiener Podeste; die übrigen
+  Läufer der kombinierten Klassen werden auf Nutzerwunsch anhand des in der
+  ANNE-Quelle gedruckten Geburtsjahrs aufgeteilt. Diese Zuordnung ist als
+  `wolv-age-split` rekonstruiert gekennzeichnet, nicht als vollständig separat
+  veröffentlichte WOLV-Tageswertung. AK/DNS und Landeszugehörigkeit werden
+  weiterhin berücksichtigt; es entstehen keine zusätzlichen Starts.
+
+- ANNE-Veranstaltungen mit Veranstaltungsdatum vor dem 01.01.2013 werden
+  beim Datenbank-Build nicht eingelesen. Quelldateien bleiben erhalten;
+  die separat belegten Vereinsjahreszahlen 2000–2012 bleiben ausschließlich
+  in der Erfolgsstatistik sichtbar. Ski-O-Saison und Veranstaltungsdatum
+  sind dabei nicht dasselbe. Der Health-Baseline-Umfang wurde für diese
+  ausdrückliche Änderung neu gesetzt; die Eligibility-Mindestzahlen wurden
+  dabei nicht abgesenkt.
+- Das eigenständige WOLV-Archiv 1994–2026 entsteht aus den gesicherten
+  Original-PDFs und HTML-Jahrestabellen unter `data/review/archived_sources/`.
+  Die SHA-256-Werte im `data/review/wolv-archive-manifest.json` werden beim
+  Build geprüft. Tabellenfelder, Originaltexte und Nichtwertungen bleiben
+  erhalten; Medaillen werden nicht automatisch in ANNE übernommen. Der
+  automatisierte Vergleich meldet nur bei eindeutiger Zuordnung eine
+  Übereinstimmung oder einen Rangunterschied. Unklare Zuordnungen bleiben offen.
+  In der Zeile Damen 45 Mittel 2026 fügt die PDF-Textextraktion fälschlich ein
+  Leerzeichen in KASTNER ein; ausschließlich die Anzeige wird korrigiert,
+  der extrahierte Originaltext bleibt zum Nachvollziehen erhalten.
+
+- Event `5370`, Wiener Nacht-MS 2026: ANNE meldet „Vito Saprata“ ohne
+  ÖFOL-ID. Der Nutzer hat Vito Satrapa bestätigt; das ANNE-Personenregister
+  führt ihn als ÖFOL-ID `7317` bei OLC Wienerwald. Nur die Schreibweise in
+  dieser Quelle wird korrigiert; der beobachtete Name bleibt erhalten und
+  die bisherige synthetische Personen-URL wird sicher weitergeleitet.
+
 ## Gesonderte Mehrfachwertung ohne doppelten Start
 
 - Event `5203`, Ski-O Sprint, 22.03.2026: Die
@@ -423,11 +500,21 @@ stillschweigend vertauscht werden.
   (SHA-256 `92fc35f6467f5cf652c80aa67233c0f5b4874f5cf89f0bd24ecde848a7f688d2`)
   weist H45−/H50− und H65−/H70− getrennt aus. Diese expliziten
   Personenlisten werden übernommen, ohne nach Altersregeln selbst zu teilen.
-  H35− wird in H19− gewertet. In H45− druckt WOLV die Ränge 1, 3 und 4;
-  wir erhalten diese als Quellränge und markieren die fehlende 2 zur Prüfung.
+  H35− wird in H19− gewertet. Die WOLV-Jahresliste `http://www.wolv.at/docs/med24.pdf`
+  (archiviert unter `data/review/archived_sources/2024/wolv-annual.pdf`,
+  SHA-256 `7607aba56af0c3b6eb369bd0701be9be06187ec5e21aa175507178212d5e7e54`)
+  bestätigt als korrigierte H45−-Ränge Radon 1, Kolar 2, Ballik 3;
+  H50− bleibt Veitsberger 1, Kroupa 2, Marksteiner 3. Die Ränge der
+  gemeinsamen ANNE-Quellklasse bleiben als Originalbeobachtung erhalten.
   Die vier eindeutig veröffentlichten Wiener Jugendpaare sind jeweils zwei
   Personen mit einem gemeinsamen Ergebnis; die ungeteilte Namenszelle bleibt
   als Quellenbeobachtung erhalten.
+- Explizit als Bahnenliste gekennzeichnete Dateien werden unabhängig davon,
+  ob eine Kategorienliste existiert, ausschließlich als zusätzliche
+  Wettkampf-Ansicht gespeichert. Sie erzeugen keine Personen-, Vereins-,
+  Medaillen- oder Landesmeisterschaftsergebnisse. Tatsächliche reguläre
+  Wettkampfkategorien wie „Bahn A“ in einer normalen Ergebnisdatei werden
+  nicht allein aufgrund ihres Kategorienamens ausgeschlossen.
 - Event `4847`, Mittel 2025: Die WOLV-Jahresliste `http://www.wolv.at/docs/med25.pdf`
   bestätigt auch die Wiener Klassen D/H13–14. Die Klassen dürfen nicht mit
   gleichnamigen niederösterreichischen Klassen zusammengeführt werden; für
@@ -576,14 +663,35 @@ stillschweigend vertauscht werden.
   sind ausschließlich Teams von Naturfreunde Wien als gestartete Wiener Teams
   erkennbar. Die Ergebnisse bleiben sichtbar; eine Vereinsmedaille wird in
   dieser Klasse nicht gezählt.
+- Event `3812`, Wiener Nachwuchs-/Seniorenmeisterschaft 18.09.2022: Die
+  [WOLV-Jahresliste](http://www.wolv.at/docs/med22.pdf) weist D45− und D50−
+  separat mit vier bzw. fünf Starterinnen und je drei Podestplätzen aus.
+  Eine vollständige Wiener Tagesliste wurde nicht gefunden; die WOLV-Seite
+  verlinkt irrtümlich eine Liste aus 2020. Die sechs Podestzuordnungen sind
+  in der Jahresliste belegt; die drei übrigen werden nach ANNE-Register-
+  Geburtsjahr und übereinstimmender Klassengröße rekonstruiert. ANNE behält
+  die gemeinsame Originalklasse und Zeiten. Die Jahresliste nennt in D45−
+  zweimal Platz 2; nach den ANNE-Zeiten ist Gaudernak Dritte. Der Widerspruch
+  bleibt im WOLV-Vergleich sichtbar.
+- Event `3562`, Wiener Sprintmeisterschaft 26.03.2022: Die archivierte
+  [WOLV-Tagesliste](http://www.wolv.at/events/2022/sprint22_erg.pdf) führt
+  die getrennten ANNE-Quellklassen D/H−12 als gemeinsame Klasse und reiht
+  sie nach Zeit; andere Originalergebnisse bleiben erhalten.
+- Event `3847`, Wiener Nachtmeisterschaft 08.10.2022: Die archivierte
+  [WOLV-Tagesliste](http://www.wolv.at/events/2022/Wr.Nacht-MS_22.pdf)
+  belegt die getrennten Wiener Klassen D15–16/D17–18 und H65−/H70− samt
+  Teilnehmern und Status. WOLV-Jahresliste und Tagesliste unterscheiden sich
+  beim H45−-Rang von Günther Kroupa; ANNE und Tagesliste belegen Rang 3.
 - Event `3584`, Wiener Nachtmeisterschaft 2023: Die offizielle Wiener
   Tageswertung `http://www.wolv.at/events/2023/2023_Wr.Nacht-MS.pdf`
   (SHA-256 `272339b01336ebb10c66034ddeb5f260482c08930756f35689cd82658a374857`)
   veröffentlicht H55−/H60− und H65−/H70− getrennt. Nur die dort
   namentlich veröffentlichten ANNE-Quellpersonen werden zugeordnet.
   H−14 ist eine gemeinsame Wertung der getrennt gedruckten Damen- und
-  Herrenpaare. Die Tagesliste druckt Platz 3 und 4 entgegen der Zeitfolge;
-  die publizierten Ränge bleiben erhalten. ANNE nennt das Siegerpaar Lauri
+  Herrenpaare. Die Tagesliste vertauscht Platz 3 und 4 entgegen der ANNE-Zeiten;
+  die [WOLV-Jahresliste](http://www.wolv.at/docs/med23.pdf) bestätigt Beck /
+  Machold (28:48) auf Platz 3 vor Hinterplattner / Hinterplattner (29:19).
+  Die Jahresliste wird für diese Korrektur mit SHA-256 dokumentiert. ANNE nennt das Siegerpaar Lauri
   Urbanek und Adam Imriska; der zweite Nachname war in der Parser-Zelle in
   den Verein verrutscht und wird aus der ANNE-Zeile wiederhergestellt.
 - Event `3940`, Wiener Nachwuchs-/Seniorenmeisterschaft 2023: Die offizielle

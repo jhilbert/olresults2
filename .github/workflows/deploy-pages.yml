@@ -33,6 +33,9 @@ jobs:
       - name: Run regression tests
         run: python3 -m unittest discover -s tests -v
 
+      - name: Run frontend regression tests
+        run: node --test tests/*.js
+
       - name: Restore durable eligibility state
         run: python3 ingest/eligibility_state.py pull --required
 
@@ -41,6 +44,9 @@ jobs:
 
       - name: Build database
         run: python3 build/build_db.py
+
+      - name: Build independent WOLV archive
+        run: python3 build/build_wolv_pilot.py --copy-source
 
       - name: Validate database before publishing
         run: python3 build/validate_db.py
@@ -66,6 +72,7 @@ jobs:
           sed -i "s/style.css\"/style.css?v=$V\"/; s/domain_rules.js\"/domain_rules.js?v=$V\"/; s/app.js\"/app.js?v=$V\"/" site/index.html
           sed -i "s#<script src=\"app.js?v=$V\"></script>#<script>window.OLR_BUILD=\"$V\";</script>\n<script src=\"app.js?v=$V\"></script>#" site/index.html
           sed -i "s/style.css\"/style.css?v=$V\"/; s/review.js\"/review.js?v=$V\"/" site/review.html
+          sed -i "s#../style.css\"#../style.css?v=$V\"#; s/wolv.css\"/wolv.css?v=$V\"/; s/wolv.js\"/wolv.js?v=$V\"/" site/wolv/index.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

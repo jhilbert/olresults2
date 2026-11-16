@@ -1,6 +1,14 @@
 {
   "schema_version": 1,
   "events": {
+    "3812": {
+      "jurisdiction":"WIEN", "event_date":"2022-09-18", "stage_number":1,
+      "label":"WOLV: Medaillenliste 2022", "url":"http://www.wolv.at/docs/med22.pdf",
+      "sha256":"8d075300f937aec270ba0a00478d4d85cf8fd95f5dbd24cc8ceb4947bb188a17",
+      "reviewed_on":"2026-11-16",
+      "summary":"Die WOLV-Jahresliste belegt die getrennten D45-/D50-Podeste. Die übrigen drei Zuordnungen sind anhand von ÖFOL-Geburtsjahr und Klassengröße rekonstruiert; eine vollständige Tageswertung liegt nicht vor. D45: Die Jahresliste nennt zweimal Rang 2, ANNE zeigt unterschiedliche Zeiten.",
+      "titles":[]
+    },
     "3847": {
       "jurisdiction":"WIEN", "event_date":"2022-10-08", "stage_number":1,
       "label":"WOLV: Medaillenliste 2022", "url":"http://www.wolv.at/docs/med22.pdf",

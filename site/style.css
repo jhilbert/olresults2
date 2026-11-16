@@ -445,7 +445,7 @@ footer a { color: var(--accent-dark); text-decoration: none; }
   .disc-check { min-height: 44px; }
   .disc-check input { margin-bottom: 0; }
   .refresh { order: 3; }
-  .nav { order: 4; flex: 1 0 100%; gap: 16px; }
+  .nav { order: 4; flex: 1 0 100%; gap: 16px; max-width: 100%; overflow-x: auto; }
   td, thead th { padding: 7px 8px; }
   .hide-sm { display: none; }
   .page-pick { max-width: none; }

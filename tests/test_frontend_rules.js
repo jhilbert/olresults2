@@ -12,7 +12,18 @@ const {
   clubMedalCounts,
   isMedalRank,
   annualClubGoldSeries,
+  regionalTimeBehind,
 } = require("../site/domain_rules.js");
+
+test("regional split gaps use the winner of that class, not the source-wide winner", () => {
+  const winner = {regional_rank:1,status:'ok',time_s:3541,time_behind_s:73};
+  const second = {regional_rank:2,status:'ok',time_s:3606,time_behind_s:138};
+  assert.equal(regionalTimeBehind(winner,3541),null);
+  assert.equal(regionalTimeBehind(second,3541),65);
+  assert.equal(regionalTimeBehind({...second,status:'dnf'},3541),null);
+  assert.equal(regionalTimeBehind(second,null),null);
+  assert.equal(regionalTimeBehind({...second,time_s:3500},3541),null);
+});
 
 test("only actual podium ranks are medals", () => {
   for (const rank of [1, 2, 3]) assert.equal(isMedalRank(rank), true);

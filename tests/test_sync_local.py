@@ -47,6 +47,7 @@ class LocalSyncTests(unittest.TestCase):
             "ingest/eligibility_state.py",
             "ingest/identity_state.py",
             "build/build_db.py",
+            "build/build_wolv_pilot.py",
             "build/validate_db.py",
         ])
 

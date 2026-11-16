@@ -20,6 +20,23 @@ def health(result=100, conflicts=1, decisions=20):
 
 
 class BuildHealthTests(unittest.TestCase):
+    def test_course_sources_cannot_leak_into_results_or_another_event(self):
+        con = sqlite3.connect(":memory:")
+        con.executescript("""CREATE TABLE stage(id INTEGER, event_id INTEGER);
+            CREATE TABLE source_document(id TEXT,event_id INTEGER);
+            CREATE TABLE course_result(stage_id INTEGER,source_document_id TEXT);
+            CREATE TABLE result(source_document_id TEXT);
+            INSERT INTO stage VALUES(1,4404); INSERT INTO source_document VALUES('course',4404);
+            INSERT INTO course_result VALUES(1,'course');""")
+        validate_db.validate_course_isolation(con)
+        con.execute("INSERT INTO result VALUES('course')")
+        with self.assertRaisesRegex(RuntimeError, "leaked into ordinary results"):
+            validate_db.validate_course_isolation(con)
+        con.execute("DELETE FROM result")
+        con.execute("UPDATE stage SET event_id=999")
+        with self.assertRaisesRegex(RuntimeError, "different event"):
+            validate_db.validate_course_isolation(con)
+
     def test_logical_fingerprint_ignores_insertion_order(self):
         def database(rows):
             con = sqlite3.connect(":memory:")

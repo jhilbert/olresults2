@@ -174,6 +174,7 @@ def sync_local(env, update_git=True):
     print("\n[4/5] Lokale SQLite-Datenbank bauen")
     review_overlay_summary()
     run([sys.executable, "build/build_db.py"], env=env)
+    run([sys.executable, "build/build_wolv_pilot.py", "--copy-source"], env=env)
 
     print("\n[5/5] Lokale SQLite-Datenbank validieren")
     run([sys.executable, "build/validate_db.py"], env=env)
