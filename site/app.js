@@ -1596,22 +1596,23 @@ function renderRankedMedalTable(podiums, { showClub, isOm, capOutput, splitKinds
   const cols = splitKinds ? (showClub ? 12 : 11) : (showClub ? 7 : 6) + (showOstm ? 1 : 0);
 
   return `
-  <div class="medal-table-scroll"><table class="${splitKinds ? "medal-breakdown-table" : ""}">
+  <p class="medal-scroll-hint">Für weitere Spalten seitlich scrollen ↔</p>
+  <div class="medal-table-scroll" tabindex="0" role="region" aria-label="Medaillenspiegel der Läuferinnen und Läufer"><table class="medal-count-table${splitKinds ? " medal-breakdown-table" : ""}">
     ${splitKinds ? `<thead><tr><th rowspan="2" class="num"></th><th rowspan="2">Läufer:in</th>${showClub ? `<th rowspan="2" class="hide-sm">Verein</th>` : ""}
       <th colspan="3" class="num">Einzel</th><th colspan="3" class="num team-medal-col">Team</th><th colspan="3" class="num">Summe</th></tr>
-      <tr>${[0,1,2].map((group) => ["Gold", "Silber", "Bronze"].map((label) => `<th class="num${group === 1 ? " team-medal-col" : ""}">${label}</th>`).join("")).join("")}</tr></thead>` : `<thead><tr>
+      <tr>${[0,1,2].map((group) => ["Gold", "Silber", "Bronze"].map((label, i) => `<th class="num medal-${["gold", "silver", "bronze"][i]}${group === 1 ? " team-medal-col" : ""}">${label}</th>`).join("")).join("")}</tr></thead>` : `<thead><tr>
       <th class="num"></th><th>Läufer:in</th>${showClub ? `<th class="hide-sm">Verein</th>` : ""}
-      <th class="num">Gold</th><th class="num">Silber</th>
-      <th class="num">Bronze</th><th class="num">Summe</th>${showOstm ? `<th class="num">ÖSTM</th>` : ""}
+      <th class="num medal-gold">Gold</th><th class="num medal-silver">Silber</th>
+      <th class="num medal-bronze">Bronze</th><th class="num">Summe</th>${showOstm ? `<th class="num">ÖSTM</th>` : ""}
     </tr></thead>`}
     <tbody>${shown.length ? shown.map((p) => `
       <tr class="expandable" data-toggle="${p.person_id}">
         <td class="num dim">${p.place}.</td>
         <td>${runnerNameHtml(p.person_id, p.person_name)} <span class="expand-icon">▸</span></td>
         ${showClub ? `<td class="hide-sm dim">${esc(p.club_name || "")}</td>` : ""}
-        ${splitKinds ? `${p.individual.map((n) => `<td class="num">${n || ""}</td>`).join("")}${p.team.map((n) => `<td class="num team-medal-col">${n || ""}</td>`).join("")}${[p.gold,p.silver,p.bronze].map((n) => `<td class="num"><b>${n || ""}</b></td>`).join("")}` : `<td class="num">${p.gold || ""}</td>
-        <td class="num">${p.silver || ""}</td>
-        <td class="num">${p.bronze || ""}</td>
+        ${splitKinds ? `${p.individual.map((n, i) => `<td class="num medal-${["gold", "silver", "bronze"][i]}">${n || ""}</td>`).join("")}${p.team.map((n, i) => `<td class="num medal-${["gold", "silver", "bronze"][i]} team-medal-col">${n || ""}</td>`).join("")}${[p.gold,p.silver,p.bronze].map((n, i) => `<td class="num medal-${["gold", "silver", "bronze"][i]}"><b>${n || ""}</b></td>`).join("")}` : `<td class="num medal-gold">${p.gold || ""}</td>
+        <td class="num medal-silver">${p.silver || ""}</td>
+        <td class="num medal-bronze">${p.bronze || ""}</td>
         <td class="num"><b>${p.gold + p.silver + p.bronze}</b></td>`}
         ${showOstm ? `<td class="num nowrap">${p.ostmGold || p.ostmSilver || p.ostmBronze ? `${p.ostmGold}-${p.ostmSilver}-${p.ostmBronze}` : ""}</td>` : ""}
       </tr>
@@ -1678,22 +1679,30 @@ function renderClubMedalTable(podiums, { isOm }) {
   });
 
   return `
-  <table>
+  <table class="medal-count-table">
     <thead><tr>
       <th class="num"></th><th>Verein</th>
-      <th class="num">Gold</th><th class="num">Silber</th><th class="num">Bronze</th><th class="num">Summe</th>
+      <th class="num medal-gold">Gold</th><th class="num medal-silver">Silber</th><th class="num medal-bronze">Bronze</th><th class="num">Summe</th>
     </tr></thead>
     <tbody>${clubs.length ? clubs.map((c) => `
       <tr>
         <td class="num dim">${c.place}.</td>
         <td><a href="#/club/${encodeURIComponent(c.name)}">${esc(c.name)}</a></td>
-        <td class="num">${c.gold || ""}</td>
-        <td class="num">${c.silver || ""}</td>
-        <td class="num">${c.bronze || ""}</td>
+        <td class="num medal-gold">${c.gold || ""}</td>
+        <td class="num medal-silver">${c.silver || ""}</td>
+        <td class="num medal-bronze">${c.bronze || ""}</td>
         <td class="num"><b>${c.gold + c.silver + c.bronze}</b></td>
       </tr>`).join("") : `<tr><td colspan="6" class="dim">Keine Podestplätze</td></tr>`}
     </tbody>
   </table>`;
+}
+
+// Club totals count a team once; the person table below counts every member.
+function renderClubMedalSummary(rows) {
+  return `<div class="club-medal-summary"><table class="medal-count-table" aria-label="Medaillen des Vereins">
+    <thead><tr><th scope="col">Wertung</th><th scope="col" class="num medal-gold">Gold</th><th scope="col" class="num medal-silver">Silber</th><th scope="col" class="num medal-bronze">Bronze</th></tr></thead>
+    <tbody>${rows.map(({label, counts, total}) => `<tr${total ? ' class="medal-summary-total"' : ""}><th scope="row">${label}</th><td class="num medal-gold">${counts.gold}</td><td class="num medal-silver">${counts.silver}</td><td class="num medal-bronze">${counts.bronze}</td></tr>`).join("")}</tbody>
+  </table></div>`;
 }
 
 function renderClubSuccessStatistics(national, vienna, { base, startYear = null, history = null, historyUnavailable = false }) {
@@ -1999,16 +2008,11 @@ function clubDetailHtml(name, year, medalType, { withChangeButton, hrefBase, vie
     : allPodiums.filter((r) => isMedalRank(r.rank) && !isKoHeat(r.category));
   const podiums = year ? typeFiltered.filter((r) => seasonYear(r.date, r.sport_type) === year) : typeFiltered;
   const {gold, silver, bronze} = clubMedalCounts(podiums, mode !== "all");
-  const renderStats = (counts) => `<div class="stats">
-      <div class="stat"><b>${counts.gold}</b><span>Gold</span></div>
-      <div class="stat"><b>${counts.silver}</b><span>Silber</span></div>
-      <div class="stat"><b>${counts.bronze}</b><span>Bronze</span></div>
-    </div>`;
-  const summary = mode === "om" ? `<div class="club-medal-summaries">
-      <section><h3>ÖSTM</h3>${renderStats(clubMedalCounts(podiums.filter((r) => r.championship === "ÖSTM")))}</section>
-      <section><h3>ÖM</h3>${renderStats(clubMedalCounts(podiums.filter((r) => r.championship === "ÖM")))}</section>
-      <section><h3>Gesamt</h3>${renderStats({gold,silver,bronze})}</section>
-    </div>` : renderStats({gold,silver,bronze});
+  const summary = renderClubMedalSummary(mode === "om" ? [
+    {label: "ÖSTM", counts: clubMedalCounts(podiums.filter((r) => r.championship === "ÖSTM"))},
+    {label: "ÖM", counts: clubMedalCounts(podiums.filter((r) => r.championship === "ÖM"))},
+    {label: "Gesamt", counts: {gold, silver, bronze}, total: true},
+  ] : [{label: "Vereinssumme", counts: {gold, silver, bronze}, total: true}]);
 
   const yearChip = (val, label) => `<a class="chip ${(!year && !val) || year === val ? "active" : ""}"
       href="${base}${val ? "/" + val : ""}${modeSuffix}">${label}</a>`;

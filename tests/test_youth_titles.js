@@ -99,19 +99,16 @@ test("club ÖSTM view separates individual and team medals and keeps one club me
   ];
   const html = isolated.clubHtml('Naturfreunde Wien','2026','ostm',{});
   assert.match(html,/href="#\/club\/Naturfreunde%20Wien\/2026\/ostm"/);
-  assert.match(html,/<span>Gold<\/span>/);
-  assert.match(html,/<div class="stat"><b>1<\/b><span>Silber<\/span>/);
+  assert.match(html,/<th scope="row">Vereinssumme<\/th><td class="num medal-gold">1<\/td><td class="num medal-silver">1<\/td>/);
   assert.match(html,/<th colspan="3" class="num">Einzel<\/th>/);
   assert.match(html,/<th colspan="3" class="num team-medal-col">Team<\/th>/);
-  assert.equal((html.match(/class="num team-medal-col"/g) || []).length, 10);
+  assert.equal((html.match(/class="num medal-(?:gold|silver|bronze) team-medal-col"/g) || []).length, 9);
   assert.doesNotMatch(html,/>ÖM<\/span> ·/);
   assert.match(html,/Anna/); assert.match(html,/Bea/);
   const combined = isolated.clubHtml('Naturfreunde Wien','2026','om',{});
-  assert.match(combined,/<div class="stat"><b>1<\/b><span>Silber<\/span>/);
-  assert.match(combined,/<div class="stat"><b>2<\/b><span>Gold<\/span>/);
-  assert.match(combined,/<h3>ÖSTM<\/h3>[\s\S]*?<b>1<\/b><span>Gold<\/span>[\s\S]*?<b>1<\/b><span>Silber<\/span>/);
-  assert.match(combined,/<h3>ÖM<\/h3>[\s\S]*?<b>1<\/b><span>Gold<\/span>/);
-  assert.match(combined,/<h3>Gesamt<\/h3>[\s\S]*?<b>2<\/b><span>Gold<\/span>/);
+  assert.match(combined,/<th scope="row">ÖSTM<\/th><td class="num medal-gold">1<\/td><td class="num medal-silver">1<\/td>/);
+  assert.match(combined,/<th scope="row">ÖM<\/th><td class="num medal-gold">1<\/td><td class="num medal-silver">0<\/td>/);
+  assert.match(combined,/<th scope="row">Gesamt<\/th><td class="num medal-gold">2<\/td><td class="num medal-silver">1<\/td>/);
 });
 
 test("club championship medal views exclude results without a championship rank", () => {
@@ -177,7 +174,7 @@ test("source-only team medal counts for club but not for a fabricated runner", (
     result_kind:'team',team_name:'Naturfreunde Wien',result_id:'1',person_id:'-1',
     person_name:'Kastner Hufnagel Tiefenböck',identity_basis:'source-team-only'}];
   const html = isolated.clubHtml('Naturfreunde Wien','2015','om',{});
-  assert.match(html,/<div class="stat"><b>1<\/b><span>Gold<\/span>/);
+  assert.match(html,/<th scope="row">Gesamt<\/th><td class="num medal-gold">1<\/td>/);
   assert.doesNotMatch(html,/Kastner Hufnagel Tiefenböck/);
   assert.match(html,/ohne eindeutig belegte Einzelpersonen/);
 });
@@ -217,7 +214,7 @@ test("club Landesmeisterschaft summary counts a team once but lists each athlete
     {...base,person_id:'3',person_name:'Cleo'},
   ];
   const html = isolated.clubHtml('Naturfreunde Wien','2026',null,{regionalCode:'WIEN'});
-  assert.match(html,/<div class="stat"><b>1<\/b><span>Gold<\/span>/);
+  assert.match(html,/<th scope="row">Vereinssumme<\/th><td class="num medal-gold">1<\/td>/);
   assert.match(html,/Anna/); assert.match(html,/Bea/); assert.match(html,/Cleo/);
   assert.match(html,/je Team einmal/);
   assert.ok(html.indexOf('Landes MS') < html.indexOf('Jugend-Meistertitel'));
