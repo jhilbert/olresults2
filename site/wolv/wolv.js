@@ -84,7 +84,7 @@ function categoryKey(value) {
 
 function jointUnder12(value) {
   const key = compact(value).toUpperCase().replace(/[–—]/g,'-').replace(/BIS12/,'-12');
-  return /^(?:DH|D(?:AMEN)?(?:UND|\+|&)H(?:ERREN)?|H(?:ERREN)?(?:UND|\+|&)D(?:AMEN)?)-?12-?$/.test(key);
+  return /^(?:DH|DAHE|D(?:AMEN)?(?:UND|\+|&)H(?:ERREN)?|H(?:ERREN)?(?:UND|\+|&)D(?:AMEN)?)-?12-?$/.test(key);
 }
 
 function under14Alternative(value, gender) {
@@ -131,7 +131,7 @@ function historicalMapping(db, entry, year, group) {
     .map((m) => `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`)
     .filter((date) => date.startsWith(`${year}-`));
   const distinct = [...new Set(dates)];
-  let source = String(entry.source_heading || entry.source_category || '').replace(/:$/,'').trim();
+  let source = String(entry.source_heading || entry.source_category || '').trim().replace(/[.:]+$/,'').trim();
   if (group === 'mixed') {
     const sourceKey = mixedCategoryKey(source);
     if (!sourceKey || !distinct.length) return {group,event:null,category:null};
@@ -158,10 +158,13 @@ function historicalMapping(db, entry, year, group) {
   // Let the confirmed ANNE categories (and, when needed, podiums) decide;
   // never apply the same assumption to night or relay age classes.
   const combinedUnder12 = ['lang','mittel','sprint'].includes(group)
-    ? rawCategory.match(/^(H|D)-12\/H\+D-12$/) : null;
+    ? rawCategory.match(/^(H|D)-12\/(?:H\+D|DAHE)-?12$/) : null;
   if (combinedUnder12) source = `${combinedUnder12[1]}-12`;
   const under14 = rawCategory.match(/^(H|D)13-14$/);
-  if (!distinct.length || !/^(?:DH|D|H)\s*[-\d\s]+$/i.test(source))
+  // These historical headings label an adult title by two age conventions.
+  // A unique complete same-day podium must still prove the actual class.
+  const historicalAdult = rawCategory.match(/^(H21-\/H17-|D19-\/D17-)$/);
+  if (!distinct.length || (!historicalAdult && !/^(?:DH|D|H)\s*[-\d\s]+$/i.test(source)))
     return {group,event:null,category:null};
   // The 2025 night championship explicitly joins H40 and H45 in ANNE;
   // WOLV calls this same classification H45. Do not split the results.
@@ -169,13 +172,25 @@ function historicalMapping(db, entry, year, group) {
     && categoryKey(source) === 'H45' ? 'H40-,H45' : source;
   let selected = distinct;
   if (group === 'lang' && distinct.length === 2) {
-    selected = [distinct[/^(?:D|H)\s*(?:19|21)\s*-?$/i.test(source) ? 0 : 1]];
+    selected = [distinct[historicalAdult || /^(?:D|H)\s*(?:19|21)\s*-?$/i.test(source) ? 0 : 1]];
   }
   const placeholders = selected.map(() => '?').join(',');
   const allRows = query(db, `SELECT DISTINCT s.event_id AS event,ci.category FROM championship_instance ci
     JOIN stage s ON s.id=ci.stage_id JOIN event e ON e.id=s.event_id
     WHERE ci.jurisdiction='WIEN' AND ci.championship_type='LMS' AND ci.state='confirmed'
     AND substr(COALESCE(s.date,e.date_from),1,10) IN (${placeholders})`,selected);
+  if (historicalAdult) {
+    const gender = rawCategory[0];
+    const aliases = allRows.filter((row) => new RegExp(`^${gender}(?:17|19|21)$`).test(categoryKey(row.category)));
+    // The WOLV heading itself explicitly lists both age names. A single
+    // dated ANNE class can therefore be linked even when its podium differs;
+    // comparing the results remains a separate, independent step.
+    if (rawCategory === 'D19-/D17-' && entry.medals?.length >= 2 && aliases.length === 1)
+      return {group,event:aliases[0].event,category:aliases[0].category};
+    const chosen = uniqueExactPodiumCandidate(entry,aliases,(row) =>
+      regionalEntries(db,{group,event:row.event,category:row.category}));
+    return chosen ? {group,event:chosen.event,category:chosen.category} : {group,event:null,category:null};
+  }
   const rows = allRows.filter((row) => categoryKey(row.category) === categoryKey(targetCategory)
       || (combinedUnder12 && jointUnder12(row.category))
       || (under14 && under14Alternative(row.category, under14[1])));
@@ -188,7 +203,36 @@ function historicalMapping(db, entry, year, group) {
       : {group,event:null,category:null};
   }
   if (rows.length === 1) return {group,event:rows[0].event,category:rows[0].category};
+  // Some historical relay annual tables retain the individual 15–16 row
+  // label while the source actually calls the team class H15-. Only the
+  // exact complete three-team podium can establish that relationship.
+  if (!rows.length && group === 'staffel' && /^[DH]15-16$/.test(rawCategory)) {
+    const aliases = allRows.filter((row) => categoryKey(row.category) === `${rawCategory[0]}15`);
+    const chosen = uniqueExactPodiumCandidate(entry,aliases,(row) =>
+      regionalEntries(db,{group,event:row.event,category:row.category}));
+    if (chosen) return {group,event:chosen.event,category:chosen.category};
+  }
   if (!rows.length && ['lang','tag','mittel','sprint','nacht','ski'].includes(group)) {
+    // Some annual tables label the under-12 podium even though ANNE
+    // publishes the very same podium in a combined under-14 class.
+    // The full dated podium must match uniquely; age labels alone do not.
+    const under12 = rawCategory.match(/^(H|D)-12$/);
+    if (under12 && entry.medals?.length === 3) {
+      const aliases = allRows.filter((row) => [ `${under12[1]}14`, `${under12[1]}-14` ].includes(categoryKey(row.category)));
+      const chosen = uniqueExactPodiumCandidate(entry,aliases,(row) =>
+        regionalEntries(db,{group,event:row.event,category:row.category}));
+      if (chosen) return {group,event:chosen.event,category:chosen.category};
+    }
+    // Historical WOLV age bands sometimes use 15–16 / 17–18 where ANNE
+    // uses an upper-bound class. Accept only a unique, identical podium.
+    const youthBand = rawCategory.match(/^(H|D)(15-16|17-18)$/);
+    if (youthBand) {
+      const upper = youthBand[2] === '15-16' ? '16' : '18';
+      const aliases = allRows.filter((row) => categoryKey(row.category) === `${youthBand[1]}-${upper}`);
+      const chosen = uniqueExactPodiumCandidate(entry,aliases,(row) =>
+        regionalEntries(db,{group,event:row.event,category:row.category}));
+      if (chosen) return {group,event:chosen.event,category:chosen.category};
+    }
     // Some historical ANNE exports omit the minus sign ("H 14"). It is
     // ambiguous by itself, so accept it only with the exact complete podium
     // and rank order from the dated WOLV classification.
@@ -201,7 +245,7 @@ function historicalMapping(db, entry, year, group) {
     }
     const ageRange = rawCategory.match(/^(H|D)15-18$/);
     if (ageRange) {
-      const aliases = allRows.filter((row) => categoryKey(row.category) === `${ageRange[1]}-18`);
+      const aliases = allRows.filter((row) => [`${ageRange[1]}-18`,`${ageRange[1]}15`].includes(categoryKey(row.category)));
       const chosen = uniqueAgeRangeCandidate(entry,aliases,(row) =>
         regionalEntries(db,{group,event:row.event,category:row.category}));
       if (chosen) return {group,event:chosen.event,category:chosen.category};
@@ -209,7 +253,7 @@ function historicalMapping(db, entry, year, group) {
   }
   return {group,event:null,category:null};
 }
-function regionalEntries(db, mapping) {
+function regionalEntries(db, mapping, {includeHeld = false} = {}) {
   if (!mapping.event || !mapping.category) return null;
   const instances = query(db, `SELECT ci.id,ci.category,ci.detection_basis FROM championship_instance ci
     JOIN stage s ON s.id=ci.stage_id WHERE s.event_id=? AND ci.jurisdiction='WIEN'
@@ -217,12 +261,15 @@ function regionalEntries(db, mapping) {
     .filter((r) => categoryKey(r.category) === categoryKey(mapping.category));
   if (instances.length !== 1) return null;
   const id = instances[0].id;
-  if (query(db,'SELECT 1 FROM regional_award_hold WHERE championship_instance_id=?',[id]).length) return null;
+  const awardHeld = query(db,'SELECT 1 FROM regional_award_hold WHERE championship_instance_id=?',[id]).length > 0;
+  if (awardHeld && !includeHeld) return null;
   const n = query(db, `SELECT COUNT(*) AS n FROM championship_entry ce WHERE ce.championship_instance_id=?
     AND ce.eligibility_state='eligible' AND EXISTS (SELECT 1 FROM championship_entry_result cer
     JOIN result r ON r.id=cer.result_id WHERE cer.championship_entry_id=ce.id
     AND r.out_of_competition=0 AND r.status IN ('ok','dnf','mp','dsq'))`,[id])[0].n;
-  if (n < 3) return null;
+  // In review mode show the actual podium even when too few eligible
+  // competitors started. This does not confirm a championship or title.
+  if (n < 3 && !includeHeld) return null;
   const rows = query(db, `SELECT ce.id,ce.regional_rank AS rank,r.official_club AS club,
       COALESCE(p.name,r.observed_name) AS name,r.observed_name,r.team_number,r.time_s
     FROM championship_entry ce JOIN championship_entry_result cer ON cer.championship_entry_id=ce.id
@@ -232,7 +279,8 @@ function regionalEntries(db, mapping) {
   for (const row of rows) {
     if (!row.name || !row.club) return null;
     if (!byEntry.has(row.id)) byEntry.set(row.id,{rank:row.rank,club:row.club,names:new Set(),times:new Set(),
-      wolvAgeSplit:instances[0].detection_basis === 'wolv-age-split'});
+      wolvAgeSplit:instances[0].detection_basis === 'wolv-age-split',
+      wolvRosterFilter:instances[0].detection_basis === 'wolv-roster-filter',awardHeld,insufficientStarters:n < 3});
     if (byEntry.get(row.id).club !== row.club) return null;
     byEntry.get(row.id).names.add(row.name);
     if (row.time_s != null) byEntry.get(row.id).times.add(row.time_s);
@@ -244,9 +292,11 @@ const clubs = {
   'Naturfreunde Wien':['NF Wien','Naturfreunde Wien'],
   'WAT-OL':['WAT-OL','WAT OL','WAT'],
   'OLC Wienerwald':['OLC Wienerwald'],
-  'OLT Transdanubien':['OLT Transdanubien'],
+  'OLT Transdanubien':['OLT Transdanubien','OLT Trandanubien'],
   'OLG Ströck Wien':['OLG Ströck Wien'],
+  'WATV':['WATV'],
   'MTV Hernals':['MTV Hernals'],
+  'USC Theresianum':['USC Theresianum'],
 };
 function sourceMatches(source, entry) {
   const variants = clubs[entry.club] || [entry.club];
@@ -254,6 +304,46 @@ function sourceMatches(source, entry) {
   // User-confirmed alias, restricted to the confirmed person and club. WOLV
   // still uses the older name even after results point to ÖFOL-ID 2314.
   const nameVariants = [names];
+  // Exact, club-scoped source spellings verified against the ANNE roster or
+  // the same dated complete team. These do not merge person identities.
+  const knownNames = [
+    ['Naturfreunde Wien','Ylvi Kastner','Ylvie Kastner'],
+    ['Naturfreunde Wien','Jannis Bonek','Janis Bonek'],
+    ['Naturfreunde Wien','Anneliese Bonek','Annaliese Bonek'],
+    ['OLC Wienerwald','Guni Palme','Gubi Palme'],
+    ['MTV Hernals','Herlinde Hinterplattner','Herlinde Hinterlattner'],
+    ['OLG Ströck Wien','Sigrid Grün','Sigried Grün'],
+    ['OLG Ströck Wien','Sigried Grün','Sigrid Grün'],
+    ['OLG Ströck Wien','Paul Gruen','Paul Grün'],
+    ['Naturfreunde Wien','Magdalena Hufnagel','Magdalena Hufnagl'],
+    ['WAT-OL','Alex Srb','Alexander Srb'],
+    ['WAT-OL','Wanda Perna','Wanda Perner'],
+    ['WAT-OL','Franzi Glaner','Franz Glaner'],
+    ['WAT-OL','Wolfi Siegert','Wolfgang Siegert'],
+    ['WAT-OL','Kathrin Fabian','Karthrin Fabian'],
+    ['WAT-OL','Schneider-Lillehov Marit Thea','Schneider-Lillehov Thea'],
+    ['OLC Wienerwald','Erich Goeschl','Erich Göschl'],
+    ['OLT Transdanubien','Lea Illig','Lea Hnilica'],
+    ['OLT Transdanubien','Agnes Schirmboeck','Agnes Schirmböck'],
+  ];
+  for (const [club, actual, alias] of knownNames) {
+    if (entry.club !== club || ![...entry.names].some((name) => bag(name) === bag(actual))) continue;
+    for (const variant of [...nameVariants]) nameVariants.push(variant.replace(actual,alias));
+  }
+  // Confirmed ÖFOL identity 2154: WOLV uses Nick, ANNE Nikolai. Keep the
+  // club and the complete individual/team roster part of the comparison.
+  if (entry.club === 'Naturfreunde Wien' && [...entry.names].some((name) => bag(name) === bag('Nikolai Dytlewski'))) {
+    nameVariants.push(names.replace(/\bNikolai\s+Dytlewski\b/i, 'Nick Dytlewski'));
+  }
+  // Confirmed ÖFOL ID 6511: Max is Maximilian Pietsch. This only changes
+  // the comparison alias; club and every relay member must still match.
+  if (entry.club === 'Naturfreunde Wien' && [...entry.names].some((name) => bag(name) === bag('Maximilian Pietsch'))) {
+    nameVariants.push(names.replace(/\bMaximilian\s+Pietsch\b/i, 'Max Pietsch'));
+  }
+  // ANNE-Register 6969 and the 2018 source use these two spellings.
+  if (entry.club === 'OLC Wienerwald' && [...entry.names].some((name) => bag(name) === bag('Polina Lyatoshinsky'))) {
+    nameVariants.push(names.replace(/\bPolina\s+Lyatoshinsky\b/i, 'Polina Lyatoshinskaya'));
+  }
   // WOLV's annual list calls the ANNE-result Natalia Machold Natalie.
   // Match this confirmed person only, without changing either source name.
   if (entry.club === 'Naturfreunde Wien' && [...entry.names].some((name) => bag(name) === bag('Natalia Machold'))) {
@@ -289,7 +379,24 @@ function sourceMatches(source, entry) {
   }
   // The optional number before ':' is WOLV's team label, not a person's
   // name. Identical rosters are still rejected by the ambiguity check below.
-  const withoutTeamLabel = source.replace(/^(.*?)(?:\s+\d+)\s*:/,'$1:');
+  let withoutTeamLabel = source.replace(/^(.*?)(?:\s+\d+)\s*:/,'$1:');
+  // 2017 WOLV youth mixed relay omits Harald's first name; the user
+  // confirmed the complete ANNE roster. Never match a partial team alone.
+  if (entry.club === 'OLT Transdanubien' && [...entry.names].length === 3
+      && ['Mario Leitner','Agnes Schirmböck','Harald Schweighofer']
+        .every((name) => [...entry.names].some((actual) => bag(actual) === bag(name)))) {
+    withoutTeamLabel = withoutTeamLabel.replace(/\bSCHWEIGHOFER\s*$/i,'SCHWEIGHOFER Harald');
+  }
+  // WOLV's 2017 relay table prints "ND Wien" for this particular team;
+  // ANNE identifies the same complete roster as Naturfreunde Wien.
+  if (entry.club === 'Naturfreunde Wien' && [...entry.names].length === 2
+      && [...entry.names].some((name) => bag(name) === bag('Maya Kastner'))
+      && [...entry.names].some((name) => bag(name) === bag('Sofia Calvet'))) {
+    withoutTeamLabel = withoutTeamLabel.replace(/^ND\s+Wien\s*:/i,'NF Wien:');
+  }
+  if (entry.club === 'Naturfreunde Wien' && [...entry.names].some((name) => bag(name) === bag('Ferri Gassner'))) {
+    withoutTeamLabel = withoutTeamLabel.replace(/\b(GASSNER\s+Ferri)\s+jun\.?/ig,'$1');
+  }
   return variants.some((club) => nameVariants.some((variant) => bag(withoutTeamLabel) === bag(`${club} ${variant}`)));
 }
 function candidateDescription(candidate) {
@@ -298,6 +405,14 @@ function candidateDescription(candidate) {
 function knownSourceConflict(entry, candidates, mapping) {
   // Independently documented, source-pinned conflicts: do not collapse these
   // different people into a guessed match. The ANNE roster remains binding.
+  if (mapping?.event === 1433 && categoryKey(mapping.category) === 'H15'
+      && entry.medals.length === 3 && candidates.length === 3
+      && [[1,'GLANER Franz WAT'],[2,'SIEGERT Wolfgang WAT'],[3,'SULZ Henrik OLC Wienerwald']]
+        .every(([rank,name]) => entry.medals.some((m) => m.rank === rank && bag(m.text) === bag(name)))
+      && [[1,'SIMKOVICS Erik OLC Wienerwald'],[2,'GLANER Franz WAT'],[3,'SIEGERT Wolfgang WAT']]
+        .every(([rank,name]) => candidates.some((c) => c.rank === rank && sourceMatches(name,c)))) {
+    return {description:'WOLV: 1. Franz Glaner, 2. Wolfgang Siegert, 3. Henrik Sulz; ANNE: 1. Erik Simkovics, 2. Franz Glaner, 3. Wolfgang Siegert. Ein späterer Einspruch ist nicht belegt.'};
+  }
   const conflicts = [
     {event:5391, category:'H-14', wolv:'IMRISKA Adam NF Wien', anne:'IMRISKA Albert NF Wien',
       description:'WOLV: Adam Imriska; OLResults/ANNE: Albert Imriska'},
@@ -329,11 +444,17 @@ function compare(entry, candidates, mapping = null) {
   // remain unknown rather than manufacturing a red cross.
   const matches = entry.medals.map((m) => ({source:m, matches:candidates.filter((c) => sourceMatches(m.text,c))}));
   if (matches.some((m) => m.matches.length !== 1)) {
-    const differences = matches.filter((m) => m.matches.length !== 1).flatMap((m) => {
+    const differences = matches.filter((m) => m.matches.length !== 1 || m.matches[0].rank !== m.source.rank).flatMap((m) => {
       const options = m.matches.length ? m.matches : candidates.filter((c) => c.rank === m.source.rank);
       return [`WOLV Platz ${m.source.rank}: ${m.source.text}`,
         ...(options.length ? options.map(candidateDescription) : ['OLResults: Kein vergleichbarer Eintrag auf diesem Rang.'])];
     });
+    const matchedCandidates = new Set(matches.flatMap((m) => m.matches));
+    for (const candidate of (entry.medals.length === 3 && candidates.length === 3
+      ? candidates.filter((c) => !matchedCandidates.has(c)) : [])) {
+      const description = candidateDescription(candidate);
+      if (!differences.includes(description)) differences.push(description);
+    }
     return {state:'unknown', label:'Nicht eindeutig zuordenbar',differences};
   }
   const seen = new Set(matches.map((m) => m.matches[0]));
@@ -402,31 +523,117 @@ function userConfirmedWolvError(entry, year) {
     explanation:'Nutzerbestätigung: Die H40-Zeile wurde aus der WOLV-Jahresliste 2018 übernommen und gilt 2019 nicht. Der WOLV-Originaltext bleibt sichtbar; keine H40-Medaille wird daraus erzeugt.'};
 }
 
+// The user checked these 2024 source errors. Keep the source text and
+// difference visible; the verdict is valid only for the exact dated podium.
+function userConfirmedClubError(entry, candidates, mapping) {
+  const cases = [
+    {event:1371, category:'D17', url:'https://anne-cdn.oefol.at/public/legacy/event_1371_Ergebnis_Wr-Noe-Meisterschaft_Kierling_2015.html',
+      explanation:'Nutzerbestätigung: ANNE ist maßgeblich; Jasmina Gassner gewinnt vor Brië Gschöpf und Marina Skern. Die abweichende WOLV-Liste bleibt sichtbar.',
+      podium:[[1,'GSCHÖPF Brie WAT','GASSNER Jasmina NF Wien'],
+        [2,'SKERN Marina NF Wien','GSCHÖPF Brie WAT'],
+        [3,'GOLLMANN Birgit NF Wien','SKERN Marina NF Wien']]},
+    {event:1433, category:'H15', url:'https://anne-cdn.oefol.at/public/legacy/event_1433_Ergebnis.pdf',
+      explanation:'Nutzerbestätigung: Die ANNE-Wertung mit Erik Simkovics vor Franz Glaner und Wolfgang Siegert ist korrekt; die abweichende WOLV-Liste bleibt sichtbar.',
+      podium:[[1,'GLANER Franz WAT','SIMKOVICS Erik OLC Wienerwald'],
+        [2,'SIEGERT Wolfgang WAT','GLANER Franz WAT'],
+        [3,'SULZ Henrik OLC Wienerwald','SIEGERT Wolfgang WAT']]},
+    {event:1433, category:'D15', url:'https://anne-cdn.oefol.at/public/legacy/event_1433_Ergebnis.pdf',
+      explanation:'Nutzerbestätigung: ANNE weist Anika Gassner auf Rang 2 aus; die WOLV-Jahresliste nennt Jasmina Gassner.',
+      podium:[[1,'SIMKOVICS Anna OLC Wienerwald','SIMKOVICS Anna OLC Wienerwald'],
+        [2,'GASSNER Jasmina NF Wien','GASSNER Anika NF Wien'],
+        [3,'TIEFENBÖCK Tina NF Wien','TIEFENBÖCK Tina NF Wien']]},
+    {event:2441, category:'D45', url:'https://anne-cdn.oefol.at/public/legacy/event_2441_erg131018.pdf',
+      explanation:'Nutzerbestätigung: Die ANNE-Wertung ist korrekt; Renate Biel-Pretting ist D45-Dritte. Die WOLV-Jahresliste nennt abweichend Claudia Bonek.',
+      podium:[[1,'KASTNER Barbara NF Wien','KASTNER Barbara NF Wien'],
+        [2,'HNILICA Sonja OLT Transdanubien','HNILICA Sonja OLT Transdanubien'],
+        [3,'BONEK Claudia NF Wien','BIEL-PRETTING Renate NF Wien']]},
+    {event:4252, category:'D19', url:'https://anne-cdn.oefol.at/public/legacy/event_4252_erg210424.pdf',
+      explanation:'Nutzerbestätigung: Paula Paier startete für WAT-OL; die WOLV-Jahresliste nennt irrtümlich NF Wien.',
+      podium:[[1,'PISKORZ Kiara-Sophie WAT-OL','PISKORZ Kiara-Sophie WAT-OL'],
+        [2,'BIEL Corinna NF Wien','BIEL Corinna NF Wien'],[3,'PAIER Paula NF Wien','PAIER Paula WAT-OL']]},
+    {event:4588, category:'H150', url:'https://anne-cdn.oefol.at/public/legacy/event_4588_ergebnisse-staffel.html',
+      explanation:'Nutzerbestätigung: Das Team heißt MTV Hernals; NTV Hernals ist ein Schreibfehler in der WOLV-Jahresliste.',
+      podium:[[1,'NF Wien: HLOSTA Thomas - KOLAR Hannes - KROUPA Günther','NF Wien: HLOSTA Thomas - KOLAR Hannes - KROUPA Günther'],
+        [2,'OLT Transdanubien: ROVENSKY Milan - VEITSBERGER Martin - TÄUBER Thomas','OLT Transdanubien: ROVENSKY Milan - VEITSBERGER Martin - TÄUBER Thomas'],
+        [3,'NTV Hernals: SCHNEIDER Hartmut - SCHWARZ Holger - DOBLER Georg','MTV Hernals: SCHNEIDER Hartmut - SCHWARZ Holger - DOBLER Georg']]},
+  ];
+  if (!candidates || entry.medals.length !== 3 || candidates.length !== 3) return null;
+  const item = cases.find((v) => mapping?.event === v.event && categoryKey(mapping.category) === v.category);
+  if (!item || !item.podium.every(([rank,source,corrected]) =>
+    entry.medals.some((m) => m.rank === rank && bag(m.text) === bag(source))
+    && candidates.some((c) => c.rank === rank && sourceMatches(corrected,c)))) return null;
+  return {url:item.url,explanation:item.explanation};
+}
+
+function userConfirmedRankError(entry, candidates, mapping) {
+  if (!candidates || candidates.length !== 3 || entry.medals?.length !== 3) return null;
+  const cases = [
+    {event:2001,category:'H50',url:'https://anne-cdn.oefol.at/public/legacy/event_2001_wrn-staffel-ergebnisse.html',
+      teams:[[1,1,'NF Wien: BIEL Axel / TIEFENBÖCK Willi / HLOSTA Thomas'],
+        [2,2,'NF Wien: PIETSCH Werner / PIETSCH Wolfgang / ZAPLETAL Josef'],
+        [2,3,'WAT: HUEMER Martin / WOLFRAM Arnulf / SCHIEFER Mario']]},
+    {event:1738,category:'H50',url:'https://anne-cdn.oefol.at/public/legacy/event_1738_ergebnisse-kategorien-2016-11-08.html',
+      teams:[[1,1,'NF Wien: GENEVOIS Frèdèric / GRILL Michael / PIETSCH Werner'],
+        [2,2,'NF Wien: BIEL Axel / DITZ Robert / TIEFENBÖCK Willi'],
+        [2,3,'OLC Wienerwald: SCHIEL Herbert / JURASZOVICH Johannes / GÖSCHL Erich']]},
+    {event:1748,category:'H60',url:'https://anne-cdn.oefol.at/public/legacy/event_1748_wrnoesprintms2016.pdf',
+      teams:[[1,1,'GENEVOIS Frédéric NF Wien'],[2,2,'GRÜN Paul OLG Ströck Wien'],[2,3,'SIEGERT Reinhard WAT']]},
+  ];
+  const item = cases.find((v) => mapping?.event === v.event && categoryKey(mapping.category) === v.category);
+  if (!item || !item.teams.every(([sourceRank,anneRank,source]) =>
+    entry.medals.some((m) => m.rank === sourceRank && bag(m.text) === bag(source))
+    && candidates.some((c) => c.rank === anneRank && sourceMatches(source,c)))) return null;
+  return {url:item.url,
+    explanation:'Die ANNE-Ergebnisliste weist Platz 3 aus; die WOLV-Jahresliste nennt zweimal Platz 2. Die Abweichung bleibt sichtbar.'};
+}
+
 function markReconstructedComparison(comparison, candidates) {
+  if (comparison.state === 'match' && candidates?.some((candidate) => candidate.wolvRosterFilter))
+    return {...comparison,label:'WOLV-Wertung · Zuordnung'};
   if (comparison.state !== 'match' || !candidates?.some((candidate) => candidate.wolvAgeSplit)) return comparison;
   return {...comparison,label:'WOLV-Podium · Altersrekonstruktion'};
 }
 
-function render(data, db) {
+function markHeldComparison(comparison, candidates) {
+  const tooFew = candidates?.some((candidate) => candidate.insufficientStarters);
+  if (!tooFew && !candidates?.some((candidate) => candidate.awardHeld)) return comparison;
+  const holdNote = tooFew ? 'In ANNE sind weniger als drei wertungsberechtigte Starter erfasst; ein Meistertitel ist damit nicht bestätigt.'
+    : 'Die Meisterschaftswertung ist wegen eines offenen Quellenwiderspruchs noch nicht bestätigt.';
+  return comparison.state === 'match'
+    ? {state:'unknown',label:'Podium stimmt · Meisterschaft offen',differences:[holdNote]}
+    : {...comparison,differences:[...(comparison.differences || []),holdNote]};
+}
+
+function render(data, db, {hideGreen = false} = {}) {
   const grouped = new Map(groups.map((g) => [g.key,[]]));
   for (const entry of data.entries) {
     let map = sourceMapping(entry,data.year || 2026);
     if (data.year && data.year !== 2026) map = historicalMapping(db,entry,data.year,map.group);
     const readable = entry.source_text.replace(/n\s*i\s*c\s*h\s*t\s+a\s*u\s*s\s*g\s*e\s*t\s*r\s*a\s*g\s*e\s*n/ig, 'nicht ausgetragen');
     const noAward = !entry.medals.length && /\b(?:keine\s+(?:eigene\s+)?wertung|nicht\s+ausgetragen)\b/i.test(readable);
-    const combinedReference = !entry.medals.length && /\bzusammen\s+mit\b[\s\S]*\bals\b[\s\S]*\bgewertet\b/i.test(readable);
+    const combinedReference = !entry.medals.length && (/\bzusammen\s+mit\b[\s\S]*\bals\b[\s\S]*\bgewertet\b/i.test(readable)
+      || /\bals\s+(?:DaHe|H\s*\+\s*D)\s*-?12\s+ausgetragen\s*;?\s*Ergebnis\s+siehe\s+H\s*-?12\b/i.test(readable));
     const emptySource = !entry.medals.length && /^\s*[-–—](?:[\s-–—])*\s*$/.test(readable);
     // Some annual lists state cancellation once in the event heading and
     // leave every category empty. Never mask medals or call this an ANNE match.
     const cancelledEvent = !entry.medals.length && /\b(?:abgesagt|storniert|nicht\s+ausgetragen)\b/i.test(entry.event_heading || '');
     const sourceNote = noAward || combinedReference || emptySource || cancelledEvent;
-    const candidates = db ? regionalEntries(db,map) : null;
+    // A held classification may still have a comparable result podium;
+    // comparing it must not imply that the championship title is approved.
+    const candidates = db ? regionalEntries(db,map,{includeHeld:true}) : null;
     let comparison = data.year && data.year < 2013 ? {state:'unknown',label:'Kein ANNE-Vergleich vor 2013'}
       : db ? compare(entry,candidates,map) : {state:'unknown',label:'Vergleich nicht verfügbar'};
     comparison = markReconstructedComparison(comparison,candidates);
+    comparison = markHeldComparison(comparison,candidates);
+    if (map.event === 1333 && categoryKey(map.category) === 'D19'
+        && candidates?.some((c) => c.insufficientStarters) && /\(3\)/.test(entry.source_text)) {
+      comparison.differences = [...(comparison.differences || []),
+        'WOLV nennt drei Starter; die ANNE-Ergebnisliste enthält nur zwei namentliche Einträge, beide NF Wien.'];
+    }
     const userConfirmedError = userConfirmedWolvError(entry,data.year);
     if (userConfirmedError) comparison = {state:'mismatch',label:'WOLV-Quellfehler bestätigt'};
-    const verifiedAnne = userConfirmedError || anneCorrectEvidence(entry,candidates,map,comparison);
+    const verifiedAnne = userConfirmedError || userConfirmedClubError(entry,candidates,map) || userConfirmedRankError(entry,candidates,map) || anneCorrectEvidence(entry,candidates,map,comparison);
+    if (hideGreen && (sourceNote || comparison.state === 'match' || verifiedAnne)) continue;
     const badge = {match:'✓',mismatch:'✕',unknown:'?'}[comparison.state];
     const medalNames = {1:'Gold',2:'Silber',3:'Bronze'};
     const medals = entry.medals.length ? `<ol class="wolv-medals">${entry.medals.map((m) =>
@@ -439,14 +646,28 @@ function render(data, db) {
     const comparisonBadge = sourceNote ? '<span class="wolv-badge wolv-match" title="Hinweis aus der WOLV-Quelle; kein ANNE-Abgleich" aria-label="Hinweis aus der WOLV-Quelle; kein ANNE-Abgleich">✓</span>' : `<span class="wolv-badge wolv-${comparison.state}" title="${esc(comparison.label)}">${badge} ${esc(comparison.label)}</span>`;
     const verifiedBadge = verifiedAnne ? `<span class="wolv-badge wolv-match" title="${esc(verifiedAnne.explanation)}">✓ ANNE korrekt</span>` : '';
     const verifiedSource = verifiedAnne ? `<p class="wolv-raw">${esc(verifiedAnne.explanation)} <a href="${esc(verifiedAnne.url)}" target="_blank" rel="noopener">ANNE-Original ↗</a></p>` : '';
-    const reconstructionNote = comparison.label === 'WOLV-Podium · Altersrekonstruktion'
+    let reconstructionNote = comparison.label === 'WOLV-Podium · Altersrekonstruktion'
       ? '<p class="wolv-raw">Das WOLV-Podium ist Grundlage der Altersaufteilung; weitere Plätze sind rekonstruiert. Kein unabhängiger Podiumsvergleich.</p>' : '';
-    grouped.get(map.group).push({heading:entry.event_heading || '',html:`<article class="wolv-card"><div class="wolv-card-header"><div><h3>${esc(category)}</h3></div><div class="wolv-badges">${comparisonBadge}${verifiedBadge}</div></div>${medals}${differences}${verifiedSource}${reconstructionNote}${details}${map.event ? `<p class="wolv-raw"><a href="../index.html#/event/${map.event}/lm/WIEN">ANNE-Auswertung ansehen ↗</a></p>` : ''}</article>`});
+    if (comparison.label === 'WOLV-Wertung · Zuordnung')
+      reconstructionNote += '<p class="wolv-raw">Die WOLV-Wertung wurde für die Zuordnung der Teilnehmenden herangezogen. Kein unabhängiger Podiumsvergleich.</p>';
+    if ([812,878].includes(map.event) && categoryKey(map.category) === 'D15')
+      reconstructionNote += '<p class="wolv-uncertain">Das WOLV-Podium lässt Tori Borish'+(map.event === 878 ? ' und Josephine Greiner' : '')+' aus der ANNE-Laufliste aus; der Grund ist aus den Quellen nicht ersichtlich. Die Wertungsberechtigung bleibt offen.</p>';
+    if (map.event === 1333 && ['H45','H50'].includes(categoryKey(map.category))) {
+      reconstructionNote += '<p class="wolv-uncertain">WOLV nennt je neun Starter für H45 und H50; ANNE enthält zusammen nur 14 Namen ohne AK. Weitere Starter könnten fehlen.</p>';
+    }
+    if (map.event === 874 && ['H35','H40'].includes(categoryKey(map.category))) {
+      reconstructionNote += '<p class="wolv-uncertain">WOLV nennt zusammen 13 Starter für H35/H40; ANNE enthält zwölf Namen. Ein weiterer Start ist nicht rekonstruierbar.</p>';
+    }
+    const renamedUnder12 = comparison.state === 'match' && /^[DH]-12$/.test(categoryKey(category))
+      && new RegExp(`^${categoryKey(category)[0]}-?14$`).test(categoryKey(map.category));
+    const mappingNote = renamedUnder12 ? `<p class="wolv-raw">WOLV ${esc(category)} entspricht hier ANNE ${esc(map.category)}: identisches Podium.</p>` : '';
+    grouped.get(map.group).push({heading:entry.event_heading || '',html:`<article class="wolv-card"><div class="wolv-card-header"><div><h3>${esc(category)}</h3></div><div class="wolv-badges">${comparisonBadge}${verifiedBadge}</div></div>${medals}${differences}${verifiedSource}${reconstructionNote}${mappingNote}${details}${map.event ? `<p class="wolv-raw"><a href="../index.html#/event/${map.event}/lm/WIEN">ANNE-Auswertung ansehen ↗</a></p>` : ''}</article>`});
   }
-  return groups.filter((g) => grouped.get(g.key).length).map((g) => {
+  const html = groups.filter((g) => grouped.get(g.key).length).map((g) => {
     const rows=grouped.get(g.key), dates=[...new Set(rows.map((r)=>r.heading).filter(Boolean))];
     return `<section class="wolv-group"><h2>${esc(g.title)}</h2><p class="sub dim">${dates.map((d)=>esc(d.replace(/\s*\n\s*/g,' · '))).join(' · ')}</p><div class="wolv-grid">${rows.map((r)=>r.html).join('')}</div></section>`;
   }).join('');
+  return html || (hideGreen ? '<p class="wolv-empty">Keine offenen Abweichungen in diesem Jahr.</p>' : '');
 }
 
 async function bootWolv() {
@@ -468,6 +689,7 @@ async function bootWolv() {
     const source = document.getElementById('wolv-source');
     const external = document.getElementById('wolv-external');
     const note = document.getElementById('wolv-year-note');
+    const hideGreen = document.getElementById('wolv-hide-green');
     select.innerHTML = [...data.years].reverse().map((item) => `<option value="${item.year}">${item.year}</option>`).join('');
     const requested = Number(new URLSearchParams(location.search).get('year'));
     if (data.years.some((item) => item.year === requested)) select.value = String(requested);
@@ -478,12 +700,13 @@ async function bootWolv() {
       external.href = item.source_url;
       external.textContent = `WOLV-Medaillenliste ${item.year}`;
       note.textContent = item.year < 2013 ? '· Historisches WOLV-Archiv; kein ANNE-Vergleich vor 2013.' : '';
-      target.innerHTML = render(item,db);
+      target.innerHTML = render(item,db,{hideGreen:hideGreen.checked});
       const url = new URL(location.href); url.searchParams.set('year',item.year); history.replaceState(null,'',url);
     };
     select.addEventListener('change',showYear);
+    hideGreen.addEventListener('change',showYear);
     showYear();
   } catch (error) { target.textContent = `Die WOLV-Liste konnte nicht geladen werden: ${error.message}`; }
 }
-if (typeof module !== 'undefined' && module.exports) module.exports = {sourceMapping,sourceGroup,historicalMapping,categoryKey,mixedCategoryKey,uniqueAgeRangeCandidate,uniqueExactPodiumCandidate,regionalEntries,sourceMatches,compare,anneCorrectEvidence,userConfirmedWolvError,markReconstructedComparison,render};
+if (typeof module !== 'undefined' && module.exports) module.exports = {sourceMapping,sourceGroup,historicalMapping,categoryKey,mixedCategoryKey,uniqueAgeRangeCandidate,uniqueExactPodiumCandidate,regionalEntries,sourceMatches,compare,anneCorrectEvidence,userConfirmedWolvError,userConfirmedClubError,userConfirmedRankError,markReconstructedComparison,markHeldComparison,render};
 if (typeof document !== 'undefined') bootWolv();

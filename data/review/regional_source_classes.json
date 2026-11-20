@@ -1,6 +1,86 @@
 {
   "schema_version": 1,
   "events": {
+    "2058": {
+      "date": "2017-10-14", "stage_number": 1,
+      "jurisdictions": {"WIEN": {
+        "partial": true, "evidence_kind": "official-results",
+        "url": "https://anne-cdn.oefol.at/public/legacy/event_2058_ergebnis-wr-nacht-ms-2017-10-14.pdf",
+        "result_document_url": "https://anne-cdn.oefol.at/public/legacy/event_2058_ergebnis-wr-nacht-ms-2017-10-14.pdf",
+        "sha256": "271961fc14b7a0b6523bc24e4a0bfe655013d39d99ecd4336b167006611aa3a3",
+        "normalized_sha256": "69367cdb44651dd75b4a2010ec150bb98a45d0c970688db71fbf1eb175aed11e",
+        "superseded_result_lists": [{
+          "url": "https://anne-cdn.oefol.at/public/legacy/event_2058_20171014-222654-result1648.pdf",
+          "normalized_sha256": "e0ae31c871d5c093a1b42d4bf4ece42b5ee5ad45712ff68b6491d8dc66e4dac2",
+          "categories": ["Herren55- W"]
+        }],
+        "note": "Die Wiener Ergebnisliste weist H55 und H60 ausdrücklich getrennt aus. Die zusammengefasste H55-Parallelwertung bleibt als Laufresultat bestehen, wird aber nicht als eigenständige Wiener Meisterschaft gewertet.",
+        "categories": {"Herren 55-": "H55-", "Herren 60-": "H60-"}
+      }}
+    },
+    "2054": {
+      "date": "2017-05-20", "stage_number": 1,
+      "jurisdictions": {"WIEN": {
+        "partial": true,
+        "evidence_kind": "official-shared-results",
+        "url": "https://anne-cdn.oefol.at/public/legacy/event_2054_ergebnis.pdf",
+        "result_document_url": "https://anne-cdn.oefol.at/public/legacy/event_2054_ergebnis.pdf",
+        "sha256": "a32c80db7b16efc8c5e621d20c21f4936603f581b976584a99c57c9b9f8ca5a3",
+        "normalized_sha256": "6615749f46ffe55b7089bb47194dfb8dacbfd4f640468a596dedf6a9336f9f21",
+        "note": "Gemeinsames Langdistanz-Ergebnis für Wien, Steiermark und Burgenland; laut WOLV-Jahresliste zählen an diesem Tag die Allgemeinen Klassen H19 und D19. Nachwuchs und Senioren fanden separat am 10. September statt.",
+        "categories": {"Herren 19-": "H19-", "Damen 19-": "D19-"}
+      }}
+    },
+    "1621": {
+      "date":"2016-09-10", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true, "evidence_kind":"official-results",
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_1621_ergebnis-final.pdf", "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_1621_ergebnis-final.pdf",
+        "sha256":"3f65e584795b8b6c265a8784c0a6eec0362e9b353ebcae847b05f252eb212006", "normalized_sha256":"e82dcd6afdbe0f8f920696b942932a838d451bfa49d4dea51be87501e0a3970e",
+        "note":"Die WOLV-Jahresliste belegt die Podien H15-16/H17-18, H35/H40, H45/H50, H55/H60 und D45/D50. Die weiteren Starter werden anhand des Jahrgangs und der WOLV-Starterzahlen rekonstruiert; ungeklärte Einträge bleiben unzugeordnet.",
+        "wolv_age_split":{"url":"http://www.wolv.at/docs/med16.pdf", "path":"data/review/archived_sources/2016/wolv-annual.pdf", "sha256":"4c238398ed33163e73112b3cd942667b60b248cadc051cf8ac8f4a4b97dcc97b", "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_1621_ergebnis-final.pdf", "normalized_sha256":"e82dcd6afdbe0f8f920696b942932a838d451bfa49d4dea51be87501e0a3970e"},
+        "categories":{
+          "Herren 15-18 Wien":{"H15-16":["Jakob Wolfram","Marius Poirson","Benjamin Altmann","David Mayr","Joergen Deubel","Erik Bonek"],"H17-18":["Nicolas Kastner","Jannis Bonek","Julius Tesarek","Paul Kratky","Ingo Achilles","David Guggenberger"]},
+          "Herren 35- Wien":{"H35-":["Thomas Radon","Stefan Jeschke","Hannes Kolar","Christian Wolf","Andreas Slateff"],"H40-":["Martin Veitsberger","Hartmut Lemmel","Alexander Srb","Felix Hofstätter","Dirk Deubel","Markus Mörth"]},
+          "Herren 45- Wien":{"H45-":["Georg Wittberger","Günther Kroupa","Boris Kastner-Jirka","Josef Hilbert","Alexander Kratky","Rolland Wölfler"],"H50-":["Ferri Gassner","Werner Pietsch","Wolfgang Pietsch","Robert Ditz","Peter Bonek","Thomas Täuber","Axel Biel","Herbert Schiel","Michael Grill","Andreas Cart","Thomas Guggenberger","Manfred Hampl"],"__unassigned__":["Willi Tiefenböck"]},
+          "Herren 55- Wien":{"H55-":["Martin Huemer","Josef Zapletal","Johannes Juraszovich","Arnulf Wolfram"],"H60-":["Werner Purgathofer","Frederic Genevois","Nick Dytlewski","Meinrad Huemer","Paul Grün","Wolfgang Fabian","Martin Bosina","Helmut Schuster","Wolfgang Werther","Tim Skern"]},
+          "Damen 45- Wien":{"D45-":["Barbara Kastner","Guni Palme","Katja Gassner","Riki Tiefenböck","Sonja Ecke-Wihan","Karin Zettl","Renate Biel-Pretting","Doris Kratky","Sabine Wolfram-Teischl","Sandra Stuiber-Poirson","Susi Veitsberger","Margit Kovacs"],"D50-":["Birgit Gollmann","Irene Gassner","Irmgard Fabian","Sabine Hilbert","Sabine Hofstätter"]}
+        }
+      }}
+    },
+    "1333": {
+      "date":"2015-10-10", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true, "evidence_kind":"official-results",
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_1333_Ergebnis3.html",
+        "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_1333_Ergebnis3.html",
+        "sha256":"969c352c4d81395e3aee46ca185e425f2690f1eaf1b06128ee4b9005aec95846", "normalized_sha256":"48f0d37eb9a918c15b65f1261b5a999fe512e5dca4499cb706866bf7ad4c7e50",
+        "note":"WOLV belegt die separaten Nacht-Podien H35/H40, H45/H50 und H55/H60. Weitere Starter anhand der Quelljahrgänge rekonstruiert; Andreas Cart ist laut ANNE-Register Jahrgang 1962. Martin Danner ist gemäß WOLV trotz höheren Alters in H35. H45/H50: WOLV nennt je neun Starter, die ANNE-Gesamtliste enthält nur 14 Nicht-AK-Teilnehmer; es können daher weitere Namen in der Quelle fehlen.",
+        "wolv_age_split":{"url":"http://www.wolv.at/docs/med15.pdf", "path":"data/review/archived_sources/2015/wolv-annual.pdf", "sha256":"ff53bc418307d15393c86ea0cdd2033b4efe66dd57581119a1380b9dc9b1efd4", "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_1333_Ergebnis3.html", "normalized_sha256":"48f0d37eb9a918c15b65f1261b5a999fe512e5dca4499cb706866bf7ad4c7e50"},
+        "review_notes":{"Herren 45- W":"WOLV nennt je 9 Starter für H45/H50; ANNE enthält insgesamt nur 14 nicht-AK Namen. Die Podien sind belegt, weitere fehlende Starter können nicht rekonstruiert werden."},
+        "categories":{
+          "Herren 35- W":{"H35-":["Hannes Kolar","Martin Danner","Thomas Radon","Robert Brettner-Messler"],"H40-":["Wolfgang WaldhÃ¤usl","Alexander Srb","Martin Veitsberger","Günther Kroupa","Georg Dobler","Markus Mörth"]},
+          "Herren 45- W":{"H45-":["Werner Pietsch","Michael Grill","Boris Kastner-Jirka","Thomas Hnilica","Thomas Täuber"],"H50-":["Peter Bonek","Wolfgang Pietsch","Mario Schiefer","Axel Biel","Robert Ditz","Andreas Cart","Manfred Hampl","Roland Arbter","Willi Tiefenböck"],"__unassigned__":["Wolfgang Kradischnig"]},
+          "Herren 55- W":{"H55-":["Thomas Huemer","Johannes Juraszovich","Arnulf Wolfram","Martin Kracker"],"H60-":["Meinrad Huemer","Paul Grün","Werner Purgathofer","Martin Bosina"]}
+        }
+      }}
+    },
+    "1099": {
+      "date":"2014-10-11", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true, "evidence_kind":"official-results",
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_1099_NOe_OOe_Wr_Nacht_MS_2014_vorlaeufiges_Ergebnis.html",
+        "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_1099_NOe_OOe_Wr_Nacht_MS_2014_vorlaeufiges_Ergebnis.html",
+        "sha256":"317505867143c75a65456855a6778c0a2e7d80c5a20181b2f5e225b24ee5422a", "normalized_sha256":"71ddc59378d66df86a872cb727877332eaffbae3972a2e624610075a7c0f2ce2",
+        "note":"WOLV-Jahresliste belegt die getrennten H35/H40-, H45/H50- und H55/H60-Podien. Die übrigen Plätze sind anhand des Quelljahrgangs und der WOLV-Starterzahlen rekonstruiert; AK bleibt unzugeordnet. Grill startete laut WOLV in H35 trotz höherem Alter.",
+        "wolv_age_split":{"url":"http://www.wolv.at/docs/wrmeister2014-Dateien/sheet001.htm", "path":"data/review/archived_sources/2014/wolv-annual-sheet.html", "sha256":"50faa84ddb27ed4cbbc8a829ab7a88069898d59f24770d58aa5f7396f4d919ef", "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_1099_NOe_OOe_Wr_Nacht_MS_2014_vorlaeufiges_Ergebnis.html", "normalized_sha256":"71ddc59378d66df86a872cb727877332eaffbae3972a2e624610075a7c0f2ce2"},
+        "categories":{
+          "H35- Wien":{"H35-":["Radon Thomas","Kolar Hannes","Ballik Thomas","Brettner-Messler Robert","Grill Michael","Slateff Andreas","Fuhrich Christoph"],"H40-":["Veitsberger Martin","Srb Alexander","Kroupa Günther"],"__unassigned__":["Tichy Martin"]},
+          "H45- Wien":{"H45-":["Gassner Ferri","Pietsch Werner","Hnilica Thomas","Kühnel Ralf","Kastner-Jirka Boris","Täuber Thomas","Hlosta Thomas","Göschl Erich","Schiefer Mario","Hilbert Josef"],"H50-":["Bonek Peter","Pietsch Wolfgang","Schiel Herbert","Hampl Manfred","Tiefenböck Willi"]},
+          "H55- Wien":{"H55-":["Huemer Thomas","Huemer Martin","Wolfram Arnulf","Purgathofer Werner","Juraszovich Johannes"],"H60-":["Grün Paul","Huemer Meinrad","Kainzbauer Josef","Schuster Helmut"]}
+        }
+      }}
+    },
     "812": {
       "date":"2013-04-06", "stage_number":1,
       "jurisdictions":{
@@ -23,6 +103,8 @@
       "jurisdictions":{
         "WIEN":{
           "evidence_kind":"invitation", "url":"https://anne-cdn.oefol.at/public/legacy/event_864_20130503_Ausschreibung%20NW-Sen-MS%20Kaltenleutgeben.pdf", "sha256":"4389526956923753bdb6007d24180b264112fd340c87671edb99726efd27bf4d", "normalized_sha256":"4a8a8fe50edf4ea777569ceb82c8defdaa981d2f61c933ca457af7df1da07d65",
+          "source_club_jurisdictions":{"USC Theresianum":"WIEN"},
+          "source_club_evidence":{"url":"http://www.wolv.at/docs/med13.pdf","path":"data/review/archived_sources/2013/wolv-annual.pdf","sha256":"68ebed4324b4f2af4c821e73d68c856cbeaec09f714adf799de1d4e12792bd66"},
           "note":"Die Ausschreibung unterscheidet Nachwuchs-/Seniorenmeisterschaft und ASKÖ-MS. D/H19 ist nur ASKÖ-MS beziehungsweise Rahmenbewerb, nicht Wiener Landesmeisterschaft. Quelle zeigt weitere tatsächlich geteilte Altersklassen.",
           "categories":{"Wien Damen -12":"D-12", "Wien Damen -14":"D-14", "Wien Damen 15-18":"D15-18", "Wien Damen 35-":"D35-", "Wien Damen 45-":"D45-", "Wien Damen 50-":"D50-", "Wien Damen 55-":"D55-", "Wien Damen 65-":"D65-", "Wien Herren -12":"H-12", "Wien Herren -14":"H-14", "Wien Herren -16":"H-16", "Wien Herren -18":"H-18", "Wien Herren 35-":"H35-", "Wien Herren 40-":"H40-", "Wien Herren 45-":"H45-", "Wien Herren 50-":"H50-", "Wien Herren 55-":"H55-", "Wien Herren 60-":"H60-", "Wien Herren 65-":"H65-", "Wien Herren 70-":"H70-"}
         },
@@ -32,6 +114,27 @@
           "categories":{"NÖ Damen -12":"D-12", "NÖ Damen -14":"D-14", "NÖ Damen 15-18":"D15-18", "NÖ Damen 35-":"D35-", "NÖ Damen 45-":"D45-", "NÖ Damen 55-":"D55-", "NÖ Herren -12":"H-12", "NÖ Herren -14":"H-14", "NÖ Herren 15-18":"H15-18", "NÖ Herren 35-":"H35-", "NÖ Herren 45-":"H45-", "NÖ Herren 55-":"H55-", "NÖ Herren 65-":"H65-"}
         }
       }
+    },
+    "874": {
+      "date":"2013-10-12", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true,"evidence_kind":"official-results",
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_874_Ergebnis nach Kat Copy.pdf",
+        "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_874_Ergebnis nach Kat Copy.pdf",
+        "sha256":"5314ebb9a461f2219a53811b57dbe58ee5bc199563443b093d98fc0c6d5a8168",
+        "normalized_sha256":"8b8973414fc9a01d4bd6886319980d2512e534ca23c175b5d3e723d8ff4a28c4",
+        "source_club_jurisdictions":{"USC Theresianum":"WIEN"},
+        "source_club_evidence":{"url":"http://www.wolv.at/docs/med13.pdf","path":"data/review/archived_sources/2013/wolv-annual.pdf","sha256":"68ebed4324b4f2af4c821e73d68c856cbeaec09f714adf799de1d4e12792bd66"},
+        "wolv_age_split":{"url":"http://www.wolv.at/docs/med13.pdf","path":"data/review/archived_sources/2013/wolv-annual.pdf","sha256":"68ebed4324b4f2af4c821e73d68c856cbeaec09f714adf799de1d4e12792bd66","result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_874_Ergebnis nach Kat Copy.pdf","normalized_sha256":"8b8973414fc9a01d4bd6886319980d2512e534ca23c175b5d3e723d8ff4a28c4"},
+        "note":"WOLV veröffentlicht die getrennten Podien H-12/H-14, H35/H40 und H45/H50; die übrigen Plätze sind aus ANNE und Geburtsjahren rekonstruiert. Martin Danner und Michael Grill werden trotz höheren Alters gemäß WOLV-Podium H35 zugeordnet. H35/H40: ANNE enthält insgesamt zwölf Namen, WOLV nennt dreizehn Starter. Ein nicht gestartetes Paar bleibt unzugeordnet.",
+        "review_notes":{"Herren 35- W":"WOLV nennt für H35 und H40 zusammen 13 Starter; ANNE enthält 12 Namen. Ein weiterer Start ist nicht rekonstruierbar."},
+        "categories":{
+          "Herren -14 W":{"H-12":["Bonek Erik","Jandl Florian","Wolfram Jakob","Brodey Niko","Deubel Joergen","Deubel Jonas"],"H-14":["Gassner Jasmina","Bonek Janis","Kratky Paul","Kratky Jakob","Gessl Konrad","Perner Wanda"],"__unassigned__":["Ditz Markus","Ditz Carina"]},
+          "Herren 35- W":{"H35-":["Kolar Hannes","Danner Martin","Grill Michael","Slateff Andreas","Pieler Michael","Haring Alexander"],"H40-":["Wittberger Georg","Srb Alexander","Kroupa Günther","Marksteiner Martin","Lemmel Hartmut","Kastner-Jirka Boris"]},
+          "Herren 45- W":{"H45-":["Gassner Ferri","Pietsch Werner","Hofstätter Felix","Hnilica Thomas","Pietsch Wolfgang","Biel Axel","Göschl Erich","Schiefer Mario","Ditz Robert","Tiefenböck Willi","Kratky Alexander"],"H50-":["Cart Andreas","Juraszovich Johannes","Wolfram Arnulf","Kracker Martin","Hampl Manfred","Huemer Martin","Arbter Roland"]},
+          "Damen 15- W":"D15-", "Herren 15- W":"H15-"
+        }
+      }}
     },
     "877": {
       "date":"2013-09-01", "stage_number":1,
@@ -83,8 +186,22 @@
         "url":"https://anne-cdn.oefol.at/public/legacy/event_1203_Ausschreibung.pdf",
         "sha256":"16a9be8104f40ac0666d12dde36ce8e0096873910d489a83790365b35ce6a4d6",
         "normalized_sha256":"fbca8da94c15c262b43b4f4960fc74d1a70a80b4bbc59d9f23cae11c98ead45d",
-        "note":"Ausschreibung belegt die Wiener Nachwuchs- und Seniorenklassen. Gemeinsame ANNE-Klassen werden anhand der belegten Vereine aufgeteilt. Bereits getrennt veröffentlichte H40/H50/H60 und D50 bleiben eigenständige Quellwertungen; keine weiteren Altersklassen erfinden.",
-        "categories":{"Herren -14":"H-14", "Damen -14":"D-14", "Herren 15-18":"H15-18", "Damen 15-18":"D15-18", "Herren 35-":"H35-", "Damen 35-":"D35-", "Herren 45-":"H45-", "Damen 45-":"D45-", "Herren 55-":"H55-", "Damen 55-":"D55-", "Herren 65-":"H65-", "Damen 65-":"D65-"}
+        "note":"Ausschreibung belegt Wien -12 sowie weitere Nachwuchs- und Seniorenklassen; die WOLV-Jahresliste bestätigt das getrennte D-12-Podium. H35: ANNE nennt Schinnerer mit WGSC 1901, die vollständige WOLV-Wertung nennt drei andere Starter; die spätere ANNE-Vereinszugehörigkeit überschreibt diese Wettkampfquelle nicht.",
+        "exclusion_source":{"url":"http://www.wolv.at/docs/wrmeister2014-Dateien/sheet001.htm", "path":"data/review/archived_sources/2014/wolv-annual-sheet.html", "sha256":"50faa84ddb27ed4cbbc8a829ab7a88069898d59f24770d58aa5f7396f4d919ef"},
+        "exclude_entries":{"Herren 35-":[{"name":"Schinnerer Florian","club":"WGSC 1901"}]},
+        "categories":{"Damen -12":"D-12", "Herren -14":"H-14", "Damen -14":"D-14", "Herren 15-18":"H15-18", "Damen 15-18":"D15-18", "Herren 35-":"H35-", "Damen 35-":"D35-", "Herren 45-":"H45-", "Damen 45-":"D45-", "Herren 55-":"H55-", "Damen 55-":"D55-", "Herren 65-":"H65-", "Damen 65-":"D65-"}
+      }}
+    },
+    "1253": {
+      "date":"2014-10-12", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true, "evidence_kind":"official-results",
+        "url":"http://www.wolv.at/docs/wrmeister2014-Dateien/sheet001.htm",
+        "sha256":"50faa84ddb27ed4cbbc8a829ab7a88069898d59f24770d58aa5f7396f4d919ef",
+        "normalized_sha256":"04e515b963495490eae39155754e38d005689a930e6b05180efd2b981672ccc5",
+        "note":"Nutzerbestätigung und WOLV-Jahreswertung: Wiener H50 und H60 werden zu H50 zusammengewertet; Reihung anhand der Gesamtzeiten der Teams.",
+        "categories":{"H50- Wien":"H50-", "H60- Wien":"H50-"},
+        "time_ranked_categories":["H50-"]
       }}
     },
     "1368": {
@@ -96,8 +213,9 @@
           "result_document_url":"https://web.archive.org/web/20160207111656id_/http://www.nfwien-ol.at/images/stories/naturfreunde/Berichte/20150613NWundSenMS/NWundSenMS2015_Ergebnis.pdf",
           "sha256":"25a7b843678d66da23d5d72ad60b09a62f5375a4a2adffd1ef14569bd2645153",
           "normalized_sha256":"637af6255f61563d5dfd901aeb1f106be48100d2f046c027cfbee3086596abbd",
-          "note":"Archivierte, auf ANNE verlinkte Originalergebnisliste enthält eigenständige Wiener Klassen und Ränge; WOLV-Jahresliste bestätigt die Meisterschaft.",
-          "categories":{"D -12 Wien":"D-12", "D 13-14 Wien":"D13-14", "D 15-18 Wien":"D15-18", "D 35- Wien":"D35-", "D 45- Wien":"D45-", "D 55- Wien":"D55-", "D 65- Wien":"D65-", "H -12 Wien":"H-12", "H 13-14 Wien":"H13-14", "H 15-18 Wien":"H15-18", "H 35- Wien":"H35-", "H 40- Wien":"H40-", "H 45- Wien":"H45-", "H 50- Wien":"H50-", "H 55- Wien":"H55-", "H 60- Wien":"H60-", "H 65- Wien":"H65-"}
+          "note":"Archivierte Originalergebnisliste enthält eigenständige Wiener Klassen und Ränge. WOLV belegt die getrennten H65/H70-Podien; weitere Starter anhand des Geburtsjahrs rekonstruiert.",
+          "wolv_age_split":{"url":"http://www.wolv.at/docs/med15.pdf", "path":"data/review/archived_sources/2015/wolv-annual.pdf", "sha256":"ff53bc418307d15393c86ea0cdd2033b4efe66dd57581119a1380b9dc9b1efd4", "result_document_url":"https://web.archive.org/web/20160207111656id_/http://www.nfwien-ol.at/images/stories/naturfreunde/Berichte/20150613NWundSenMS/NWundSenMS2015_Ergebnis.pdf", "normalized_sha256":"637af6255f61563d5dfd901aeb1f106be48100d2f046c027cfbee3086596abbd"},
+          "categories":{"D -12 Wien":"D-12", "D 13-14 Wien":"D13-14", "D 15-18 Wien":"D15-18", "D 35- Wien":"D35-", "D 45- Wien":"D45-", "D 55- Wien":"D55-", "D 65- Wien":"D65-", "H -12 Wien":"H-12", "H 13-14 Wien":"H13-14", "H 15-18 Wien":"H15-18", "H 35- Wien":"H35-", "H 40- Wien":"H40-", "H 45- Wien":"H45-", "H 50- Wien":"H50-", "H 55- Wien":"H55-", "H 60- Wien":"H60-", "H 65- Wien":{"H65-":["Burmann Werner","Kainzbauer Josef","Siegert Reinhard"],"H70-":["Reisenberger Hans","Hierzegger Herwig","Kochmann Günther","Radil Klaus","Haring Karl","Srb Walter"]}}
         },
         "NOE":{
           "partial":true, "evidence_kind":"official-results",
@@ -153,13 +271,14 @@
         "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_1697_erg151016.pdf",
         "sha256":"e81c0c42f1df5d1bc0fe9b64da582c8d03fd13666d5cc229395a889d52f9999f",
         "normalized_sha256":"53d86b171045e8aad8cfa5f3eae2d61bba7e5b5cf554543e61edc79312df4775",
-        "note":"Die Ergebnisliste nennt LM Nacht für Wien, NÖ, Steiermark und Burgenland; die Wiener Zuordnung erfolgt aus Vereinsdaten. Die WOLV-Jahresliste 2016 bestätigt die Veranstaltung und Kategorien. Die Quelle führt H45/H50 sowie H55/H60 jeweils nur gemeinsam.",
+        "note":"WOLV-Jahresliste belegt getrennte Wiener Podien H45/H50 und H55/H60. Die weiteren Wiener Starter werden anhand ihrer Jahrgänge rekonstruiert; nicht-Wiener bleiben unzugeordnet.",
+        "wolv_age_split":{"url":"http://www.wolv.at/docs/med16.pdf", "path":"data/review/archived_sources/2016/wolv-annual.pdf", "sha256":"4c238398ed33163e73112b3cd942667b60b248cadc051cf8ac8f4a4b97dcc97b", "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_1697_erg151016.pdf", "normalized_sha256":"53d86b171045e8aad8cfa5f3eae2d61bba7e5b5cf554543e61edc79312df4775"},
         "award_holds":{
-          "D19-":{"url":"http://www.wolv.at/docs/med16.pdf", "reason":"Die WOLV-Jahresliste nennt bei drei Starterinnen desselben Vereins ausdrücklich keine Wiener Wertung."},
-          "H45-":{"url":"http://www.wolv.at/docs/med16.pdf", "reason":"Die WOLV-Jahresliste trennt H45 und H50; in der ANNE-Ergebnisliste ist nur eine gemeinsame H45-Klasse ausgewiesen."},
-          "H55-":{"url":"http://www.wolv.at/docs/med16.pdf", "reason":"Die WOLV-Jahresliste trennt H55 und H60; in der ANNE-Ergebnisliste ist nur eine gemeinsame H55-Klasse ausgewiesen."}
+          "D19-":{"url":"http://www.wolv.at/docs/med16.pdf", "reason":"Die WOLV-Jahresliste nennt bei drei Starterinnen desselben Vereins ausdrücklich keine Wiener Wertung."}
         },
-        "categories":{"H -14":"H-14", "D -14":"D-14", "H 15-18":"H15-18", "D 15-18":"D15-18", "H 19-":"H19-", "D 19-":"D19-", "H 35-":"H35-", "D 35-":"D35-", "H 45-/ H40 Bgld.":"H45-", "D 45-/ D40 Bgld.":"D45-", "H 55-":"H55-", "D 55-":"D55-", "H 65-":"H65-"}
+        "categories":{"H -14":"H-14", "D -14":"D-14", "H 15-18":"H15-18", "D 15-18":"D15-18", "H 19-":"H19-", "D 19-":"D19-", "H 35-":"H35-", "D 35-":"D35-", "D 45-/ D40 Bgld.":"D45-", "D 55-":"D55-", "H 65-":"H65-",
+          "H 45-/ H40 Bgld.":{"H45-":["Waldhäusl Wolfgang","Hnilica Thomas","Hlosta Thomas","Kroupa Günther","Kastner-Jirka Boris"],"H50-":["Pietsch Werner","Gassner Ferri","Göschl Erich","Ditz Robert","Pietsch Wolfgang","Schiefer Mario","Arbter Roland","Biel Axel","Hampl Manfred","Grill Michael"],"__unassigned__":["Sterba Markus","Pacher Hannes","Renner Wilfried","Stockmayer Michael","Adenstedt Erik","Kalcher Robert","Lang Gerhard","Bauer Peter","Scheikl Gottfried","Schmid Martin","Helfried Aus der Schmitten","Reisenberger Roland","Praeceptor Rainer","Harald Lipphart-Kirchmeir","Kellner Gerhard","Pregartner Georg","Kasper Reinhard","Keimel Thomas","Volker Aus der Schmitten","Zeiner Harald","Gröll Reinhard"]},
+          "H 55-":{"H55-":["Huemer Thomas","Juraszovich Johannes","Wolfram Arnulf","Huemer Martin"],"H60-":["Grün Paul","Purgathofer Werner","Huemer Meinrad","Bosina Martin","Schuster Helmut","Genevois Frédéric"],"__unassigned__":["Wendler Michael","Luttenberger Johann","Friessnig Joachim","Ponweiser Franz","Kradischnig Günter","Pidner Valentin","Hartinger Franz","Billroth Georg","Schweifer Erwin","Lang Gottfried","Proske Herwig","Hochwarter Rudolf","Köck Erwin","Pongratz Karl","Pirchegger Günter","Mayer Ewald","Gremmel Franz"]}}
       }}
     },
     "3326": {
@@ -217,9 +336,11 @@
         "partial":true,
         "url":"https://anne-cdn.oefol.at/public/legacy/event_2441_ausschr-rohr-18.pdf",
         "sha256":"6f45014c3d3253681c4d8aaba31e3e49cea2df9355ee08be8873b0c7eb7129c4",
-        "note":"Wiener Nacht-MS laut Ausschreibung; die gemeinsame Ergebnisliste wird nach Vereinszugehörigkeit getrennt. Die im PDF unvollständig geparsten U14-Paare bleiben ausgeschlossen.",
-        "award_holds":{"H55-":{"url":"http://www.wolv.at/docs/med18.pdf", "reason":"Die WOLV-Jahresliste unterscheidet H55 und H60, die ANNE-Ergebnisliste zeigt nur eine gemeinsame H55-Klasse. Die abweichende Wertung bleibt offen."}},
-        "categories":{"D 15-18":"D15-18", "D 19 A":"D19-", "D 35-":"D35-", "D 45-":"D45-", "D 55-":"D55-", "H 15-18":"H15-18", "H 19 A":"H19-", "H 35-":"H35-", "H 45-":"H45-", "H 55-":"H55-", "H 65-":"H65-"}
+        "note":"WOLV belegt die separaten H45/H50- und H55/H60-Podien. Weitere Wiener Plätze anhand des Quelljahrgangs rekonstruiert; unsichere und nicht-Wiener Einträge bleiben unzugeordnet. D45: Nutzer bestätigt die ANNE-Wertung; WOLV nennt abweichend Claudia Bonek auf Rang 3.",
+        "wolv_age_split":{"url":"http://www.wolv.at/docs/med18.pdf", "path":"data/review/archived_sources/2018/wolv-annual.pdf", "sha256":"5b39bd6faa6bb9a84abd040b4c0372f3f3d968f72c07762f4b37e0d718e0247e", "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_2441_erg131018.pdf", "normalized_sha256":"7041dfaf9e887f6fb0b4cd3534609a3e909959b31f708c243bad2dd854ac40df"},
+        "categories":{"D 15-18":"D15-18", "D 19 A":"D19-", "D 35-":"D35-", "D 45-":"D45-", "D 55-":"D55-", "H -14":"H-14", "H 15-18":"H15-18", "H 19 A":"H19-", "H 35-":"H35-", "H 65-":"H65-",
+          "H 45-":{"H45-":["Waldhäusl Wolfgang","Kastner-Jirka Boris","Kroupa Günther","Srb Alexander","Marksteiner Martin"],"H50-":["Gassner Ferri","Pietsch Werner","Göschl Erich","Täuber Thomas","Hnilica Thomas","Biel Axel","Grill Michael","Schiefer Mario"],"__unassigned__":["Stockmayer Michael","Renner Wilfried","Stockmayer Manfred","Lerchegger Helmut","Dobler Georg","Reisenberger Roland","Aichholzer Christian","Scheikl Gottfried","Lipphart-Kirchmeir","Borsitzky Hans","Brabek Walter","Mühlbacher Thomas","Adenstedt Erik","Sterba Markus"]},
+          "H 55-":{"H55-":["Huemer Martin","Cart Andreas","Wolfram Arnulf","Hampl Manfred"],"H60-":["Purgathofer Werner","Grün Paul","Huemer Thomas"],"__unassigned__":["Friessnig Joachim","Köck Erwin","Proske Herwig","Gremmel Franz","Lang Gottfried","Kradischnig Günter","Hochwarter Rudolf","Resch Kurt","Pidner Valentin","Mayer Ewald","Praeceptor Rainer","Dobnik Günther","Lundberg Urban"]}}
       }}
     },
     "2448": {
@@ -228,8 +349,7 @@
         "partial":true,
         "url":"https://anne-cdn.oefol.at/public/legacy/event_2448_ausschreibung-mixedsprint2018.pdf",
         "sha256":"bbe93244a180354db56a5bfc79cb69c7baf41005f75969c3d52f26b32e5f7a8c",
-        "note":"Drei Wiener Mixed-Sprintstaffelklassen laut Ausschreibung; die zusätzliche Senioren-35-Wertung ist wegen Quellenwiderspruchs nicht als Titel bestätigt.",
-        "award_holds":{"Mixed ab 35":{"url":"http://www.wolv.at/docs/med18.pdf", "reason":"Die WOLV-Jahresliste und Ergebnisliste nennen eine Senioren-35-Wertung; die vorliegende Ausschreibung nennt nur die Klasse ab 50. Der Widerspruch bleibt offen."}},
+        "note":"Wiener Mixed-Sprintstaffelklassen laut Ausschreibung; für Senioren 35 bestätigt der Nutzer ausdrücklich die Wertung gemäß WOLV-Jahresliste und ANNE-Ergebnis trotz abweichender Ausschreibung.",
         "categories":{"HDH-16 W":"Mixed bis 16", "HDH 17-W":"Mixed ab 17", "HDH 50-W":"Mixed ab 50", "HDH 35-W":"Mixed ab 35"}
       }}
     },
@@ -239,12 +359,15 @@
         "partial":true,
         "url":"https://anne-cdn.oefol.at/public/legacy/event_2172_ausschreibung-jakob-2018-lang-ms.pdf",
         "sha256":"59d2875a4a908766615c824a725e2cc178cb81b04ee5b53381c36bc357eb42ba",
-        "note":"Wiener Langdistanz laut Ausschreibung und gesonderter Wiener Ergebnisliste. Diese enthält auch Gäste anderer Landesverbände; deshalb nach Vereinszugehörigkeit abgrenzen.",
+        "note":"WOLV belegt die getrennten Podien H35/H40, H45/H50 und D45/D50. Weitere Zuordnung nach Jahrgang ist rekonstruiert, bei unklaren Fällen bleibt sie offen. Wittberger steht trotz älteren Jahrgangs ausdrücklich auf dem WOLV-H35-Podium.",
+        "wolv_age_split":{"url":"http://www.wolv.at/docs/med18.pdf", "path":"data/review/archived_sources/2018/wolv-annual.pdf", "sha256":"5b39bd6faa6bb9a84abd040b4c0372f3f3d968f72c07762f4b37e0d718e0247e", "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_2172_ergebnisse-wien.pdf", "normalized_sha256":"7a26fdd6f8b0344e3fd19b4c7dfb76bdbae329c9556af297544d334b5528ab28"},
         "award_holds":{
-          "D15-18":{"url":"http://www.wolv.at/docs/med18.pdf", "reason":"Die WOLV-Jahresliste weist für die drei Starterinnen desselben Vereins ausdrücklich keine Wertung aus."},
-          "D45-":{"url":"http://www.wolv.at/docs/med18.pdf", "reason":"Die ANNE-Ergebnisliste zeigt Guni Palme vor Barbara Kastner in einer gemeinsamen D45-Klasse; die WOLV-Jahresliste unterscheidet D45 und D50. Ohne in der Ergebnisliste ausgewiesene Teilung bleibt die Wertung offen."}
+          "D15-18":{"url":"http://www.wolv.at/docs/med18.pdf", "reason":"Die WOLV-Jahresliste weist für die drei Starterinnen desselben Vereins ausdrücklich keine Wertung aus."}
         },
-        "categories":{"Damen -12 Wien":"D-12", "Damen -14 Wien":"D-14", "Damen 15-18 Wien":"D15-18", "Damen 19- Wien":"D19-", "Damen 35- Wien":"D35-", "Damen 45- Wien":"D45-", "Damen 55- Wien":"D55-", "Herren -14 Wien":"H-14", "Herren 15-18 Wien":"H15-18", "Herren 19- Wien":"H19-", "Herren 35- Wien":"H35-", "Herren 45- Wien":"H45-", "Herren 55- Wien":"H55-", "Herren 65- Wien":"H65-"}
+        "categories":{"Damen -12 Wien":"D-12", "Damen -14 Wien":"D-14", "Damen 15-18 Wien":"D15-18", "Damen 19- Wien":"D19-", "Damen 35- Wien":"D35-", "Damen 55- Wien":"D55-", "Herren -14 Wien":"H-14", "Herren 15-18 Wien":"H15-18", "Herren 19- Wien":"H19-", "Herren 55- Wien":"H55-", "Herren 65- Wien":"H65-",
+          "Damen 45- Wien":{"D45-":["Kastner Barbara","Zettl Karin","Pietsch-Grabner Jutta","Stuiber-Poirson Sandra"],"D50-":["Palme Guni","Wlcek Sonja","Biel-Pretting Renate","Tiefenböck Riki"]},
+          "Herren 35- Wien":{"H35-":["Radon Thomas","Wittberger Georg","Osadchuk Dmitry","Kainzbauer Peter"],"H40-":["Veitsberger Martin","Brettner-Messler Robert","Slateff Andreas"]},
+          "Herren 45- Wien":{"H45-":["Waldhäusl Wolfgang","Puchegger Stephan","Srb Alexander","Hilbert Josef","Marksteiner Martin","Kroupa Günther"],"H50-":["Gassner Ferri","Pietsch Wolfgang","Biel Axel","Göschl Erich","Täuber Thomas","Hofstätter Felix","Schiefer Mario"],"__unassigned__":["Scheikl Gottfried","Tiefenböck Willi"]}}
       }}
     },
     "2764": {
@@ -412,11 +535,16 @@
       "date":"2017-09-10", "stage_number":1,
       "jurisdictions":{"WIEN":{
         "partial":true,
-        "url":"http://www.wolv.at/docs/med17.pdf",
-        "sha256":"92726b638513fe84ef65235b37ddc6dd05fc9d4b1ec03e2b87e5c91b7f7942ac",
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_2040_ergebnis-wr-n-nw-sen-ms-2017-09-09-10.pdf",
+        "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_2040_ergebnis-wr-n-nw-sen-ms-2017-09-09-10.pdf",
+        "sha256":"99bee445fd0d35fa6550f29545ce04d223c0ecf54ba48b5eae4867df4294c407", "normalized_sha256":"6c67bdc0d096786fa2c861ad5d05bd58d60dc106d9f7082cd714f07232aa128f",
         "evidence_kind":"official-results",
+        "note":"Die Wiener Nachwuchs-/Senioren-Ergebnisliste weist H15/16, H17/18, H45/H50 und H55/H60 bereits getrennt und mit eigenen Rängen aus. Die parallele ASKÖ-Liste enthält nur eine Teilmenge derselben Starts und darf diese Klassenteilung nicht überdecken.",
         "award_holds":{"D 15-18":{"reason":"Keine Wiener Meisterschaftswertung: alle fünf Starterinnen stammen aus einem Verein.","url":"http://www.wolv.at/docs/med17.pdf"}},
-        "categories":{"Damen 15-18 Wien":"D 15-18"}
+        "categories":{"Herren -12 Wien":"H-12", "Damen -12 Wien":"D-12", "Herren 13-14 Wien":"H-14",
+          "Herren 15-16 Wien":"H15-16", "Herren 17-18 Wien":"H17-18", "Damen 15-18 Wien":"D 15-18",
+          "Herren 35- Wien":"H35-", "Damen 35- Wien":"D35-", "Herren 45- Wien":"H45-", "Herren 50- Wien":"H50-",
+          "Damen 45- Wien":"D45-", "Herren 55- Wien":"H55-", "Herren 60- Wien":"H60-", "Damen 55- Wien":"D55-", "Herren 65- Wien":"H65-"}
       }}
     },
     "2381": {

@@ -16,6 +16,21 @@ SPEC.loader.exec_module(wolv)
 
 
 class WolvAnnualTests(unittest.TestCase):
+    def test_2013_night_joint_second_is_two_individual_medal_rows(self):
+        import sys
+        sys.path.insert(0, str(ROOT / 'build'))
+        try:
+            from build_wolv_pilot import parse_cell
+            cell={'page':1,'row':3,'column':4,'row_heading':'H 15-16',
+                  'discipline_heading':'NACHT - OL','event_heading':'12.10.2013',
+                  'cell':'H 15-18:\n1) KURZ Florian NF Wien\n2) KASTNER Nicolas NF Wien +\nWOLFRAM Clemens NF Wien\n(7)'}
+            parsed=parse_cell(cell,2013)
+        finally:
+            sys.path.pop(0)
+        self.assertEqual(parsed['source_text'],cell['cell'])
+        self.assertEqual(parsed['medals'],[{'rank':1,'text':'KURZ Florian NF Wien'},
+            {'rank':2,'text':'KASTNER Nicolas NF Wien'},{'rank':2,'text':'WOLFRAM Clemens NF Wien'}])
+
     def test_2019_sprint_h60_and_age_reconstruction_evidence(self):
         import pdfplumber
         invitation=ROOT / 'data/review/archived_sources/2019/event-2533-invitation.pdf'
@@ -161,19 +176,26 @@ class WolvAnnualTests(unittest.TestCase):
         finally:
             sys.path.pop(0)
         self.assertEqual(len(data["entries"]), 73)
-        self.assertEqual(sum(len(c["medals"]) for c in data["entries"]), 140)
+        self.assertEqual(sum(len(c["medals"]) for c in data["entries"]), 141)
         reasons = [c for c in data["entries"] if "nur 3 Läuferinnen aus einem Verein" in c["source_text"]]
         self.assertEqual(len(reasons), 1)
         self.assertEqual(reasons[0]["medals"], [])
         self.assertTrue(any("zusammen mit H -12" in c["source_text"] for c in data["entries"]))
         self.assertTrue(any("nicht ausgetragen" in c["source_text"] for c in data["entries"]))
         corrected = next(c for c in data["entries"] if (c["page"], c["row"], c["column"]) == (1, 25, 2))
-        self.assertIn("K ASTNER", corrected["source_text"])
+        self.assertIn("K A STNER", corrected["source_text"])
         self.assertIn("KASTNER Barbara", corrected["medals"][0]["text"])
+        cells = {(c["page"], c["row"], c["column"]): c for c in data["entries"]}
+        self.assertIn("IMRISKA Albert", cells[(1, 3, 2)]["medals"][0]["text"])
+        self.assertIn("HINTERPLATTNER Oskar", cells[(1, 4, 1)]["medals"][1]["text"])
+        self.assertEqual([m["rank"] for m in cells[(1, 13, 3)]["medals"]], [1, 2, 3, 3])
+        self.assertIn("GÖSCHL Erich", cells[(1, 13, 3)]["medals"][3]["text"])
+        self.assertIn("URBANEK Annina", cells[(1, 20, 5)]["medals"][0]["text"])
+        self.assertIn("KOVACS Margit", cells[(1, 27, 4)]["medals"][2]["text"])
         with tempfile.TemporaryDirectory() as tmp:
             database = Path(tmp) / "wolv.db"
             write_database(data, database)
             with sqlite3.connect(database) as con:
                 self.assertEqual(con.execute("SELECT COUNT(*) FROM classification").fetchone()[0], 73)
-                self.assertEqual(con.execute("SELECT COUNT(*) FROM medal").fetchone()[0], 140)
+                self.assertEqual(con.execute("SELECT COUNT(*) FROM medal").fetchone()[0], 141)
                 self.assertEqual(con.execute("SELECT COUNT(*) FROM classification WHERE source_text LIKE '%nur 3 Läuferinnen aus einem Verein%'").fetchone()[0], 1)

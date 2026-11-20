@@ -1,5 +1,11 @@
 [
   {
+    "code": "61",
+    "name": "USC Theresianum",
+    "status": "historic",
+    "note": "Historischer Wiener ÖFOL-Verein (Vereinsnummer 61 in der Ergebnisliste 2014); in der WOLV-Meistertafel 2013 mehrfach gewertet."
+  },
+  {
     "name": "Orienteering Innsbruck Imst",
     "status": "historic",
     "valid_until": "2025",

@@ -3,6 +3,10 @@
 .wolv-eyebrow { color: #9b6c00; font-size: 12px; font-weight: 700; letter-spacing: .09em; }
 .wolv-source { margin: 20px 0 12px; }
 #wolv-year { margin: 10px 0 0 8px; padding: 7px 30px 7px 10px; border: 1px solid #d6d0cb; border-radius: 8px; background: #fff; color: #1c1917; font: inherit; }
+.wolv-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; }
+.wolv-filter { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid #ded9d4; border-radius: 9px; background: #fff; cursor: pointer; }
+.wolv-filter input { width: 17px; height: 17px; margin: 0; accent-color: #176a3b; }
+.wolv-empty { margin-top: 32px; color: #625a54; }
 .wolv-group { margin-top: 32px; }
 .wolv-group h2 { margin-bottom: 2px; }
 .wolv-group > p { margin-bottom: 14px; }

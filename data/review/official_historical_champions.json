@@ -4,11 +4,10 @@
   "titles": [
     {
       "event_id":1710, "date":"2016-10-22", "stage_number":1, "category":"Herren -14",
-      "result_list_id":"list:9f8bb89b5b20eaadf16757d6", "result_kind":"pair", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "time_s":1427, "person_ids":[3759,-3017603519659092116],
-      "candidate_roster":{"-3017603519659092116":{"name":"Max Pietsch", "year_of_birth":null, "source_observation":"Deubel Jonas Pietsch M"}},
+      "result_list_id":"list:9f8bb89b5b20eaadf16757d6", "result_kind":"pair", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "time_s":1427, "person_ids":[3759,6511],
       "normalized_sha256":"93b32af348362cdf0af5f858d856181725439eb332b41050dcc546e3ac5a8c3c", "eligibility_from_official_champion":true,
       "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1710_m-nacht-zgl-8-ac-2016.pdf", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1710_m-nacht-ol-2016-ausschreibung.pdf", "invitation_sha256":"c267f2eb3eccf9b80482d3321ebeb48eff1e044471cd1f531acf93d0849e2b78",
-      "note":"ANNE nennt das Paar Deubel Jonas / Pietsch M, die ÖFOL-Meistertafel Jonas Deubel / Max Pietsch. Max bleibt ein quellgebundener Kandidat ohne behauptete ÖFOL-ID."
+      "note":"ANNE nennt das Paar Deubel Jonas / Pietsch M, die ÖFOL-Meistertafel Jonas Deubel / Max Pietsch. Der Nutzer bestätigte Max als Maximilian Pietsch, ÖFOL-ID 6511."
     },
     {
       "event_id":842, "date":"2013-10-19", "stage_number":1, "category":"Herren -12",
@@ -108,12 +107,11 @@
     },
     {
       "event_id":1551, "date":"2015-10-17", "stage_number":1, "category":"Herren -12",
-      "result_list_id":"list:acd4b4035c170088f8f8a69e", "result_kind":"pair", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "time_s":790, "person_ids":[3759,-1358964357158606339],
-      "candidate_roster":{"-1358964357158606339":{"name":"Pietsch Max", "year_of_birth":2003}},
+      "result_list_id":"list:acd4b4035c170088f8f8a69e", "result_kind":"pair", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "time_s":790, "person_ids":[3759,6511],
       "normalized_sha256":"17758fc3316b7845164c0ed42e4b1a930edb868b65bc65c7ebe775008a247849", "eligibility_from_official_champion":true,
       "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1551_ac_09_15_erg.html",
       "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1551_Ausschreibung%20OeM%20NachtOL_2015_9AC_final.pdf", "invitation_sha256":"34d936c9fd368cbd526bf6bd8f56e1ffbce9ff070481dca0380ac17e89f8e713",
-      "note":"ANNE, Ausschreibung und ÖFOL-Meistertafel bestätigen Jonas Deubel / Max Pietsch als ÖM-Nacht-Paar. Max bleibt eine Quellenperson ohne automatische ÖFOL-ID; 2003 sichert nur den vorhandenen Kandidatendatensatz und ist kein belegter Jahrgang."
+      "note":"ANNE, Ausschreibung und ÖFOL-Meistertafel bestätigen Jonas Deubel / Max Pietsch als ÖM-Nacht-Paar. Der Nutzer bestätigte Max als Maximilian Pietsch, ÖFOL-ID 6511."
     },
     {
       "event_id":1314, "date":"2015-04-25", "stage_number":1, "category":"Herren 15-17",
@@ -181,12 +179,11 @@
     },
     {
       "event_id":1977, "date":"2017-10-07", "stage_number":2, "category":"H -14",
-      "result_list_id":"list:33ae61b8a79cd8f92989a4f0", "result_kind":"relay", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien 1", "team_time_s":4106, "person_ids":[3759,6701,-1358964357158606339],
-      "candidate_roster":{"-1358964357158606339":{"name":"Max Pietsch", "year_of_birth":2003}},
+      "result_list_id":"list:33ae61b8a79cd8f92989a4f0", "result_kind":"relay", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien 1", "team_time_s":4106, "person_ids":[3759,6701,6511],
       "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1977_st-ergebnisse2.html",
       "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1977_einladung-20170910.pdf", "invitation_sha256":"5eb157e0340bb2c0667fcc1ede0f14451a1aa5bf73e67bdff62710ba1547434b",
       "eligibility_from_official_champion":true,
-      "note":"ANNE-Ergebnis und ÖFOL-Meistertafel bestätigen Jonas Deubel / Oliver Calvet / Max Pietsch. Die 2003 ist nur ein Abgleich mit dem vorhandenen Kandidatendatensatz, kein in dieser Ergebnisliste belegter Jahrgang; keine ÖFOL-ID zuordnen."
+      "note":"ANNE-Ergebnis und ÖFOL-Meistertafel bestätigen Jonas Deubel / Oliver Calvet / Max Pietsch. Der Nutzer bestätigte Max als Maximilian Pietsch, ÖFOL-ID 6511."
     },
     {
       "event_id":2798, "date":"2019-10-19", "stage_number":1, "category":"H 18E",
@@ -234,12 +231,11 @@
     },
     {
       "event_id":2082, "date":"2017-09-03", "stage_number":1, "category":"H -14",
-      "result_list_id":"list:6a2f43d7f77ae7585ead75ee", "result_kind":"team", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien #89", "time_s":2809, "person_ids":[3759,8112,-1756415503351464079],
-      "candidate_roster":{"-1756415503351464079":{"name":"Maria Beck", "year_of_birth":2004}},
+      "result_list_id":"list:6a2f43d7f77ae7585ead75ee", "result_kind":"team", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien #89", "time_s":2809, "person_ids":[3759,8112,8110],
       "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_2082_ergebnisliste-oem-mannschaft2017.pdf",
       "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_2082_ausschreibung-austriacup2017-oem-mannschaft.pdf", "invitation_sha256":"638b088ba7b2091a486d8763c117103d69fc577942b99dde0a3fbd3bc5d38ad3",
       "eligibility_from_official_champion":true,
-      "note":"ÖFOL-Meistertafel und Ergebnis: Jonas Deubel / Corinna Biel / Maria Beck. Ergebnis nennt Jahrgang 2004; keine automatische Zuordnung zur gleichnamigen ANNE-Person Jahrgang 2009."
+      "note":"ÖFOL-Meistertafel und Ergebnis: Jonas Deubel / Corinna Biel / Maria Beck. Der Nutzer bestätigte die Zuordnung zu ANNE-ID 8110 trotz des in der Quelle als 4 gedruckten Jahrgangs."
     },
     {
       "event_id":1812, "date":"2016-10-02", "stage_number":1, "category":"H 15-18",
@@ -287,13 +283,12 @@
       "event_id": 1424, "date": "2015-05-02", "stage_number": 1,
       "category": "Herren -12", "result_list_id": "list:1947f45512fa7fe5d35c6838",
       "result_kind": "relay", "club": "Naturfreunde Wien", "team_name": "Naturfreunde Wien 1",
-      "team_time_s": 4638, "person_ids": [3759, -1844122908992543663, 6701],
-      "candidate_roster": {"-1844122908992543663": {"name": "Max Pietsch", "year_of_birth": 2005}},
+      "team_time_s": 4638, "person_ids": [3759, 6511, 6701],
       "source_url": "https://www.orienteeringaustria.at/termine/meistertafel/",
       "result_url": "https://web.archive.org/web/20160704051425id_/http://www.ol-sbg.at/OEMS_2015/resultat_oestmstaffelOL.html",
       "invitation_url": "https://web.archive.org/web/20170501211739/http://www.ol-sbg.at/OEMS_2015/Ausschreibung.pdf",
       "invitation_sha256": "f34a8e65525e6825aa0b222f09c4f8ceb7b776c9a40cbc657b76ccf37906c70b",
-      "note": "ÖFOL-Meistertafel und Veranstalterergebnis: Jonas Deubel / Max Pietsch / Oliver Calvet. Max ist nur als Quellenperson mit Jahrgang 2005 bestätigt, nicht als ÖFOL-Identität."
+      "note": "ÖFOL-Meistertafel und Veranstalterergebnis: Jonas Deubel / Max Pietsch / Oliver Calvet. Der Nutzer bestätigte Max als ANNE-ID 6511 trotz abweichenden Jahrgangs 2005 in der Quelle."
     },
     {
       "event_id": 1424, "date": "2015-05-02", "stage_number": 1,

@@ -17,7 +17,53 @@
       "oefol_id": 2314,
       "club": "WAT-OL",
       "basis": "Nutzerbestätigung: Franz Glaner von WAT-OL ist Franz Wareyka-Glaner (ÖFOL-ID 2314)"
+    },
+    {
+      "scope": "name_club",
+      "source_name": "Nick Dytlewski",
+      "person_name": "Nikolai Dytlewski",
+      "oefol_id": 2154,
+      "year_of_birth": 1954,
+      "club": "Naturfreunde Wien",
+      "additional_source_clubs": ["Naturfreunde", "*Naturfreunde", "Wien", "Wien Staffel", "Naturfreunde Wien 2 W Herren 150-"],
+      "allow_missing_club": true,
+      "basis": "Nutzerbestätigung: Nick und Nikolai Dytlewski sind dieselbe Person; ÖFOL-ID und Geburtsjahr aus ANNE-Register und Naturfreunde-Mitgliederindex. Zusätzliche Vereinsangaben anhand der betroffenen Ergebnisse geprüft."
+    },
+    {
+      "scope": "name_club",
+      "source_name": "Max Pietsch",
+      "person_name": "Maximilian Pietsch",
+      "oefol_id": 6511,
+      "year_of_birth": 2003,
+      "club": "Naturfreunde Wien",
+      "additional_source_clubs": ["Wien"],
+      "allow_missing_club": true,
+      "basis": "Nutzerbestätigung und ANNE-Register: Max ist Maximilian Pietsch, Naturfreunde Wien, ÖFOL-ID 6511, Jahrgang 2003. Das Ergebnis mit abweichendem Jahrgang ist gesondert bestätigt."
+    },
+    {
+      "scope": "event_observation",
+      "event_id": 1424,
+      "category": "Herren -12",
+      "result_kind": "relay",
+      "source_name": "Max Pietsch",
+      "source_year": 2005,
+      "club": "Naturfreunde Wien",
+      "person_name": "Maximilian Pietsch",
+      "oefol_id": 6511,
+      "basis": "Nutzerbestätigung: das ÖM-Staffelergebnis 2015 gehört trotz Quelle mit Jahrgang 05 zu Maximilian Pietsch (ANNE: 2003)."
+    },
+    {
+      "scope": "event_observation",
+      "event_id": 2082,
+      "category": "H -14",
+      "result_kind": "team",
+      "source_name": "Maria Beck",
+      "source_year": 2004,
+      "club": "Naturfreunde Wien",
+      "person_name": "Maria Beck",
+      "oefol_id": 8110,
+      "basis": "Nutzerbestätigung: das ÖM-Mannschaftsergebnis 2017 gehört zu Maria Beck (ANNE: 2009); der in der Quelle als 4 gedruckte Jahrgang wurde als 2004 eingelesen."
     }
   ],
-  "redirects": {"-3642095400232799634": 7317}
+  "redirects": {"-3642095400232799634": 7317, "-4137072082508937271": 2154, "-1358964357158606339": 6511, "-3017603519659092116": 6511, "-692214203258188080": 6511, "-1844122908992543663": 6511, "-1756415503351464079": 8110}
 }

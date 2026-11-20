@@ -1541,7 +1541,7 @@
     {
       "year": 2026,
       "source_url": "http://www.wolv.at/docs/med26.pdf",
-      "sha256": "d7aaba1ea954e6fc32b66b42808d263394729fed2e00b586cde7f4179e60e6b1",
+      "sha256": "63f3389af690733090abafc167262407db50a60d565c52dbd0250e5e9d24e56b",
       "extraction_status": "unmatched_review_only",
       "cells": [
         {
@@ -1611,8 +1611,8 @@
           "row_heading": "H 13-14",
           "discipline_heading": "MITTELDISTANZ - OL",
           "event_heading": "26.4.2026; Oberhöflein / NÖ",
-          "cell": "1) IMRISKA Adam NF Wien\n2) FRITZE Reto NF Wien\n3) DOBLER Oskar MTV Hernals (4)",
-          "first_place_text": "IMRISKA Adam NF Wien"
+          "cell": "1) IMRISKA Albert NF Wien\n2) FRITZE Reto NF Wien\n3) DOBLER Oskar MTV Hernals (4)",
+          "first_place_text": "IMRISKA Albert NF Wien"
         },
         {
           "page": 1,
@@ -1631,7 +1631,7 @@
           "row_heading": "H 15-16",
           "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
           "event_heading": "Langdistanz MS : 28.3.2026; Neuberg im Burgenland / Bgld\nNachw.+Sen MS : 11.10.2026; Kobersdorf / NÖ",
-          "cell": "H 15-18:\n1) BALLIK Elias WAT-OL\n2) KOLAR Fabian NF Wien\n3) HINTERPLATTNER Oskar MTV Hernals\n(6)",
+          "cell": "H 15-18:\n1) BALLIK Elias WAT-OL\n2) HINTERPLATTNER Oskar MTV Hernals\n3) KOLAR Fabian NF Wien\n(4)",
           "first_place_text": "BALLIK Elias WAT-OL"
         },
         {
@@ -1831,7 +1831,7 @@
           "row_heading": "H 60-",
           "discipline_heading": "SPRINT - OL",
           "event_heading": "21.6.2026; Maria Enzersdorf / NÖ",
-          "cell": "H 60-:\n1) TÄUBER Thomas OLT Transdanubien\n2) BIEL Axel NF Wien\n3) ZAPLETAL Josef NF Wien\n(16)",
+          "cell": "H 60-:\n1) TÄUBER Thomas OLT Transdanubien\n2) BIEL Axel NF Wien\n3) ZAPLETAL Josef NF Wien\n3) GÖSCHL Erich OLC Wienerwald\n(16)",
           "first_place_text": "TÄUBER Thomas OLT Transdanubien"
         },
         {
@@ -2031,8 +2031,8 @@
           "row_heading": "D 15-16",
           "discipline_heading": "STAFFEL - OL",
           "event_heading": "10.10.2026; Kobersdorf / NÖ",
-          "cell": "D 15-:\n1) NF Wien: TIEFENBÖCK Tina - RADON Livia\n2) WAT-OL: PISKORZ Veronika - WAREYKA-GLANER Sabine\n3) NF Wien: BECK Maria - UJVARI Sandra\n(3)",
-          "first_place_text": "NF Wien: TIEFENBÖCK Tina - RADON Livia"
+          "cell": "D 15-:\n1) NF Wien: TIEFENBÖCK Tina - URBANEK Annina\n2) WAT-OL: PISKORZ Veronika - WAREYKA-GLANER Sabine\n3) NF Wien: BECK Maria - UJVARI Sandra\n(3)",
+          "first_place_text": "NF Wien: TIEFENBÖCK Tina - URBANEK Annina"
         },
         {
           "page": 1,
@@ -2101,8 +2101,8 @@
           "row_heading": "D 45-",
           "discipline_heading": "MITTELDISTANZ - OL",
           "event_heading": "26.4.2026; Oberhöflein / NÖ",
-          "cell": "D 45-:\n1 ) K ASTNER Barbara NF Wien\n2) SKERN Marina NF Wien\n3) ARBTER Vera NF Wien\n(7)",
-          "first_place_text": "K ASTNER Barbara NF Wien"
+          "cell": "D 45-:\n1 ) K A STNER Barbara NF Wien\n2) SKERN Marina NF Wien\n3) ARBTER Vera NF Wien\n(7)",
+          "first_place_text": "K A STNER Barbara NF Wien"
         },
         {
           "page": 1,
@@ -2131,7 +2131,7 @@
           "row_heading": "D 50-",
           "discipline_heading": "STAFFEL - OL",
           "event_heading": "10.10.2026; Kobersdorf / NÖ",
-          "cell": "D 100-:\n1) NF Wien: GOLLMANN Birgit - SKERN Marina\n2) OLC Wienerwald: PALME Guni - MICKO Roswitha\n3) OLT Transdanubien: GAUDERNAK Elisabeth - KOVAC Margit\n(3)",
+          "cell": "D 100-:\n1) NF Wien: GOLLMANN Birgit - SKERN Marina\n2) OLC Wienerwald: PALME Guni - MICKO Roswitha\n3) OLT Transdanubien: GAUDERNAK Elisabeth - KOVACS Margit\n(3)",
           "first_place_text": "NF Wien: GOLLMANN Birgit - SKERN Marina"
         },
         {
@@ -2171,7 +2171,7 @@
           "row_heading": "D 55-",
           "discipline_heading": "NACHT - OL",
           "event_heading": "25.04.2026; Neunkirchen / NÖ",
-          "cell": "D 55-:\n1) BIEL-PRETTING Renate NF Wien\n2) TIEFENBÖCK Riki NF Wien\n3) KOVAC Margit OLT Transdanubien\n(4)",
+          "cell": "D 55-:\n1) BIEL-PRETTING Renate NF Wien\n2) TIEFENBÖCK Riki NF Wien\n3) KOVACS Margit OLT Transdanubien\n(4)",
           "first_place_text": "BIEL-PRETTING Renate NF Wien"
         },
         {

@@ -19,7 +19,7 @@ from extract_wolv_history import extract as extract_html, extract_pdf
 ROOT = Path(__file__).resolve().parent.parent
 PDF = ROOT / 'data/review/archived_sources/2026/wolv-annual.pdf'
 OUT = ROOT / 'site/wolv'
-EXPECTED_SHA256 = 'd7aaba1ea954e6fc32b66b42808d263394729fed2e00b586cde7f4179e60e6b1'
+EXPECTED_SHA256 = '63f3389af690733090abafc167262407db50a60d565c52dbd0250e5e9d24e56b'
 
 
 def parse_cell(cell, year=2026):
@@ -42,7 +42,15 @@ def parse_cell(cell, year=2026):
         # The preserved PDF visibly says KASTNER; PDF extraction inserts a
         # spurious word break in this one known cell. Keep source_text intact.
         if year == 2026 and (cell['page'], cell['row'], cell['column']) == (1, 25, 2):
-            value = value.replace('K ASTNER Barbara', 'KASTNER Barbara')
+            value = re.sub(r'\bK\s+A\s*STNER Barbara\b', 'KASTNER Barbara', value)
+        # This annual-table cell denotes a shared second place with '+',
+        # not a two-person team. ANNE independently prints both at rank 2.
+        if (year == 2013 and (cell['page'], cell['row'], cell['column']) == (1, 3, 4)
+                and int(match.group(1)) == 2
+                and value == 'KASTNER Nicolas NF Wien + WOLFRAM Clemens NF Wien'):
+            medals.extend([{'rank': 2, 'text': 'KASTNER Nicolas NF Wien'},
+                           {'rank': 2, 'text': 'WOLFRAM Clemens NF Wien'}])
+            continue
         if value and re.search(r'[^\s.\-–]', value):
             medals.append({'rank': int(match.group(1)), 'text': value})
     prefix = parsing_text[:markers[0].start()].strip() if markers else ''

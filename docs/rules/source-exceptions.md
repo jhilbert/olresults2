@@ -559,15 +559,20 @@ stillschweigend vertauscht werden.
   Klassen D/H19− sind bei dieser Nachwuchs-/Seniorenmeisterschaft laut
   Tagesliste keine Meisterschaftsklassen.
 - Event `5391`, Mittel 2026: Die WOLV-Tagesliste nennt Albert Imriska als
-  Meister H−14; die WOLV-Jahresliste nennt an der entsprechenden Stelle
-  Adam Imriska, obwohl Adam laut Tagesliste in H15− startete. Keine
-  automatische Personenvertauschung allein aufgrund der Jahresübersicht.
+  Meister H−14; eine frühere WOLV-Jahresliste nannte Adam. Die am 20.11.2026
+  erneut abgerufene Jahresliste nennt ebenfalls Albert. Die frühere Fassung
+  bleibt als `2026/wolv-annual-before-correction.pdf` archiviert.
 - Event `5495`, Wiener Staffel 2026, D15−: Das ANNE-Ergebnis (Ergebnis-ID
   `142845`, zuletzt aktualisiert am 14.10.2026) nennt Tina Tiefenböck und
-  Annina Urbanek; die WOLV-Jahresliste nennt Tina Tiefenböck und Livia
-  Radon. Gemäß `CHAMP-REG-ANNE-NAME-001` bleibt die ANNE-Teamaufstellung
-  bindend. Der abweichende WOLV-Eintrag ist ein Quellenwiderspruch, kein
-  Beleg für eine andere Personenzuordnung oder eine zweite Medaille.
+  Annina Urbanek; eine frühere WOLV-Jahresliste nannte Livia Radon. Die am
+  20.11.2026 erneut abgerufene Jahresliste nennt ebenfalls Annina Urbanek.
+  Die ANNE-Teamaufstellung bleibt bindend und die frühere Fassung archiviert.
+- Nutzerbestätigte Personenidentitäten: Nick Dytlewski ist Nikolai
+  Dytlewski (ÖFOL-ID 2154), Max Pietsch ist Maximilian Pietsch (6511), und
+  Maria Beck ist die ANNE-Person 8110. Für das Staffel-Ergebnis Event `1424`
+  und das Mannschafts-Ergebnis Event `2082` hat der Nutzer die Zuordnung trotz
+  abweichender Jahrgangsangaben ausdrücklich bestätigt. Die Ausnahme gilt nur
+  für die jeweils dokumentierte Quellzeile; Originalangaben bleiben erhalten.
 - Event `2058`, Wiener Nachtmeisterschaft 2017: Die ANNE-Ergebnisliste
   enthält in Herren −14 drei Zweierteams sowie einen Einzelstart AK. Die
   Quellenpersonen bleiben einzeln erhalten; jedes Zweierteam zählt bei der
@@ -919,3 +924,21 @@ stillschweigend vertauscht werden.
   bleibt. D19 hat laut WOLV keine
   Wertung; H45 und H55 bleiben für Medaillen gesperrt, weil nur der WOLV
   Altersklassen teilt und die ANNE-Ergebnisliste sie zusammenführt.
+- Wiener Meisterschaften 2013: USC Theresianum ist als historischer
+  ÖFOL-Verein belegt. Seine Zuordnung zu Wien wird für die quellgebundenen
+  Bewerbe 864 und 874 durch die WOLV-Jahreswertung belegt; daraus wird keine
+  zeitlich unbegrenzte heutige Verbandszugehörigkeit abgeleitet.
+- Nacht 2013, Event 874: Die Klassen H−12/H−14, H35/H40 und H45/H50 werden
+  anhand der WOLV-Podien sowie der ANNE-Ergebniszeilen getrennt. Weitere
+  Plätze sind rekonstruiert, nicht unabhängig mit WOLV bestätigt. Bei
+  H35/H40 nennt WOLV zusammen 13 Starter, ANNE enthält 12 Namen. Ein DNS-Paar
+  ohne belegte Einzelzuordnung bleibt unzugeordnet. Die Paarzuordnung folgt
+  ausdrücklich der WOLV-Liste, nicht einem auf beide Personen übertragenen
+  Einzeljahrgang; auch Gessl/Perner sind dort H13–14 zugeordnet. Danner und
+  Grill sind trotz höheren Alters laut WOLV-Podium in H35 eingereiht.
+- Sprint und Mittel 2013, Events 812 und 878, D15: Tori Borish und beim Mittel
+  zusätzlich Josephine Greiner stehen in der ANNE-Laufliste vor Läuferinnen
+  des WOLV-Podiums, aber nicht selbst im WOLV-Podium. Der Grund ist nicht
+  belegt. Insbesondere darf aus späteren nationalen Zugehörigkeiten nicht
+  automatisch ihre damalige Wiener Wertungsberechtigung abgeleitet werden;
+  die Widersprüche und ANNE-Ergebnisse bleiben unverändert sichtbar.
