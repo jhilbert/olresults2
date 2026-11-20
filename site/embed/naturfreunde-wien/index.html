@@ -1,8 +1,12 @@
 <!doctype html>
 <html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Naturfreunde Wien – Meisterschaftsmedaillen</title>
-<link rel="stylesheet" href="embed.css">
+<link rel="stylesheet" href="embed.css"><link rel="stylesheet" href="chart.css"><link rel="stylesheet" href="filters.css">
 <script defer src="../../domain_rules.js"></script><script defer src="embed.js"></script></head>
-<body><main><header><div><span class="eyebrow">NATURFREUNDE WIEN · ORIENTEERING</span><h1>Unsere Meisterschaftserfolge</h1></div><label class="filter">Disziplin <select id="sport"><option value="all">Alle Disziplinen</option><option value="footOrienteering">Fuß-OL</option><option value="skiOrienteering">Ski-OL</option><option value="mountainbikeOrienteering">MTBO</option><option value="trailOrienteering">Trail-O</option></select></label></header>
-<nav aria-label="Meisterschaftsauswahl" id="modes"></nav><div id="year-control" class="filter"><label for="year">Saison</label><select id="year"></select></div>
+<body><main><header><div><span class="eyebrow">NATURFREUNDE WIEN · ORIENTEERING</span><h1>Unsere Meisterschaftserfolge</h1></div></header>
+<nav aria-label="Meisterschaftsauswahl" id="modes"></nav>
+<div class="view-filters" role="group" aria-label="Auswertung filtern">
+<label class="filter">Disziplin <select id="sport"><option value="all">Alle Disziplinen</option><option value="footOrienteering">Fuß-OL</option><option value="skiOrienteering">Ski-OL</option><option value="mountainbikeOrienteering">MTBO</option><option value="trailOrienteering">Trail-O</option></select></label>
+<div id="year-control" class="filter"><label for="year">Saison</label><select id="year"></select></div>
+</div>
 <div id="content" aria-live="polite"><p>Lade Medaillenstatistik …</p></div><footer id="data-status"></footer></main></body></html>

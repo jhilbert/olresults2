@@ -1,0 +1,48 @@
+/* Native selects retain keyboard and mobile-picker support. */
+.view-filters {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  margin: 2px 0 20px;
+}
+.filter {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  color: #557687;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.filter select {
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 175px;
+  min-height: 44px;
+  padding: 9px 43px 9px 15px;
+  border: 1px solid #c6d9e0;
+  border-radius: 10px;
+  background-color: #f6fafb;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23245370' stroke-width='2.3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  color: #173c5c;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+  transition: border-color .15s, background-color .15s, box-shadow .15s;
+}
+.filter select:hover { border-color: #76a9b8; background-color: #eef6f8; }
+.filter select:focus-visible { outline: 3px solid #83c3d2; outline-offset: 2px; border-color: #24657e; }
+#year-control { margin: 0; }
+#year-control select { min-width: 150px; }
+@media (max-width: 600px) {
+  .view-filters { gap: 10px; }
+  .view-filters .filter { flex: 1 1 0; min-width: 0; }
+  .view-filters .filter select { width: 100%; min-width: 0; max-width: 100%; }
+  .view-filters .filter:only-child { flex: 0 1 220px; }
+}
