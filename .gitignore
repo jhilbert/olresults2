@@ -11,6 +11,7 @@ site/wolv/data.json
 site/wolv/source.pdf
 site/wolv/wolv.db
 site/wolv/sources/
+site/embed/naturfreunde-wien/data.json
 *-errors.log
 # Per-person data fetched via an authenticated, elevated-access ANNE
 # endpoint (see ingest/anne_user_eligibility.py) - never publish the raw

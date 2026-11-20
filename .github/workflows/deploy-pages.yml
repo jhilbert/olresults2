@@ -58,6 +58,9 @@ jobs:
             --output "$RUNNER_TEMP/quality-report.json" \
             --fail-on-blockers
 
+      - name: Build Naturfreunde Wien embed data
+        run: node build/export_club_embed.js
+
       - name: Upload quality report
         uses: actions/upload-artifact@v4
         with:
@@ -73,6 +76,8 @@ jobs:
           sed -i "s#<script src=\"app.js?v=$V\"></script>#<script>window.OLR_BUILD=\"$V\";</script>\n<script src=\"app.js?v=$V\"></script>#" site/index.html
           sed -i "s/style.css\"/style.css?v=$V\"/; s/review.js\"/review.js?v=$V\"/" site/review.html
           sed -i "s#../style.css\"#../style.css?v=$V\"#; s/wolv.css\"/wolv.css?v=$V\"/; s/wolv.js\"/wolv.js?v=$V\"/" site/wolv/index.html
+          sed -i "s#../../domain_rules.js\"#../../domain_rules.js?v=$V\"#; s/embed.css\"/embed.css?v=$V\"/; s/embed.js\"/embed.js?v=$V\"/" site/embed/naturfreunde-wien/index.html
+          sed -i "s#<script defer src=\"embed.js?v=$V\"></script>#<script>window.OLR_BUILD=\"$V\";</script><script defer src=\"embed.js?v=$V\"></script>#" site/embed/naturfreunde-wien/index.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
