@@ -303,7 +303,7 @@ test("compact elite U16 classes and official team champions are counted with evi
   const html = context.renderYouth([base, team], []);
   assert.match(html, /Mika Asenbauer/);
   assert.match(html, /Matilda Buschek/);
-  assert.match(html, /ÖFOL-Meistertafel bestätigt/);
+  assert.match(html, /Meistertitel durch Quelle bestätigt/);
   assert.match(html, /Σ 800 €/);
   assert.match(context.renderYouth([{...team, official_national_title_url: null}], []), /ÖM-Kategorie nur abgeleitet/);
 });

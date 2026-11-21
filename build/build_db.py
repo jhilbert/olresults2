@@ -80,6 +80,12 @@ CHAMPIONSHIP_SOURCE_CONFIG = {
                "scope": "full_field", "explicit_eligibility": True},
     "4315-2": {"mode": "evidence", "championship": "ÖM",
                "scope": "medal_places_only", "explicit_eligibility": True},
+    # Explicit national ranking, distinct from the general AC list. Exact
+    # source/normalized hashes are pinned below; joins also require time and club.
+    "3635-2": {"mode": "evidence", "championship": "ÖM",
+               "scope": "full_field", "explicit_eligibility": True},
+    "3635-50": {"mode": "supplemental", "championship": "ÖM",
+                "scope": "full_field", "explicit_eligibility": True},
     "5203-1": {"mode": "classification", "championship": "ÖSTM",
                "scope": "full_field", "explicit_eligibility": True},
     # The age-spanning Elite sheet is a comparative overview, not another
@@ -3092,6 +3098,15 @@ def register_legacy_document(cur, doc):
         if not archived.is_file() or file_sha256(archived) != "e81c0c42f1df5d1bc0fe9b64da582c8d03fd13666d5cc229395a889d52f9999f":
             raise ValueError("Reviewed 2016 night source is missing or changed")
         snapshot_path = archived
+    if stem in {"3635-2", "3635-50"}:
+        archived = ROOT / "data/review/archived_sources/2022/3635-national.pdf"
+        expected_normalized = {"3635-2": "a179d8a44d72b6706d598f9bacaa3eca95a8682fa325a770cbe8b21b8b4f6657",
+                               "3635-50": "8df233c1846413fc9bfc47c1a8f39adcad87d7b82707998d4acfb74999de3e2e"}[stem]
+        if (doc.get("sourceUrl") != "https://anne-cdn.oefol.at/public/legacy/event_3635_ergebnisse-ski-o-oem-lang-2022.pdf"
+                or file_sha256(archived) != "df0f6950fa497febf723013ec1e857e09f9ae1bab32a9460df2b700942e300ed"
+                or file_sha256(normalized_path) != expected_normalized):
+            raise ValueError("Reviewed 2022 Ski-O championship source is missing or changed")
+        snapshot_path = archived
     if doc.get("snapshotPath"):
         reviewed_path = (ROOT / doc["snapshotPath"]).resolve()
         archive_root = (ROOT / "data" / "review" / "archived_sources").resolve()
@@ -3232,11 +3247,30 @@ def apply_championship_source_entries(cur):
                 matched += 1
             continue
         options = candidates.get((stage_id, category_key, observed_name_key), [])
+        if evidence_kind == "official_championship_inclusion" and cur.execute(
+                "SELECT event_id FROM stage WHERE id=?", (stage_id,)).fetchone() == (3635,):
+            # This is a separate national ranking. A same-named athlete or a
+            # differently timed duplicate must not inherit eligibility.
+            source_club = (canonicalize_official_club(observed_club, OFFICIAL_CLUBS) or observed_club) if observed_club else None
+            strict = []
+            for option in options:
+                row = cur.execute("SELECT time_s,status FROM result WHERE id=?", (option[0],)).fetchone()
+                result_club = (canonicalize_official_club(option[2], OFFICIAL_CLUBS) or option[2]) if option[2] else None
+                source_key, result_key = club_match_key(source_club), club_match_key(result_club)
+                same_club = bool(source_key and result_key and (source_key == result_key or
+                    (min(len(source_key), len(result_key)) >= 15 and
+                     (source_key.startswith(result_key) or result_key.startswith(source_key)))))
+                meaningful_time = (observed_time_s is not None or
+                                   observed_status in ('mp', 'dnf', 'dsq'))
+                if (same_club and meaningful_time and row == (observed_time_s, observed_status)):
+                    strict.append(option)
+            options = strict if len(strict) == 1 else []
         # Pair-only medal sheets sometimes compress two names into one token
         # (``Nora-Sophia Tandl-Asseg``).  The official rank + category + club
         # identifies the source unit and intentionally maps to both member
         # rows in the full result list.
         if (not options and evidence_kind == "official_championship_inclusion"
+                and cur.execute("SELECT event_id FROM stage WHERE id=?", (stage_id,)).fetchone() != (3635,)
                 and observed_rank is not None):
             options = ranked_candidates.get(
                 (stage_id, category_key, observed_rank), [])
@@ -5217,7 +5251,9 @@ def load_legacy_results(cur, events, persons, stage_ids, anne_event_ids):
                     identity_basis, identity_confidence, identity_state = (
                         "user-confirmed-event-observation", 1.0, "resolved")
                     persons.record(pid, name)
-                elif r.get("sourceOnlyCandidate") is True:
+                elif (r.get("sourceOnlyCandidate") is True or
+                      (eid == 1865 and len(persons.anne_profiles.match(
+                          name, r.get("yearOfBirth"), club_value)[0]) != 1)):
                     pid = stable_synthetic_id(f"source-only:{eid}:{cat['name']}:{name}", None)
                     if pid not in persons.by_id:
                         # Do not register this unknown identity in the global
@@ -6386,7 +6422,7 @@ def load_regional_source_classes():
     events = dict(payload["events"])
     for event_id, event in events.items():
         for jurisdiction, scope in event.get("jurisdictions", {}).items():
-            for source in (scope.get("rank_correction_source"), scope.get("wolv_age_split"), scope.get("exclusion_source"), scope.get("source_club_evidence")):
+            for source in (scope.get("rank_correction_source"), scope.get("wolv_age_split"), scope.get("exclusion_source"), scope.get("source_club_evidence"), scope.get("award_hold_source")):
                 if not source:
                     continue
                 path = (ROOT / source.get("path", "")).resolve()
@@ -6491,6 +6527,15 @@ def superseded_regional_jurisdictions(scopes, source_url, normalized_sha256, cat
     }
 
 
+def user_confirmed_championship_ineligible(person_id, date):
+    """User-confirmed Tori Borish and Josephine Greiner ineligibility for 2013.
+
+    Restrict historical eligibility to the evidence period; do not change the
+    original race result or assert citizenship/eligibility in other years.
+    """
+    return person_id in {7250, 7403} and str(date or "")[:4] == "2013"
+
+
 def populate_regional_championships(cur, catalog, club_jurisdictions, source_classes=None):
     """Build nationwide regional mappings, instances and competitor entries."""
     person_memberships = defaultdict(list)
@@ -6582,6 +6627,8 @@ def populate_regional_championships(cur, catalog, club_jurisdictions, source_cla
                 definitions = [(definition, None)]
             for canonical, names in definitions:
                 exclusions = evidence.get("exclude_entries", {}).get(category, [])
+                hold = evidence.get("award_holds", {}).get(canonical)
+                hold_source = evidence.get("award_hold_source") if hold else None
                 mapping_kind = ("wolv-roster-filter" if exclusions else
                                 "wolv-age-split" if age_split else evidence.get("evidence_kind", "invitation"))
                 category_key = regional_category_key(canonical)
@@ -6618,14 +6665,15 @@ def populate_regional_championships(cur, catalog, club_jurisdictions, source_cla
                         not evidence.get("result_document_url")
                         or evidence.get("evidence_kind") == "official-shared-results")),
                     "rank_by_time": canonical in evidence.get("time_ranked_categories", []),
-                    "award_hold": evidence.get("award_holds", {}).get(canonical),
+                    "award_hold": hold,
                     "source_sha256": evidence["sha256"],
                     "source_detail": (json.dumps({"names": sorted(names or []), "ranks": ranks or {},
                                                   **({"exclusions": exclusions, "exclusion_source_sha256": evidence["exclusion_source"]["sha256"]} if exclusions else {}),
                                                   **({"source_clubs": source_clubs, "source_club_evidence_sha256": evidence["source_club_evidence"]["sha256"]} if source_clubs else {}),
+                                                  **({"award_hold": hold, "award_hold_source_sha256": hold_source["sha256"]} if hold_source else {}),
                                                   **({"wolv_age_split_sha256": age_split["sha256"]} if age_split else {})},
                                                  ensure_ascii=False, sort_keys=True)
-                                      if names is not None or ranks or exclusions or source_clubs else ""),
+                                      if names is not None or ranks or exclusions or source_clubs or hold_source else ""),
                 })
         for mapping in mappings:
             # Event title + an exact row-level Nat code is direct source
@@ -6740,7 +6788,9 @@ def populate_regional_championships(cur, catalog, club_jurisdictions, source_cla
                 continue
             units[_regional_unit_key(row)].append(row)
         for unit_key, unit_rows in units.items():
-            if any(row[10] for row in unit_rows):
+            if any(row[10] or (jurisdiction == "WIEN" and
+                   user_confirmed_championship_ineligible(row[1], stage_date))
+                   for row in unit_rows):
                 continue
             source_states = _regional_source_states(unit_rows)
             local_clubs = {**club_jurisdictions, **reviewed_source_club_states.get((list_id, jurisdiction), {})}
@@ -6874,6 +6924,36 @@ def populate_regional_championships(cur, catalog, club_jurisdictions, source_cla
             for key, entry_id in resolved.items():
                 cur.execute("UPDATE championship_entry SET regional_rank=? WHERE id=?",
                             (overrides[key], entry_id))
+
+
+def apply_2022_published_team_qualification(cur):
+    """Use the reviewed official 2022 D15–18 team classification.
+
+    The organiser prints three placed teams and identifies AK separately.
+    Only the exact second team is repaired, without touching other people or
+    assuming that their current nationality proves historical eligibility.
+    """
+    rows = cur.execute("""SELECT r.id,r.person_id,r.championship_eligibility_state
+        FROM result r JOIN stage s ON s.id=r.stage_id
+        JOIN source_document d ON d.id=r.source_document_id
+        WHERE s.event_id=3507 AND substr(s.date,1,10)='2022-09-24'
+          AND r.category='Damen ab 15 bis 18' AND r.result_kind='team'
+          AND r.rank=2 AND r.team_name='SU Schöckl Orienteering 1'
+          AND r.team_time_s=4212 AND r.out_of_competition=0 AND r.status='ok'
+          AND d.source_url='https://anne-cdn.oefol.at/public/legacy/event_3507_ergebnis-teams-mannschaft.pdf'
+          AND d.normalized_sha256='ce0437e876525ff91aa9ce6cb660342ada67cf08e0590a2179517f0ad4eeba45'""").fetchall()
+    if len(rows) != 3 or {row[1] for row in rows} != {8939,8582,8780}:
+        return 0
+    if any(row[2] == 'ineligible' for row in rows):
+        return 0
+    changed = 0
+    for result_id, _person_id, state in rows:
+        if state in ('unknown', 'provisional'):
+            cur.execute("""UPDATE result SET championship_eligibility_state='eligible',
+                championship_eligibility_basis='official_championship_ranking'
+                WHERE id=?""", (result_id,))
+            changed += cur.rowcount
+    return changed
 
 
 def apply_national_minimum_starters(cur, event_eligibility=None):
@@ -7133,6 +7213,82 @@ def apply_official_national_titles(cur, titles):
                     championship_source_scope='winner_only' WHERE id=?""", (result_id,))
             if team_observation is not None:
                 cur.execute("UPDATE result SET championship='ÖM', identity_basis='source-team-only' WHERE id=?", (result_id,))
+
+
+def apply_2017_mtbo_source_champions(cur):
+    """Build the 2017 national ranking from source AUT, as directed by the user."""
+    sources = {
+        1: ("126ff69cfcecdc10cfa2f44839568801055e53ed9be3d37f78d47b9fa6625f6e", "448019399ba72d8ef82c7a5bff471ae340896d4ad4dbe559fe3c9f764d8ed6f9", 14),
+        3: ("2db359016caf2f5c923ceb7ab68275c394902777d308d22bd616db98f579e17e", "fa695d9053fb020bc7acd27f51ddc6f2c9f4474e33ba1ca90725710ca6d9d870", 12),
+    }
+    documents = cur.execute("""SELECT s.number,d.snapshot_sha256,d.normalized_sha256,COUNT(DISTINCT d.id)
+        FROM result r JOIN stage s ON s.id=r.stage_id
+        JOIN source_document d ON d.id=r.source_document_id
+        WHERE s.event_id=1865 GROUP BY s.number,d.snapshot_sha256,d.normalized_sha256""").fetchall()
+    if set(documents) != {
+            (number, digest, normalized, 1) for number, (digest, normalized, _) in sources.items()}:
+        raise ValueError("2017 MTBO source documents or stages differ from reviewed snapshots")
+    champions = cur.execute("""SELECT r.id,s.number,r.note,r.status,r.rank,r.out_of_competition,
+            d.source_url,d.snapshot_sha256,r.stage_id,r.category,r.observed_nation
+        FROM result r JOIN stage s ON s.id=r.stage_id
+        JOIN source_document d ON d.id=r.source_document_id
+        WHERE s.event_id=1865 AND r.note LIKE 'Originalquelle: Österreichisch%Meister%'
+        ORDER BY s.number,r.id""").fetchall()
+    for number, (_, _, expected) in sources.items():
+        rows = [row for row in champions if row[1] == number]
+        if len(rows) != expected or any(row[3] != 'ok' or row[4] is None or row[5] for row in rows):
+            raise ValueError(f"2017 MTBO stage {number}: champion annotations differ from reviewed source")
+    cur.execute("""UPDATE result SET championship=NULL,national_rank=NULL
+        WHERE stage_id IN (SELECT id FROM stage WHERE event_id=1865)""")
+    for rid, _, note, _status, overall_rank, _ooc, url, digest, stage_id, category, nation in champions:
+        # An explicitly printed champion outranks a nationality-only filter:
+        # Iain Rochford is GBR but is named Austrian champion in the source.
+        source_champion_is_non_aut = 'AUT' not in (nation or '').split('/')
+        championship = 'ÖSTM' if 'Staatsmeister' in note else 'ÖM'
+        first_aut = cur.execute("""SELECT MIN(rank) FROM result WHERE stage_id=? AND category=?
+            AND ('/' || COALESCE(observed_nation,'') || '/') LIKE '%/AUT/%'
+            AND status='ok' AND out_of_competition=0""", (stage_id, category)).fetchone()[0]
+        if first_aut is not None and first_aut < overall_rank:
+            raise ValueError(f"2017 MTBO AUT ranking conflicts with printed champion: {rid}")
+        cur.execute("""UPDATE result SET championship=?, national_rank=1,
+            championship_eligibility_state='eligible',
+            championship_eligibility_basis='user_confirmed_source_nation_aut',
+            championship_source_scope='full_field' WHERE stage_id=? AND category=?
+            AND ('/' || COALESCE(observed_nation,'') || '/') LIKE '%/AUT/%'""", (championship, stage_id, category))
+        cur.execute("""UPDATE result SET championship=NULL,national_rank=NULL,
+            championship_eligibility_state='ineligible',
+            championship_eligibility_basis='user_confirmed_source_nation_filter'
+            WHERE stage_id=? AND category=? AND id<>? AND ('/' || COALESCE(observed_nation,'') || '/') NOT LIKE '%/AUT/%'""", (stage_id, category, rid))
+        if source_champion_is_non_aut:
+            cur.execute("""UPDATE result SET championship=?,championship_eligibility_state='eligible',
+                championship_eligibility_basis='official_championship_ranking',
+                championship_source_scope='full_field' WHERE id=?""", (championship, rid))
+        cur.execute("""DELETE FROM ineligible_starter WHERE event_id=1865 AND person_id IN
+            (SELECT person_id FROM result WHERE stage_id=? AND category=? AND
+             (id=? OR ('/' || COALESCE(observed_nation,'') || '/') LIKE '%/AUT/%'))""", (stage_id, category, rid))
+        cur.execute("""INSERT OR REPLACE INTO official_national_title
+            (result_id,source_url,invitation_url,invitation_sha256,evidence_note)
+            VALUES (?,?,?,?,?)""", (rid, url, '', '',
+            f'{note}; Originaldatei SHA-256 {digest}; ÖM-Wertung nach Quellen-Nation AUT laut Nutzer.'))
+    return len(champions)
+
+
+def confirm_2017_mtbo_youth_champions(cur):
+    """Confirm only the two source-named winners, not an entire podium."""
+    for category, name in (("Women 14", "Schnetz Lena"), ("Men 17", "Kratky Jakob")):
+        rows = cur.execute("""SELECT r.id FROM result r
+            JOIN stage s ON s.id=r.stage_id
+            JOIN official_national_title t ON t.result_id=r.id
+            WHERE s.event_id=1865 AND s.number=3 AND r.category=?
+              AND r.observed_name=? AND r.observed_nation='AUT'
+              AND r.status='ok' AND r.out_of_competition=0
+              AND r.championship='ÖM' AND r.championship_eligibility_state='eligible'
+              AND r.note LIKE 'Originalquelle: Österreichisch%Meister%'
+              AND t.source_url='http://www.mtbodays.at/mtbodays2017/live/all/s3_OEM_mtbodays_erg.html'""",
+            (category, name)).fetchall()
+        if len(rows) != 1:
+            raise ValueError(f"2017 MTBO confirmed champion does not match source: {category} {name}")
+        cur.execute("UPDATE result SET national_rank=1, championship_source_scope='winner_only' WHERE id=?", rows[0])
 
 
 def compute_time_behind(cur):
@@ -7790,6 +7946,18 @@ def main():
     # against this table directly, not just already-tagged rows.
     cur.execute("CREATE TEMP TABLE ineligible_starter (event_id INTEGER, person_id INTEGER)")
 
+    # User-confirmed non-eligibility applies to 2013 championship rankings,
+    # not to the source's general race placings or its AK flag.
+    cur.execute("""INSERT INTO ineligible_starter (event_id, person_id)
+        SELECT DISTINCT s.event_id, r.person_id FROM result r
+        JOIN stage s ON s.id = r.stage_id
+        WHERE r.person_id IN (7250, 7403) AND substr(s.date, 1, 4) = '2013'""")
+    cur.execute("""UPDATE result SET championship_eligibility_state='ineligible',
+        championship_eligibility_basis=CASE person_id WHEN 7250 THEN 'user_confirmed_2013_usa'
+                                                     WHEN 7403 THEN 'user_confirmed_2013_germany' END
+        WHERE person_id IN (7250, 7403) AND championship IS NOT NULL
+          AND stage_id IN (SELECT id FROM stage WHERE substr(date, 1, 4)='2013')""")
+
     for eid in FOREIGN_HOST_REQUIRE_OFFICIAL_CLUB_EVENTS:
         cur.execute("""
             INSERT INTO ineligible_starter (event_id, person_id)
@@ -7924,6 +8092,9 @@ def main():
 
     # Championship medals require three eligible starters, not finishers.
     # See e.g. event 4306 H17: two finishers and one DNF started.
+    apply_2022_published_team_qualification(cur)
+    if cur.execute("SELECT 1 FROM stage WHERE event_id=1865 LIMIT 1").fetchone():
+        apply_2017_mtbo_source_champions(cur)
     eligibility_by_event = json.loads(USER_ELIGIBILITY_PATH.read_text()) if USER_ELIGIBILITY_PATH.exists() else {}
     apply_national_minimum_starters(cur, eligibility_by_event)
     apply_national_jury_decisions(cur, national_category_evidence)
@@ -7991,6 +8162,8 @@ def main():
     # erroring - a bare championship-tagged, unranked row would otherwise
     # get national_rank = 1, "beating" everyone, since COUNT(...) = 0 + 1).
     compute_national_ranks(cur)
+    if cur.execute("SELECT 1 FROM stage WHERE event_id=1865 LIMIT 1").fetchone():
+        confirm_2017_mtbo_youth_champions(cur)
     if OFFICIAL_NATIONAL_TITLES_PATH.exists():
         official_titles = json.loads(OFFICIAL_NATIONAL_TITLES_PATH.read_text()).get('titles', [])
         apply_official_national_titles(cur, official_titles)

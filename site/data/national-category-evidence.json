@@ -1,6 +1,36 @@
 {
   "schema_version": 1,
   "events": {
+    "1062": {
+      "event_date":"2014-05-24", "stage_number":1,
+      "label":"ANNE-Nachtrag: Wertungen aus Litschau nach Großmittel verlegt",
+      "url":"https://anne-api.oefol.at/v1/event/992",
+      "sha256":"91331cfc911eddc4ac943658bb3ae3ce7f516c87a1404d8a517138eef7b61f46",
+      "reviewed_on":"2026-11-21", "result_kinds":["individual"], "categories":[],
+      "excluded_from_national_championship_categories":["Damen 45-","Damen 50-","Damen 55-","Damen 60-","Herren 50-","Herren 65-","Herren 75-","Herren 21-Elite"],
+      "scope":"Laut ANNE-Vorstandsnachtrag wurden genau diese nicht gewerteten Kategorien beim 4. AC nachgetragen. Die Litschauer Laufresultate bleiben bestehen."
+    },
+    "992": {
+      "event_date":"2014-06-15", "stage_number":1,
+      "label":"ANNE-Vorstandsnachtrag zu den in Litschau nicht gewerteten Klassen",
+      "url":"https://anne-api.oefol.at/v1/event/992",
+      "sha256":"91331cfc911eddc4ac943658bb3ae3ce7f516c87a1404d8a517138eef7b61f46",
+      "reviewed_on":"2026-11-21", "result_kinds":["individual"],
+      "complete_event_scope":true, "apply_category_inference":true, "default_championship":"ÖM",
+      "categories":["Damen 45-","Damen 50-","Damen 55-","Damen 60-","Herren 50-","Herren 65-","Herren 75-","Herren 21- Elite"],
+      "scope":"Die acht ausdrücklich genannten Nachtragsklassen werden hier und nicht in Litschau als ÖM behandelt. Die persönliche Berechtigung bleibt getrennt zu prüfen."
+    },
+    "3962": {
+      "event_date":"2023-10-14", "stage_number":1,
+      "label":"Aktualisierte Wettkampfinformation ÖSTM und ÖM Sprint, 8.10.2023, Seite 3",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_3962_wettkampfinformation-oestm-sprint-tritolwerk.pdf",
+      "sha256":"2ac8b4c74b7a1b83ec33d99bab212d96fca4a6969e0d952bf992cd0ec480fb12",
+      "reviewed_on":"2026-11-21", "result_kinds":["individual"],
+      "complete_event_scope":true, "apply_category_inference":true, "default_championship":"ÖM",
+      "categories":["Damen bis 14","Herren bis 14","Damen bis 17","Herren bis 17","Damen ab 40","Herren ab 40","Damen ab 50","Herren ab 50","Damen ab 60","Herren ab 60","Herren ab 70","Damen bis 20","Herren bis 20","Damen ab 21 Elite","Herren ab 21 Elite"],
+      "category_championship_types":{"Damen bis 20":"ÖSTM","Herren bis 20":"ÖSTM","Damen ab 21 Elite":"ÖSTM","Herren ab 21 Elite":"ÖSTM"},
+      "scope":"Die spätere Wettkampfinformation präzisiert ÖM/ÖSTM gegenüber der ursprünglichen Ausschreibung. Altersklassen nur soweit ausdrücklich dort genannt; keine Teilnehmenden erfunden."
+    },
     "1637": {
       "event_date":"2016-05-14", "stage_number":1,
       "label":"Ausschreibung ÖM Langdistanz 2016, Seite 2",
@@ -116,6 +146,17 @@
       "reviewed_on":"2026-11-02", "result_kinds":["individual"],
       "categories":["Damen -12","Herren -12","Damen -14","Herren -14","Damen -16 Elite","Herren -16 Elite","Damen -18 Elite","Herren -18 Elite","Damen -20 Elite","Herren -20 Elite"],
       "scope":"Ausgeschriebene ÖM-Sprint-Jugendklassen; die getrennte Mixed-Staffel ist ein anderer Bewerb."
+    },
+    "2274": {
+      "event_date":"2018-10-21", "stage_number":3,
+      "label":"Ausschreibung Styrian-O-Days 2018, Seite 2: ÖM Mittel D/H16E und D/H18E",
+      "url":"https://anne-cdn.oefol.at/public/legacy/event_2274_ausschreibung-ac-2018-kainbach-20180829.pdf",
+      "sha256":"8bec072fae3aa7b5a47a4f131877c3487ddbaeda6d8c16836d0a21ba9846e259",
+      "result_url":"https://anne-cdn.oefol.at/public/legacy/event_2274_ergebnisse-e3.pdf",
+      "result_sha256":"9a957a2f57695ed6918160688053e77245adbf09156094cfb58b13cae74e83f2",
+      "result_kinds":["individual"], "apply_category_inference":true, "default_championship":"ÖM",
+      "categories":["Damen -16 Elite","Herren -16 Elite","Damen -18 Elite","Herren -18 Elite"],
+      "scope":"Die Ausschreibung bestätigt nur diese Jugendklassen als ÖM-Mitteldistanz am 21. Oktober; die übrigen Kategorien sind AC."
     },
     "2622": {
       "event_date":"2019-09-22", "stage_number":1, "label":"Ausschreibung ÖM Lang 2019, Seite 2",

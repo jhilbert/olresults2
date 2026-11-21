@@ -91,6 +91,11 @@ class WolvAnnualTests(unittest.TestCase):
             archive = build_archive()
             self.assertEqual([x["year"] for x in archive["years"]], list(range(1994, 2027)))
             years = {x["year"]: x for x in archive["years"]}
+            corrected = next(e for e in years[2025]['entries']
+                             if (e['page'], e['row'], e['column']) == (1, 19, 1))
+            self.assertEqual(corrected['source_category'], 'D 13-14')
+            self.assertEqual(corrected['source_text'], 'nicht ausgetragen')
+            self.assertEqual(corrected['medals'], [])
             def h40(year):
                 return next(e for e in years[year]['entries'] if e['source_category']=='H 40-'
                             and e['discipline'].startswith('LANGDISTANZ'))

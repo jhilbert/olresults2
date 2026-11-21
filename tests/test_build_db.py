@@ -13,6 +13,49 @@ SPEC.loader.exec_module(build_db)
 
 
 class AnneIdentityTests(unittest.TestCase):
+    def test_2022_official_team_qualification_is_pinned_to_full_roster_and_source(self):
+        con=sqlite3.connect(':memory:'); con.executescript(build_db.SCHEMA); cur=con.cursor()
+        cur.execute("INSERT INTO event (id,title) VALUES (3507,'ÖM Mannschaft')")
+        cur.execute("INSERT INTO stage (id,event_id,number,date) VALUES (1,3507,1,'2022-09-24')")
+        cur.execute("INSERT INTO source_document (id,event_id,source_type,source_url,normalized_sha256) VALUES ('doc',3507,'pdf',?,?)",
+          ('https://anne-cdn.oefol.at/public/legacy/event_3507_ergebnis-teams-mannschaft.pdf','ce0437e876525ff91aa9ce6cb660342ada67cf08e0590a2179517f0ad4eeba45'))
+        for pid,state in [(8939,'eligible'),(8582,'eligible'),(8780,'provisional')]:
+            build_db.insert_result(cur,stage_id=1,source_document_id='doc',category='Damen ab 15 bis 18',
+                person_id=pid,result_kind='team',team_name='SU Schöckl Orienteering 1',team_time_s=4212,
+                status='ok',rank=2,championship='ÖM',championship_eligibility_state=state,source='test')
+        self.assertEqual(build_db.apply_2022_published_team_qualification(cur),1)
+        self.assertEqual(cur.execute("SELECT championship_eligibility_state FROM result WHERE person_id=8780").fetchone()[0],'eligible')
+        cur.execute("UPDATE result SET championship_eligibility_state='provisional' WHERE person_id=8780")
+        cur.execute("UPDATE source_document SET normalized_sha256='changed'")
+        self.assertEqual(build_db.apply_2022_published_team_qualification(cur),0)
+        self.assertEqual(cur.execute("SELECT championship_eligibility_state FROM result WHERE person_id=8780").fetchone()[0],'provisional')
+
+    def test_confirmed_tiefenboeck_aliases_and_historical_links(self):
+        profiles = build_db.AnneProfileIndex([
+            {"oefol_id": 2709, "first_name": "Riki", "last_name": "Tiefenböck", "year_of_birth": 1967},
+            {"oefol_id": 2153, "first_name": "Wilhelm", "last_name": "Tiefenböck", "year_of_birth": 1964},
+        ])
+        registry = build_db.PersonRegistry(profiles)
+        for spelling, year, club, target in [("Rikki Tiefenböck", 1967, "NF Wien", 2709),
+            ("Riki Tiefenboeck", None, "Naturfreunde Wien", 2709),
+            ("Willi Tiefenböck", 1964, "Natirfreunde Wien", 2153),
+            ("TIEFENBÖCK Willi NF-Wien", None, None, 2153)]:
+            self.assertEqual(registry.from_legacy(spelling, year, club)[0], target)
+        self.assertNotEqual(registry.from_legacy("Willi Tiefenböck", 1980, "Naturfreunde Wien")[0], 2153)
+        self.assertNotEqual(registry.from_legacy("Rikki Tiefenböck", None, "OLC Graz")[0], 2709)
+        self.assertEqual(registry.confirmed_event_identity(2082, "D 50-", "team", "Rikki Tiefenböck", 1957, "Naturfreunde Wien"), 2709)
+        self.assertIsNone(registry.confirmed_event_identity(2082, "D 50-", "team", "Rikki Tiefenböck", 1957, "OLC Graz"))
+        redirects = json.loads((ROOT / "data/review/user_confirmed_person_redirects.json").read_text())["redirects"]
+        self.assertEqual(redirects["-4390586167497400713"], 2153)
+        self.assertEqual(redirects["-1248271961918087520"], 2709)
+
+    def test_borish_user_confirmation_is_person_and_season_scoped(self):
+        self.assertTrue(build_db.user_confirmed_championship_ineligible(7250, "2013-06-08"))
+        self.assertFalse(build_db.user_confirmed_championship_ineligible(7250, "2014-06-08"))
+        self.assertTrue(build_db.user_confirmed_championship_ineligible(7403, "2013-06-08"))
+        self.assertFalse(build_db.user_confirmed_championship_ineligible(7403, "2014-06-08"))
+        self.assertFalse(build_db.user_confirmed_championship_ineligible(7404, "2013-06-08"))
+
     def test_user_confirmed_event_observations_do_not_generalize_birth_years(self):
         profiles = build_db.AnneProfileIndex([
             {"oefol_id": 6511, "first_name": "Maximilian", "last_name": "Pietsch", "year_of_birth": 2003},
@@ -306,13 +349,17 @@ class AnneIdentityTests(unittest.TestCase):
 
     def test_2017_night_supersedes_only_the_combined_vienna_class(self):
         scope = build_db.load_regional_source_classes()['2058']['jurisdictions']
+        self.assertEqual(scope['WIEN']['categories']['Damen 15-18'], 'D15-18')
+        self.assertIn('alle drei Starterinnen', scope['WIEN']['award_holds']['D15-18']['reason'])
+        self.assertEqual(scope['WIEN']['award_hold_source']['sha256'],
+                         '92726b638513fe84ef65235b37ddc6dd05fc9d4b1ec03e2b87e5c91b7f7942ac')
         old = scope['WIEN']['superseded_result_lists'][0]
         fn = build_db.superseded_regional_jurisdictions
         self.assertEqual(fn(scope, old['url'], old['normalized_sha256'], 'Herren55- W'), {'WIEN'})
         self.assertEqual(fn(scope, old['url'], old['normalized_sha256'], 'Herren55- Noe'), set())
         self.assertEqual(fn(scope, old['url'], 'different', 'Herren55- W'), set())
         self.assertEqual(fn(scope, 'different', old['normalized_sha256'], 'Herren55- W'), set())
-        self.assertEqual(scope['WIEN']['categories'], {'Herren 55-': 'H55-', 'Herren 60-': 'H60-'})
+        self.assertEqual(scope['WIEN']['categories'], {'Herren 55-': 'H55-', 'Herren 60-': 'H60-', 'Damen 15-18': 'D15-18'})
 
     def test_reviewed_split_classes_cover_every_anne_source_row(self):
         evidence = build_db.load_regional_source_classes()
@@ -2191,6 +2238,60 @@ class AnneIdentityTests(unittest.TestCase):
         self.assertEqual(cur.execute(
             "SELECT championship,championship_eligibility_state FROM result ORDER BY id"
         ).fetchall(), [("ÖM", "eligible"), ("ÖM", "eligible")])
+
+    def test_postponed_2014_classes_have_one_national_event(self):
+        evidence = json.loads((ROOT / 'site/data/national-category-evidence.json').read_text())['events']
+        original, replacement = evidence['1062'], evidence['992']
+        excluded = set(original['excluded_from_national_championship_categories'])
+        included = set(replacement['categories'])
+        self.assertEqual(excluded - {'Herren 21-Elite'}, included - {'Herren 21- Elite'})
+        self.assertEqual(len(included), 8)
+        self.assertTrue(replacement['complete_event_scope'])
+        self.assertIn('Herren 21- Elite', included)
+        info = evidence['3962']
+        self.assertEqual(info['category_championship_types']['Damen bis 20'], 'ÖSTM')
+        self.assertIn('Damen ab 50', info['categories'])
+
+    def test_ski_2022_national_classification_requires_unique_club_and_time(self):
+        con = sqlite3.connect(':memory:')
+        con.executescript(build_db.SCHEMA)
+        cur = con.cursor()
+        cur.execute("INSERT INTO event (id,title) VALUES (3635,'ÖM Ski-O')")
+        cur.execute("INSERT INTO stage (id,event_id,number) VALUES (1,3635,1)")
+        cur.execute("INSERT INTO person (id,name,name_key) VALUES (1,'Lauri Urbanek',?)", (build_db.name_key('Lauri Urbanek'),))
+        build_db.insert_result(cur,stage_id=1,person_id=1,category='Herren bis 14',
+            observed_name='Lauri Urbanek',observed_club='Naturfreunde Wien',rank=3,
+            time_s=1393,status='ok',result_kind='individual',source='test')
+        cur.execute("""INSERT INTO championship_source_entry VALUES
+            ('source',1,'doc','Herren bis 14','h14','Lauri Urbanek',?,'Naturfreunde Wien',
+             3,'ok',1394,NULL,'ÖM','official_championship_inclusion','full_field')""",
+             (build_db.name_key('Lauri Urbanek'),))
+        self.assertEqual(build_db.apply_championship_source_entries(cur), 0)
+        self.assertIsNone(cur.execute('SELECT result_id FROM championship_source_entry').fetchone()[0])
+        cur.execute('UPDATE championship_source_entry SET observed_time_s=1393')
+        self.assertEqual(build_db.apply_championship_source_entries(cur), 1)
+        self.assertEqual(cur.execute('SELECT championship_eligibility_state FROM result').fetchone()[0], 'eligible')
+        # An exact printed club name is valid even when it has no canonical
+        # entry in the club registry; a different name must not match.
+        cur.execute("UPDATE result SET observed_club='HSV Linz',championship=NULL,championship_eligibility_state='unknown'")
+        cur.execute("UPDATE championship_source_entry SET observed_club='HSV Linz',result_id=NULL")
+        self.assertEqual(build_db.apply_championship_source_entries(cur), 1)
+        cur.execute("UPDATE championship_source_entry SET observed_club='HSV Aigen',result_id=NULL")
+        self.assertEqual(build_db.apply_championship_source_entries(cur), 0)
+        cur.execute("UPDATE result SET observed_club='Naturfreunde Villach - Oriente'")
+        cur.execute("UPDATE championship_source_entry SET observed_club='Naturfreunde Villach - Orienteering'")
+        self.assertEqual(build_db.apply_championship_source_entries(cur), 1)
+        cur.execute("UPDATE result SET status='mp',time_s=NULL,rank=NULL")
+        cur.execute("UPDATE championship_source_entry SET observed_status='mp',observed_time_s=NULL,observed_rank=NULL,result_id=NULL")
+        self.assertEqual(build_db.apply_championship_source_entries(cur), 1)
+
+    def test_ski_2022_recovered_nonfinishers_keep_source_status(self):
+        doc = json.loads((ROOT / 'data/normalized/3635-50.json').read_text())
+        rows = {(c['name'], r['name'], r['status'], r['timeText'])
+                for c in doc['categories'] for r in c['results']}
+        self.assertEqual(rows, {('Herren bis 17', 'Moritz Gstir', 'mp', 'Fehlst'),
+                                ('Damen ab 55', 'Christa Lassl', 'mp', 'Fehlst')})
+        self.assertTrue(all(r.get('rank') is None for c in doc['categories'] for r in c['results']))
 
     def test_unknown_foreign_runner_gets_no_national_rank_or_medal(self):
         con = sqlite3.connect(":memory:")

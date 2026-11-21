@@ -9,13 +9,15 @@
         "result_document_url": "https://anne-cdn.oefol.at/public/legacy/event_2058_ergebnis-wr-nacht-ms-2017-10-14.pdf",
         "sha256": "271961fc14b7a0b6523bc24e4a0bfe655013d39d99ecd4336b167006611aa3a3",
         "normalized_sha256": "69367cdb44651dd75b4a2010ec150bb98a45d0c970688db71fbf1eb175aed11e",
+        "award_hold_source": {"url":"http://www.wolv.at/docs/med17.pdf", "path":"data/review/archived_sources/2017/wolv-annual.pdf", "sha256":"92726b638513fe84ef65235b37ddc6dd05fc9d4b1ec03e2b87e5c91b7f7942ac"},
+        "award_holds": {"D15-18": {"reason":"Keine Meisterschaftswertung laut WOLV: alle drei Starterinnen aus demselben Verein.", "url":"http://www.wolv.at/docs/med17.pdf"}},
         "superseded_result_lists": [{
           "url": "https://anne-cdn.oefol.at/public/legacy/event_2058_20171014-222654-result1648.pdf",
           "normalized_sha256": "e0ae31c871d5c093a1b42d4bf4ece42b5ee5ad45712ff68b6491d8dc66e4dac2",
           "categories": ["Herren55- W"]
         }],
         "note": "Die Wiener Ergebnisliste weist H55 und H60 ausdrücklich getrennt aus. Die zusammengefasste H55-Parallelwertung bleibt als Laufresultat bestehen, wird aber nicht als eigenständige Wiener Meisterschaft gewertet.",
-        "categories": {"Herren 55-": "H55-", "Herren 60-": "H60-"}
+        "categories": {"Herren 55-": "H55-", "Herren 60-": "H60-", "Damen 15-18": "D15-18"}
       }}
     },
     "2054": {
@@ -150,6 +152,20 @@
           "categories":{"D19-Bgld/NÖ":"D19-", "H19-Stmk,NÖ":"H19-"}
         }
       }
+    },
+    "878": {
+      "date":"2013-06-08", "stage_number":1,
+      "jurisdictions":{"WIEN":{
+        "partial":true, "evidence_kind":"official-results",
+        "url":"https://anne-cdn.oefol.at/public/legacy/event_878_go_harzberg_ERG_noewr_mittelms_20130608.TXT.pdf",
+        "result_document_url":"https://anne-cdn.oefol.at/public/legacy/event_878_go_harzberg_ERG_noewr_mittelms_20130608.TXT.pdf",
+        "sha256":"d25e0d13b02475cf2bb3f471f98af1a09fafbe414cc279838bd88661113023be",
+        "normalized_sha256":"a9e3222056106a4889632c5e2d28a95d57ec49ddb9760cecfb2fba153cfbeef4",
+        "exclusion_source":{"url":"http://www.wolv.at/docs/med13.pdf", "path":"data/review/archived_sources/2013/wolv-annual.pdf", "sha256":"68ebed4324b4f2af4c821e73d68c856cbeaec09f714adf799de1d4e12792bd66"},
+        "exclude_entries":{"Damen 15- Wien":[{"name":"Josephine Greiner","club":"Naturfreunde Wien"}]},
+        "note":"WOLV bestätigt das D15-Podium Arbter, Gschöpf, Radon. Greiner und Borish sind laut Nutzerbestätigung 2013 nicht meisterschaftsberechtigt. Die ANNE-Laufränge bleiben unverändert.",
+        "categories":{"Damen 15- Wien":"D15-"}
+      }}
     },
     "883": {
       "date":"2013-05-01", "stage_number":1,
@@ -756,7 +772,7 @@
       "date": "2025-05-24", "stage_number": 1,
       "jurisdictions": {"WIEN": {
         "url": "http://www.wolv.at/docs/med25.pdf",
-        "sha256": "c7cd28be4cb71648a71c37b6e0c7ab134e1fe6adc1bd1d39fad2884c0a500150",
+        "sha256": "26ec03cd48558bd7ba4fddf7418d1e5523c7dff5751869e1ad197378bcf34aea",
         "evidence_kind": "official-results",
         "categories": {"Herren+Damen - 12W": "DH-12", "Damen 13-14W": "D13-14", "Herren 13-14W": "H13-14", "Damen 15-W": "D15-", "Herren 15-W": "H15-", "Damen 45-W": "D45-", "Herren 45-W": "H45-", "Damen 55-W": "D55-", "Herren 60-W": "H60-", "Damen 65-W": "D65-", "Herren 75-W": "H75-"}
       }}
@@ -792,7 +808,7 @@
       "date": "2025-09-27", "stage_number": 1,
       "jurisdictions": {"WIEN": {
         "url": "http://www.wolv.at/docs/med25.pdf",
-        "sha256": "c7cd28be4cb71648a71c37b6e0c7ab134e1fe6adc1bd1d39fad2884c0a500150",
+        "sha256": "26ec03cd48558bd7ba4fddf7418d1e5523c7dff5751869e1ad197378bcf34aea",
         "evidence_kind": "official-results",
         "award_holds": {"H15-": {"reason": "Keine Wertung laut WOLV: drei gestartete Staffeln aus nur einem Verein.", "url": "http://www.wolv.at/docs/med25.pdf"}},
         "categories": {"D14 W": "D-14", "D15 W": "D15-", "D80 W": "D80-", "D100 W": "D100-", "H15 W": "H15-", "H150 W": "H150-", "H180 W": "H180-"}

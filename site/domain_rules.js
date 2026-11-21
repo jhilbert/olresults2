@@ -95,7 +95,14 @@
       const observed = String(row.observed_name || "").trim();
       const ownName = observed && observed.split(/\s+/).length <= 3 ? observed : row.person_name;
       const members = [ownName, ...row.note.slice(9).split(", ")]
-        .map((name) => name.trim().toLocaleLowerCase("de-AT")).sort();
+        .map((name) => {
+          const key = name.trim().toLocaleLowerCase("de-AT");
+          // The user confirmed Max and Maximilian Pietsch are the same
+          // ÖFOL person. The 2016 night source uses the short partner name,
+          // while the resolved individual uses the registry name.
+          return Number(row.event_id) === 1710 && key === "max pietsch"
+            ? "maximilian pietsch" : key;
+        }).sort();
       return JSON.stringify([...prefix, row.club_name, "pair", members]);
     }
     if (row.result_kind === "team" && row.note === "Mannschaft" && !row.team_number)

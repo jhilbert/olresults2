@@ -3,6 +3,90 @@
   "scope": "Quellenbestätigte historische ÖM-Meisterteams; keine künstlichen Starterzahlen",
   "titles": [
     {
+      "event_id":3120, "date":"2020-10-04", "stage_number":1, "category":"Herren ab 80",
+      "result_list_id":"list:a6144676991b120cd51b5bd4", "result_kind":"individual", "club":"Naturfreunde Steiermark", "team_name":null, "time_s":1208, "person_ids":[1988],
+      "normalized_sha256":"3db8aa781acf265cf303fca08364fdc019aec21137e3744f749600cd1bdc784e",
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_3120_ostm-om-sprint-2020-graz-ergebnisse.html", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_3120_ausschreibung-sprintmeisterschaften-2020.pdf", "invitation_sha256":"0903d00171a859ce6241f58863e561c56aed63b1cca41be96dfcbb9e9716bb7a",
+      "note":"Die Ausschreibung und ANNE-Ergebnisliste bestätigen H80 sowie Gerfried Hoch als ÖM Sprint 2020. Die Berechtigung der weiteren Starter bleibt ungeklärt."
+    },
+    {
+      "event_id":3697, "date":"2022-05-15", "stage_number":2, "category":"Damen bis 20 Elite",
+      "result_list_id":"list:462ae20cd65c0f7299cf7bbc", "result_kind":"individual", "club":"OLC Graz", "team_name":null, "time_s":779, "person_ids":[6692],
+      "normalized_sha256":"bec98133313174f21c64ce66aa31e1441c61c7417a7fac9d90e4a4b239663109",
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_3697_ac-04-22-erg.html", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_3697_3-ac-4-ac-2022-einladung-ausschreibung.pdf", "invitation_sha256":"ab0f090ab7f4f60927d2cee3b4b4694da27b7e3c5a3882c5f3e1c2707057a4e5",
+      "note":"Ausschreibung, ANNE-Ergebnis und ÖFOL-Meistertafel bestätigen Anna Gröll als ÖM Sprint D20 2022. Weitere Berechtigungen bleiben offen."
+    },
+    {
+      "event_id":3697, "date":"2022-05-15", "stage_number":2, "category":"Damen ab 75",
+      "result_list_id":"list:6a9de32dc2e115f3dc0d911b", "result_kind":"individual", "club":"HSV Ried", "team_name":null, "time_s":1290, "person_ids":[544],
+      "normalized_sha256":"bec98133313174f21c64ce66aa31e1441c61c7417a7fac9d90e4a4b239663109",
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_3697_ac-04-22-erg.html", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_3697_3-ac-4-ac-2022-einladung-ausschreibung.pdf", "invitation_sha256":"ab0f090ab7f4f60927d2cee3b4b4694da27b7e3c5a3882c5f3e1c2707057a4e5",
+      "note":"Ausschreibung, ANNE-Ergebnis und ÖFOL-Meistertafel bestätigen Ulrike Roder als ÖM Sprint D75 2022. Weitere Berechtigungen bleiben offen."
+    },
+    {
+      "event_id":3615, "date":"2022-02-19", "stage_number":1, "category":"Herren bis 14",
+      "result_list_id":"list:6af76ed0c5d6dcd1e9f6afdb", "result_kind":"individual", "club":"Orienteering Innsbruck Imst", "team_name":null, "time_s":1085, "person_ids":[9389],
+      "normalized_sha256":"929d1370522314cc7a8a0a45a6659759aed8f3545e5217c71f744653439e1806",
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_3615_erg190222.html", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_3615_20220111-einlstmmschiobadbleiberg-doc.pdf", "invitation_sha256":"95f1f69630d67e48b031f5c2ed6acd4b0df4cbb18e346e97b2e903c669989682",
+      "note":"ANNE-Ergebnis, Ausschreibung und ÖFOL-Meistertafel bestätigen Valentin Köfler als ÖM Ski-O Sprint H−14. Weitere Berechtigungen bleiben offen."
+    },
+    {
+      "event_id":3616, "date":"2022-02-20", "stage_number":1, "category":"Herren bis 14",
+      "result_list_id":"list:5a1409c9192fc3213c4307d1", "result_kind":"individual", "club":"Orienteering Innsbruck Imst", "team_name":null, "time_s":1000, "person_ids":[9389],
+      "normalized_sha256":"03c80c2bc87923c318112020e46357c7afc94dbc808d88948a116ab266d85088",
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_3616_erg200222.html", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_3615_20220111-einlstmmschiobadbleiberg-doc.pdf", "invitation_sha256":"95f1f69630d67e48b031f5c2ed6acd4b0df4cbb18e346e97b2e903c669989682",
+      "note":"ANNE-Ergebnis, Ausschreibung und ÖFOL-Meistertafel bestätigen Valentin Köfler als ÖM Ski-O Mittel H−14. Weitere Berechtigungen bleiben offen."
+    },
+    {
+      "event_id":1167, "date":"2014-04-27", "stage_number":1, "category":"Herren -12",
+      "result_list_id":"list:c8330dd9644616d4dda403ea", "result_kind":"relay", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien 1", "team_time_s":4939, "person_ids":[3759,6701,6511],
+      "normalized_sha256":"3e4c5a2386710d3de8f1460a0b74497e9d92019420a476acbbbf8e97465b8943",
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1167_erg270414.html", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1167_Einl.Staffel2014.pdf", "invitation_sha256":"78591f7d44aeed99745fbdb15853e36fb804d66e7268138af755a078baa775fb",
+      "note":"ANNE-Ergebnis und ÖFOL-Meistertafel bestätigen Jonas Deubel, Oliver Calvet und Max Pietsch als H−12-Staffelmeister; die übrige Starterberechtigung bleibt offen."
+    },
+    {
+      "event_id":3507, "date":"2022-09-24", "stage_number":1, "category":"Damen ab 15 bis 18",
+      "result_list_id":"list:169ee8bedca059c771c0eeff", "result_kind":"team", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien 1", "team_time_s":3890, "person_ids":[6704,6705,8112],
+      "normalized_sha256":"ce0437e876525ff91aa9ce6cb660342ada67cf08e0590a2179517f0ad4eeba45", "eligibility_from_official_champion":true,
+      "source_url":"https://anne-cdn.oefol.at/public/legacy/event_3507_ergebnis-teams-mannschaft.pdf", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_3507_ergebnis-teams-mannschaft.pdf", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_3507_m-mannschaft-2022-einladung-und-ausschreibung.pdf", "invitation_sha256":"72f856ebc87c5143d968e2a46570385c0d8215c53ae383563d7d607d27d7ae8d",
+      "note":"Offizielle ÖM-Teamliste zeigt drei regulär klassifizierte Teams aus drei Vereinen sowie ein ausdrücklich AK-Team; Siegerteam laut Nutzer und Ergebnisliste. Die persönliche Berechtigung anderer Teammitglieder wird nicht fingiert."
+    },
+    {
+      "event_id":2422, "date":"2018-06-30", "stage_number":1, "category":"Damen -20 Elite",
+      "result_list_id":"list:70714f9dab2b987990c413de", "result_kind":"individual", "club":"Naturfreunde Wien", "team_name":null, "time_s":2249, "person_ids":[1690],
+      "normalized_sha256":"89df7f70087a12799230a080e6c13e2b0387e5c2bb541341e86a4959fe579e3d",
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_2422_ergebnisse-6-ac.pdf", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_2422_tlo-2018-einladung.pdf", "invitation_sha256":"4c050c70ae0d2dd716e3a1ed6e3bb37eceacfede52a3c3228bf1d64576304615",
+      "note":"Ausschreibung und ÖFOL-Meistertafel bestätigen Jasmina Gassner als ÖM Mittel D20; die unsichere Berechtigung weiterer Starterinnen bleibt unverändert."
+    },
+    {
+      "event_id":2274, "date":"2018-10-20", "stage_number":2, "category":"Damen -20 Elite",
+      "result_list_id":"list:411e7f58fe726f8b6de2b3fb", "result_kind":"individual", "club":"Naturfreunde Wien", "team_name":null, "time_s":3304, "person_ids":[2710],
+      "normalized_sha256":"4062108e0a483b4443b8f06ed771c172fa55560447109f83f009ccf0191d197e",
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_2274_ergebnisse-e2.pdf", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_2274_ausschreibung-ac-2018-kainbach-20180829.pdf", "invitation_sha256":"8bec072fae3aa7b5a47a4f131877c3487ddbaeda6d8c16836d0a21ba9846e259",
+      "note":"Die ÖFOL-Meistertafel bestätigt Tina Tiefenböck als Nachtmeisterin D20; eine zweite ANNE-Identität ist nur vorläufig und belegt nicht automatisch weitere Berechtigungen."
+    },
+    {
+      "event_id":2274, "date":"2018-10-21", "stage_number":3, "category":"Damen -16 Elite",
+      "result_list_id":"list:751494ad534ee08471bf30dc", "result_kind":"individual", "club":"Naturfreunde Wien", "team_name":null, "time_s":2438, "person_ids":[7307],
+      "normalized_sha256":"27fd40b66b79025683623f454c607ba28cfd3da38fab8e074efd0428573e7f41",
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_2274_ergebnisse-e3.pdf", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_2274_ausschreibung-ac-2018-kainbach-20180829.pdf", "invitation_sha256":"8bec072fae3aa7b5a47a4f131877c3487ddbaeda6d8c16836d0a21ba9846e259",
+      "note":"Die Ausschreibung bestätigt die nachgetragene ÖM Mittel D16 am 21. Oktober; ANNE und ÖFOL-Meistertafel bestätigen Maya Kastner."
+    },
+    {
+      "event_id":2274, "date":"2018-10-21", "stage_number":3, "category":"Damen -18 Elite",
+      "result_list_id":"list:435b293f7c4c9c410e8b1fca", "result_kind":"individual", "club":"Naturfreunde Wien", "team_name":null, "time_s":2409, "person_ids":[7276],
+      "normalized_sha256":"27fd40b66b79025683623f454c607ba28cfd3da38fab8e074efd0428573e7f41",
+      "source_url":"https://www.orienteeringaustria.at/termine/meistertafel/", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_2274_ergebnisse-e3.pdf", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_2274_ausschreibung-ac-2018-kainbach-20180829.pdf", "invitation_sha256":"8bec072fae3aa7b5a47a4f131877c3487ddbaeda6d8c16836d0a21ba9846e259",
+      "note":"Die Ausschreibung bestätigt die nachgetragene ÖM Mittel D18 am 21. Oktober; ANNE und ÖFOL-Meistertafel bestätigen Ylvi Kastner."
+    },
+    {
+      "event_id":1638, "date":"2016-05-15", "stage_number":1, "category":"Nachwuchs -16",
+      "result_list_id":"list:b35bcecf7db3b3961af8f387", "result_kind":"relay", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien 1", "team_time_s":2870, "person_ids":[3165,3259,6784,7276],
+      "normalized_sha256":"47e72ab7661ca42879741d5cbd8998988ba557045dfe29aa67f9fe29e12b38b2", "eligibility_from_official_champion":true,
+      "source_url":"https://anne-cdn.oefol.at/public/legacy/event_1638_ergebnisse-staffel.html", "result_url":"https://anne-cdn.oefol.at/public/legacy/event_1638_ergebnisse-staffel.html", "invitation_url":"https://anne-cdn.oefol.at/public/legacy/event_1638_ausschreibung-mixed-sprint-staffel.pdf", "invitation_sha256":"0a1ee0333e671dd598e547c9bca52b2d8c325b4c95161e21b080494056791328",
+      "note":"Ausschreibung und ANNE-Rangliste bestätigen den ÖM-Sieger Naturfreunde Wien; die vereinsinterne 2016er Meisterliste bestätigt den Titel. Weitere Team-Berechtigungen werden nicht fingiert."
+    },
+    {
       "event_id":1710, "date":"2016-10-22", "stage_number":1, "category":"Herren -14",
       "result_list_id":"list:9f8bb89b5b20eaadf16757d6", "result_kind":"pair", "club":"Naturfreunde Wien", "team_name":"Naturfreunde Wien", "time_s":1427, "person_ids":[3759,6511],
       "normalized_sha256":"93b32af348362cdf0af5f858d856181725439eb332b41050dcc546e3ac5a8c3c", "eligibility_from_official_champion":true,

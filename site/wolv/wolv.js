@@ -651,7 +651,7 @@ function render(data, db, {hideGreen = false} = {}) {
     if (comparison.label === 'WOLV-Wertung · Zuordnung')
       reconstructionNote += '<p class="wolv-raw">Die WOLV-Wertung wurde für die Zuordnung der Teilnehmenden herangezogen. Kein unabhängiger Podiumsvergleich.</p>';
     if ([812,878].includes(map.event) && categoryKey(map.category) === 'D15')
-      reconstructionNote += '<p class="wolv-uncertain">Das WOLV-Podium lässt Tori Borish'+(map.event === 878 ? ' und Josephine Greiner' : '')+' aus der ANNE-Laufliste aus; der Grund ist aus den Quellen nicht ersichtlich. Die Wertungsberechtigung bleibt offen.</p>';
+      reconstructionNote += '<p class="wolv-raw">Tori Borish ist laut Nutzerbestätigung 2013 nicht meisterschaftsberechtigt.'+(map.event === 878 ? ' Auch Josephine Greiner ist laut Nutzerbestätigung nicht meisterschaftsberechtigt. Die Wiener Podiumszuordnung folgt der WOLV-Liste.' : '')+' Die ANNE-Laufränge bleiben unverändert.</p>';
     if (map.event === 1333 && ['H45','H50'].includes(categoryKey(map.category))) {
       reconstructionNote += '<p class="wolv-uncertain">WOLV nennt je neun Starter für H45 und H50; ANNE enthält zusammen nur 14 Namen ohne AK. Weitere Starter könnten fehlen.</p>';
     }

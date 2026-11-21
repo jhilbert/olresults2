@@ -101,6 +101,16 @@ test("pair, regional entries and mixed-club teams keep correct independent units
     {gold:2,silver:0,bronze:0});
 });
 
+test("2016 night winning pair resolves confirmed Max alias for club medal count", () => {
+  const base={event_id:1710,stage_id:10001710,result_list_id:'same',category:'Herren -14',
+    championship:'ÖM',national_rank:1,rank:1,result_kind:'pair',club_name:'Naturfreunde Wien',
+    observed_name:'Deubel Jonas Pietsch M'};
+  const pair=[{...base,person_id:'3759',person_name:'Jonas Deubel',note:'Partner: Max Pietsch'},
+              {...base,person_id:'6511',person_name:'Maximilian Pietsch',note:'Partner: Jonas Deubel'}];
+  assert.deepEqual(clubMedalCounts(pair),{gold:1,silver:0,bronze:0});
+  assert.deepEqual(clubMedalCounts(pair.map(r=>({...r,event_id:999}))),{gold:2,silver:0,bronze:0});
+});
+
 test("calendar disciplines use January through December", () => {
   assert.equal(seasonYear("2025-01-01", "footOrienteering"), "2025");
   assert.equal(seasonYear("2025-12-31", "mountainbikeOrienteering"), "2025");

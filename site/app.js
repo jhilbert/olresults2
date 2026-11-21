@@ -1176,7 +1176,8 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
                   CASE WHEN r.result_kind='team' THEN r.team_name END, r.leg_number, r.time_s`,
         [c.regional_instance_id]) : query(`
         SELECT r.*, CAST(r.person_id AS TEXT) AS person_id,
-               COALESCE(p.name, r.observed_name) AS person_name FROM result r
+               COALESCE(p.name, r.observed_name) AS person_name,
+               EXISTS (SELECT 1 FROM official_national_title ont WHERE ont.result_id = r.id) AS official_title_confirmed FROM result r
         LEFT JOIN person p ON p.id = r.person_id
         WHERE r.stage_id = ? AND r.category = ?
           ${medalsOnly ? "AND r.championship IS NOT NULL AND r.national_rank <= 3" : ""}
@@ -1215,7 +1216,9 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
       // Mannschaft) instead of the competitor units actually shown below.
       const hasTeamUnits = units.some((unit) => unit.team);
       const displayedEntries = hasTeamUnits ? units.length : (c.starters ?? c.entries);
-      const placementCell = (r, tier) => tier && regionalCode
+      const placementCell = (r, tier) => !regionalCode && Number(id) === 1865 && tier
+        ? `<span class="rank-medal rank-medal-${tier}" title="${medalName[r.national_rank]} (ÖM/ÖSTM)">${r.national_rank}</span>${r.rank !== r.national_rank ? ` <small class="dim">Ges. ${r.rank}</small>` : ""}`
+        : tier && regionalCode
         ? `<span class="rank-medal rank-medal-${tier}" title="${medalName[r.regional_rank]} (Landesmeisterschaft)">${r.regional_rank}</span>`
         : regionalCode ? rankCell({ ...r, rank: r.regional_rank, starters: null })
         : tier
@@ -1233,11 +1236,12 @@ function viewEvent(id, medalsOnly, stageNum, regionalCode = null) {
             <span class="course">${course}${course ? " · " : ""}${displayedEntries} ${regionalCode ? (hasTeamUnits ? "Team-Einträge" : "Einträge") : (hasTeamUnits ? "Teams" : "Starter")}${isBahn(c.category) && stageHasOfficial ? " · inoffizielle Bahnwertung" : ""}</span>
           </div>
           ${regionalCode && c.regional_basis === "wolv-age-split" ? `<p class="sub dim">WOLV-Podium belegt; weitere Platzierungen anhand des Geburtsjahrs rekonstruiert und gegebenenfalls zu prüfen.</p>` : ""}
+          ${!regionalCode && Number(id) === 1865 && catChamp.length ? `<p class="sub dim">Die Quelle zeigt internationale Gesamtränge. Die ÖM-Wertung berücksichtigt Teilnehmer mit Quellen-Nation AUT sowie ausdrücklich genannte österreichische Meister; die Mindeststarterzahl bleibt maßgeblich.</p>` : ""}
           ${regionalCode === "WIEN" && Number(id) === 2522 && c.category === "H45-" ? `<p class="sub dim">WOLV nennt vier Teilnehmer; die Altersrekonstruktion ergibt fünf. Das Podium stimmt, die weiteren Plätze sind offen.</p>` : ""}
           ${regionalCode === "WIEN" && c.championship_starters < 3 ? `<p class="sub dim">Keine Medaillen ausgewiesen: ${c.championship_starters} wertungsberechtigte Starter im Datenstand; mindestens 3 erforderlich. Unvollständige Daten sind zu prüfen.</p>` : ""}
           ${regionalCode && c.award_hold ? `<p class="sub dim">Medaillenvergabe offen: ${esc(c.award_hold)}</p>` : ""}
-          ${!regionalCode && c.minimum_state === "insufficient" ? `<p class="sub dim">Keine ÖM-/ÖSTM-Medaillen: weniger als drei wertungsberechtigte Starter im Datenstand.</p>` : ""}
-          ${!regionalCode && c.minimum_state === "unresolved" ? `<p class="sub dim">${results.some((r) => r.national_rank && r.championship_source_scope === "winner_only") ? "Einzelne Titel sind durch die offizielle Meisterwertung belegt; die übrige Wertung bleibt offen." : "ÖM-/ÖSTM-Medaillen offen."} ${c.minimum_eligible} Starter sicher berechtigt, ${c.minimum_unresolved} ungeklärt; mindestens drei erforderlich.</p>` : ""}
+          ${!regionalCode && c.minimum_state === "insufficient" ? `<p class="sub dim">${results.some((r) => r.national_rank && r.official_title_confirmed) ? "Einzelne Meistertitel sind durch die Originalquelle und Nutzerbestätigung belegt; weitere Medaillen bleiben offen." : "Keine ÖM-/ÖSTM-Medaillen: weniger als drei wertungsberechtigte Starter im Datenstand."}</p>` : ""}
+          ${!regionalCode && c.minimum_state === "unresolved" ? `<p class="sub dim">${results.some((r) => r.national_rank && (r.championship_source_scope === "winner_only" || r.official_title_confirmed)) ? "Einzelne Titel sind durch eine Meisterschaftsquelle belegt; die übrige Wertung bleibt offen." : "ÖM-/ÖSTM-Medaillen offen."} ${c.minimum_eligible} Starter sicher berechtigt, ${c.minimum_unresolved} ungeklärt; mindestens drei erforderlich.</p>` : ""}
           ${!regionalCode && c.minimum_state === "jury_exception" ? `<p class="sub dim">Meisterschaftswertung aufgrund eines Jury-Entscheids. ${c.jury_source_url ? `<a href="${esc(c.jury_source_url)}" target="_blank" rel="noopener">Offizielle Ergebnisliste ↗</a>` : ""}</p>` : ""}
           <table>
             <thead><tr><th class="num">Pl</th><th>Name</th><th class="hide-sm">Verein</th>
@@ -1842,7 +1846,7 @@ function renderYouthTitleTable(national, vienna, { year = null, club = null } = 
   const sourceEvidence = (r) => {
     if (r.kind === "om") {
       const officialTitle = r.official_national_title_url
-        ? ` · <a href="${esc(r.official_national_title_url)}" target="_blank" rel="noopener">ÖFOL-Meistertafel bestätigt ↗</a>` : "";
+        ? ` · <a href="${esc(r.official_national_title_url)}" target="_blank" rel="noopener">Meistertitel durch Quelle bestätigt ↗</a>` : "";
       const crossCheck = confirmedYouthTitleMatch(r)
         ? youthTitleConfirmations[String(r.event_id)]?.cross_checks?.find((c) => c.category === r.category) : null;
       const conflict = crossCheck

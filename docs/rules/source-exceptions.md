@@ -6,6 +6,27 @@ konkreten Regressionstest oder einen Golden-Fall.
 
 ## Ergebnisumfang und WOLV-Archiv
 
+- ÖM Mannschaft 2022 D15–18 (`3507`): Die offizielle Teamliste weist drei
+  platzierte Mannschaften und eine ausdrücklich als AK markierte Mannschaft
+  aus. Für den Nutzer ist die Wertung damit belegt; das Siegerteam Radon/Biel/
+  Radon wird quellengebunden gewertet. Die bisher vorläufige Berechtigung
+  eines Mitglieds des zweitplatzierten Teams wird ausschließlich für diese
+  exakt dokumentierte ÖM-Wertung anhand der offiziellen Teamwertung geklärt.
+- ÖM Mittel und Nacht 2018: Die Ausschreibung `2422` nennt D20 ausdrücklich;
+  die ÖFOL-Meistertafel bestätigt Jasmina Gassner. Die Meistertafel bestätigt
+  Tina Tiefenböck für Nacht D20 (`2274`, Etappe 2). Die unvollständigen
+  historischen Nationalitätsdaten für weitere Starterinnen bleiben offen;
+  sie widerlegen nicht den offiziell belegten Meistertitel.
+- ÖM Mittel Jugend 2018 (`2274`, Etappe 3): Die Ausschreibung nennt für
+  21.10. ausdrücklich D/H16E und D/H18E als ÖM. Die ANNE-Etappentitel
+  erwähnen dies nicht. ANNE und ÖFOL-Meistertafel belegen Maya und Ylvi
+  Kastner als Siegerinnen; andere AC-Kategorien werden nicht zu ÖM erklärt.
+- ÖM Mixed-Sprint 2016 Nachwuchs (`1638`): Die veröffentlichte ÖM-Liste und
+  die vom Nutzer bereitgestellte Vereinsstatistik bestätigen das Siegerteam;
+  die unvollständige persönliche Berechtigung anderer Staffeln bleibt offen.
+  Bei der Vereinszählung wird das Nacht-Siegerpaar Jonas Deubel / Max
+  (Maximilian) Pietsch nach bestätigter Identität nur einmal gezählt.
+
 - Wiener Nacht-MS 2021, Event `3401`: Die vollständige Wiener Tageswertung
   nennt in H−14 Linus Dobler und Jonas Fischer als gemeinsames Team auf Platz 2.
   Nur wenn diese exakt belegte PDF-Zeile vorliegt, wird die zusätzliche,
@@ -525,11 +546,10 @@ stillschweigend vertauscht werden.
   teilt D45−/D50−, D55−/D60− und H55−/H60− tatsächlich nach namentlich
   veröffentlichten Wertungen. Ausschließlich diese konkreten Zuordnungen
   werden übernommen. D60− und H35− erhalten keine Medaille: Gestartet sind
-  jeweils nur Läuferinnen bzw. Läufer eines Vereins. Die WOLV-Jahresliste
-  nennt zusätzlich D13–14 mit Anna Skern, Matilda Buschek und Annina
-  Urbanek, die weder in dieser offiziellen Tagesliste noch in der
-  ANNE-Tagesliste erscheinen; dieser Quellenwiderspruch bleibt offen und
-  wird nicht automatisch als Wettkampfergebnis eingefügt.
+  jeweils nur Läuferinnen bzw. Läufer eines Vereins. Die korrigierte
+  WOLV-Jahresliste (SHA-256 26ec03cd48558bd7ba4fddf7418d1e5523c7dff5751869e1ad197378bcf34aea)
+  führt D13–14 als „nicht ausgetragen“. Die zuvor abweichende WOLV-Version
+  ist separat archiviert; die vermeintliche Wertung wird nicht eingefügt.
 - Event `5156`, Wiener Staffel 2025: In H15− sind laut WOLV drei Staffeln
   eines einzigen Vereins gestartet; trotz vorhandener Rangfolge wird kein
   Wiener Meistertitel vergeben. Die einzelnen Legs werden bei der
@@ -577,7 +597,12 @@ stillschweigend vertauscht werden.
   enthält in Herren −14 drei Zweierteams sowie einen Einzelstart AK. Die
   Quellenpersonen bleiben einzeln erhalten; jedes Zweierteam zählt bei der
   Vereinswertung nur einmal. Eine Zuordnung des AK-Einzelstarts zu einem
-  anderen Team wird nicht erfunden.
+  anderen Team wird nicht erfunden. In Damen 15–18 erklärt die WOLV-Jahresliste
+  ausdrücklich „keine Wertung (gleicher Verein)“: Die drei gestarteten
+  Läuferinnen sind alle von Naturfreunde Wien. Daher bleiben die Laufränge
+  sichtbar, es werden aber keine Wiener Meisterschaftsmedaillen vergeben.
+  Quelle: http://www.wolv.at/docs/med17.pdf; SHA-256
+  92726b638513fe84ef65235b37ddc6dd05fc9d4b1ec03e2b87e5c91b7f7942ac.
 - Event `2040`, Wiener Langdistanz 2017, D15–18: Die WOLV-Jahresliste
   bestätigt keine Meisterwertung wegen Startern aus nur einem Verein. Die
   gelistete DNS-Person zählt nicht als gestartet; das Ergebnis bleibt ohne
@@ -936,9 +961,57 @@ stillschweigend vertauscht werden.
   ausdrücklich der WOLV-Liste, nicht einem auf beide Personen übertragenen
   Einzeljahrgang; auch Gessl/Perner sind dort H13–14 zugeordnet. Danner und
   Grill sind trotz höheren Alters laut WOLV-Podium in H35 eingereiht.
-- Sprint und Mittel 2013, Events 812 und 878, D15: Tori Borish und beim Mittel
-  zusätzlich Josephine Greiner stehen in der ANNE-Laufliste vor Läuferinnen
-  des WOLV-Podiums, aber nicht selbst im WOLV-Podium. Der Grund ist nicht
-  belegt. Insbesondere darf aus späteren nationalen Zugehörigkeiten nicht
-  automatisch ihre damalige Wiener Wertungsberechtigung abgeleitet werden;
-  die Widersprüche und ANNE-Ergebnisse bleiben unverändert sichtbar.
+- Tori Borish (ÖFOL-ID 7250) ist laut Nutzerbestätigung US-Staatsbürgerin und
+  2013 bei ÖM/ÖSTM und Wiener MS nicht meisterschaftsberechtigt. Die Regel
+  gilt ausschließlich für das geprüfte Jahr 2013; die ANNE-Laufränge und
+  das ursprüngliche AK-Feld werden nicht verändert.
+- Mitteldistanz 2013, Event 878 D15: Die WOLV-Jahresliste nennt Arbter,
+  Gschöpf und Radon als Podium. Josephine Greiner liegt in der ANNE-Laufliste
+  vor Radon, ist aber laut Nutzerbestätigung deutsche Staatsbürgerin und
+  für die Meisterschaft 2013 nicht wertungsberechtigt. Die Zuordnung stützt
+  sich deshalb auf WOLV und ist kein unabhängiger Podiumsvergleich.
+# ÖM-Ergänzungen 2014 und MTBO 2017
+
+- Event `1167`, Staffel 2014 H−12: ANNE und ÖFOL-Meistertafel bestätigen
+  Jonas Deubel, Oliver Calvet und Max Pietsch. Nur der Titel des exakt
+  passenden Siegerteams wird anerkannt; die ungeklärte Berechtigung anderer
+  Mannschaften bleibt offen.
+- Event `1865`, MTBO-Sprint und -Langdistanz 2017: Die archivierten
+  internationalen Originalranglisten behalten ihre gedruckten Gesamtränge.
+  Gemäß Nutzerentscheidung werden alle mit AUT bezeichneten Personen in der
+  nationalen Wertung berücksichtigt; der ausdrücklich genannte Meister Iain
+  Rochford (GBR) bleibt zusätzlich berücksichtigt. Drei berechtigte Starter
+  sind weiterhin erforderlich. Die
+  ursprünglichen Dateien und die normalisierten Dokumente sind durch
+  Prüfsummen gebunden. Unklar identifizierte Personen beeinflussen keine
+  Identitätszuordnung anderer Wettkämpfe.
+- MTBO Lang 2017, D14 und H17: Lena Schnetz und Jakob Kratky sind in der
+  Originalrangliste ausdrücklich als Meister bezeichnet; der Nutzer bestätigt
+  am 21.11.2026 die Übernahme dieser beiden Titel. Die internationale Quelle
+  zeigt sechs bzw. zwölf gestartete Personen; die Mindestzahl national
+  Berechtigter bleibt ungeklärt. Es werden keine weiteren Podiumsplätze
+  aufgrund dieser Bestätigung abgeleitet.
+- Events `3615` und `3616`, Ski-O 2022 H−14: Die Ausschreibung nennt die
+  Klasse für Sprint und Mittel; Ergebnislisten und ÖFOL-Meistertafel belegen
+  Valentin Köfler als Sieger. Andere Startberechtigungen bleiben ungeklärt.
+- Event `3120`, Sprint 2020 H80, und Event `3697`, Sprint 2022 D20/D75:
+  Ausschreibung, Ergebnis und Meistervermerke beziehungsweise ÖFOL-Meistertafel
+  belegen die jeweiligen Sieger. Die unklaren historischen Berechtigungen der
+  weiteren Starter werden dadurch nicht erfunden.
+- Event `3635`, Ski-O Lang 2022: Die gesonderte offizielle ÖM-Rangliste
+  ergänzt die allgemeine Ergebnisliste nur bei eindeutig übereinstimmendem
+  Namen, Kategorie, Verein, Zeit und Status. Die drei H−14-Plätze sind dort
+  ausdrücklich veröffentlicht. Moritz Gstir (H−17) und Christa Lassl (D55)
+  sind dort als Fehlstempel gedruckt, fehlten aber in beiden Parsergebnissen;
+  sie werden quellengebunden ergänzt und bei der Mindeststarterzahl mitgezählt.
+  Nicht eindeutig verknüpfte Zeilen bleiben offen.
+- 2014 wurden laut Vorstandsnachtrag im ANNE-Event `992` genau D45, D50,
+  D55, D60, H50, H65, H75 und H21E aus Litschau nach Großmittel verlegt.
+  Diese Kategorien zählen nur dort als Meisterschaftswertung.
+- Event `3962`: Die aktualisierte Wettkampfinformation vom 8.10.2023 nennt
+  explizit ÖM- und ÖSTM-Klassen; sie präzisiert die frühere Ausschreibung.
+- Noch offen: Bei Event `3957`
+  (MTBO Lang 2023 H40) nennt die ÖFOL-Meistertafel Pierre Kaltenbacher als
+  Meister, die importierte Rangliste führt Milan Rovenský vor ihm; dessen
+  historische Wertungsberechtigung ist für diese Abweichung noch nicht belegt.
+  Diese Widersprüche werden nicht durch bloße Annahmen entschieden.

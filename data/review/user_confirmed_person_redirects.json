@@ -3,6 +3,26 @@
   "scope": "Nutzerbestätigte einzelne Personen-Zuordnungen; bestehende Personen werden nicht überschrieben.",
   "decisions": [
     {
+      "scope": "event_observation", "event_id": 2082, "category": "D 50-", "result_kind": "team", "source_name": "Rikki Tiefenböck", "source_year": 1957, "club": "Naturfreunde Wien", "person_name": "Riki Tiefenböck", "oefol_id": 2709,
+      "basis": "Nutzerbestätigung: Rikki und Riki Tiefenböck zusammenführen; Quelljahrgang 1957 weicht vom ANNE-Registerjahrgang 1967 ab."
+    },
+    {
+      "scope": "name_club", "source_name": "Rikki Tiefenböck", "person_name": "Riki Tiefenböck", "oefol_id": 2709, "year_of_birth": 1967, "club": "Naturfreunde Wien", "allow_missing_club": true,
+      "basis": "Nutzerbestätigung: Rikki und Riki sind dieselbe Person; ANNE-Register: Riki Tiefenböck, ÖFOL-ID 2709."
+    },
+    {
+      "scope": "name_club", "source_name": "Riki Tiefenboeck", "person_name": "Riki Tiefenböck", "oefol_id": 2709, "year_of_birth": 1967, "club": "Naturfreunde Wien",
+      "basis": "Nutzerbestätigte Person; Schreibweise mit aufgelöstem Umlaut in der Ergebnisquelle."
+    },
+    {
+      "scope": "name_club", "source_name": "Willi Tiefenböck", "person_name": "Wilhelm Tiefenböck", "oefol_id": 2153, "year_of_birth": 1964, "club": "Naturfreunde Wien", "additional_source_clubs": ["Natirfreunde Wien", "NWN Naturfreunde Wien", "Naturfreunde", "*Naturfreunde"], "allow_missing_club": true,
+      "basis": "Nutzerbestätigung: Willi und Wilhelm sind dieselbe Person; ANNE-Register: Wilhelm Tiefenböck, ÖFOL-ID 2153."
+    },
+    {
+      "scope": "name_club", "source_name": "TIEFENBÖCK Willi NF-Wien", "club": "Naturfreunde Wien", "allow_missing_club": true, "year_of_birth": 1964, "person_name": "Wilhelm Tiefenböck", "oefol_id": 2153,
+      "basis": "Nutzerbestätigung; der Verein NF-Wien ist im Namen der Quellzeile enthalten."
+    },
+    {
       "event_id": 5370,
       "source_name": "Vito Saprata",
       "person_name": "Vito Satrapa",
@@ -65,5 +85,5 @@
       "basis": "Nutzerbestätigung: das ÖM-Mannschaftsergebnis 2017 gehört zu Maria Beck (ANNE: 2009); der in der Quelle als 4 gedruckte Jahrgang wurde als 2004 eingelesen."
     }
   ],
-  "redirects": {"-3642095400232799634": 7317, "-4137072082508937271": 2154, "-1358964357158606339": 6511, "-3017603519659092116": 6511, "-692214203258188080": 6511, "-1844122908992543663": 6511, "-1756415503351464079": 8110}
+  "redirects": {"-52665026962761318": 2709, "-1248271961918087520": 2709, "-3089200843531284718": 2709, "-4390586167497400713": 2153, "-1721261812610404508": 2153, "-3642095400232799634": 7317, "-4137072082508937271": 2154, "-1358964357158606339": 6511, "-3017603519659092116": 6511, "-692214203258188080": 6511, "-1844122908992543663": 6511, "-1756415503351464079": 8110}
 }

@@ -257,7 +257,14 @@ def collect(db_path, eligibility_path):
             JOIN national_minimum_starters m ON m.stage_id = r.stage_id AND m.category = r.category
             WHERE m.state NOT IN ('met','jury_exception') AND r.national_rank IS NOT NULL
               AND NOT (m.state = 'unresolved' AND r.national_rank = 1 AND EXISTS
-                (SELECT 1 FROM official_national_title t WHERE t.result_id=r.id))""")
+                (SELECT 1 FROM official_national_title t WHERE t.result_id=r.id))
+              AND NOT (m.state='insufficient' AND r.national_rank=1
+                AND r.championship_source_scope='winner_only'
+                AND EXISTS (SELECT 1 FROM stage s JOIN official_national_title t ON t.result_id=r.id
+                  WHERE s.id=r.stage_id AND s.event_id=1865 AND s.number=3
+                    AND ((r.category='Women 14' AND r.observed_name='Schnetz Lena')
+                      OR (r.category='Men 17' AND r.observed_name='Kratky Jakob'))
+                    AND t.source_url='http://www.mtbodays.at/mtbodays2017/live/all/s3_OEM_mtbodays_erg.html'))""")
         if medals_without_minimum:
             raise RuntimeError(f"{medals_without_minimum} national ranks were assigned without the minimum")
         identifier_conflicts = scalar(

@@ -793,7 +793,7 @@
     {
       "year": 2025,
       "source_url": "http://www.wolv.at/docs/med25.pdf",
-      "sha256": "c7cd28be4cb71648a71c37b6e0c7ab134e1fe6adc1bd1d39fad2884c0a500150",
+      "sha256": "26ec03cd48558bd7ba4fddf7418d1e5523c7dff5751869e1ad197378bcf34aea",
       "extraction_status": "unmatched_review_only",
       "cells": [
         {
@@ -1223,8 +1223,8 @@
           "row_heading": "D 13-14",
           "discipline_heading": "LANGDISTANZ - OL\nNACHWUCHS- und SENIOREN",
           "event_heading": "Langdistanz MS : 28.9.2025; Purkersdorf-Baunzen / NÖ\nNachw.+Sen MS : 25.5.2025, Gablitz / NÖ",
-          "cell": "1) SKERN Anna NF Wien\n2) BUSCHEK Matilda NF Wien\n3) URBANEK Annina NF Wien (3)",
-          "first_place_text": "SKERN Anna NF Wien"
+          "cell": "nicht ausgetragen",
+          "first_place_text": null
         },
         {
           "page": 1,
