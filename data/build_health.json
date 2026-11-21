@@ -1,10 +1,10 @@
 {
   "counts": {
-    "audit_issue": 6162,
-    "award": 9226,
-    "championship_entry": 16929,
-    "championship_entry_result": 19376,
-    "championship_instance": 7179,
+    "audit_issue": 6101,
+    "award": 9242,
+    "championship_entry": 16933,
+    "championship_entry_result": 19394,
+    "championship_instance": 7201,
     "championship_jurisdiction": 10,
     "championship_result": 32517,
     "championship_rule_set": 10,
@@ -13,26 +13,26 @@
     "event": 3648,
     "national_minimum_starters": 3186,
     "official_national_title": 191,
-    "person": 29243,
-    "person_alias": 35383,
+    "person": 29238,
+    "person_alias": 35378,
     "person_club_membership": 11598,
     "person_identifier": 3648,
-    "person_redirect": 19326,
+    "person_redirect": 19332,
     "person_tombstone": 6689,
-    "regional_award_hold": 19,
-    "regional_category_mapping": 4333,
+    "regional_award_hold": 14,
+    "regional_category_mapping": 4339,
     "result": 254625,
     "result_club_evidence": 876,
-    "result_list": 26399,
-    "source_document": 1852,
+    "result_list": 26385,
+    "source_document": 1851,
     "stage": 1629,
     "verification_assertion": 695
   },
   "eligibility": {
-    "decisions": 1720,
+    "decisions": 1729,
     "people": 135
   },
-  "logical_sha256": "957bbfe9429fa4e6a8844dcbc894d5dbaa5293180c69b063c30ef2b85187515f",
+  "logical_sha256": "aa1a3a6a37bddcf3378b403651ed872e67a4c325f9ee03856039d3b1ad3213c1",
   "quality": {
     "awards_without_positive_eligibility": 0,
     "club_evidence_mismatch": 0,
@@ -56,9 +56,9 @@
   },
   "result_by_kind": {
     "family": 3937,
-    "individual": 224161,
-    "pair": 2984,
-    "relay": 18503,
+    "individual": 224134,
+    "pair": 3010,
+    "relay": 18504,
     "team": 5040
   },
   "result_by_source": {
@@ -67,8 +67,8 @@
     "club-table": 690,
     "liveresultat": 1254,
     "sportident-center": 48,
-    "sportsoftware-html": 113502,
-    "sportsoftware-pdf": 104704,
+    "sportsoftware-html": 113512,
+    "sportsoftware-pdf": 104694,
     "sportsoftware-text": 3849
   },
   "schema_version": 14
