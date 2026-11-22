@@ -7,6 +7,11 @@
     if (['helga kolb','helga kromp-kolb','helg kromp-kolb'].includes(key)) return 'confirmed:1727';
     if (['katja bonek','katja gassner'].includes(key)) return 'confirmed:katja-bonek-gassner';
     if (['claudia bonek','claudia künzel','claudia künzl','claudia künzel-bonek'].includes(key)) return 'confirmed:claudia-kuenzel-bonek';
+    if (['ursula kadan','ursi kadan','ursula fesselhofer','ursi fesselhofer'].includes(key)) return 'confirmed:ursula-kadan-fesselhofer';
+    if (['lucie böhm','lucie rothauer'].includes(key)) return 'confirmed:lucie-boehm-rothauer';
+    if (['elisabeth knapp','elisabeth nagy','sissy knapp','sissy nagy','sissi knapp','sissi nagy'].includes(key)) return 'confirmed:elisabeth-nagy-knapp';
+    if (['gernot kerschbaumer','gernot ymsén','gernot ymsen','gernot ymsén-kerschbaumer','gernot ymsen-kerschbaumer'].includes(key)) return 'confirmed:gernot-kerschbaumer-ymsen';
+    if (['regina mandl','regina habenicht'].includes(key)) return 'confirmed:regina-mandl-habenicht';
     return /\s/.test(member.name.trim()) ? key : `unresolved:${member.source_row || ''}:${key}`;
   };
   function membersForGroup(award, view, groupName, clubLabel, groupKey) {
@@ -29,7 +34,7 @@
           const name = member.name.trim().replace(/\s+/g, ' ');
           // Preserve accents and distinct spellings; no unverified identity merge.
           const id = personKey(member);
-          const confirmedNames = {'confirmed:1727':'Helga KOLB / Helga KROMP-KOLB', 'confirmed:katja-bonek-gassner':'Katja BONEK / Katja GASSNER', 'confirmed:claudia-kuenzel-bonek':'Claudia KÜNZEL / Claudia BONEK'};
+          const confirmedNames = {'confirmed:1727':'Helga KOLB / Helga KROMP-KOLB', 'confirmed:katja-bonek-gassner':'Katja BONEK / Katja GASSNER', 'confirmed:claudia-kuenzel-bonek':'Claudia KÜNZEL / Claudia BONEK', 'confirmed:ursula-kadan-fesselhofer':'Ursula KADAN / Ursula FESSELHOFER', 'confirmed:lucie-boehm-rothauer':'Lucie BÖHM / Lucie ROTHAUER', 'confirmed:elisabeth-nagy-knapp':'Elisabeth NAGY / Elisabeth KNAPP', 'confirmed:gernot-kerschbaumer-ymsen':'Gernot KERSCHBAUMER / Gernot YMSÉN', 'confirmed:regina-mandl-habenicht':'Regina MANDL / Regina HABENICHT'};
           const display = confirmedNames[id] || member.display_name || (/\s/.test(name) ? name : `${name} (Vorname fehlt)`);
           add(id, display, award);
         } else {

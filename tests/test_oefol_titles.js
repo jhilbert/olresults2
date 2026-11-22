@@ -32,6 +32,19 @@ assert.equal(ng.length,2);
 assert.equal(ng.find(g=>g.name==='Katja BONEK / Katja GASSNER').total,2);
 assert.equal(ng.find(g=>g.name==='Claudia KÜNZEL / Claudia BONEK').total,4);
 assert.equal(membersForGroup(changedNames[3],'people',ng.find(g=>g.name.startsWith('Claudia')).name,label,ng.find(g=>g.name.startsWith('Claudia')).key).length,1);
+for (const [first, second, display] of [
+  ['Ursula Kadan','Ursula Fesselhofer','Ursula KADAN / Ursula FESSELHOFER'],
+  ['Lucie Böhm','Lucie Rothauer','Lucie BÖHM / Lucie ROTHAUER'],
+  ['Elisabeth Nagy','Sissy Knapp','Elisabeth NAGY / Elisabeth KNAPP'],
+  ['Gernot Kerschbaumer','Gernot Ymsén-Kerschbaumer','Gernot KERSCHBAUMER / Gernot YMSÉN'],
+  ['Regina Mandl','Regina Habenicht','Regina MANDL / Regina HABENICHT'],
+]) {
+  const items = [first, second].map((name,i)=>({id:`n-${i}`,title_type:'ÖM',club:'A',members:[{name}]}));
+  const group = aggregate(items,'people',label);
+  assert.equal(group.length,1);
+  assert.equal(group[0].name,display);
+  assert.equal(group[0].total,2);
+}
 // Historical source names are grouped while preserving one medal per team.
 const historic = [
   {id:'old',title_type:'ÖM',club:'TV Fürstenfeld',members:[{name:'A One'},{name:'B Two'}]},

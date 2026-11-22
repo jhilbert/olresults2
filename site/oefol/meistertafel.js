@@ -36,7 +36,7 @@
     official('OCFF', ['TV Fürstenfeld']);
     official('OVI', ['OLC Union Viktring']);
     official('OLK', ['OLC Kufstein', 'OLK Kufstein']);
-    official('OLC', ['OC Wienerwald', 'Wienerwald']);
+    official('OLC', ['OC Wienerwald', 'Wienerwald', 'OLC Wien', 'OLC Tyrolia', 'OLC-Tyrolia-Wienerwald']);
     official('WAT', ['WAT OL', 'WAT']);
     official('LAC', ['Leibnitzer AC', 'LAC']);
     official('OSW', ['OLG Ströck']);
@@ -57,6 +57,7 @@
       ['NLZ', ['TVN Linz']],
       ['NVI', ['TVN Villach']],
       ['OCFF', ['TV Fürstenfeld']],
+      ['OLC', ['OLC Wien', 'OLC Tyrolia']],
       ['OrK', ['OK Gittis Klosterneuburg']],
       ['ORIO', ['Orienteering Innsbruck Imst', 'Laufklub Kompass Innsbruck Imst', 'Laufklub Kompass Innsbruck (bis 2024)']],
     ]) formerNames.set(byCode.get(code), names);
