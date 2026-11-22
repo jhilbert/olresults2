@@ -5,6 +5,8 @@
   const personKey = member => {
     const key = nameKey(member.name);
     if (['helga kolb','helga kromp-kolb','helg kromp-kolb'].includes(key)) return 'confirmed:1727';
+    if (['katja bonek','katja gassner'].includes(key)) return 'confirmed:katja-bonek-gassner';
+    if (['claudia bonek','claudia künzel','claudia künzl','claudia künzel-bonek'].includes(key)) return 'confirmed:claudia-kuenzel-bonek';
     return /\s/.test(member.name.trim()) ? key : `unresolved:${member.source_row || ''}:${key}`;
   };
   function membersForGroup(award, view, groupName, clubLabel, groupKey) {
@@ -27,7 +29,8 @@
           const name = member.name.trim().replace(/\s+/g, ' ');
           // Preserve accents and distinct spellings; no unverified identity merge.
           const id = personKey(member);
-          const display = id === 'confirmed:1727' ? 'Helga KOLB / Helga KROMP-KOLB' : member.display_name || (/\s/.test(name) ? name : `${name} (Vorname fehlt)`);
+          const confirmedNames = {'confirmed:1727':'Helga KOLB / Helga KROMP-KOLB', 'confirmed:katja-bonek-gassner':'Katja BONEK / Katja GASSNER', 'confirmed:claudia-kuenzel-bonek':'Claudia KÜNZEL / Claudia BONEK'};
+          const display = confirmedNames[id] || member.display_name || (/\s/.test(name) ? name : `${name} (Vorname fehlt)`);
           add(id, display, award);
         } else {
           add(club || '(Verein unbekannt)', club || 'Verein unbekannt', award);

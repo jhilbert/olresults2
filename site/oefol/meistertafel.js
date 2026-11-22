@@ -57,6 +57,7 @@
       ['NLZ', ['TVN Linz']],
       ['NVI', ['TVN Villach']],
       ['OCFF', ['TV Fürstenfeld']],
+      ['OrK', ['OK Gittis Klosterneuburg']],
       ['ORIO', ['Orienteering Innsbruck Imst', 'Laufklub Kompass Innsbruck Imst', 'Laufklub Kompass Innsbruck (bis 2024)']],
     ]) formerNames.set(byCode.get(code), names);
     formerNames.set('NF Veitsch', ['TVN Veitsch', 'TVN Tyrolia Veitsch']);
@@ -209,7 +210,7 @@
   function render() {
     const y=$('year').value, disc=$('discipline').value, fmt=$('format').value, title=$('title').value, cat=$('category').value, club=$('club').value, q=fold($('search').value.trim());
     const memberMatches = m => [m.name, m.display_name, m.source_name].some(name => fold(name).includes(q));
-    const filtered = data.awards.filter(a => (!y || String(a.year)===y) && (!disc || a.discipline===disc) && (!fmt || formatLabel(a)===fmt) && (!title || a.title_type===title) && (!cat || categoryLabel(a)===cat) && (!club || [a.club,...a.members.map(m=>m.club)].some(c=>clubLabel(c,a.year)===club)) && (!q || a.members.some(memberMatches)));
+    const filtered = data.awards.filter(a => (!y || String(a.year)===y) && (!disc || a.discipline===disc) && (!fmt || formatLabel(a)===fmt) && (!title || a.title_type===title) && (!cat || categoryLabel(a)===cat) && (!club || [a.club,...a.members.map(m=>m.club)].some(c=>clubLabel(c,a.year)===club)) && (!q || view === 'people' || a.members.some(memberMatches)));
     let groups = view === 'awards' ? null : MeistertafelTitles.aggregate(filtered,view,clubLabel,club);
     if (view === 'people' && q) {
       // Team results match the award, but only the searched athlete belongs
@@ -231,7 +232,7 @@
   }
   async function init() {
     try {
-      const [response, displayResponse]=await Promise.all([fetch('meistertafel.json'),fetch('person-display.json')]);
+      const [response, displayResponse]=await Promise.all([fetch('meistertafel.json'),fetch('person-display.json?v=20261122-6')]);
       if (!response.ok || !displayResponse.ok) throw Error(`HTTP ${response.ok ? displayResponse.status : response.status}`);
       data=await response.json();
       const display=await displayResponse.json();

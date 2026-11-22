@@ -121,6 +121,45 @@ class MeistertafelTests(unittest.TestCase):
         c = next(c for c in overlay['confirmations'] if c['source_row'] == a['id'])
         self.assertEqual((c['first_name'], c['last_name'], c['oefol_id']), ('Michael', 'Stockmayer', 816))
 
+    def test_mannschaft_2010_manfred_stockmayer_preserves_original(self):
+        a = self.by_id['tablepress-22:row-154']
+        self.assertEqual(a['members'][1]['name'], 'Martin STOCKMAYER')
+        self.assertEqual(a['members'][2]['name'], 'Michael STOCKMAYER')
+        overlay = json.loads((ROOT / 'site/oefol/person-display.json').read_text())
+        c = next(c for c in overlay['confirmations'] if c['source_row'] == 'tablepress-22:row-155')
+        self.assertEqual((c['source_name'], c['first_name'], c['last_name'], c['oefol_id']),
+                         ('Martin STOCKMAYER', 'Manfred', 'Stockmayer', None))
+        self.assertIn('magazin2010-04', c['source_url'])
+
+    def test_arbter_vera_reverse_name_preserves_original(self):
+        a = self.by_id['tablepress-9:row-91']
+        self.assertEqual(a['members'][0]['name'], 'Arbter Vera')
+        overlay = json.loads((ROOT / 'site/oefol/person-display.json').read_text())
+        c = next(c for c in overlay['confirmations'] if c['source_row'] == a['id'])
+        self.assertEqual((c['source_name'], c['first_name'], c['last_name']), ('Arbter Vera', 'Vera', 'Arbter'))
+
+    def test_agata_hejjas_matches_agota_with_original_preserved(self):
+        a = self.by_id['tablepress-31:row-9']
+        self.assertEqual(a['members'][0]['name'], 'Agata HEJJAS')
+        overlay = json.loads((ROOT / 'site/oefol/person-display.json').read_text())
+        c = next(c for c in overlay['confirmations'] if c['source_row'] == a['id'])
+        self.assertEqual((c['first_name'], c['last_name']), ('Agota', 'Hejjas'))
+
+    def test_hlost_name_typo_preserves_source(self):
+        overlay = json.loads((ROOT / 'site/oefol/person-display.json').read_text())
+        confirmed = {(c['source_row'], c['source_name']): c for c in overlay['confirmations']}
+        for row in ('tablepress-24:row-91', 'tablepress-25:row-67'):
+            self.assertEqual(self.by_id[row]['members'][0]['name'], 'Manuela Hlost')
+            c = confirmed[(row, 'Manuela Hlost')]
+            self.assertEqual((c['first_name'], c['last_name']), ('Manuela', 'Hlosta'))
+
+    def test_anika_gassner_source_variants(self):
+        overlay = json.loads((ROOT / 'site/oefol/person-display.json').read_text())
+        confirmed = {(c['source_row'], c['source_name']): c for c in overlay['confirmations']}
+        for row, original in [('tablepress-8:row-102','Anita Gassner'), ('tablepress-7:row-100','Anita Gassner'), ('tablepress-25:row-82','Anita Gassner'), ('tablepress-24:row-15','Annika Gassner'), ('tablepress-26:row-84','Annika Gassner')]:
+            self.assertTrue(any(m['name'] == original for m in self.by_id[row]['members']))
+            self.assertEqual(confirmed[(row, original)]['first_name'], 'Anika')
+
     def test_season_person_crosscheck_is_scoped_to_specific_source(self):
         a = self.by_id['tablepress-15:row-278']
         self.assertEqual((a['source_club'], a['club'], a['members'][0]['name']),
