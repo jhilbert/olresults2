@@ -4,6 +4,7 @@
   const controls = ['year', 'discipline', 'format', 'title', 'category', 'club', 'search'];
   const perPage = 120;
   let data, visible = perPage, view = 'awards';
+  let loadObserver, hasMore = false;
   const viewStates = Object.fromEntries(['awards','people','clubs'].map(key => [key, {expanded:new Set()}]));
   const fold = text => String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('de-AT').replace(/ß/g, 'ss');
   const aliases = new Map();
@@ -169,17 +170,22 @@
     const detail = node('tr',null,'detail-row'); detail.hidden=true;
     const content=node('td'); content.colSpan=4;
     const describe = a => `${a.year} · ${a.title_type} · ${formatLabel(a) || 'Bewerb unbekannt'} · ${categoryLabel(a)}`;
-    if (view === 'clubs') {
+    const rowView = view;
+    let detailsBuilt = false;
+    const buildDetails = () => {
+      if (detailsBuilt) return;
+      detailsBuilt = true;
+    if (rowView === 'clubs') {
       const list=node('ul');
       for (const a of group.entries) {
-        const names = MeistertafelTitles.membersForGroup(a,view,group.name,clubLabel).map(m=>m.display_name || m.name).join(', ');
+        const names = MeistertafelTitles.membersForGroup(a,rowView,group.name,clubLabel).map(m=>m.display_name || m.name).join(', ');
         list.append(node('li',`${describe(a)} · ${names || 'Name unbekannt'}`));
       }
       content.append(list);
     } else {
       const byClub = new Map();
       for (const a of group.entries) {
-        const members = MeistertafelTitles.membersForGroup(a,view,group.name,clubLabel,group.key);
+        const members = MeistertafelTitles.membersForGroup(a,rowView,group.name,clubLabel,group.key);
         const clubs = [...new Set(members.map(m=>clubLabel(m.club || a.club, a.year) || 'Verein unbekannt'))];
         for (const club of clubs) {
           if (!byClub.has(club)) byClub.set(club, []);
@@ -193,11 +199,13 @@
         content.append(list);
       }
     }
+    };
     detail.append(content);
-    const expanded = viewStates[view].expanded;
-    if (expanded.has(group.key)) { detail.hidden=false; button.setAttribute('aria-expanded','true'); }
+    const expanded = viewStates[rowView].expanded;
+    if (expanded.has(group.key)) { buildDetails(); detail.hidden=false; button.setAttribute('aria-expanded','true'); }
     button.addEventListener('click',()=>{
       detail.hidden=!detail.hidden;
+      if (!detail.hidden) buildDetails();
       button.setAttribute('aria-expanded',String(!detail.hidden));
       if (detail.hidden) expanded.delete(group.key); else expanded.add(group.key);
     });
@@ -208,7 +216,7 @@
     });
     return [tr,detail];
   }
-  function render() {
+  function render(appendFrom = 0) {
     const y=$('year').value, disc=$('discipline').value, fmt=$('format').value, title=$('title').value, cat=$('category').value, club=$('club').value, q=fold($('search').value.trim());
     const memberMatches = m => [m.name, m.display_name, m.source_name].some(name => fold(name).includes(q));
     const filtered = data.awards.filter(a => (!y || String(a.year)===y) && (!disc || a.discipline===disc) && (!fmt || formatLabel(a)===fmt) && (!title || a.title_type===title) && (!cat || categoryLabel(a)===cat) && (!club || [a.club,...a.members.map(m=>m.club)].some(c=>clubLabel(c,a.year)===club)) && (!q || view === 'people' || a.members.some(memberMatches)));
@@ -224,12 +232,20 @@
     results.setAttribute('aria-label', ({awards:'Meistertafel',people:'Titel nach Läufer:in',clubs:'Titel nach Verein'})[view]);
     results.dataset.view = view;
     results.dataset.filterYear = view==='awards' && Boolean(y); results.dataset.filterFormat = view==='awards' && Boolean(fmt); results.dataset.filterCategory = view==='awards' && Boolean(cat);
-    header();
+    if (!appendFrom) header();
     const out=document.createDocumentFragment();
-    if (groups) for (const g of groups.slice(0,visible)) out.append(...summaryRows(g));
-    else for (const a of filtered.slice(0,visible)) out.append(row(a));
+    if (groups) for (const g of groups.slice(appendFrom,visible)) out.append(...summaryRows(g));
+    else for (const a of filtered.slice(appendFrom,visible)) out.append(row(a));
     const length=groups ? groups.length : filtered.length;
-    $('rows').replaceChildren(out); $('more').hidden=length<=visible; $('empty').hidden=Boolean(length);
+    if (appendFrom) $('rows').append(out); else $('rows').replaceChildren(out);
+    hasMore=length>visible;
+    $('more').hidden=!hasMore || Boolean(loadObserver);
+    $('load-sentinel').hidden=!hasMore;
+    $('empty').hidden=Boolean(length);
+    if (loadObserver) {
+      loadObserver.unobserve($('load-sentinel'));
+      if (hasMore) loadObserver.observe($('load-sentinel'));
+    }
   }
   async function init() {
     try {
@@ -249,6 +265,12 @@
       configureClubs(data.official_clubs);
       options('year', sort(data.awards.map(a=>String(a.year))).reverse(), 'Alle Jahre');
       options('discipline', ['OL','MTBO','Ski-O'], 'Alle Disziplinen');
+      const loadMore = () => {if (!hasMore) return;const previous=visible;visible+=perPage;render(previous);};
+      if ('IntersectionObserver' in window) {
+        loadObserver = new IntersectionObserver(entries => {
+          if (entries.some(entry => entry.isIntersecting)) loadMore();
+        }, {rootMargin:'600px 0px'});
+      }
       $('year').value=String(Math.max(...data.awards.map(a=>a.year))); available(); render();
       const resetViewStates = () => {
         for (const state of Object.values(viewStates)) state.expanded.clear();
@@ -265,10 +287,10 @@
         grid.hidden = !grid.hidden;
         event.currentTarget.setAttribute('aria-expanded', String(!grid.hidden));
       });
-      $('more').addEventListener('click',()=>{visible+=perPage;render();});
-      document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{
+      $('more').addEventListener('click',loadMore);
+      document.querySelectorAll('.view-switch [data-view]').forEach(button=>button.addEventListener('click',()=>{
         view=button.dataset.view; visible=perPage;
-        document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
+        document.querySelectorAll('.view-switch [data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
         render();
         showTableStart();
       }));

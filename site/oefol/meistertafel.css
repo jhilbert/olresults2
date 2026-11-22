@@ -36,6 +36,7 @@ table{width:100%;border-collapse:collapse;font-size:.91rem}th,td{text-align:left
 .masthead .header-source{font-size:.79rem;white-space:nowrap}
 .results{padding:12px 0 24px}
 .summary-row{cursor:pointer}
+#load-sentinel:not([hidden]){height:1px}
 @media(max-width:800px){
   .sticky-header{top:85px}
   .intro.shell{padding:17px 0 12px}
