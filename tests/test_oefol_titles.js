@@ -37,4 +37,11 @@ assert.equal(hc.length,1);
 assert.deepEqual([hc[0].name,hc[0].oem,hc[0].oestm,hc[0].total],['OC Fürstenfeld',1,1,2]);
 assert.equal(aggregate(historic,'clubs',clubAlias,'OC Fürstenfeld')[0].total,2);
 assert.equal(historic[0].club,'TV Fürstenfeld');
+const sameName = [
+  {id:'old-innsbruck',year:2016,title_type:'ÖM',club:'Laufklub Kompass Innsbruck',members:[{name:'A One'}]},
+  {id:'new-innsbruck',year:2026,title_type:'ÖM',club:'Laufklub Kompass Innsbruck',members:[{name:'B Two'}]},
+];
+const datedClub = (club, year) => club === 'Laufklub Kompass Innsbruck' && year < 2025 ? 'Orienteering Imst Oberland' : club;
+assert.deepEqual(aggregate(sameName,'clubs',datedClub).map(g=>g.name).sort(), ['Laufklub Kompass Innsbruck','Orienteering Imst Oberland']);
+assert.equal(membersForGroup(sameName[0],'clubs','Orienteering Imst Oberland',datedClub).length,1);
 console.log('Meistertafel aggregation: OK');

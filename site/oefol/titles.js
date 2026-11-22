@@ -10,7 +10,7 @@
   function membersForGroup(award, view, groupName, clubLabel, groupKey) {
     return award.members.filter(member => view === 'people'
       ? (groupKey ? personKey(member) === groupKey : nameKey(member.name) === nameKey(groupName))
-      : (clubLabel(member.club || award.club) || 'Verein unbekannt') === groupName);
+      : (clubLabel(member.club || award.club, award.year) || 'Verein unbekannt') === groupName);
   }
   function aggregate(awards, view, clubLabel, selectedClub = '') {
     const groups = new Map();
@@ -21,7 +21,7 @@
     }
     for (const award of awards) {
       for (const member of award.members) {
-        const club = clubLabel(member.club || award.club);
+        const club = clubLabel(member.club || award.club, award.year);
         if (selectedClub && club !== selectedClub) continue;
         if (view === 'people') {
           const name = member.name.trim().replace(/\s+/g, ' ');

@@ -4,6 +4,7 @@
   const controls = ['year', 'discipline', 'format', 'title', 'category', 'club', 'search'];
   const perPage = 120;
   let data, visible = perPage, view = 'awards';
+  const viewStates = Object.fromEntries(['awards','people','clubs'].map(key => [key, {expanded:new Set()}]));
   const fold = text => String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('de-AT').replace(/ß/g, 'ss');
   const aliases = new Map();
   // Only documented or explicitly confirmed former names; spelling variants
@@ -56,11 +57,19 @@
       ['NLZ', ['TVN Linz']],
       ['NVI', ['TVN Villach']],
       ['OCFF', ['TV Fürstenfeld']],
-      ['ORIO', ['Orienteering Innsbruck Imst', 'Laufklub Kompass Innsbruck Imst']],
+      ['ORIO', ['Orienteering Innsbruck Imst', 'Laufklub Kompass Innsbruck Imst', 'Laufklub Kompass Innsbruck (bis 2024)']],
     ]) formerNames.set(byCode.get(code), names);
     formerNames.set('NF Veitsch', ['TVN Veitsch', 'TVN Tyrolia Veitsch']);
   }
-  const clubLabel = name => aliases.get(fold(name).replace(/[^a-z0-9]/g, '')) || name || '';
+  const clubLabel = (name, year) => {
+    const key = fold(name).replace(/[^a-z0-9]/g, '');
+    // The old and the newly founded club share a name, not a legal identity.
+    // Before 2025 this name belongs to today's Orienteering Imst Oberland.
+    if (year && year < 2025 && ['laufklubkompassinnsbruck','lkkompassinnsbruck','lkinsbruck','lkiinnsbruck'].includes(key)) {
+      return aliases.get('orienteeringinnsbruckimst');
+    }
+    return aliases.get(key) || name || '';
+  };
   function formatLabel(a) {
     if (!a.format) return '';
     const original = a.format.trim();
@@ -80,8 +89,13 @@
   }
   function categoryLabel(a) {
     const gender = ({female:'D', male:'H', mixed:'Mixed'})[a.gender] || '';
-    const cat = a.category || '';
+    let cat = (a.category || '').trim();
     if (!cat) return gender || '–';
+    // A bare masters age in the source denotes the same class as "ab 50".
+    // Do not infer a direction for youth or elite ages.
+    cat = cat.replace(/^(D|H)\s*(35|40|45|50|55|60|65|70|75|80|85|90)\s*$/i, (_, g, age) => `${g.toUpperCase()} ${age}-`);
+    cat = cat.replace(/^(D|H)\s*(\d+)\s*[-–]\s*$/i, (_, g, age) => `${g.toUpperCase()} ${age}-`);
+    cat = cat.replace(/^(\d+)\s+bis\s+(\d+)$/i, '$1-$2');
     if (/^elite\s+(?:damen|herren)$/i.test(cat)) return `${/damen/i.test(cat) ? 'D' : 'H'} Elite`;
     if (/^(?:Damen|Herren|Mixed|D\s|H\s|D\d|H\d|D-|H-)/i.test(cat)) return cat.replace(/^Damen\b/i,'D').replace(/^Herren\b/i,'H');
     const compact = cat.replace(/^bis\s*/i,'-').replace(/^ab\s*(\d+)$/i,'$1-');
@@ -100,7 +114,7 @@
     options('format', sort(rows.map(formatLabel)), 'Alle Bewerbe');
     const scoped = rows.filter(a => !$('format').value || formatLabel(a) === $('format').value);
     options('category', sort(scoped.map(categoryLabel).filter(c => c !== '–')), 'Alle Kategorien');
-    options('club', sort(scoped.flatMap(a => [a.club, ...a.members.map(m => m.club)]).map(clubLabel)), 'Alle Vereine');
+    options('club', sort(scoped.flatMap(a => [a.club, ...a.members.map(m => m.club)].map(c => clubLabel(c, a.year)))), 'Alle Vereine');
   }
   function row(a) {
     const tr = node('tr');
@@ -112,7 +126,7 @@
     if (!a.category) cat.title = 'Altersklasse in der Quelle nicht angegeben';
     const names = cell(null, 'names-cell'), club = cell(null, 'club-cell');
     const memberClubs = a.members.map(m => m.club || a.club);
-    const sharedClub = memberClubs.every(c => clubLabel(c) === clubLabel(memberClubs[0]));
+    const sharedClub = memberClubs.every(c => clubLabel(c, a.year) === clubLabel(memberClubs[0], a.year));
     for (const [i, m] of a.members.entries()) {
       const nameLine = node('div', null, 'name-line');
       if (a.title_type === 'ÖSTM') nameLine.append(node('span', 'ÖSTM', 'type-tag'));
@@ -122,9 +136,9 @@
       names.append(nameLine);
       if (sharedClub && i > 0) continue;
       const raw = m.club || a.club;
-      const line = node('div', clubLabel(raw) || '–');
+      const line = node('div', clubLabel(raw, a.year) || '–');
       if (a.source_club && !m.club) line.title = `ÖFOL-Quelle: ${a.source_club} · Vereinszuordnung ergänzt`;
-      else if (raw && clubLabel(raw) !== raw) line.title = `Original: ${raw}`;
+      else if (raw && clubLabel(raw, a.year) !== raw) line.title = `Original: ${raw}`;
       club.append(line);
     }
     if (a.notes.some(n => n.startsWith('section_year_conflict:')) || a.notes.includes('name_or_club_ambiguous')) {
@@ -164,7 +178,7 @@
       const byClub = new Map();
       for (const a of group.entries) {
         const members = MeistertafelTitles.membersForGroup(a,view,group.name,clubLabel,group.key);
-        const clubs = [...new Set(members.map(m=>clubLabel(m.club || a.club) || 'Verein unbekannt'))];
+        const clubs = [...new Set(members.map(m=>clubLabel(m.club || a.club, a.year) || 'Verein unbekannt'))];
         for (const club of clubs) {
           if (!byClub.has(club)) byClub.set(club, []);
           byClub.get(club).push(a);
@@ -178,28 +192,35 @@
       }
     }
     detail.append(content);
-    button.addEventListener('click',()=>{detail.hidden=!detail.hidden;button.setAttribute('aria-expanded',String(!detail.hidden));});
+    const expanded = viewStates[view].expanded;
+    if (expanded.has(group.key)) { detail.hidden=false; button.setAttribute('aria-expanded','true'); }
+    button.addEventListener('click',()=>{
+      detail.hidden=!detail.hidden;
+      button.setAttribute('aria-expanded',String(!detail.hidden));
+      if (detail.hidden) expanded.delete(group.key); else expanded.add(group.key);
+    });
+    // On a phone the whole summary row is a comfortable touch target, not
+    // just the relatively narrow name button. Keyboard access stays on it.
+    tr.addEventListener('click', event => {
+      if (!button.contains(event.target)) button.click();
+    });
     return [tr,detail];
   }
   function render() {
     const y=$('year').value, disc=$('discipline').value, fmt=$('format').value, title=$('title').value, cat=$('category').value, club=$('club').value, q=fold($('search').value.trim());
-    const filtered = data.awards.filter(a => (!y || String(a.year)===y) && (!disc || a.discipline===disc) && (!fmt || formatLabel(a)===fmt) && (!title || a.title_type===title) && (!cat || categoryLabel(a)===cat) && (!club || [a.club,...a.members.map(m=>m.club)].some(c=>clubLabel(c)===club)) && (!q || fold([a.category,a.club,clubLabel(a.club),a.format,formatLabel(a),...a.members.flatMap(m=>[m.name,m.club,clubLabel(m.club)])].join(' ')).includes(q)));
-    const n=filtered.reduce((sum,a)=>sum+a.members.length,0);
+    const memberMatches = m => [m.name, m.display_name, m.source_name].some(name => fold(name).includes(q));
+    const filtered = data.awards.filter(a => (!y || String(a.year)===y) && (!disc || a.discipline===disc) && (!fmt || formatLabel(a)===fmt) && (!title || a.title_type===title) && (!cat || categoryLabel(a)===cat) && (!club || [a.club,...a.members.map(m=>m.club)].some(c=>clubLabel(c,a.year)===club)) && (!q || a.members.some(memberMatches)));
     let groups = view === 'awards' ? null : MeistertafelTitles.aggregate(filtered,view,clubLabel,club);
     if (view === 'people' && q) {
-      const nameMatches = groups.filter(g => fold(g.name).includes(q));
-      // A name hit should not turn every teammate into a person-search hit.
-      // Preserve searches by club, category or event when no name matches.
-      if (nameMatches.length) groups = nameMatches;
+      // Team results match the award, but only the searched athlete belongs
+      // in the person view; teammates must not become search hits.
+      groups = groups.filter(g => fold(g.name).includes(q) || g.entries.some(a => MeistertafelTitles.membersForGroup(a,'people',g.name,clubLabel,g.key).some(memberMatches)));
     }
-    $('count').textContent=groups ? `${groups.length.toLocaleString('de-AT')} ${view === 'people' ? 'Namensgruppen' : 'Vereine'} · ${filtered.length.toLocaleString('de-AT')} Quellwertungen` : `${filtered.length.toLocaleString('de-AT')} Wertungen · ${n.toLocaleString('de-AT')} namentliche Einträge`;
-    $('results-title').textContent=({awards:'Meistertafel',people:'Titel nach Läufer:in',clubs:'Titel nach Verein'})[view];
-    $('view-note').hidden=view==='awards';
-    $('view-note').textContent=view==='people' ? 'Nur Goldtitel. Ergänzungen sind anhand der Quelle, zusätzlicher Belege oder Bestätigung dokumentiert; Namensgruppen sind nicht durchgängig über Personen-IDs geprüft.' : 'Nur Goldtitel. Pro Verein und Teamwertung wird einmal gezählt; bei gemeinsamen Teams einmal je beteiligtem Verein.';
     const results = document.querySelector('.results');
+    const selected = controls.map(id => $(id).value.trim()).filter(Boolean);
+    $('filter-summary').textContent = selected.length ? `· ${selected.join(' · ')}` : '· Alle Ergebnisse';
+    results.setAttribute('aria-label', ({awards:'Meistertafel',people:'Titel nach Läufer:in',clubs:'Titel nach Verein'})[view]);
     results.dataset.view = view;
-    const activeFilters = controls.map(id => $(id).value.trim()).filter(Boolean);
-    $('filter-summary').textContent = activeFilters.length ? `· ${activeFilters.join(' · ')}` : '· Alle Ergebnisse';
     results.dataset.filterYear = view==='awards' && Boolean(y); results.dataset.filterFormat = view==='awards' && Boolean(fmt); results.dataset.filterCategory = view==='awards' && Boolean(cat);
     header();
     const out=document.createDocumentFragment();
@@ -227,33 +248,29 @@
       options('year', sort(data.awards.map(a=>String(a.year))).reverse(), 'Alle Jahre');
       options('discipline', ['OL','MTBO','Ski-O'], 'Alle Disziplinen');
       $('year').value=String(Math.max(...data.awards.map(a=>a.year))); available(); render();
-      for (const id of controls) $(id).addEventListener(id==='search'?'input':'change',()=>{visible=perPage;if(['year','discipline','format'].includes(id))available();render();});
-      $('reset').addEventListener('click',()=>{for(const id of controls)$(id).value='';visible=perPage;available();render();});
-      $('filter-toggle').addEventListener('click', event => {
-        const button = event.currentTarget;
-        button.setAttribute('aria-expanded', String(button.getAttribute('aria-expanded') !== 'true'));
-      });
-      // Collapse once when the controls reach the top on mobile. Reopening
-      // while they are sticky remains under the user's control; subsequent
-      // scroll events do not immediately close them again.
-      let controlsWereSticky = false, scrollCheckPending = false;
-      const checkStickyControls = () => {
-        scrollCheckPending = false;
-        const isMobile = window.matchMedia('(max-width: 800px)').matches;
-        const isSticky = isMobile && window.scrollY > 0 && document.querySelector('.sticky-controls').getBoundingClientRect().top <= 1;
-        if (isSticky && !controlsWereSticky) $('filter-toggle').setAttribute('aria-expanded', 'false');
-        controlsWereSticky = isSticky;
+      const resetViewStates = () => {
+        for (const state of Object.values(viewStates)) state.expanded.clear();
       };
-      window.addEventListener('scroll', () => {
-        if (!scrollCheckPending) { scrollCheckPending = true; requestAnimationFrame(checkStickyControls); }
-      }, {passive:true});
+      const showTableStart = () => {
+        const table = document.querySelector('.table-wrap');
+        const headerHeight = document.querySelector('.masthead').getBoundingClientRect().height + document.querySelector('.sticky-header').getBoundingClientRect().height;
+        window.scrollTo({top:Math.max(0, table.getBoundingClientRect().top + window.scrollY - headerHeight), behavior:'instant'});
+      };
+      for (const id of controls) $(id).addEventListener(id==='search'?'input':'change',()=>{resetViewStates();visible=perPage;if(['year','discipline','format'].includes(id))available();render();showTableStart();});
+      $('reset').addEventListener('click',()=>{for(const id of controls)$(id).value='';resetViewStates();visible=perPage;available();render();showTableStart();});
+      $('filter-toggle').addEventListener('click', event => {
+        const grid = $('filter-grid');
+        grid.hidden = !grid.hidden;
+        event.currentTarget.setAttribute('aria-expanded', String(!grid.hidden));
+      });
       $('more').addEventListener('click',()=>{visible+=perPage;render();});
       document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{
         view=button.dataset.view; visible=perPage;
         document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
         render();
+        showTableStart();
       }));
-    } catch(error) { $('count').textContent='Meistertafel konnte nicht geladen werden.'; $('error').textContent=`Bitte später erneut versuchen (${error.message}).`; $('error').hidden=false; }
+    } catch(error) { $('error').textContent=`Meistertafel konnte nicht geladen werden. Bitte später erneut versuchen (${error.message}).`; $('error').hidden=false; }
   }
   init();
 })();

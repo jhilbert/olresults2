@@ -6,8 +6,8 @@
   <meta name="description" content="Die Meistertafel des Österreichischen Fachverbands für Orientierungslauf, quellengetreu und unabhängig durchsuchbar.">
   <title>Meistertafel · Orienteering Austria</title>
   <link rel="stylesheet" href="meistertafel.css?v=20261122-2">
-  <script defer src="titles.js?v=20261122-2"></script>
-  <script defer src="meistertafel.js?v=20261122-2"></script>
+  <script defer src="titles.js?v=20261122-3"></script>
+  <script defer src="meistertafel.js?v=20261122-5"></script>
 </head>
 <body>
   <header class="masthead">
@@ -22,27 +22,25 @@
         </svg>
         <img class="brand-wordmark" src="https://www.orienteeringaustria.at/wp-content/uploads/2024/10/oa.svg" alt="Orienteering Austria" width="106" height="32">
       </div>
-      <span class="masthead-context">MEISTERTAFEL <span aria-hidden="true">/</span> ÖFOL ARCHIV</span>
+      <span class="header-source">Quelle: <a href="https://www.orienteeringaustria.at/termine/meistertafel/" target="_blank" rel="noopener">ÖFOL-Meistertafel</a></span>
     </div>
   </header>
-  <main class="shell">
-    <section class="intro"><span class="eyebrow">ÖFOL · HISTORISCHES ARCHIV</span><h1>Österreichische<br>Meistertafel<span>.</span></h1><p>Meister:innen und Staatsmeister:innen im Orientierungslauf – nach der veröffentlichten Meistertafel des ÖFOL.</p>
-      <p class="source-note">Quelle: <a href="https://www.orienteeringaustria.at/termine/meistertafel/" target="_blank" rel="noopener">Meistertafel von Orienteering Austria</a></p>
-    </section>
-    <div class="sticky-controls">
+  <section class="intro shell" aria-labelledby="page-title">
+    <h1 id="page-title">Österreichische Meistertafel</h1>
+    <p>Meister:innen und Staatsmeister:innen – nach der veröffentlichten Meistertafel des ÖFOL.</p>
+  </section>
+  <div class="sticky-header">
+  <div class="shell page-controls">
     <section class="filters" aria-label="Meistertafel filtern">
-      <button type="button" id="filter-toggle" class="filter-toggle" aria-expanded="true" aria-controls="filter-panel"><span>Filter <span id="filter-summary" class="filter-summary"></span></span><span class="filter-indicator" aria-hidden="true">▾</span></button>
-      <div id="filter-panel" class="filter-panel">
-      <div class="filter-heading"><div><h2>Meister:innen finden</h2><p>Jahr, Disziplin und Bewerb auswählen oder direkt suchen.</p></div><button type="button" id="reset" class="reset">Filter zurücksetzen</button></div>
-      <div class="filter-grid">
+      <div class="filter-heading"><h2><button type="button" id="filter-toggle" class="filter-toggle" aria-expanded="true" aria-controls="filter-grid"><svg class="filter-icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M2 4h16l-6.3 7v4.2l-3.4 1.6V11z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span>Filter</span><span id="filter-summary" class="filter-summary"></span><span class="filter-chevron" aria-hidden="true">▾</span></button></h2><button type="button" id="reset" class="reset">Filter zurücksetzen</button></div>
+      <div class="filter-grid" id="filter-grid">
         <label>Jahr<select id="year"><option value="">Alle Jahre</option></select></label>
         <label>Disziplin<select id="discipline"><option value="">Alle Disziplinen</option></select></label>
         <label>Bewerb<select id="format"><option value="">Alle Bewerbe</option></select></label>
         <label>Titel<select id="title"><option value="">ÖM und ÖSTM</option><option value="ÖM">ÖM</option><option value="ÖSTM">ÖSTM</option></select></label>
         <label>Alterskategorie<select id="category"><option value="">Alle Kategorien</option></select></label>
         <label>Verein<select id="club"><option value="">Alle Vereine</option></select></label>
-        <label class="search-label">Name, Verein oder Kategorie<input id="search" type="search" placeholder="z. B. Kastner oder Naturfreunde Wien" autocomplete="off"></label>
-      </div>
+        <label class="search-label">Vor- oder Nachname<input id="search" type="search" autocomplete="off"></label>
       </div>
     </section>
     <nav class="view-switch" aria-label="Ansicht wählen">
@@ -50,10 +48,11 @@
       <button type="button" data-view="people" aria-pressed="false">Läufer:innen</button>
       <button type="button" data-view="clubs" aria-pressed="false">Vereine</button>
     </nav>
-    </div>
-    <section class="results" aria-labelledby="results-title"><div class="results-heading"><div><h2 id="results-title">Ergebnisse</h2><p id="count" role="status" aria-live="polite">Meistertafel wird geladen …</p></div><span class="source-badge">ÖFOL-QUELLE</span></div>
+  </div>
+  </div>
+  <main class="shell">
+    <section class="results" aria-label="Meistertafel">
       <div id="error" class="notice" hidden></div>
-      <p id="view-note" class="view-note" hidden></p>
       <div class="table-wrap"><table><thead id="table-head"></thead><tbody id="rows"></tbody></table></div>
       <p id="empty" hidden>Keine Einträge für diese Auswahl.</p><button id="more" class="more" type="button" hidden>Weitere anzeigen</button>
     </section>
