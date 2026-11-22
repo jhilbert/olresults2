@@ -26,4 +26,15 @@ assert.equal(kg.length,1);
 assert.equal(kg[0].name,'Helga KOLB / Helga KROMP-KOLB');
 assert.equal(kg[0].total,3);
 assert.equal(membersForGroup(kolb[0],'people',kg[0].name,label,kg[0].key).length,1);
+// Historical source names are grouped while preserving one medal per team.
+const historic = [
+  {id:'old',title_type:'ÖM',club:'TV Fürstenfeld',members:[{name:'A One'},{name:'B Two'}]},
+  {id:'new',title_type:'ÖSTM',club:'OC Fürstenfeld',members:[{name:'A One'}]},
+];
+const clubAlias = c => c === 'TV Fürstenfeld' ? 'OC Fürstenfeld' : c || '';
+const hc = aggregate(historic,'clubs',clubAlias);
+assert.equal(hc.length,1);
+assert.deepEqual([hc[0].name,hc[0].oem,hc[0].oestm,hc[0].total],['OC Fürstenfeld',1,1,2]);
+assert.equal(aggregate(historic,'clubs',clubAlias,'OC Fürstenfeld')[0].total,2);
+assert.equal(historic[0].club,'TV Fürstenfeld');
 console.log('Meistertafel aggregation: OK');

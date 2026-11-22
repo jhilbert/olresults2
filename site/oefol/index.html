@@ -4,20 +4,35 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Die Meistertafel des Österreichischen Fachverbands für Orientierungslauf, quellengetreu und unabhängig durchsuchbar.">
-  <title>Österreichische Meistertafel · OLResults</title>
-  <link rel="stylesheet" href="meistertafel.css">
-  <script defer src="titles.js"></script>
-  <script defer src="meistertafel.js"></script>
+  <title>Meistertafel · Orienteering Austria</title>
+  <link rel="stylesheet" href="meistertafel.css?v=20261122-2">
+  <script defer src="titles.js?v=20261122-2"></script>
+  <script defer src="meistertafel.js?v=20261122-2"></script>
 </head>
 <body>
   <header class="masthead">
-    <div class="shell masthead-inner"><div class="brand"><span class="brand-mark" aria-hidden="true">Ö</span><span>ÖSTERREICHISCHER<br><strong>ORIENTIERUNGSLAUF</strong></span></div></div>
+    <div class="shell masthead-inner">
+      <div class="brand">
+        <svg class="brand-symbol" viewBox="0 0 51 38" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+          <path d="M50.8392 37.7333L49.72 35.8216L33.18 7.49955L33.1466 7.51838C30.6987 3.59614 26.322 0.96875 21.3262 0.96875C13.6634 0.96875 7.43408 7.13228 7.43408 14.7084C7.43408 22.2845 13.6681 28.448 21.331 28.448C23.4026 28.448 25.3648 27.9819 27.1364 27.1767L20.969 37.738H50.8439L50.8392 37.7333ZM46.372 35.186H25.4314L35.8993 17.2557L46.3672 35.186H46.372ZM10.0106 14.7084C10.0106 8.54014 15.0874 3.5208 21.3262 3.5208C27.565 3.5208 32.6418 8.54014 32.6418 14.7084C32.6418 20.8766 27.565 25.896 21.3262 25.896C15.0874 25.896 10.0106 20.8766 10.0106 14.7084Z" fill="#171717"/>
+          <path d="M19.4833 13.6536L25.9793 6.07751L26.5603 6.41182L23.1647 15.7725L19.4785 13.6536H19.4833Z" fill="#e30613"/>
+          <path d="M16.6782 23.3345L16.0972 23.0002L19.4833 13.6489L23.1694 15.7678L16.6782 23.3345Z" fill="#171717"/>
+          <path d="M8.69144 23.9466L0.5 37.7098H6.38641L12.4585 27.5675C12.068 27.2991 11.6918 27.0072 11.3298 26.7011C10.3345 25.896 9.4582 24.9637 8.69144 23.9419" fill="#e30613"/>
+          <path d="M21.2928 30.2279C20.507 30.2279 19.745 30.1526 18.9925 30.0443C18.783 30.016 18.5782 29.9878 18.3734 29.9501C18.2639 29.9313 18.1543 29.9124 18.0448 29.8936C17.6352 29.8136 17.2257 29.7241 16.8304 29.6111L11.9536 37.7051H17.84L22.3834 30.1761C22.0215 30.1997 21.6643 30.2279 21.2976 30.2279" fill="#e30613"/>
+        </svg>
+        <img class="brand-wordmark" src="https://www.orienteeringaustria.at/wp-content/uploads/2024/10/oa.svg" alt="Orienteering Austria" width="106" height="32">
+      </div>
+      <span class="masthead-context">MEISTERTAFEL <span aria-hidden="true">/</span> ÖFOL ARCHIV</span>
+    </div>
   </header>
   <main class="shell">
     <section class="intro"><span class="eyebrow">ÖFOL · HISTORISCHES ARCHIV</span><h1>Österreichische<br>Meistertafel<span>.</span></h1><p>Meister:innen und Staatsmeister:innen im Orientierungslauf – nach der veröffentlichten Meistertafel des ÖFOL.</p>
-      <p class="source-note">Eigenständige Quellenabschrift · keine automatische Übernahme in OLResults · <a href="https://www.orienteeringaustria.at/termine/meistertafel/" target="_blank" rel="noopener">Original beim ÖFOL</a></p>
+      <p class="source-note">Quelle: <a href="https://www.orienteeringaustria.at/termine/meistertafel/" target="_blank" rel="noopener">Meistertafel von Orienteering Austria</a></p>
     </section>
+    <div class="sticky-controls">
     <section class="filters" aria-label="Meistertafel filtern">
+      <button type="button" id="filter-toggle" class="filter-toggle" aria-expanded="true" aria-controls="filter-panel"><span>Filter <span id="filter-summary" class="filter-summary"></span></span><span class="filter-indicator" aria-hidden="true">▾</span></button>
+      <div id="filter-panel" class="filter-panel">
       <div class="filter-heading"><div><h2>Meister:innen finden</h2><p>Jahr, Disziplin und Bewerb auswählen oder direkt suchen.</p></div><button type="button" id="reset" class="reset">Filter zurücksetzen</button></div>
       <div class="filter-grid">
         <label>Jahr<select id="year"><option value="">Alle Jahre</option></select></label>
@@ -28,19 +43,21 @@
         <label>Verein<select id="club"><option value="">Alle Vereine</option></select></label>
         <label class="search-label">Name, Verein oder Kategorie<input id="search" type="search" placeholder="z. B. Kastner oder Naturfreunde Wien" autocomplete="off"></label>
       </div>
+      </div>
     </section>
     <nav class="view-switch" aria-label="Ansicht wählen">
       <button type="button" data-view="awards" aria-pressed="true">Meistertafel</button>
       <button type="button" data-view="people" aria-pressed="false">Läufer:innen</button>
       <button type="button" data-view="clubs" aria-pressed="false">Vereine</button>
     </nav>
+    </div>
     <section class="results" aria-labelledby="results-title"><div class="results-heading"><div><h2 id="results-title">Ergebnisse</h2><p id="count" role="status" aria-live="polite">Meistertafel wird geladen …</p></div><span class="source-badge">ÖFOL-QUELLE</span></div>
       <div id="error" class="notice" hidden></div>
       <p id="view-note" class="view-note" hidden></p>
       <div class="table-wrap"><table><thead id="table-head"></thead><tbody id="rows"></tbody></table></div>
       <p id="empty" hidden>Keine Einträge für diese Auswahl.</p><button id="more" class="more" type="button" hidden>Weitere anzeigen</button>
     </section>
-    <footer><p>Die Angaben geben die ÖFOL-Meistertafel wieder. Schreibweisen, fehlende Angaben und Quellhinweise bleiben erkennbar.</p><p>OLResults · Stand der Quellenkopie: 22.11.2026</p></footer>
+    <footer><p>Quelle: Meistertafel von Orienteering Austria · Abgerufen am 22.11.2026</p></footer>
   </main>
 </body>
 </html>

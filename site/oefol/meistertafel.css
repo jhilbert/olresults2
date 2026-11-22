@@ -2,6 +2,8 @@
 .embed .main-site-link { display: none; }
 .name-line{display:flex;align-items:baseline;gap:6px}.name-line .type-tag{flex:none;line-height:1.35}
 .view-switch{display:flex;gap:6px;flex-wrap:wrap;margin:24px 0 0}.view-switch button{border:1px solid #e3cdd1;border-radius:7px;background:#fff;color:var(--red-deep);font:inherit;font-size:.9rem;font-weight:700;padding:9px 15px;cursor:pointer}.view-switch button[aria-pressed=true]{background:var(--red-deep);border-color:var(--red-deep);color:#fff}.view-note{font-size:.84rem;color:var(--muted);margin:0 0 12px}.number{text-align:right;white-space:nowrap}.total-column{background:#fff7e2;font-weight:750}.expand-title{border:0;background:none;color:var(--red-deep);font:inherit;font-weight:700;padding:0;text-align:left;cursor:pointer}.expand-title::after{content:' ▸';font-size:.8em}.expand-title[aria-expanded=true]::after{content:' ▾'}.detail-row[hidden]{display:none}.detail-row td{background:#fcf8f8;color:#50545e;font-size:.84rem}.detail-row ul{margin:0;padding-left:18px}.detail-row li{padding:2px 0}
+.former-club{color:var(--muted);font-size:.82em;font-weight:500}
+.masthead{border-top:4px solid #e30613}.masthead-inner{min-height:80px}.brand{gap:13px}.brand-symbol{display:block;width:50px;height:38px;flex:none}.brand-wordmark{display:block;width:133px;height:auto}.masthead-context{color:#77747a;font-size:.68rem;font-weight:750;letter-spacing:.1em;white-space:nowrap}.masthead-context span{color:#e30613;padding:0 5px}@media(max-width:480px){.masthead-inner{min-height:70px}.brand{gap:10px}.brand-symbol{width:42px;height:auto}.brand-wordmark{width:116px}.masthead-context{font-size:.58rem;letter-spacing:.06em}}
 .detail-club{font-weight:750;color:var(--ink);margin:8px 0 3px}.detail-club:first-child{margin-top:0}
 
 /* A compact, independently usable source register. */
@@ -13,3 +15,29 @@
 table{width:100%;border-collapse:collapse;font-size:.91rem}th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;color:#6b6e78;background:#f4f4f4;white-space:nowrap}tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:#fff9f9}.col-year,.col-category,.state-flag{white-space:nowrap}.names-cell{font-weight:650}.club-cell{color:#555b65}.state-flag{color:var(--red-deep);font-weight:800;text-align:center}.source-warning{cursor:help;color:#995d05}
 .results[data-filter-year=true] .col-year,.results[data-filter-format=true] .col-format,.results[data-filter-category=true] .col-category{display:none}
 @media(max-width:800px){.filters{position:sticky;top:0;padding:9px;max-height:38vh;overflow-y:auto}.filter-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.search-label{grid-column:span 2}.results-heading{padding:8px 0;margin-bottom:4px}.results-heading h2{font-size:1rem}table{font-size:.84rem}th,td{padding:8px}.table-wrap{overflow-x:auto}table{min-width:520px}}
+
+/* Filters and view switch stay together while scrolling. */
+.sticky-controls{position:sticky;top:0;z-index:5;background:var(--bg);padding:4px 0 8px}
+.sticky-controls .filters{position:static;max-height:none;overflow:visible}
+.sticky-controls .view-switch{margin:8px 0 0}
+.filter-toggle{display:none}
+@media(max-width:800px){
+  .sticky-controls{padding:3px 0 7px}
+  .sticky-controls .filters{padding:0;overflow:hidden}
+  .filter-toggle{display:flex;width:100%;min-width:0;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border:0;background:#fff;color:var(--red-deep);font:inherit;font-size:.85rem;font-weight:750;text-align:left;cursor:pointer}
+  .filter-toggle>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .filter-summary{color:var(--muted);font-weight:500}
+  .filter-indicator{flex:none;transition:transform .15s}
+  .filter-toggle[aria-expanded=true] .filter-indicator{transform:rotate(180deg)}
+  .filter-toggle[aria-expanded=false]+.filter-panel{display:none}
+  .filter-panel{max-height:40vh;overflow:auto;padding:0 10px 10px}
+  .sticky-controls .view-switch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:6px}
+  .view-switch button{padding:8px 4px;font-size:.76rem;white-space:nowrap}
+  .results[data-view=people] table,.results[data-view=clubs] table{min-width:0;table-layout:fixed}
+  .results[data-view=people] th:first-child,.results[data-view=clubs] th:first-child{width:47%}
+  .results[data-view=people] th:nth-child(2),.results[data-view=clubs] th:nth-child(2){width:17%}
+  .results[data-view=people] th:nth-child(3),.results[data-view=clubs] th:nth-child(3){width:14%}
+  .results[data-view=people] th:nth-child(4),.results[data-view=clubs] th:nth-child(4){width:22%}
+  .results[data-view=people] th,.results[data-view=clubs] th{font-size:.65rem;letter-spacing:0}
+  .results[data-view=people] td:first-child,.results[data-view=clubs] td:first-child{overflow-wrap:anywhere}
+}

@@ -6,6 +6,9 @@
   let data, visible = perPage, view = 'awards';
   const fold = text => String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('de-AT').replace(/ß/g, 'ss');
   const aliases = new Map();
+  // Only documented or explicitly confirmed former names; spelling variants
+  // and abbreviations are not presented as historical legal names.
+  const formerNames = new Map();
   function clubs(canonical, names) { for (const n of [canonical, ...names]) aliases.set(fold(n).replace(/[^a-z0-9]/g, ''), canonical); }
   function configureClubs(registry) {
     const byCode = new Map(registry.map(c => [c.code, c.name]));
@@ -28,7 +31,8 @@
     official('NOK', ['NF Kitzbühel', 'NF OLG Kitzbühel', 'Natufreunde Kitzbühel', 'HF Kitzbühel']);
     official('NLZ', ['NF Linz', 'TVN Linz']);
     official('NFS', ['NF Steiermark']);
-    official('NVI', ['NF Villach', 'NF Villach Orienteering', 'Naturfreunde Villach', 'Naturfreunde Villach Orienteering', 'Naturfreunde Villach - Orienteering', 'Naturfreunde Villach-Orienteering', 'Natufreunde Villach Orienteering', 'Naturfreunde Villa Orienteering', 'Naturfreunde Villach-Orienteering - Oriente', 'Naturfreunde Villach-Orienteering-Orienteering']);
+    official('NVI', ['NF Villach', 'NF Villach Orienteering', 'Naturfreunde Villach', 'Naturfreunde Villach Orienteering', 'Naturfreunde Villach - Orienteering', 'Naturfreunde Villach-Orienteering', 'Natufreunde Villach Orienteering', 'Naturfreunde Villa Orienteering', 'Naturfreunde Villach-Orienteering - Oriente', 'Naturfreunde Villach-Orienteering-Orienteering', 'TVN Villach']);
+    official('OCFF', ['TV Fürstenfeld']);
     official('OVI', ['OLC Union Viktring']);
     official('OLK', ['OLC Kufstein', 'OLK Kufstein']);
     official('OLC', ['OC Wienerwald', 'Wienerwald']);
@@ -47,6 +51,14 @@
     clubs('SC Austrian Airlines', ['SC AUA']);
     clubs('Snowsports', ['www.snowsports.at']);
     clubs('HSV Klagenfurt', ['HSV Klagenfurt Helvetia', 'HSV Klagenfurt - Helvetia']);
+    for (const [code, names] of [
+      ['NFWien', ['TVN Wien']],
+      ['NLZ', ['TVN Linz']],
+      ['NVI', ['TVN Villach']],
+      ['OCFF', ['TV Fürstenfeld']],
+      ['ORIO', ['Orienteering Innsbruck Imst', 'Laufklub Kompass Innsbruck Imst']],
+    ]) formerNames.set(byCode.get(code), names);
+    formerNames.set('NF Veitsch', ['TVN Veitsch', 'TVN Tyrolia Veitsch']);
   }
   const clubLabel = name => aliases.get(fold(name).replace(/[^a-z0-9]/g, '')) || name || '';
   function formatLabel(a) {
@@ -125,7 +137,7 @@
   function header() {
     const labels = view === 'awards'
       ? [['Jahr','col-year'],['Bewerb','col-format'],['Kategorie','col-category'],['Name',''],['Verein','']]
-      : [[view === 'people' ? 'Läufer:in' : 'Verein',''],['ÖSTM','number'],['ÖM','number'],['Gold gesamt','number total-column']];
+      : [[view === 'people' ? 'Läufer:in' : 'Verein',''],['ÖSTM','number'],['ÖM','number'],['Gesamt','number total-column']];
     const tr = node('tr');
     for (const [label,cls] of labels) tr.append(node('th',label,cls));
     $('table-head').replaceChildren(tr);
@@ -133,6 +145,8 @@
   function summaryRows(group) {
     const tr = node('tr',null,'summary-row');
     const label = node('td'), button = node('button',group.name,'expand-title');
+    const previous = view === 'clubs' ? formerNames.get(group.name) : null;
+    if (previous?.length) button.append(node('span', ` (ehemals ${previous.join(', ')})`, 'former-club'));
     button.type='button'; button.setAttribute('aria-expanded','false');
     label.append(button); tr.append(label);
     tr.append(node('td',String(group.oestm || '–'),'number'),node('td',String(group.oem || '–'),'number'),node('td',String(group.total),'number total-column'));
@@ -183,6 +197,9 @@
     $('view-note').hidden=view==='awards';
     $('view-note').textContent=view==='people' ? 'Nur Goldtitel. Ergänzungen sind anhand der Quelle, zusätzlicher Belege oder Bestätigung dokumentiert; Namensgruppen sind nicht durchgängig über Personen-IDs geprüft.' : 'Nur Goldtitel. Pro Verein und Teamwertung wird einmal gezählt; bei gemeinsamen Teams einmal je beteiligtem Verein.';
     const results = document.querySelector('.results');
+    results.dataset.view = view;
+    const activeFilters = controls.map(id => $(id).value.trim()).filter(Boolean);
+    $('filter-summary').textContent = activeFilters.length ? `· ${activeFilters.join(' · ')}` : '· Alle Ergebnisse';
     results.dataset.filterYear = view==='awards' && Boolean(y); results.dataset.filterFormat = view==='awards' && Boolean(fmt); results.dataset.filterCategory = view==='awards' && Boolean(cat);
     header();
     const out=document.createDocumentFragment();
@@ -212,6 +229,24 @@
       $('year').value=String(Math.max(...data.awards.map(a=>a.year))); available(); render();
       for (const id of controls) $(id).addEventListener(id==='search'?'input':'change',()=>{visible=perPage;if(['year','discipline','format'].includes(id))available();render();});
       $('reset').addEventListener('click',()=>{for(const id of controls)$(id).value='';visible=perPage;available();render();});
+      $('filter-toggle').addEventListener('click', event => {
+        const button = event.currentTarget;
+        button.setAttribute('aria-expanded', String(button.getAttribute('aria-expanded') !== 'true'));
+      });
+      // Collapse once when the controls reach the top on mobile. Reopening
+      // while they are sticky remains under the user's control; subsequent
+      // scroll events do not immediately close them again.
+      let controlsWereSticky = false, scrollCheckPending = false;
+      const checkStickyControls = () => {
+        scrollCheckPending = false;
+        const isMobile = window.matchMedia('(max-width: 800px)').matches;
+        const isSticky = isMobile && window.scrollY > 0 && document.querySelector('.sticky-controls').getBoundingClientRect().top <= 1;
+        if (isSticky && !controlsWereSticky) $('filter-toggle').setAttribute('aria-expanded', 'false');
+        controlsWereSticky = isSticky;
+      };
+      window.addEventListener('scroll', () => {
+        if (!scrollCheckPending) { scrollCheckPending = true; requestAnimationFrame(checkStickyControls); }
+      }, {passive:true});
       $('more').addEventListener('click',()=>{visible+=perPage;render();});
       document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{
         view=button.dataset.view; visible=perPage;
