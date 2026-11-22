@@ -3,6 +3,18 @@
   "scope": "Nutzerbestätigte einzelne Personen-Zuordnungen; bestehende Personen werden nicht überschrieben.",
   "decisions": [
     {
+      "scope":"event_observation", "event_id":1076, "category":"H 15-18", "result_kind":"team", "source_name":"Florian Kurz", "source_year":1998, "club":"Naturfreunde Wien", "person_name":"Florian Kurz", "oefol_id":6741,
+      "basis":"Nutzerbestätigung 22.11.2026: trotz abweichenden Quelljahrgangs anhand Namen und Vereins zuordnen; Registerjahrgang 1997."
+    },
+    {
+      "scope":"event_observation", "event_id":1076, "category":"H 15-18", "result_kind":"team", "source_name":"Dominik Jandl", "source_year":1997, "club":"Naturfreunde Wien", "person_name":"Dominik Jandl", "oefol_id":3258,
+      "basis":"Nutzerbestätigung 22.11.2026: trotz abweichenden Quelljahrgangs anhand Namen und Vereins zuordnen; Registerjahrgang 1998."
+    },
+    {
+      "scope":"event_observation", "event_id":1076, "category":"H 15-18", "result_kind":"team", "source_name":"Clemens Wolfram", "source_year":1996, "club":"Naturfreunde Wien", "person_name":"Clemens Wolfram", "oefol_id":6783,
+      "basis":"Nutzerbestätigung 22.11.2026: trotz abweichenden Quelljahrgangs anhand Namen und Vereins zuordnen; Registerjahrgang 1999."
+    },
+    {
       "scope": "event_observation", "event_id": 2082, "category": "D 50-", "result_kind": "team", "source_name": "Rikki Tiefenböck", "source_year": 1957, "club": "Naturfreunde Wien", "person_name": "Riki Tiefenböck", "oefol_id": 2709,
       "basis": "Nutzerbestätigung: Rikki und Riki Tiefenböck zusammenführen; Quelljahrgang 1957 weicht vom ANNE-Registerjahrgang 1967 ab."
     },

@@ -7291,6 +7291,44 @@ def confirm_2017_mtbo_youth_champions(cur):
         cur.execute("UPDATE result SET national_rank=1, championship_source_scope='winner_only' WHERE id=?", rows[0])
 
 
+def confirm_2014_team_source_winners(cur):
+    """Credit source-named teams while leaving unresolved member identities intact."""
+    expected = {
+        ('H 19-', '6'): {'Gernot Kerschbaumer', 'Markus Lang', 'Helmut Gremmel'},
+        ('D 19-', '25'): {'Laura Ramstein', 'Martina Walch', 'Maren Herrgesell'},
+        ('H -14', '33'): {'Tobias Micko', 'William Fenk', 'Ferdinand Jäger'},
+        ('H 15-18', '55'): {'Florian Kurz', 'Dominik Jandl', 'Clemens Wolfram'},
+        ('H 40-', '76'): {'Georg Wittberger', 'Matthias Poell', 'Wolfgang Waldhäusl'},
+        ('H 50-', '94'): {'Roland Arbter', 'Peter Bonek', 'Wolfgang Pietsch'},
+        ('H 60-', '107'): {'Jiri Gurka', 'Franz Ponweiser', 'Erwin Schweifer'},
+        ('D -14', '47'): {'Ylvi Kastner', 'Anna Pietsch', 'Rita Tiefenböck'},
+        ('D 15-18', '65'): {'Jasmina Gassner', 'Nicole Hlosta', 'Tina Tiefenböck'},
+        ('D 40-', '83'): {'Claudia Bonek', 'Katja Gassner', 'Manuela Hlosta'},
+        ('D 50-', '104'): {'Irene Gassner', 'Petra Pfeil', 'Sabine Hofstätter'},
+    }
+    url = 'sources/1076-oem-mannschaft-2014.pdf'
+    digest = '3cf744e6e6a842876eaad21755ebc8c79ed8f43e4b19a8303520c8c8567d1191'
+    for (category, number), names in expected.items():
+        rows = cur.execute('''SELECT r.id,r.observed_name,m.state FROM result r
+            JOIN stage s ON s.id=r.stage_id JOIN source_document d ON d.id=r.source_document_id
+            JOIN national_minimum_starters m ON m.stage_id=r.stage_id AND m.category=r.category
+            WHERE s.event_id=1076 AND s.number=1 AND r.category=? AND r.team_number=?
+              AND r.result_kind='team'
+              AND r.rank=1 AND r.status='ok' AND r.out_of_competition=0
+              AND r.championship='ÖM' AND r.championship_eligibility_state='eligible'
+              AND r.note='Originalquelle: Österreichischer Meistertitel'
+              AND d.source_url=? AND d.snapshot_sha256=?''', (category, number, url, digest)).fetchall()
+        if len(rows) != 3 or {r[1] for r in rows} != names:
+            raise ValueError(f'2014 team champion does not match reviewed source: {category}/{number}')
+        for result_id, _, state in rows:
+            if state == 'unresolved':
+                cur.execute("UPDATE result SET national_rank=1,championship_source_scope='winner_only' WHERE id=?", (result_id,))
+                cur.execute('''INSERT OR REPLACE INTO official_national_title
+                    (result_id,source_url,invitation_url,invitation_sha256,evidence_note)
+                    VALUES (?,?,?,?,?)''', (result_id, url, '', '',
+                    f'Veranstalter-Ergebnisliste: ausdrücklich österreichischer Meistertitel; SHA-256 {digest}.'))
+
+
 def compute_time_behind(cur):
     """Derive a non-negative gap only for classified time rankings.
 
@@ -8164,6 +8202,8 @@ def main():
     compute_national_ranks(cur)
     if cur.execute("SELECT 1 FROM stage WHERE event_id=1865 LIMIT 1").fetchone():
         confirm_2017_mtbo_youth_champions(cur)
+    if cur.execute("SELECT 1 FROM stage WHERE event_id=1076 LIMIT 1").fetchone():
+        confirm_2014_team_source_winners(cur)
     if OFFICIAL_NATIONAL_TITLES_PATH.exists():
         official_titles = json.loads(OFFICIAL_NATIONAL_TITLES_PATH.read_text()).get('titles', [])
         apply_official_national_titles(cur, official_titles)

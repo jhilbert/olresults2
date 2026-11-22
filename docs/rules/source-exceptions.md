@@ -972,6 +972,30 @@ stillschweigend vertauscht werden.
   sich deshalb auf WOLV und ist kein unabhängiger Podiumsvergleich.
 # ÖM-Ergänzungen 2014 und MTBO 2017
 
+- Event `1076`, ÖM Mannschaft Untergeng am 7.9.2014: Der Nutzer hat die
+  offizielle Ergebnisliste des Veranstalters zur Verfügung gestellt. Das
+  unveränderte PDF liegt als `2014/1076-official-result.pdf` im Quellarchiv
+  und als `site/sources/1076-oem-mannschaft-2014.pdf` für die Anzeige vor;
+  SHA-256 `3cf744e6e6a842876eaad21755ebc8c79ed8f43e4b19a8303520c8c8567d1191`.
+  Das PDF weist sechs Siegerteams der Naturfreunde Wien in H15–18, H50,
+  D−14, D15–18, D40 und D50 ausdrücklich als Meister aus. In D60 startete
+  nur eine Mannschaft: Es gibt einen Laufsieger, aber gemäß Mindeststarterregel
+  keinen Meistertitel. Die einzelne offene
+  Rahmenwertung ist keine ÖM; der offene Mannschaftsbewerb bleibt sichtbar,
+  individuelle Rahmenläufe sind in dieser Teamauswertung nicht enthalten.
+  Katharina Gittmaier (HSV Ried), im offenen Team 115 mit Jahrgang 89
+  gedruckt, wird laut Nutzerbestätigung vom 22.11.2026 ohne Berücksichtigung
+  dieses Quelljahrgangs mit ihren bisherigen Ergebnissen zusammengeführt.
+  Der gedruckte Jahrgang bleibt als Quelle dokumentiert und wird nicht als
+  gesichertes Geburtsjahr übernommen. Als vakant bezeichnete Plätze werden nicht
+  als Personen angelegt; Geburtsjahre bleiben Quellangaben und können Fehler
+  enthalten. In H15–18 widersprechen die gedruckten Jahrgänge von Florian
+  Kurz, Dominik Jandl und Clemens Wolfram den gespeicherten Jahrgängen; der
+  Nutzer bestätigte am 22.11.2026 die Zuordnung anhand von Namen und Verein,
+  beschränkt auf diese drei Ergebnisbeobachtungen. Bei offenem
+  Mindeststarter-Nachweis bestätigen die elf ausdrücklich gedruckten
+  Meisterteams jeweils nur den Siegerplatz, keine weiteren Medaillen. Die
+  Personenprüfung erfolgt getrennt vom belegten Teamtitel.
 - Event `1167`, Staffel 2014 H−12: ANNE und ÖFOL-Meistertafel bestätigen
   Jonas Deubel, Oliver Calvet und Max Pietsch. Nur der Titel des exakt
   passenden Siegerteams wird anerkannt; die ungeklärte Berechtigung anderer
