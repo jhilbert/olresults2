@@ -1,6 +1,17 @@
 "use strict";
 (() => {
   const $ = id => document.getElementById(id);
+  function setupDataNotice() {
+    const notice = $('data-notice');
+    try { notice.hidden = sessionStorage.getItem('oefol-data-notice-closed') === '1'; }
+    catch (_err) { /* Keep the notice visible if storage is unavailable. */ }
+    $('data-notice-close').addEventListener('click', () => {
+      notice.hidden = true;
+      try { sessionStorage.setItem('oefol-data-notice-closed', '1'); }
+      catch (_err) { /* Closing still works for this page. */ }
+    });
+  }
+  setupDataNotice();
   const controls = ['year', 'discipline', 'format', 'title', 'category', 'club', 'search'];
   const perPage = 120;
   let data, visible = perPage, view = 'awards';
@@ -26,7 +37,7 @@
     official('HAM', ['HSV Absam']);
     official('HVI', ['HSV Villach']);
     official('HSVOLWN', ['HSV Wr.Neustadt', 'HSV Wr. Neustadt', 'HSV Wiener Neustadt', 'HSV OL Wr. Neustadt', 'HSV OL Wr.Neustadt', 'HSV Wr.Neu+A1:F123+B106:F123stadt']);
-    official('HPF', ['HSV PInkafeld', 'HSV Pinkafled']);
+    official('HPF', ['HSV PInkafeld', 'HSV Pinkafled', 'HSV Südburgenland', 'HSV S-Bgld.']);
     official('HSD', ['HSV Spittal', 'HSV Spittal/Drau']);
     official('OrK', ['OK Gittis Klosterneuburg', 'Orienteering Kloserneuburg']);
     official('LOM', ['LZ Omaha']);
@@ -50,6 +61,7 @@
     clubs('SU Abteigymnasium Seckau', ['SU Abteigymn. Seckau', 'SU Seckau']);
     clubs('SU RLV Sparkasse Aspang', ['SU RLV Spark. Aspang', 'SU RLV Aspang']);
     clubs('NF Veitsch', ['TVN Veitsch', 'TVN Tyrolia Veitsch']);
+    clubs('NF Sandl', ['TVN Sandl', 'NF Sandl OL']);
     clubs('SC Austrian Airlines', ['SC AUA']);
     clubs('Snowsports', ['www.snowsports.at']);
     clubs('HSV Klagenfurt', ['HSV Klagenfurt Helvetia', 'HSV Klagenfurt - Helvetia']);
@@ -60,9 +72,11 @@
       ['OCFF', ['TV Fürstenfeld']],
       ['OLC', ['OLC Wien', 'OLC Tyrolia']],
       ['OrK', ['OK Gittis Klosterneuburg']],
+      ['HPF', ['HSV Südburgenland']],
       ['ORIO', ['Orienteering Innsbruck Imst', 'Laufklub Kompass Innsbruck Imst', 'Laufklub Kompass Innsbruck (bis 2024)']],
     ]) formerNames.set(byCode.get(code), names);
     formerNames.set('NF Veitsch', ['TVN Veitsch', 'TVN Tyrolia Veitsch']);
+    formerNames.set('NF Sandl', ['TVN Sandl']);
   }
   const clubLabel = (name, year) => {
     const key = fold(name).replace(/[^a-z0-9]/g, '');
@@ -249,7 +263,7 @@
   }
   async function init() {
     try {
-      const [response, displayResponse]=await Promise.all([fetch('meistertafel.json'),fetch('person-display.json?v=20261122-6')]);
+      const [response, displayResponse]=await Promise.all([fetch('meistertafel.json'),fetch('person-display.json?v=20261123-1')]);
       if (!response.ok || !displayResponse.ok) throw Error(`HTTP ${response.ok ? displayResponse.status : response.status}`);
       data=await response.json();
       const display=await displayResponse.json();
@@ -258,6 +272,7 @@
         const c=confirmed.get(`${member.source_row}\u0000${member.name}`);
         if (c && member.name === c.source_name) {
           member.source_name=member.name; member.name=`${c.first_name} ${c.last_name}`; member.oefol_id=c.oefol_id; member.identity_basis=c.basis;
+          if (c.club && !member.club && !award.club) member.club=c.club;
         }
         const parts=c || display.formats[member.name];
         if (parts) member.display_name=`${parts.first_name} ${parts.last_name.toLocaleUpperCase('de-AT')}`;

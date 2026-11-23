@@ -145,6 +145,14 @@ class MeistertafelTests(unittest.TestCase):
         c = next(c for c in overlay['confirmations'] if c['source_row'] == a['id'])
         self.assertEqual((c['first_name'], c['last_name']), ('Agota', 'Hejjas'))
 
+    def test_gigon_and_tobler_source_corrections_preserve_provenance(self):
+        overlay = json.loads((ROOT / 'site/oefol/person-display.json').read_text())
+        confirmed = {(c['source_row'], c['source_name']): c for c in overlay['confirmations']}
+        gigon = confirmed[('tablepress-34:row-2', 'Michaela Gigon OLT Transdanubien')]
+        self.assertEqual((gigon['first_name'], gigon['last_name'], gigon['club']), ('Michaela', 'Gigon', 'OLT Transdanubien'))
+        for row in ('tablepress-43:row-11', 'tablepress-44:row-55', 'tablepress-45:row-8', 'tablepress-45:row-37', 'tablepress-45:row-65', 'tablepress-47:row-6', 'tablepress-47:row-24', 'tablepress-48:row-47'):
+            self.assertEqual(confirmed[(row, 'Barbara Tobler')]['oefol_id'], 822)
+
     def test_hlost_name_typo_preserves_source(self):
         overlay = json.loads((ROOT / 'site/oefol/person-display.json').read_text())
         confirmed = {(c['source_row'], c['source_name']): c for c in overlay['confirmations']}

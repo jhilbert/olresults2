@@ -38,6 +38,16 @@ for (const [first, second, display] of [
   ['Elisabeth Nagy','Sissy Knapp','Elisabeth NAGY / Elisabeth KNAPP'],
   ['Gernot Kerschbaumer','Gernot Ymsén-Kerschbaumer','Gernot KERSCHBAUMER / Gernot YMSÉN'],
   ['Regina Mandl','Regina Habenicht','Regina MANDL / Regina HABENICHT'],
+  ['Traude Fesselhofer','Waltraud Köpl','Waltraud KÖPL / Traude FESSELHOFER'],
+  ['Andrea Eisl','Andrea Strasser','Andrea EISL / Andrea STRASSER'],
+  ['Christine Gathercole','Christine Müller','Christine MÜLLER / Christine GATHERCOLE'],
+  ['Bati Tobler','Bati Fuchs','Bati TOBLER / Bati FUCHS'],
+  ['Sonja Zinkl','Sonja Reisinger-Zinkl','Sonja ZINKL / Sonja REISINGER-ZINKL'],
+  ['Elisabeth Hohenwarter','Lisi Sandrisser','Elisabeth HOHENWARTER / Lisi SANDRISSER'],
+  ['Thea Lillehov','Thea Schneider-Lillehov','Thea LILLEHOV / Thea SCHNEIDER-LILLEHOV'],
+  ['Michaela Gigo','Michaela Gigon','Michaela GIGON'],
+  ['Wolfgang Kradischnig','Kradischnig Wolfgang','Wolfgang KRADISCHNIG'],
+  ['Günter Kradischnig','Günther Kradischnig','Günter KRADISCHNIG'],
 ]) {
   const items = [first, second].map((name,i)=>({id:`n-${i}`,title_type:'ÖM',club:'A',members:[{name}]}));
   const group = aggregate(items,'people',label);
@@ -45,6 +55,17 @@ for (const [first, second, display] of [
   assert.equal(group[0].name,display);
   assert.equal(group[0].total,2);
 }
+const tob = [
+  {id:'m',title_type:'ÖM',club:'A',members:[{name:'Barbara Tobler',source_row:'older'}]},
+  {id:'u',title_type:'ÖM',club:'A',members:[{name:'Barbara Tobler',source_row:'tablepress-36:row-59'}]},
+  {id:'d',title_type:'ÖM',club:'A',members:[{name:'Bati Fuchs'}]},
+];
+const tg = aggregate(tob,'people',label);
+assert.equal(tg.length,3);
+assert.equal(tg.find(g=>g.name.includes('Zuordnung offen')).total,1);
+assert.equal(tg.find(g=>g.name==='Barbara Tobler').total,1);
+assert.equal(tg.find(g=>g.name==='Bati TOBLER / Bati FUCHS').total,1);
+assert.notEqual(aggregate([{id:'x',title_type:'ÖM',club:'A',members:[{name:'Michael Gigon',source_row:'other'}]},{id:'y',title_type:'ÖM',club:'A',members:[{name:'Michaela Gigon'}]}],'people',label).length,1);
 // Historical source names are grouped while preserving one medal per team.
 const historic = [
   {id:'old',title_type:'ÖM',club:'TV Fürstenfeld',members:[{name:'A One'},{name:'B Two'}]},
