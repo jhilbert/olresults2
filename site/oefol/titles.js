@@ -59,6 +59,13 @@
       return {name:g.name, key:g.key, entries, oestm, oem:entries.length-oestm, total:entries.length};
     }).sort((a,b) => b.total-a.total || b.oestm-a.oestm || a.name.localeCompare(b.name,'de'));
   }
-  root.MeistertafelTitles = {aggregate, membersForGroup, personKey};
-  if (typeof module !== 'undefined') module.exports = {aggregate, membersForGroup, personKey};
+  function rankGroups(groups) {
+    let rank = 0;
+    return groups.map((group, index) => {
+      if (!index || group.total !== groups[index - 1].total) rank = index + 1;
+      return {...group, rank};
+    });
+  }
+  root.MeistertafelTitles = {aggregate, membersForGroup, personKey, rankGroups};
+  if (typeof module !== 'undefined') module.exports = {aggregate, membersForGroup, personKey, rankGroups};
 })(typeof globalThis === 'undefined' ? this : globalThis);

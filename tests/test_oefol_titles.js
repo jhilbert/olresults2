@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const {aggregate, membersForGroup} = require('../site/oefol/titles.js');
+const {aggregate, membersForGroup, rankGroups} = require('../site/oefol/titles.js');
 const awards = [
   {id:'1', title_type:'ÖSTM', club:'A', members:[{name:'A One'},{name:'B Two'},{name:'A One'}]},
   {id:'2', title_type:'ÖM', club:'A', members:[{name:'A One'},{name:'C Three',club:'B'}]},
@@ -84,4 +84,7 @@ const sameName = [
 const datedClub = (club, year) => club === 'Laufklub Kompass Innsbruck' && year < 2025 ? 'Orienteering Imst Oberland' : club;
 assert.deepEqual(aggregate(sameName,'clubs',datedClub).map(g=>g.name).sort(), ['Laufklub Kompass Innsbruck','Orienteering Imst Oberland']);
 assert.equal(membersForGroup(sameName[0],'clubs','Orienteering Imst Oberland',datedClub).length,1);
+const ranked = rankGroups([{name:'A',total:5},{name:'Kastner A',total:4},{name:'Kastner B',total:4},{name:'Kastner C',total:2}]);
+assert.deepEqual(ranked.map(g=>g.rank), [1,2,2,4]);
+assert.deepEqual(ranked.filter(g=>g.name.includes('Kastner')).map(g=>g.rank), [2,2,4]);
 console.log('Meistertafel aggregation: OK');

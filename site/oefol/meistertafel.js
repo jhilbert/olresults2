@@ -260,6 +260,7 @@
     const memberMatches = m => [m.name, m.display_name, m.source_name].some(name => fold(name).includes(q));
     const filtered = data.awards.filter(a => (!y || String(a.year)===y) && (!disc || a.discipline===disc) && (!fmt || formatLabel(a)===fmt) && (!title || a.title_type===title) && (!cat || categoryLabel(a)===cat) && (!club || [a.club,...a.members.map(m=>m.club)].some(c=>clubLabel(c,a.year)===club)) && (!q || view === 'people' || a.members.some(memberMatches)));
     let groups = view === 'awards' ? null : MeistertafelTitles.aggregate(filtered,view,clubLabel,club);
+    if (groups) groups = MeistertafelTitles.rankGroups(groups);
     if (view === 'people' && q) {
       // Team results match the award, but only the searched athlete belongs
       // in the person view; teammates must not become search hits.
@@ -273,13 +274,7 @@
     results.dataset.filterYear = view==='awards' && Boolean(y); results.dataset.filterFormat = view==='awards' && Boolean(fmt); results.dataset.filterCategory = view==='awards' && Boolean(cat);
     if (!appendFrom) header();
     const out=document.createDocumentFragment();
-    if (groups) {
-      let rank = 0;
-      groups.forEach((g, i) => {
-        if (!i || g.total !== groups[i-1].total) rank = i + 1;
-        if (i >= appendFrom && i < visible) out.append(...summaryRows(g, rank));
-      });
-    }
+    if (groups) for (const g of groups.slice(appendFrom,visible)) out.append(...summaryRows(g, g.rank));
     else for (const a of filtered.slice(appendFrom,visible)) out.append(row(a));
     const length=groups ? groups.length : filtered.length;
     if (appendFrom) $('rows').append(out); else $('rows').replaceChildren(out);
