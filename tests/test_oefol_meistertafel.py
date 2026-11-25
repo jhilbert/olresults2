@@ -114,6 +114,14 @@ class MeistertafelTests(unittest.TestCase):
         self.assertEqual((a['source_club'], a['club']), ('NF V,', 'NF Villach'))
         self.assertEqual(a['members'][0]['name'], 'Helena Reinisch')
 
+    def test_hauser_2024_sprint_club_is_sourced(self):
+        a = self.by_id['tablepress-9:row-232']
+        self.assertEqual((a['year'], a['format'], a['members'][0]['name']), (2024, 'Sprint', 'Maria Hauser'))
+        self.assertIsNone(a['source_club'])
+        self.assertEqual(a['club'], 'Naturfreunde Kitzbühel')
+        self.assertIn('club_from_corroborating_source', a['notes'])
+        self.assertIn('kitzbuehel.naturfreunde.at', a['club_evidence_url'])
+
     def test_stockmayer_typo_keeps_original_and_uses_confirmed_id(self):
         a = self.by_id['tablepress-8:row-176']
         self.assertEqual(a['members'][0]['name'], 'Micheal Stockmayer')

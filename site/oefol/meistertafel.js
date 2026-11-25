@@ -39,6 +39,7 @@
     official('HSVOLWN', ['HSV Wr.Neustadt', 'HSV Wr. Neustadt', 'HSV Wiener Neustadt', 'HSV OL Wr. Neustadt', 'HSV OL Wr.Neustadt', 'HSV Wr.Neu+A1:F123+B106:F123stadt']);
     official('HPF', ['HSV PInkafeld', 'HSV Pinkafled', 'HSV Südburgenland', 'HSV S-Bgld.']);
     official('HSD', ['HSV Spittal', 'HSV Spittal/Drau']);
+    official('HWS', ['HSV Salzburg']);
     official('OrK', ['OK Gittis Klosterneuburg', 'Orienteering Kloserneuburg']);
     official('LOM', ['LZ Omaha']);
     official('NOK', ['NF Kitzbühel', 'NF OLG Kitzbühel', 'Natufreunde Kitzbühel', 'HF Kitzbühel']);
@@ -53,7 +54,7 @@
     official('LAC', ['Leibnitzer AC', 'LAC']);
     official('OSW', ['OLG Ströck']);
     official('SKV', ['SKV OLG D.Kaltenbrunn', 'SKV Deutsch Kaltenbrunn', 'OLG D.Kaltenbrunn', 'OLG Deutsch Kaltenbrunn']);
-    official('SUK', ['SU Klagenfurtt']);
+    official('SUK', ['SU Klagenfurtt', 'Union Klagenfurt']);
     official('SUS', ['SU Schöckl Orienteerig']);
     official('OTD', ['OLT Tansdanubien']);
     official('LKI', ['LK Innsbruck', 'LK Kompass Innsbruck', 'LKI Innsbruck']);
@@ -73,6 +74,7 @@
       ['OLC', ['OLC Wien', 'OLC Tyrolia']],
       ['OrK', ['OK Gittis Klosterneuburg']],
       ['HPF', ['HSV Südburgenland']],
+      ['HWS', ['HSV Salzburg']],
       ['ORIO', ['Orienteering Innsbruck Imst', 'Laufklub Kompass Innsbruck Imst', 'Laufklub Kompass Innsbruck (bis 2024)']],
     ]) formerNames.set(byCode.get(code), names);
     formerNames.set('NF Veitsch', ['TVN Veitsch', 'TVN Tyrolia Veitsch']);
@@ -88,7 +90,8 @@
     return aliases.get(key) || name || '';
   };
   function formatLabel(a) {
-    if (!a.format) return '';
+    // The 1966 source heading specifies OL but no more specific format.
+    if (!a.format) return a.year === 1966 && a.discipline === 'OL' ? 'OL' : '';
     const original = a.format.trim();
     let f = original.replace(/^(?:ski[ -]?ol?|mtb[ -]?o)[ -]*/i, '').trim();
     const k = fold(f).replace(/\s+/g, ' ').replace(/-ol$/,'').trim();
@@ -117,6 +120,15 @@
     if (/^(?:Damen|Herren|Mixed|D\s|H\s|D\d|H\d|D-|H-)/i.test(cat)) return cat.replace(/^Damen\b/i,'D').replace(/^Herren\b/i,'H');
     const compact = cat.replace(/^bis\s*/i,'-').replace(/^ab\s*(\d+)$/i,'$1-');
     return [gender, compact].filter(Boolean).join(' ');
+  }
+  function hasUnresolvedYearConflict(a) {
+    const conflicts = a.notes.filter(n => n.startsWith('section_year_conflict:'));
+    // ÖFOL's 2022/23 season review confirms the Sprint and Middle champions:
+    // https://www.oefol.at/wp-content/uploads/2023/11/Orientierung_2023_ansicht_einzelseiten-1.pdf
+    // The year in the 2023 table is correct; only its "Ski-O 2022" heading is wrong.
+    const confirmed = a.year === 2023 && a.discipline === 'Ski-O' &&
+      /^tablepress-8:row-(?:22[5-9]|23[0-9]|24[2-9]|25[0-4])$/.test(a.id);
+    return conflicts.some(n => !(confirmed && n === 'section_year_conflict:Ski-O 2022'));
   }
   const node = (tag, value, cls) => { const e = document.createElement(tag); if (value != null) e.textContent = value; if (cls) e.className = cls; return e; };
   function options(id, values, label) {
@@ -154,11 +166,11 @@
       if (sharedClub && i > 0) continue;
       const raw = m.club || a.club;
       const line = node('div', clubLabel(raw, a.year) || '–');
-      if (a.source_club && !m.club) line.title = `ÖFOL-Quelle: ${a.source_club} · Vereinszuordnung ergänzt`;
+      if (Object.hasOwn(a, 'source_club') && !m.club) line.title = `ÖFOL-Quelle: ${a.source_club || 'kein Verein angegeben'} · Vereinszuordnung ergänzt`;
       else if (raw && clubLabel(raw, a.year) !== raw) line.title = `Original: ${raw}`;
       club.append(line);
     }
-    if (a.notes.some(n => n.startsWith('section_year_conflict:')) || a.notes.includes('name_or_club_ambiguous')) {
+    if (hasUnresolvedYearConflict(a) || a.notes.includes('name_or_club_ambiguous')) {
       const warning = node('span', ' ⓘ', 'source-warning');
       warning.title = a.notes.includes('name_or_club_ambiguous') ? 'Name und Verein in der Quelle nicht eindeutig getrennt.' : 'Die Abschnittsjahreszahl in der Quelle weicht vom Tabellenjahr ab.';
       warning.setAttribute('aria-label', warning.title); names.append(warning);
@@ -173,13 +185,15 @@
     for (const [label,cls] of labels) tr.append(node('th',label,cls));
     $('table-head').replaceChildren(tr);
   }
-  function summaryRows(group) {
+  function summaryRows(group, rank) {
     const tr = node('tr',null,'summary-row');
     const label = node('td'), button = node('button',group.name,'expand-title');
     const previous = view === 'clubs' ? formerNames.get(group.name) : null;
     if (previous?.length) button.append(node('span', ` (ehemals ${previous.join(', ')})`, 'former-club'));
     button.type='button'; button.setAttribute('aria-expanded','false');
-    label.append(button); tr.append(label);
+    const rankLabel = node('span', `#${rank}`, 'summary-rank');
+    rankLabel.setAttribute('aria-label', `Rang ${rank}`);
+    label.append(rankLabel, button); tr.append(label);
     tr.append(node('td',String(group.oestm || '–'),'number'),node('td',String(group.oem || '–'),'number'),node('td',String(group.total),'number total-column'));
     const detail = node('tr',null,'detail-row'); detail.hidden=true;
     const content=node('td'); content.colSpan=4;
@@ -248,7 +262,13 @@
     results.dataset.filterYear = view==='awards' && Boolean(y); results.dataset.filterFormat = view==='awards' && Boolean(fmt); results.dataset.filterCategory = view==='awards' && Boolean(cat);
     if (!appendFrom) header();
     const out=document.createDocumentFragment();
-    if (groups) for (const g of groups.slice(appendFrom,visible)) out.append(...summaryRows(g));
+    if (groups) {
+      let rank = 0;
+      groups.forEach((g, i) => {
+        if (!i || g.total !== groups[i-1].total) rank = i + 1;
+        if (i >= appendFrom && i < visible) out.append(...summaryRows(g, rank));
+      });
+    }
     else for (const a of filtered.slice(appendFrom,visible)) out.append(row(a));
     const length=groups ? groups.length : filtered.length;
     if (appendFrom) $('rows').append(out); else $('rows').replaceChildren(out);

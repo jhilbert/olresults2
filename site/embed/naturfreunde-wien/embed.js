@@ -5,17 +5,27 @@
   const {seasonYear,clubMedalCounts,annualClubGoldSeries} = window.OLRDomainRules;
   const modes = [["om","ÖM/ÖSTM"],["ostm","ÖSTM"],["wien","Wiener MS"],["success","Erfolgsstatistik"]];
   let data, mode="om", year="all", sport="all";
-  // ANNE often repeats an event title as its stage title, with only
-  // punctuation or connecting words changed. Preserve meaningful stage
-  // distinctions (especially different AC numbers or distances).
-  const titleTokens = title => String(title || "").toLocaleLowerCase("de-AT")
-    .replace(/\b(?:inklusive|inkl|und)\b/g, " ").match(/[\p{L}\p{N}]+/gu) || [];
-  function stageSuffix(eventTitle, stageTitle) {
-    if (!stageTitle) return "";
-    const eventWords = [...new Set(titleTokens(eventTitle))].sort();
-    const stageWords = [...new Set(titleTokens(stageTitle))].sort();
-    if (eventWords.length && eventWords.join("|") === stageWords.join("|")) return "";
-    return ` · ${escape(stageTitle)}`;
+  function competitionLabel(r) {
+    const findFormat = text => {
+      const t = String(text || '').toLocaleLowerCase('de-AT');
+      if (/mixed[\s-]*(?:sprint[\s-]*)?staffel|mix[\s-]*sprint/.test(t)) return 'Mixed Sprint-Staffel';
+      if (/staffel/.test(t)) return 'Staffel';
+      if (/mannschaft/.test(t)) return 'Mannschaft';
+      if (/knock[\s-]*out/.test(t)) return 'Knock-out-Sprint';
+      if (/marathon/.test(t)) return 'Marathon';
+      if (/nacht/.test(t)) return 'Nacht';
+      if (/mittel/.test(t)) return 'Mittel';
+      if (/lang(?:distanz)?/.test(t)) return 'Lang';
+      if (/sprint/.test(t)) return 'Sprint';
+      return '';
+    };
+    const format = findFormat(r.stage_title) || findFormat(r.event_title);
+    const discipline = ({footOrienteering:'OL',skiOrienteering:'Ski-O',mountainbikeOrienteering:'MTBO',trailOrienteering:'Trail-O'})[r.sport_type];
+    if (format) return [discipline,format].filter(Boolean).join(' ');
+    return String(r.event_title || r.stage_title || 'Bewerb unbekannt');
+  }
+  function categoryLabel(r) {
+    return String(r.category || r.category_full || '').replace(/^([DH])\s*(\d)/i, '$1 $2').replace(/^([DH])\s*-(\d)/i, '$1 -$2');
   }
   const bySport = rows => rows.filter(r => sport === "all" || !r.sport_type || r.sport_type === sport);
   const headers = `<th class="gold">Gold</th><th class="silver">Silber</th><th class="bronze">Bronze</th>`;
@@ -30,7 +40,9 @@
     for (const r of rows) { if (r.person_id == null || r.identity_basis === "source-team-only") continue; const id=String(r.person_id); if(!grouped.has(id)) grouped.set(id,{name:r.person_name,rows:[],i:[0,0,0],t:[0,0,0]}); const p=grouped.get(id); p.rows.push(r); const n=r.national_rank; if(n>=1&&n<=3) p[["team","relay","pair"].includes(r.result_kind)?"t":"i"][n-1]++; }
     const people=[...grouped.values()].map(p=>({...p,sum:p.i.map((x,i)=>x+p.t[i])})).sort((a,b)=>b.sum[0]-a.sum[0]||b.sum[1]-a.sum[1]||b.sum[2]-a.sum[2]||a.name.localeCompare(b.name,"de-AT"));
     const split=mode==="ostm"; const medalCells=(a,team=false)=>a.map((v,i)=>`<td class="${["gold","silver","bronze"][i]}${team?" team":""}">${v||"–"}</td>`).join("");
-    return `<p class="hint">Person auswählen, um die Medaillenbewerbe zu sehen.${split?" Auf kleinen Bildschirmen die Tabelle seitlich wischen.":""}</p><div class="scroll"><table class="${split?"breakdown":""}"><thead>${split?`<tr><th rowspan="2">Läufer:in</th><th colspan="3">Einzel</th><th colspan="3" class="team-heading">Team</th><th colspan="3">Summe</th></tr><tr>${headers}${headers}${headers}</tr>`:`<tr><th>Läufer:in</th>${headers}<th>Summe</th></tr>`}</thead><tbody>${people.map((p,i)=>`<tr><td><button class="runner" aria-expanded="false" aria-controls="details-${i}">${escape(p.name)} ▸</button></td>${split?medalCells(p.i)+medalCells(p.t,true)+medalCells(p.sum):medalCells(p.sum)+`<td class="total">${p.sum.reduce((a,b)=>a+b,0)}</td>`}</tr><tr class="details" id="details-${i}" hidden><td colspan="${split?10:5}"><ul>${p.rows.slice().sort((a,b)=>a.national_rank-b.national_rank||String(b.date).localeCompare(String(a.date))).map(r=>`<li><b>${["","Gold","Silber","Bronze"][r.national_rank]}</b> · ${escape(r.event_title)}${stageSuffix(r.event_title,r.stage_title)} · ${escape(r.category_full||r.category)} · ${escape((r.date||"").slice(0,10).split("-").reverse().join("."))}</li>`).join("")}</ul></td></tr>`).join("")||`<tr><td colspan="${split?10:5}">Keine Medaillen erfasst.</td></tr>`}</tbody></table></div>`;
+    let rank=0; people.forEach((p,i)=>{if (!i || p.sum.some((v,j)=>v!==people[i-1].sum[j])) rank=i+1; p.rank=rank;});
+    const detail = r => [ `<b>${["","Gold","Silber","Bronze"][r.national_rank]}</b>`, escape((r.date||"").slice(0,10).split("-").reverse().join(".")), mode==='om' ? escape(r.championship) : '', escape(competitionLabel(r)), escape(categoryLabel(r)) ].filter(Boolean).join(' · ');
+    return `<p class="hint">Person auswählen, um die Medaillenbewerbe zu sehen.${split?" Auf kleinen Bildschirmen die Tabelle seitlich wischen.":""}</p><div class="scroll"><table class="${split?"breakdown":""}"><thead>${split?`<tr><th rowspan="2">Läufer:in</th><th colspan="3">Einzel</th><th colspan="3" class="team-heading">Team</th><th colspan="3">Summe</th></tr><tr>${headers}${headers}${headers}</tr>`:`<tr><th>Läufer:in</th>${headers}<th>Summe</th></tr>`}</thead><tbody>${people.map((p,i)=>`<tr><td><span class="rank" aria-label="Rang ${p.rank}">#${p.rank}</span><button class="runner" aria-expanded="false" aria-controls="details-${i}">${escape(p.name)} ▸</button></td>${split?medalCells(p.i)+medalCells(p.t,true)+medalCells(p.sum):medalCells(p.sum)+`<td class="total">${p.sum.reduce((a,b)=>a+b,0)}</td>`}</tr><tr class="details" id="details-${i}" hidden><td colspan="${split?10:5}"><ul>${p.rows.slice().sort((a,b)=>a.national_rank-b.national_rank||String(b.date).localeCompare(String(a.date))).map(r=>`<li>${detail(r)}</li>`).join("")}</ul></td></tr>`).join("")||`<tr><td colspan="${split?10:5}">Keine Medaillen erfasst.</td></tr>`}</tbody></table></div>`;
   }
   function success(national,vienna) {
     const hist=sport==="all"?data.history:null, series=annualClubGoldSeries(national,vienna,{startYear:hist?2000:null,history:hist});

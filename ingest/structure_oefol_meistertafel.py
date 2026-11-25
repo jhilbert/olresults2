@@ -264,6 +264,13 @@ def structure(raw):
                     pieces = cleaned
                 current['members'] = [{'name':p.strip(), 'source_row':source_id} for p in pieces if p.strip()]
                 current['printed_names'] = name
+                if source_id == 'tablepress-9:row-232' and not club and name == 'Maria Hauser':
+                    # The club's own 2024 season report identifies this exact
+                    # Ski-O D15-17 sprint championship as a Naturfreunde Kitzbühel title.
+                    current['source_club'] = None
+                    current['club'] = 'Naturfreunde Kitzbühel'
+                    current['club_evidence_url'] = 'https://kitzbuehel.naturfreunde.at/berichte/2024/bericht-ski-orientierung-2024/'
+                    current['notes'].append('club_from_corroborating_source')
                 if source_id == 'tablepress-26:row-186' and club == 'NF V,' and name == 'Helena Reinisch':
                     current['source_club'] = club
                     current['club'] = 'NF Villach'
