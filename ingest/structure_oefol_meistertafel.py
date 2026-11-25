@@ -15,10 +15,12 @@ ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT = ROOT / 'data/review/archived_sources/oefol/meistertafel-2026-11-22.html'
 OUT = ROOT / 'site/oefol/meistertafel.json'
 SOURCE_SHA256 = '0bd215192f8c15da76062c1c47144a52f488af812e3de910728e58130651cb7d'
+SNAPSHOT_2026 = ROOT / 'data/review/archived_sources/oefol/meistertafel-2026-11-25.html'
+SHA256_2026 = 'c0423643da0e44dcfb117f8d2547065b255201002628b0b1c3420576ed92d0ea'
 CLASS = re.compile(r'^(?:D|H|DH|D/H|H/D|H\+D|D\+H|Mixed)\s*(?:[-–]?\d|Elite|Allg)', re.I)
 TITLE = re.compile(r'(?:staats)?meister', re.I)
 SECTION = re.compile(r'^(?:ol|mtb[ -]?o|ski[ -]?o(?:l)?)(?:\s+\d{4})?$', re.I)
-FORMATS = re.compile(r'^(?:sprint(?:-ol)?|mittel(?:distanz)?|lang(?:distanz|strecken-ol)?|ol[ -]lang(?:distanz)?|tag-ol|ol|nacht(?:-ol)?|staffel|mannschaft|mixed.*staffel|knock.?out(?: sprint)?|ultralang|(?:ol|marathon)[ -]marathon|marathon-ol|mtb[ -]?o.*|ski[ -]?o(?:l)?.*)$', re.I)
+FORMATS = re.compile(r'^(?:sprint(?:-ol)?|mittel(?:distanz)?|lang(?:distanz|strecken-ol)?|ol[ -]lang(?:distanz)?|tag-ol|ol|nacht(?:-ol)?|staffel|mannschaft|mixed.*staffel|knock.?out(?: sprint)?|massenstart|verfolgung|ultralang|(?:ol|marathon)[ -]marathon|marathon-ol|mtb[ -]?o.*|ski[ -]?o(?:l)?.*)$', re.I)
 EMPTY = re.compile(r'^(?:(?:\d{4}\s+)?nicht\s+(?:vergeben|ausgetragen)|keine(?:r|s)?\s+wertung|kein(?:e|er)?\s+meister(?:in)?)$', re.I)
 
 # The 2021/2022 source prints these team members without any separator.
@@ -110,12 +112,14 @@ def gender_from_source(title, category, fmt=None):
     return None
 
 
-def structure(raw):
+def structure(raw, expected_sha=SOURCE_SHA256, only_year=None):
     parsed = parse(raw)
-    if hashlib.sha256(raw).hexdigest() != SOURCE_SHA256:
+    if hashlib.sha256(raw).hexdigest() != expected_sha:
         raise ValueError('Source snapshot changed: review and repin before replacing the data')
     awards, source_rows = [], []
     for table in parsed['tables']:
+        if only_year is not None and table['year'] != only_year:
+            continue
         year, disc, fmt, current, section_conflict = table['year'], None, None, None, None
         rowspans = {}
         for row in table['rows']:
@@ -263,7 +267,13 @@ def structure(raw):
                         current['notes'].append('club_repeated_in_name_cell')
                     pieces = cleaned
                 current['members'] = [{'name':p.strip(), 'source_row':source_id} for p in pieces if p.strip()]
+                if year == 2026 and len(pieces) == 1 and len(expanded) == 5 and x[2] and x[3] and x[4]:
+                    current['members'][0]['display_name'] = f'{x[2]} {x[3].upper()}'
                 current['printed_names'] = name
+                if year == 2026 and club and club.endswith(' (nicht in der Ergebnisliste)'):
+                    current['source_club'] = club
+                    current['club'] = club.removesuffix(' (nicht in der Ergebnisliste)')
+                    current['notes'].append('source_note:nicht in der Ergebnisliste')
                 if source_id == 'tablepress-9:row-232' and not club and name == 'Maria Hauser':
                     # The club's own 2024 season report identifies this exact
                     # Ski-O D15-17 sprint championship as a Naturfreunde Kitzbühel title.
@@ -315,16 +325,30 @@ def structure(raw):
                                           for n in member_names(continuation, fmt))
                 current['source_rows'].append(source_id)
                 rec.update(kind='continuation',award_id=current['id']); continue
-    return {'schema_version':1,'source_url':SOURCE_URL,'source_sha256':SOURCE_SHA256,
+    return {'schema_version':1,'source_url':SOURCE_URL,'source_sha256':expected_sha,
             'source_snapshot':'data/review/archived_sources/oefol/meistertafel-2026-11-22.html',
             'scope':'Quellenabschrift; keine OLResults-Personenverknüpfung oder automatische Vergabe.',
             'official_clubs':json.loads((ROOT / 'data/official_clubs.json').read_text()),
             'awards':awards,'source_rows':source_rows}
 
 
+def combined_data():
+    original = structure(SNAPSHOT.read_bytes())
+    latest = structure(SNAPSHOT_2026.read_bytes(), SHA256_2026, only_year=2026)
+    if not latest['awards'] or any(a['year'] != 2026 for a in latest['awards']):
+        raise ValueError('2026 source section missing or invalid')
+    if any(r['kind'] == 'unclassified' for r in latest['source_rows']):
+        raise ValueError('Unclassified 2026 source rows require review')
+    original['awards'] = latest['awards'] + original['awards']
+    original['source_rows'] = latest['source_rows'] + original['source_rows']
+    original['additional_sources'] = [{'year':2026, 'source_url':SOURCE_URL,
+        'source_snapshot':str(SNAPSHOT_2026.relative_to(ROOT)), 'source_sha256':SHA256_2026}]
+    return original
+
+
 def main():
     parser=argparse.ArgumentParser(); parser.add_argument('--check',action='store_true'); args=parser.parse_args()
-    data=structure(SNAPSHOT.read_bytes())
+    data=combined_data()
     text=json.dumps(data,ensure_ascii=False,separators=(',',':'))+'\n'
     if args.check:
         if not OUT.is_file() or OUT.read_text()!=text: raise SystemExit('Structured source differs')

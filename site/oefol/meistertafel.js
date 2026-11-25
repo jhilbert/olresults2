@@ -53,7 +53,7 @@
     official('WAT', ['WAT OL', 'WAT']);
     official('LAC', ['Leibnitzer AC', 'LAC']);
     official('OSW', ['OLG Ströck']);
-    official('SKV', ['SKV OLG D.Kaltenbrunn', 'SKV Deutsch Kaltenbrunn', 'OLG D.Kaltenbrunn', 'OLG Deutsch Kaltenbrunn']);
+    official('SKV', ['SKV OLG D.Kaltenbrunn', 'SKV Deutsch Kaltenbrunn', 'SKV OL Deutsch Kaltenbrunn', 'OLG D.Kaltenbrunn', 'OLG Deutsch Kaltenbrunn']);
     official('SUK', ['SU Klagenfurtt', 'Union Klagenfurt']);
     official('SUS', ['SU Schöckl Orienteerig']);
     official('OTD', ['OLT Tansdanubien']);
@@ -99,6 +99,8 @@
     else if (/^mittel(?:distanz)?$/.test(k)) f = 'Mittel';
     else if (/^sprint(?:distanz)?$/.test(k)) f = 'Sprint';
     else if (/^nacht$/.test(k)) f = 'Nacht';
+    else if (/^massenstart$/.test(k)) f = 'Massenstart';
+    else if (/^verfolgung$/.test(k)) f = 'Verfolgung';
     else if (/^(?:ol[ -])?marathon$/.test(k)) f = 'Marathon';
     else if (/^mixed[ -]sprint[ -]staffel$/.test(k)) f = 'Mixed Sprint-Staffel';
     else if (/^knock[ -]?out(?:[ -]sprint)?$/.test(k)) f = 'Knock-out-Sprint';
@@ -111,6 +113,10 @@
     const gender = ({female:'D', male:'H', mixed:'Mixed'})[a.gender] || '';
     let cat = (a.category || '').trim();
     if (!cat) return gender || '–';
+    // 2026 uses D12/H12, U17 and "über 45" for established age groups.
+    cat = cat.replace(/^([DH])\s*(12|14|16|17|18|20)$/i, (_,g,age) => `${g.toUpperCase()} -${age}`);
+    cat = cat.replace(/^([DH])\s*(\d+(?:-\d+)?\s+Elite|\d+-\d+)$/i, (_,g,age) => `${g.toUpperCase()} ${age}`);
+    cat = cat.replace(/^U\s*(\d+)$/i, 'bis $1').replace(/^über\s*(\d+)$/i, 'ab $1');
     // A bare masters age in the source denotes the same class as "ab 50".
     // Do not infer a direction for youth or elite ages.
     cat = cat.replace(/^(D|H)\s*(35|40|45|50|55|60|65|70|75|80|85|90)\s*$/i, (_, g, age) => `${g.toUpperCase()} ${age}-`);
@@ -168,6 +174,11 @@
       const line = node('div', clubLabel(raw, a.year) || '–');
       if (Object.hasOwn(a, 'source_club') && !m.club) line.title = `ÖFOL-Quelle: ${a.source_club || 'kein Verein angegeben'} · Vereinszuordnung ergänzt`;
       else if (raw && clubLabel(raw, a.year) !== raw) line.title = `Original: ${raw}`;
+      if (a.notes.includes('source_note:nicht in der Ergebnisliste')) {
+        const warning = node('span', ' ⓘ', 'source-warning');
+        warning.title = 'ÖFOL-Quelle: nicht in der Ergebnisliste';
+        warning.setAttribute('aria-label', warning.title); line.append(warning);
+      }
       club.append(line);
     }
     if (hasUnresolvedYearConflict(a) || a.notes.includes('name_or_club_ambiguous')) {

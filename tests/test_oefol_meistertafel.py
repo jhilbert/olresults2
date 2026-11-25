@@ -23,6 +23,21 @@ class MeistertafelTests(unittest.TestCase):
         self.assertTrue(all(a['title_type'] in ('ÖM','ÖSTM') for a in self.data['awards']))
         self.assertTrue(all(a['members'] for a in self.data['awards']))
 
+    def test_incremental_2026_preserves_history_and_formats(self):
+        combined = source.combined_data()
+        new = [a for a in combined['awards'] if a['year'] == 2026]
+        self.assertEqual(len(new), 259)
+        self.assertEqual([a for a in combined['awards'] if a['year'] != 2026], self.data['awards'])
+        self.assertEqual([r for r in combined['source_rows'] if r['year'] != 2026], self.data['source_rows'])
+        self.assertFalse([r for r in combined['source_rows'] if r['kind'] == 'unclassified'])
+        by_id = {a['id']:a for a in new}
+        self.assertEqual((by_id['tablepress-80:row-213']['discipline'], by_id['tablepress-80:row-213']['format']), ('MTBO', 'Massenstart'))
+        self.assertEqual((by_id['tablepress-80:row-283']['discipline'], by_id['tablepress-80:row-283']['format']), ('Ski-O', 'Verfolgung'))
+        self.assertEqual(len(by_id['tablepress-80:row-102']['members']), 3)
+        self.assertEqual(by_id['tablepress-80:row-3']['members'][0]['display_name'], 'Jasmina GASSNER')
+        self.assertEqual(by_id['tablepress-80:row-261']['club'], 'Orienteering Imst Oberland')
+        self.assertIn('source_note:nicht in der Ergebnisliste', by_id['tablepress-80:row-261']['notes'])
+
     def test_2014_malformed_rowspan_does_not_eat_next_title(self):
         a = self.by_id['tablepress-18:row-149']
         self.assertEqual((a['discipline'],a['format'],a['category'],a['title_type'],a['club']),
@@ -81,7 +96,7 @@ class MeistertafelTests(unittest.TestCase):
                           ('Elisabeth','Michaela','Christian','Sonja','Johann','Thomas','Agota','Andreas')])
 
     def test_generated_data_is_reproducible(self):
-        expected=json.dumps(self.data,ensure_ascii=False,separators=(',',':'))+'\n'
+        expected=json.dumps(source.combined_data(),ensure_ascii=False,separators=(',',':'))+'\n'
         self.assertEqual(source.OUT.read_text(),expected)
 
     def test_official_clubs_use_shared_registry(self):
