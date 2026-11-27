@@ -4,6 +4,8 @@ Die [ÖFOL-Meistertafel](https://www.orienteeringaustria.at/termine/meistertafel
 
 ## Vorgemerkte Rückmeldung an den ÖFOL
 
+- **Namensabgleich 2026-11-27:** Für 26 konkrete Quellzeilen sind Schreibfehler mit Erhalt der Originalwerte in `data/review/oefol_meistertafel_person_confirmations.json` dokumentiert und anhand von ANNE-Register, Verein, Altersklasse und weiteren Wertungen zugeordnet. Darunter Matthias Gröll (2022/2023 Staffel, Quelle „Mathias“), Annika Simsch (2025 Sprint, Quelle „Anna“), Marina Skern (2017 Staffel, Quelle „Martina“) sowie einzelne Schreibvarianten von Opetnik, Hauser, Habenicht, Leonhardt, Poell, Maier, Dobnik, Kasper, Schaffer, Grabenhofer, Wartbichler, Wiesberger, Rameder und Tonka. Ähnliche Namen ohne ausreichenden Kontext werden nicht automatisch zusammengeführt.
+
 - **2010, ÖM Mannschaft, Herren 35-, HSV OL Wiener Neustadt:** In der Meistertafel steht „Martin STOCKMAYER“. Richtig ist **Manfred Stockmayer**; Michael Stockmayer ist ein anderes Mitglied derselben Mannschaft. Der [ÖFOL-Jahresrückblick 2010, Meister und Cupsieger](https://www.oefol.at/wp-content/uploads/2018/08/magazin2010-04_komplett.pdf) nennt Manfred Stockmayer, Emanuel Braun und Michael Stockmayer. Quellenzeile `tablepress-22:row-155`; Korrektur für die Auswertung vom Nutzer bestätigt.
 - **Historische Einträge Claudia Künzel:** Die Meistertafel enthält auch die Schreibweise „Claudia Künzl“. Laut Bestätigung des Nutzers ist „Künzl“ ein Schreibfehler; gemeint ist Claudia Künzel, später Claudia Bonek beziehungsweise Künzel-Bonek.
 - **2024, ÖM Lang, Naturfreunde Wien:** In Quellenzeile `tablepress-9:row-91` ist die Namensreihenfolge „Arbter Vera“ vertauscht; die Person wird auf Bestätigung des Nutzers als Vera Arbter geführt.

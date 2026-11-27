@@ -161,6 +161,20 @@ class MeistertafelTests(unittest.TestCase):
         c = next(c for c in overlay['confirmations'] if c['source_row'] == a['id'])
         self.assertEqual((c['first_name'], c['last_name'], c['oefol_id']), ('Michael', 'Stockmayer', 816))
 
+    def test_runner_typo_corrections_preserve_source_and_canonical_identity(self):
+        overlay = json.loads((ROOT / 'site/oefol/person-display.json').read_text())
+        confirmed = {(c['source_row'], c['source_name']): c for c in overlay['confirmations']}
+        for row, original, first, last, person_id in [
+            ('tablepress-8:row-103', 'Mathias Gröll', 'Matthias', 'Gröll', 3692),
+            ('tablepress-7:row-101', 'Mathias Gröll', 'Matthias', 'Gröll', 3692),
+            ('tablepress-70:row-13', 'Anna Simsch', 'Annika', 'Simsch', 10356),
+            ('tablepress-14:row-122', 'Martina SKERN', 'Marina', 'Skern', 2134),
+        ]:
+            award = next(a for a in self.data['awards'] if any(m['source_row'] == row and m['name'] == original for m in a['members']))
+            self.assertTrue(any(m['source_row'] == row and m['name'] == original for m in award['members']))
+            c = confirmed[(row, original)]
+            self.assertEqual((c['first_name'], c['last_name'], c['oefol_id']), (first, last, person_id))
+
     def test_mannschaft_2010_manfred_stockmayer_preserves_original(self):
         a = self.by_id['tablepress-22:row-154']
         self.assertEqual(a['members'][1]['name'], 'Martin STOCKMAYER')
