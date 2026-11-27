@@ -290,7 +290,7 @@
   async function init() {
     try {
       const base = document.body.dataset.sourceBase || '';
-      const [response, displayResponse]=await Promise.all([fetch(`${base}meistertafel.json?v=20261127-10`),fetch(`${base}person-display.json?v=20261127-10`)]);
+      const [response, displayResponse]=await Promise.all([fetch(`${base}meistertafel.json?v=20261127-11`),fetch(`${base}person-display.json?v=20261127-10`)]);
       if (!response.ok || !displayResponse.ok) throw Error(`HTTP ${response.ok ? displayResponse.status : response.status}`);
       data=await response.json();
       const display=await displayResponse.json();

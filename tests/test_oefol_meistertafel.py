@@ -62,6 +62,10 @@ class MeistertafelTests(unittest.TestCase):
             a = combined[row]
             self.assertEqual((a['title_type'], a['source_title_type']), ('ÖM', 'ÖSTM'))
             self.assertIn('title_type_corrected_user_assessment_2026-11-27', a['notes'])
+        for row in ('tablepress-80:row-277', 'tablepress-80:row-278'):
+            a = combined[row]
+            self.assertEqual((a['title_type'], a['source_title_type']), ('ÖM', 'ÖSTM'))
+            self.assertIn('title_type_corrected_later_source_screenshot', a['notes'])
 
     def test_alexander_xander_berger_no_unverified_blanket_merge(self):
         overlay = json.loads((ROOT / 'site/oefol/person-display.json').read_text())

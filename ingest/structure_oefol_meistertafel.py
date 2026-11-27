@@ -280,6 +280,12 @@ def structure(raw, expected_sha=SOURCE_SHA256, only_year=None):
                     current['source_title_type'] = current['title_type']
                     current['title_type'] = 'ÖM'
                     current['notes'].append('title_type_corrected_user_assessment_2026-11-27')
+                if source_id in {'tablepress-80:row-277', 'tablepress-80:row-278'} and year == 2026 and fmt == 'Mixed Sprint Staffel' and cat == 'U17':
+                    # Later user-provided screenshot of the official table
+                    # corrects the archived ÖSTM label to ÖM for both members.
+                    current['source_title_type'] = current['title_type']
+                    current['title_type'] = 'ÖM'
+                    current['notes'].append('title_type_corrected_later_source_screenshot')
                 if source_id == 'tablepress-7:row-194' and year == 2022 and name == 'Katja Walther':
                     # The official Ski-O Sprint result lists Damen ab 35;
                     # the Meistertafel has both the age direction and gender wrong.
