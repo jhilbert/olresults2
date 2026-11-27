@@ -4,6 +4,10 @@
   // A surname by itself is not a person identifier, even within one event.
   const personKey = member => {
     const key = nameKey(member.name);
+    // 2014 source prints Alexander; the specific ANNE results name Xander.
+    // Do not infer that all older Alexander Berger rows are the same person.
+    if (key === 'xander berger' || (key === 'alexander berger' && ['tablepress-18:row-45','tablepress-18:row-75'].includes(member.source_row))) return 'confirmed:xander-berger-2439';
+    if (key === 'alexander berger' && member.source_row === 'tablepress-26:row-57') return 'unresolved:berger-2006-lang';
     if (['helga kolb','helga kromp-kolb','helg kromp-kolb'].includes(key)) return 'confirmed:1727';
     if (['katja bonek','katja gassner'].includes(key)) return 'confirmed:katja-bonek-gassner';
     if (['claudia bonek','claudia künzel','claudia künzl','claudia künzel-bonek'].includes(key)) return 'confirmed:claudia-kuenzel-bonek';
@@ -46,7 +50,7 @@
           // Preserve accents and distinct spellings; no unverified identity merge.
           const id = personKey(member);
           const confirmedNames = {'confirmed:1727':'Helga KOLB / Helga KROMP-KOLB', 'confirmed:katja-bonek-gassner':'Katja BONEK / Katja GASSNER', 'confirmed:claudia-kuenzel-bonek':'Claudia KÜNZEL / Claudia BONEK', 'confirmed:ursula-kadan-fesselhofer':'Ursula KADAN / Ursula FESSELHOFER', 'confirmed:lucie-boehm-rothauer':'Lucie BÖHM / Lucie ROTHAUER', 'confirmed:elisabeth-nagy-knapp':'Elisabeth NAGY / Elisabeth KNAPP', 'confirmed:gernot-kerschbaumer-ymsen':'Gernot KERSCHBAUMER / Gernot YMSÉN', 'confirmed:regina-mandl-habenicht':'Regina MANDL / Regina HABENICHT', 'confirmed:waltraud-koepl-fesselhofer':'Waltraud KÖPL / Traude FESSELHOFER', 'confirmed:andrea-eisl-strasser':'Andrea EISL / Andrea STRASSER', 'confirmed:christine-mueller-gathercole':'Christine MÜLLER / Christine GATHERCOLE', 'confirmed:bati-tobler-fuchs':'Bati TOBLER / Bati FUCHS', 'confirmed:sonja-zinkl-reisinger':'Sonja ZINKL / Sonja REISINGER-ZINKL', 'confirmed:elisabeth-hohenwarter-sandrisser':'Elisabeth HOHENWARTER / Lisi SANDRISSER', 'confirmed:thea-lillehov-schneider':'Thea LILLEHOV / Thea SCHNEIDER-LILLEHOV', 'confirmed:michaela-gigon':'Michaela GIGON', 'confirmed:wolfgang-kradischnig':'Wolfgang KRADISCHNIG', 'confirmed:guenter-kradischnig':'Günter KRADISCHNIG'};
-          const display = confirmedNames[id] || (id.includes(':barbara-tobler') ? 'Barbara TOBLER (Zuordnung offen)' : null) || member.display_name || (/\s/.test(name) ? name : `${name} (Vorname fehlt)`);
+          const display = (id === 'confirmed:xander-berger-2439' ? 'Xander BERGER' : id === 'unresolved:berger-2006-lang' ? 'Alexander BERGER (Zuordnung offen)' : confirmedNames[id]) || (id.includes(':barbara-tobler') ? 'Barbara TOBLER (Zuordnung offen)' : null) || member.display_name || (/\s/.test(name) ? name : `${name} (Vorname fehlt)`);
           add(id, display, award);
         } else {
           add(club || '(Verein unbekannt)', club || 'Verein unbekannt', award);

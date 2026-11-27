@@ -5,6 +5,17 @@ const awards = [
   {id:'2', title_type:'ÖM', club:'A', members:[{name:'A One'},{name:'C Three',club:'B'}]},
 ];
 const label = x => x || '';
+const bergers = [
+  {id:'2014',title_type:'ÖM',club:'A',members:[{name:'Alexander Berger',source_row:'tablepress-18:row-45'}]},
+  {id:'2013',title_type:'ÖM',club:'A',members:[{name:'Xander Berger',source_row:'tablepress-19:row-187'}]},
+  {id:'2006',title_type:'ÖM',club:'B',members:[{name:'Alexander Berger',source_row:'tablepress-26:row-99'}]},
+  {id:'2006-lang',title_type:'ÖM',club:'C',members:[{name:'Alexander Berger',source_row:'tablepress-26:row-57'}]},
+];
+const bergerGroups = aggregate(bergers,'people',label);
+assert.equal(bergerGroups.length,3);
+assert.equal(bergerGroups.find(g=>g.name==='Xander BERGER').total,2);
+assert.equal(bergerGroups.find(g=>g.name==='Alexander Berger').total,1);
+assert.equal(bergerGroups.find(g=>g.name==='Alexander BERGER (Zuordnung offen)').total,1);
 const a = aggregate(awards, 'people', label);
 assert.equal(a.find(x=>x.name==='A One').total, 2);
 assert.equal(a.find(x=>x.name==='A One').oestm, 1);

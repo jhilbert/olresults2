@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'ingest'))
 import structure_oefol_meistertafel as source
+import audit_oefol_name_evidence as name_audit
 
 
 class MeistertafelTests(unittest.TestCase):
@@ -13,6 +14,11 @@ class MeistertafelTests(unittest.TestCase):
     def setUpClass(cls):
         cls.data = source.structure(source.SNAPSHOT.read_bytes())
         cls.by_id = {a['id']:a for a in cls.data['awards']}
+
+    def test_name_audit_handles_name_order_and_pairs(self):
+        self.assertIn('anna sophie mayr', name_audit.result_names('Foidl Elena + Mayr Anna Sophie'))
+        self.assertIn('irene greiner loschnigg', name_audit.result_names('Greiner-Löschnigg Irene'))
+        self.assertNotIn('loschnigg greiner irene', name_audit.result_names('Greiner-Löschnigg Irene'))
 
     def test_every_nonempty_source_row_is_accounted_for(self):
         rows = self.data['source_rows']
@@ -43,6 +49,24 @@ class MeistertafelTests(unittest.TestCase):
         self.assertEqual((a['discipline'],a['format'],a['category'],a['title_type'],a['club']),
                          ('OL','Mannschaft','bis 18','ÖM','NF Wien'))
         self.assertEqual([m['name'] for m in a['members']], ['Florian KURZ','Dominik JANDL','Clemens WOLFRAM'])
+
+    def test_2022_skio_sprint_walther_category_preserves_source(self):
+        a = self.by_id['tablepress-7:row-194']
+        self.assertEqual((a['category'], a['gender']), ('ab 35', 'female'))
+        self.assertEqual((a['source_category'], a['source_gender']), ('bis 35', 'male'))
+        self.assertIn('event_3615', a['category_evidence_url'])
+
+    def test_2026_skio_mixed_45_user_assessment_preserves_source(self):
+        combined = {a['id']: a for a in source.combined_data()['awards']}
+        for row in ('tablepress-80:row-279', 'tablepress-80:row-280'):
+            a = combined[row]
+            self.assertEqual((a['title_type'], a['source_title_type']), ('ÖM', 'ÖSTM'))
+            self.assertIn('title_type_corrected_user_assessment_2026-11-27', a['notes'])
+
+    def test_alexander_xander_berger_no_unverified_blanket_merge(self):
+        overlay = json.loads((ROOT / 'site/oefol/person-display.json').read_text())
+        rows = {c['source_row'] for c in overlay['confirmations'] if c['oefol_id'] == 2439}
+        self.assertFalse({'tablepress-26:row-99', 'tablepress-26:row-57'} & rows)
 
     def test_teammates_ties_and_historical_tabular_rows(self):
         a = self.by_id['tablepress-70:row-103']
@@ -178,6 +202,7 @@ class MeistertafelTests(unittest.TestCase):
     def test_additional_name_review_preserves_source_and_team_members(self):
         overlay = json.loads((ROOT / 'site/oefol/person-display.json').read_text())
         confirmed = {(c['source_row'], c['source_name']): c for c in overlay['confirmations']}
+        all_awards = source.combined_data()['awards']
         for row, original, expected, person_id in [
             ('tablepress-9:row-105', 'Felix Borsitzy', 'Felix Borsitzky', 8557),
             ('tablepress-11:row-69', 'Camilla AIGMÃœLLER', 'Camilla Aigmüller', 8582),
@@ -185,8 +210,34 @@ class MeistertafelTests(unittest.TestCase):
             ('tablepress-20:row-116', 'Susi BEITSBERGER', 'Susi Veitsberger', 1204),
             ('tablepress-38:row-89', 'Tobias Breitschädl', 'Tobias Breitschädel', 2915),
             ('tablepress-38:row-89', 'Felix Breitschädl', 'Felix Breitschädel', 15),
+            ('tablepress-10:row-128', 'Zigm. Vente', 'Vente Zigmantaite', 9007),
+            ('tablepress-9:row-39', 'Gloria Kerschbaum', 'Gloria Kerschbaum', None),
+            ('tablepress-7:row-105', 'Nikolas Hinterplattner', 'Nikolaus Hinterplattner', 8899),
+            ('tablepress-7:row-228', 'Maria Varga', 'Marie Varga', 8332),
+            ('tablepress-18:row-143', 'Wiliam FENK', 'William Fenk', 7161),
+            ('tablepress-10:row-160', 'Katja Walther', 'Katja Walther', None),
+            ('tablepress-7:row-194', 'Katja Walther', 'Katja Walther', None),
+            ('tablepress-7:row-211', 'Katja Walther', 'Katja Walther', None),
+            ('tablepress-7:row-231', 'Katja Walther', 'Katja Walther', None),
+            ('tablepress-9:row-255', 'Katja Walther', 'Katja Walther', None),
+            ('tablepress-9:row-189', 'Katja Walther', 'Katja Walther', None),
+            ('tablepress-17:row-8', 'Jürgen DEUBEL', 'Joergen Deubel', 6452),
+            ('tablepress-17:row-181', 'Jürgen DEUBEL', 'Joergen Deubel', 6452),
+            ('tablepress-15:row-173', 'Felix RUTHER', 'Felix Ruthner', None),
+            ('tablepress-15:row-185', 'Mathias REINER', 'Matthias Reiner', 3143),
+            ('tablepress-8:row-131', 'Irene Greiner-Löschnigg', 'Irene Greiner-Löschnigg', 9013),
+            ('tablepress-13:row-7', 'Marie Philine BISPING', 'Marie Philine Bisping', 8476),
+            ('tablepress-10:row-130', 'Anna Sophie Mayr', 'Anna Sophie Mayr', 9635),
+            ('tablepress-10:row-130', 'Elena Foidl', 'Elena Foidl', 8610),
+            ('tablepress-80:row-279', 'Katja Walter', 'Katja Walther', None),
+            ('tablepress-17:row-116', 'Simon WIESING', 'Simon Wiesinger', 2985),
+            ('tablepress-14:row-89', 'Martha POMMER', 'Martha Prommer', 2714),
+            ('tablepress-19:row-247', 'Waldtraud RITTER', 'Waltraud Ritter', 3850),
+            ('tablepress-19:row-136', 'Georg GITTMAIER', 'Georg Gittmaier', 528),
+            ('tablepress-19:row-295', 'Paul PACHER', 'Paul Pacher', 2518),
+            ('tablepress-19:row-296', 'Tobias KUGLER', 'Tobias Kugler', 3103),
         ]:
-            self.assertTrue(any(m['source_row'] == row and m['name'] == original for a in self.data['awards'] for m in a['members']))
+            self.assertTrue(any(m['source_row'] == row and m['name'] == original for a in all_awards for m in a['members']))
             c = confirmed[(row, original)]
             self.assertEqual((c['first_name'] + ' ' + c['last_name'], c['oefol_id']), (expected, person_id))
 

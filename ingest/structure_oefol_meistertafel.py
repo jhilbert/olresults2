@@ -274,6 +274,21 @@ def structure(raw, expected_sha=SOURCE_SHA256, only_year=None):
                     current['source_title_type'] = current['title_type']
                     current['title_type'] = 'ÖSTM'
                     current['notes'].append('title_type_corrected_user_confirmation_2026-11-27')
+                if source_id in {'tablepress-80:row-279', 'tablepress-80:row-280'} and year == 2026 and fmt == 'Mixed Sprint Staffel' and cat == 'über 45':
+                    # User accepts ÖM for both legs of this DH45 team; retain
+                    # the source's ÖSTM designation for a later source check.
+                    current['source_title_type'] = current['title_type']
+                    current['title_type'] = 'ÖM'
+                    current['notes'].append('title_type_corrected_user_assessment_2026-11-27')
+                if source_id == 'tablepress-7:row-194' and year == 2022 and name == 'Katja Walther':
+                    # The official Ski-O Sprint result lists Damen ab 35;
+                    # the Meistertafel has both the age direction and gender wrong.
+                    current['source_category'] = current['category']
+                    current['source_gender'] = current['gender']
+                    current['category'] = 'ab 35'
+                    current['gender'] = 'female'
+                    current['category_evidence_url'] = 'https://anne-cdn.oefol.at/public/legacy/event_3615_erg190222.html'
+                    current['notes'].append('category_corrected_from_official_result')
                 if year == 2026 and club and club.endswith(' (nicht in der Ergebnisliste)'):
                     current['source_club'] = club
                     current['club'] = club.removesuffix(' (nicht in der Ergebnisliste)')
