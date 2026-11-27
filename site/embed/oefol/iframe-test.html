@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meistertafel – ÖFOL-Einbettungstest</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #111; background: #fff; font: 16px/1.5 system-ui, -apple-system, sans-serif; }
+    .shell { width: min(1088px, calc(100% - 40px)); margin: auto; }
+    .utility { display: flex; align-items: center; gap: 20px; padding-top: 48px; }
+    .search { flex: 1; height: 44px; padding: 0 16px; border-radius: 24px; background: #f4f4f4; display: flex; align-items: center; font-size: 12px; font-weight: 700; }
+    .search::before { content: '⌕'; margin-right: 7px; color: #51555b; font-size: 30px; line-height: 1; }
+    .anne { padding: 10px 23px; border-radius: 24px; background: #dc292d; color: white; text-decoration: none; white-space: nowrap; }
+    .sticky { position: sticky; top: 10px; z-index: 2; background: white; }
+    .navigation { min-height: 100px; display: flex; align-items: center; gap: 30px; }
+    .brand { display: flex; align-items: center; gap: 8px; text-decoration: none; flex: none; }
+    .symbol { width: 52px; height: 39px; }
+    .wordmark { width: 120px; height: auto; }
+    .links { display: flex; align-items: center; justify-content: center; gap: 20px; flex: 1; font-size: 14px; font-weight: 650; white-space: nowrap; }
+    .links a { color: #111; text-decoration: none; }
+    .links a::after { content: ' ▾'; font-size: 11px; }
+    .extras { color: #e30613; font-size: 13px; font-weight: 600; white-space: nowrap; }
+    .extras div + div { margin-top: 12px; }
+    .menu { display: none; font-size: 25px; }
+    main { padding-bottom: 20px; }
+    iframe { display: block; width: 100%; height: 85vh; height: 85dvh; max-height: 1000px; border: 0; }
+    .test-note { padding: 10px 0; border-top: 1px solid #eee; color: #666; font-size: 12px; }
+    footer { margin-top: 36px; padding: 38px 0 64px; background: #222; color: white; }
+    footer p { margin: 0; }
+    @media (max-width: 950px) {
+      .utility { padding-top: 34px; gap: 20px; }
+      .navigation { min-height: 90px; padding: 0 16px; justify-content: space-between; }
+      .links, .extras { display: none; }
+      .menu { display: block; }
+      .symbol { width: 42px; }
+      .wordmark { width: 105px; }
+    }
+    @media (max-width: 480px) {
+      .utility { width: calc(100% - 20px); }
+      .search { min-width: 0; }
+      .anne { padding-inline: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="utility shell" aria-label="Nachbildung ÖFOL-Suche">
+    <div class="search">Suche ...</div>
+    <a class="anne" href="https://anne.orienteeringaustria.at/">◉ ANNE</a>
+  </div>
+  <header class="sticky">
+    <div class="navigation shell">
+      <a class="brand" href="https://www.orienteeringaustria.at/" aria-label="Orienteering Austria">
+        <svg class="symbol" viewBox="0 0 51 38" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+          <path d="M50.8392 37.7333L49.72 35.8216L33.18 7.49955L33.1466 7.51838C30.6987 3.59614 26.322 0.96875 21.3262 0.96875C13.6634 0.96875 7.43408 7.13228 7.43408 14.7084C7.43408 22.2845 13.6681 28.448 21.331 28.448C23.4026 28.448 25.3648 27.9819 27.1364 27.1767L20.969 37.738H50.8439L50.8392 37.7333ZM46.372 35.186H25.4314L35.8993 17.2557L46.3672 35.186H46.372ZM10.0106 14.7084C10.0106 8.54014 15.0874 3.5208 21.3262 3.5208C27.565 3.5208 32.6418 8.54014 32.6418 14.7084C32.6418 20.8766 27.565 25.896 21.3262 25.896C15.0874 25.896 10.0106 20.8766 10.0106 14.7084Z" fill="#171717"/>
+          <path d="M19.4833 13.6536L25.9793 6.07751L26.5603 6.41182L23.1647 15.7725L19.4785 13.6536Z" fill="#e30613"/>
+          <path d="M16.6782 23.3345L16.0972 23.0002L19.4833 13.6489L23.1694 15.7678Z" fill="#171717"/>
+          <path d="M8.69144 23.9466L0.5 37.7098H6.38641L12.4585 27.5675C11 26.6 9.5 25 8.69144 23.9466M21.2928 30.2279C19.7 30.2 18.2 30 16.8304 29.6111L11.9536 37.7051H17.84L22.3834 30.1761Z" fill="#e30613"/>
+        </svg>
+        <img class="wordmark" src="https://www.orienteeringaustria.at/wp-content/uploads/2024/10/oa.svg" alt="Orienteering Austria">
+      </a>
+      <nav class="links" aria-label="Nachbildung der ÖFOL-Navigation"><a href="https://www.orienteeringaustria.at/news/">News</a><a href="https://www.orienteeringaustria.at/termine/meistertafel/">Termine/Ergebnisse</a><a href="https://www.orienteeringaustria.at/disziplinen/orientierungslauf/">Disziplinen</a><a href="https://www.orienteeringaustria.at/kaderathleten/">Nationalteams</a><a href="https://www.orienteeringaustria.at/">Verband</a><a href="https://www.orienteeringaustria.at/">Downloads</a></nav>
+      <div class="extras"><div>Jetzt ausprobieren</div><div>Aus- &amp; Fortbildung</div></div>
+      <span class="menu" aria-label="Menü (Darstellung)">☰</span>
+    </div>
+  </header>
+  <main class="shell">
+    <iframe src="./" title="Österreichische Meistertafel" loading="lazy"></iframe>
+    <p class="test-note">Lokale Simulation der ÖFOL-Seite – keine Änderung an der Website von Orienteering Austria.</p>
+  </main>
+  <footer><div class="shell"><p>Österreichischer Fachverband für Orientierungslauf</p><p>Haus des Sports · Prinz Eugen-Straße 12 · 1040 Wien</p></div></footer>
+</body>
+</html>

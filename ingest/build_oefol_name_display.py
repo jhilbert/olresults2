@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def key(value):
     return unicodedata.normalize('NFC', ' '.join(value.split())).casefold()
 
-def build(awards, users, confirmations):
+def build(awards, users, confirmations, corrections=None):
     spellings = defaultdict(set)
     for user in users:
         first, last = user.get('first_name'), user.get('last_name')
@@ -34,13 +34,20 @@ def build(awards, users, confirmations):
             raise ValueError(f"Unpassende Quellzeile: {c['source_row']}")
         if c.get('oefol_id') and (not user or (user['first_name'],user['last_name']) != (c['first_name'],c['last_name'])):
             raise ValueError(f"Unpassender Registereintrag: {c['oefol_id']}")
-    return {'schema_version':1,'formats':formats,'confirmations':confirmations}
+    corrections = corrections or []
+    confirmed_rows = {(c['source_row'], c['source_name']) for c in confirmations}
+    for c in corrections:
+        identity = (c['source_row'], c['source_name'])
+        if identity not in rows or identity in confirmed_rows:
+            raise ValueError(f"Unpassende oder doppelte Quellkorrektur: {identity}")
+    return {'schema_version':1,'formats':formats,'confirmations':confirmations,'corrections':corrections}
 
 def main():
     awards=json.loads((ROOT/'site/oefol/meistertafel.json').read_text())['awards']
     users=json.loads((ROOT/'data/raw/anne/user_index.json').read_text())['users']
     confirmed=json.loads((ROOT/'data/review/oefol_meistertafel_person_confirmations.json').read_text())['confirmations']
-    result=build(awards,users,confirmed)
+    corrections=json.loads((ROOT/'data/review/oefol_meistertafel_name_corrections.json').read_text())['corrections']
+    result=build(awards,users,confirmed,corrections)
     (ROOT/'site/oefol/person-display.json').write_text(json.dumps(result,ensure_ascii=False,separators=(',',':'))+'\n')
     print(f"{len(result['formats'])} formatierte Quellnamen, {len(confirmed)} dokumentierte Ergänzungen")
 

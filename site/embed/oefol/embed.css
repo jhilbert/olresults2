@@ -1,0 +1,5 @@
+/* Sticky controls stay inside the iframe's own scroll viewport. */
+.champions-embed .sticky-header { top: 0; }
+.champions-embed .shell { width: min(1160px, calc(100% - 24px)); }
+.champions-embed .page-controls { padding-top: 8px; }
+.champions-embed .data-notice { top: 12px; }

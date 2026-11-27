@@ -270,6 +270,10 @@ def structure(raw, expected_sha=SOURCE_SHA256, only_year=None):
                 if year == 2026 and len(pieces) == 1 and len(expanded) == 5 and x[2] and x[3] and x[4]:
                     current['members'][0]['display_name'] = f'{x[2]} {x[3].upper()}'
                 current['printed_names'] = name
+                if source_id == 'tablepress-55:row-33' and year == 1977 and fmt == 'Staffel':
+                    current['source_title_type'] = current['title_type']
+                    current['title_type'] = 'ÖSTM'
+                    current['notes'].append('title_type_corrected_user_confirmation_2026-11-27')
                 if year == 2026 and club and club.endswith(' (nicht in der Ergebnisliste)'):
                     current['source_club'] = club
                     current['club'] = club.removesuffix(' (nicht in der Ergebnisliste)')

@@ -99,6 +99,23 @@ class MeistertafelTests(unittest.TestCase):
         expected=json.dumps(source.combined_data(),ensure_ascii=False,separators=(',',':'))+'\n'
         self.assertEqual(source.OUT.read_text(),expected)
 
+    def test_1977_staffel_title_user_confirmed_with_source_provenance(self):
+        a = self.by_id['tablepress-55:row-33']
+        self.assertEqual((a['title_type'], a['source_title_type']), ('ÖSTM', 'ÖM'))
+        self.assertEqual([m['name'] for m in a['members']], ['Ernst Bonek', 'Roland Arbter', 'Helmut Grassinger'])
+        self.assertIn('title_type_corrected_user_confirmation_2026-11-27', a['notes'])
+
+    def test_name_corrections_keep_source_rows_and_are_published_in_overlay(self):
+        corrections = json.loads((ROOT / 'data/review/oefol_meistertafel_name_corrections.json').read_text())['corrections']
+        combined = source.combined_data()
+        members = {(m['source_row'],m['name']) for a in combined['awards'] for m in a['members']}
+        self.assertTrue(all((c['source_row'],c['source_name']) in members for c in corrections))
+        self.assertEqual(corrections, json.loads((ROOT / 'site/oefol/person-display.json').read_text())['corrections'])
+        by_key = {(c['source_row'], c['source_name']): c for c in corrections}
+        self.assertEqual(by_key[('tablepress-23:row-79', 'Jandl DOMINIK')]['first_name'], 'Dominik')
+        self.assertEqual(by_key[('tablepress-38:row-84', 'Julia Dal Bianko')]['last_name'], 'Dal-Bianco')
+        self.assertEqual(sum(c['source_name'] == 'Claudia Künzl' for c in corrections), 9)
+
     def test_official_clubs_use_shared_registry(self):
         clubs = {c['code']: c['name'] for c in self.data['official_clubs']}
         self.assertEqual(clubs['GO_'], 'GO_Harzberg/Bad_Voeslau')

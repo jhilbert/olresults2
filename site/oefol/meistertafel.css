@@ -63,3 +63,13 @@ table{width:100%;border-collapse:collapse;font-size:.91rem}th,td{text-align:left
   .results[data-view=people] td:first-child,.results[data-view=clubs] td:first-child{overflow-wrap:anywhere}
 }
 @media(max-width:480px){.sticky-header{top:75px}}
+
+/* Orienteering Austria palette, shared by the standalone and embedded views. */
+:root{--red:#e30613;--red-deep:#e30613;--ink:#333;--muted:#666;--line:#e3e3e3;--bg:#f6f6f6;--red-pale:#fff1f2;--red-border:#f2bdc1}
+.view-switch button[aria-pressed=true]{background:var(--red);border-color:var(--red)}
+.filter-grid select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23e30613' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")}
+.view-switch button,.filter-toggle{border-color:var(--red-border)}
+.filter-toggle,.filter-chevron,.source-badge,.type-tag{background:var(--red-pale)}
+select:focus,input:focus,button:focus-visible,a:focus-visible{outline-color:var(--red)}
+.detail-row td{background:#fafafa;color:var(--ink)}
+tbody tr:hover{background:#fff8f8}

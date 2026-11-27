@@ -289,11 +289,13 @@
   }
   async function init() {
     try {
-      const [response, displayResponse]=await Promise.all([fetch('meistertafel.json'),fetch('person-display.json?v=20261123-1')]);
+      const base = document.body.dataset.sourceBase || '';
+      const [response, displayResponse]=await Promise.all([fetch(`${base}meistertafel.json`),fetch(`${base}person-display.json?v=20261127-2`)]);
       if (!response.ok || !displayResponse.ok) throw Error(`HTTP ${response.ok ? displayResponse.status : response.status}`);
       data=await response.json();
       const display=await displayResponse.json();
       const confirmed=new Map(display.confirmations.map(c=>[`${c.source_row}\u0000${c.source_name}`,c]));
+      for (const c of display.corrections || []) confirmed.set(`${c.source_row}\u0000${c.source_name}`, c);
       for (const award of data.awards) for (const member of award.members) {
         const c=confirmed.get(`${member.source_row}\u0000${member.name}`);
         if (c && member.name === c.source_name) {
@@ -318,7 +320,7 @@
       };
       const showTableStart = () => {
         const table = document.querySelector('.table-wrap');
-        const headerHeight = document.querySelector('.masthead').getBoundingClientRect().height + document.querySelector('.sticky-header').getBoundingClientRect().height;
+        const headerHeight = (document.querySelector('.masthead')?.getBoundingClientRect().height || 0) + document.querySelector('.sticky-header').getBoundingClientRect().height;
         window.scrollTo({top:Math.max(0, table.getBoundingClientRect().top + window.scrollY - headerHeight), behavior:'instant'});
       };
       for (const id of controls) $(id).addEventListener(id==='search'?'input':'change',()=>{resetViewStates();visible=perPage;if(['year','discipline','format'].includes(id))available();render();showTableStart();});
